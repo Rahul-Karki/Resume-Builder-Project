@@ -20,6 +20,7 @@ const registerUser = async (req: Request, res: Response) => {
         message: "User already exists",
       });
     }
+    
     const saltRounds = 10;
 
     const hashedPassword = await bcrypt.hash(password, saltRounds);
