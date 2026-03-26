@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema , Document } from "mongoose";
 
 interface IEducation {
   school: string;
