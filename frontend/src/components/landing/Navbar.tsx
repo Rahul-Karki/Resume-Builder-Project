@@ -13,9 +13,8 @@ const Navbar = () => {
           ResuCraft
         </a>
         <div className="hidden items-center gap-8 md:flex">
-          <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Templates</a>
-          <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Pricing</a>
-          <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Blog</a>
+          <a href="/templates" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Templates</a>
+          <a href="/resume" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Resume</a>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>Log in</Button>

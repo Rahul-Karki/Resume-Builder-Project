@@ -3,6 +3,7 @@ import Login from "./pages/Login"
 import Signup from "./pages/Signup"
 import ForgotPassword from "./pages/ResetPassword"
 import Home from "./pages/Home"
+import Templates from "./pages/Templates"
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/reset-password" element={<ForgotPassword />} />
+        <Route path ="/templates" element={<Templates />} />
       </Routes>
     </BrowserRouter>
   )

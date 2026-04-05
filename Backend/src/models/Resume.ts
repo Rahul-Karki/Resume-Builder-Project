@@ -1,12 +1,11 @@
 import mongoose, { Schema , Document } from "mongoose";
 
 interface IEducation {
-  school: string;
+  institution: string;
   degree: string;
   field: string;
-  startDate: Date;
-  endDate?: Date;
-  grade?: string;
+  year: string;
+  cgpa?: string;
 }
 
 interface IExperience {
@@ -14,6 +13,7 @@ interface IExperience {
   role: string;
   startDate: Date;
   endDate?: Date;
+  location: string;
   description: string[];
 }
 
@@ -25,7 +25,7 @@ interface IProject {
 }
 
 interface IPersonalInfo {
-  fullName: string;
+  name: string;
   email: string;
   phone: string;
   location?: string;
@@ -79,12 +79,11 @@ const ResumeSchema = new Schema<IResume>(
     education: {
       type: [
         {
-          school: String,
+          institution: String,
           degree: String,
           field: String,
-          startDate: Date,
-          endDate: Date,
-          grade: String,
+          year: String,
+          cgpa: String,
         },
       ],
       default: [],
