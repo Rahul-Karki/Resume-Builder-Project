@@ -7,6 +7,7 @@ import { CompactTemplate } from "@/components/templates/CompactTemplate";
 import { SidebarTemplate } from "@/components/templates/SidebarTemplate";
 import { templates } from "@/data/templateMeta";
 import { sampleData } from "@/data/sampleData";
+import { useNavigate } from "react-router-dom";
 
 const renderers: Record<string, (data: ResumeDocument) => JSX.Element> = {
   classic:   (d) => <ClassicTemplate data={d} />,
@@ -228,6 +229,7 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
 // MAIN TEMPLATES PAGE
 // ═══════════════════════════════════════════════════════════════
 export default function TemplatesPage() {
+  const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("All");
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -380,7 +382,8 @@ export default function TemplatesPage() {
               <div className="tp-modal-actions">
                 <button
                   onClick={() => {
-                    alert(`✓ Navigating to builder with "${previewTemplate.name}" template selected.\n\nIn your app: navigate('/builder?template=${previewId}')`);
+                    if (!previewId) return;
+                    navigate(`/builder?template=${previewId}`);
                   }}
                   className="tp-modal-use-btn"
                   style={{ padding: "10px 24px" }}

@@ -20,9 +20,10 @@ const TEMPLATES = [
 
 interface Props {
   onDownload: () => void;
+  canDownload: boolean;
 }
 
-export function BuilderToolbar({ onDownload }: Props) {
+export function BuilderToolbar({ onDownload, canDownload }: Props) {
   const { resume, ui, saveResume, setPreviewScale, initFromTemplate, setTitle } = useResumeBuilderStore();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(resume.title);
@@ -160,11 +161,14 @@ export function BuilderToolbar({ onDownload }: Props) {
       {/* Actions */}
       <button
         onClick={onDownload}
+        disabled={!canDownload}
+        title={canDownload ? "Download as PDF" : "Save resume first to enable download"}
         style={{
           background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 7,
-          color: "#C8C7C0", fontSize: 13, fontWeight: 600, padding: "7px 14px",
-          cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
+          color: canDownload ? "#C8C7C0" : "#555", fontSize: 13, fontWeight: 600, padding: "7px 14px",
+          cursor: canDownload ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           flexShrink: 0,
+          opacity: canDownload ? 1 : 0.7,
         }}
       >
         ↓ Download PDF

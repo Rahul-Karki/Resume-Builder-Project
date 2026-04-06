@@ -1,20 +1,18 @@
 import { GoogleLogin } from "@react-oauth/google";
-import axios from "axios";
+import { api } from "@/services/api";
 
 const GoogleAuthButton = () => {
   return (
     <GoogleLogin
       onSuccess={async (credentialResponse) => {
         try {
-          const res = await axios.post(
-            "http://localhost:5000/api/auth/google-login",
-            {
-              token: credentialResponse.credential,
-            },
-            { withCredentials: true }
-          );
+          const res = await api.post("/auth/google-login", {
+            token: credentialResponse.credential,
+          });
 
-          console.log(res.data);
+          if (res.data?.accessToken) {
+            localStorage.setItem("accessToken", res.data.accessToken);
+          }
 
           // redirect after login
           window.location.href = "/";

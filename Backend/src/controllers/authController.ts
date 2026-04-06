@@ -42,15 +42,6 @@ const registerUser = async (req: Request, res: Response) => {
     await user.save();
 
     const accessToken = generateAccessToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
-
-    res.cookie("refreshToken", refreshToken,
-      {
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-      }
-    );
 
     res.status(201).json({
       accessToken,
@@ -106,14 +97,6 @@ const login = async (req: Request, res: Response) => {
 
     // 5. Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
-
-    // 6. Set cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-    });
 
     // 7. Send response
     res.status(200).json({
@@ -339,18 +322,11 @@ const googleLogin = async (req: Request, res: Response) => {
 
     // 🔑 Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-    });
 
     return res.json({
       user,
       message: "Google login successful",
-      accessToken
+      accessToken,
     });
   } catch (error) {
     console.error(error);

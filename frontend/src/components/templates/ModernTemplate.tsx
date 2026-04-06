@@ -6,7 +6,8 @@ import {
 } from "@/components/templates/templateHelpers";
 
 export function ModernTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s } = data;
+  const { personalInfo: p, sections: s, sectionVisibility } = data;
+  const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
   const accent = "#0F766E";
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
@@ -37,77 +38,101 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
       <style>{css}</style>
       <div className="mod-wrap">
         <h1 className="mod-name">{p.name}</h1>
-        <div className="mod-tagline">Senior Software Engineer · Distributed Systems · Team Leadership</div>
-        <div className="mod-contact">
-          <span>{p.email}</span><span>·</span><span>{p.phone}</span><span>·</span>
-          <span>{p.location}</span><span>·</span><span>{p.linkedin}</span><span>·</span><span>{p.portfolio}</span>
-        </div>
+        {p.title && <div className="mod-tagline">{p.title}</div>}
+        {contactItems.length > 0 && (
+          <div className="mod-contact">
+            {contactItems.map((item, i) => (
+              <span key={i}>{i > 0 ? ` · ${item}` : item}</span>
+            ))}
+          </div>
+        )}
  
-        <div className="mod-section">
-          <div className="mod-section-title">Summary</div>
-          <p className="mod-summary">{p.summary}</p>
-        </div>
+        {p.summary && (
+          <div className="mod-section">
+            <div className="mod-section-title">Summary</div>
+            <p className="mod-summary">{p.summary}</p>
+          </div>
+        )}
  
-        <div className="mod-section">
-          <div className="mod-section-title">Experience</div>
-          {s.experience.map((e, i) => (
-            <div className="mod-job" key={i}>
-              <div className="mod-job-head">
-                <div>
-                  <div className="mod-role">{e.role}</div>
-                  <div className="mod-company">{e.company} · {e.location}</div>
+        {sectionVisibility.experience && s.experience.length > 0 && (
+          <div className="mod-section">
+            <div className="mod-section-title">Experience</div>
+            {s.experience.map((e, i) => (
+              <div className="mod-job" key={i}>
+                <div className="mod-job-head">
+                  <div>
+                    <div className="mod-role">{e.role}</div>
+                    <div className="mod-company">{e.company} · {e.location}</div>
+                  </div>
+                  <div className="mod-meta">{formatDateRange(e.start, e.end, e.current)}</div>
                 </div>
-                <div className="mod-meta">{formatDateRange(e.start, e.end, e.current)}</div>
+                <ul className="mod-bullets">
+                  {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
+                </ul>
               </div>
-              <ul className="mod-bullets">
-                {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
-              </ul>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
  
-        <div className="mod-section">
-          <div className="mod-section-title">Education</div>
-          {s.education.map((e, i) => (
-            <div className="mod-edu" key={i}>
-              <div>
-                <strong>{e.institution}</strong>
-                <span style={{ color: "#555", fontSize: "9.5pt", marginLeft: 8 }}>{e.degree} {e.field}</span>
+        {sectionVisibility.education && s.education.length > 0 && (
+          <div className="mod-section">
+            <div className="mod-section-title">Education</div>
+            {s.education.map((e, i) => (
+              <div className="mod-edu" key={i}>
+                <div>
+                  <strong>{e.institution}</strong>
+                  <span style={{ color: "#555", fontSize: "9.5pt", marginLeft: 8 }}>{e.degree} {e.field}</span>
+                </div>
+                <span style={{ fontSize: "9pt", color: "#777" }}>{e.year}</span>
               </div>
-              <span style={{ fontSize: "9pt", color: "#777" }}>{e.year}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
  
-        <div className="mod-section">
-          <div className="mod-section-title">Skills</div>
-          {s.skills.map((sk, i) => (
-            <div key={i} style={{ marginBottom: 6 }}>
-              <div style={{ fontSize: "9.5pt", fontWeight: 600, marginBottom: 4, color: "#333" }}>{sk.category}</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {sk.items.map((item, j) => (
-                  <span className="mod-skill-chip" key={j}>{item}</span>
-                ))}
+        {sectionVisibility.skills && s.skills.length > 0 && (
+          <div className="mod-section">
+            <div className="mod-section-title">Skills</div>
+            {s.skills.map((sk, i) => (
+              <div key={i} style={{ marginBottom: 6 }}>
+                <div style={{ fontSize: "9.5pt", fontWeight: 600, marginBottom: 4, color: "#333" }}>{sk.category}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {sk.items.map((item, j) => (
+                    <span className="mod-skill-chip" key={j}>{item}</span>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
  
-        <div className="mod-section">
-          <div className="mod-section-title">Projects</div>
-          {s.projects.map((pr, i) => (
-            <div className="mod-proj" key={i}>
-              <span className="mod-proj-name">{pr.name}</span>
-              <span style={{ color: "#888", fontSize: "9pt", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
-              <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{pr.description}</div>
-            </div>
-          ))}
-        </div>
+        {sectionVisibility.projects && s.projects.length > 0 && (
+          <div className="mod-section">
+            <div className="mod-section-title">Projects</div>
+            {s.projects.map((pr, i) => (
+              <div className="mod-proj" key={i}>
+                <span className="mod-proj-name">{pr.name}</span>
+                <span style={{ color: "#888", fontSize: "9pt", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
+                <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{pr.description}</div>
+              </div>
+            ))}
+          </div>
+        )}
  
-        <div className="mod-section">
-          <div className="mod-section-title">Certifications</div>
-          {s.certifications.map((c, i) => <div className="mod-cert" key={i}>→ {formatCertification(c)}</div>)}
-        </div>
+        {sectionVisibility.certifications && s.certifications.length > 0 && (
+          <div className="mod-section">
+            <div className="mod-section-title">Certifications</div>
+            {s.certifications.map((c, i) => <div className="mod-cert" key={i}>→ {formatCertification(c)}</div>)}
+          </div>
+        )}
+
+        {sectionVisibility.languages && s.languages.length > 0 && (
+          <div className="mod-section">
+            <div className="mod-section-title">Languages</div>
+            {s.languages.map((l, i) => (
+              <div className="mod-cert" key={i}>{l.language}{l.proficiency ? ` (${l.proficiency})` : ""}</div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

@@ -13,10 +13,10 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import axios from "axios"
 import React from "react"
 import { useNavigate } from "react-router-dom"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
+import { api } from "@/services/api"
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const [email, setEmail] = React.useState("")
@@ -56,14 +56,15 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     try {
       setLoading(true)
 
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/signup",
-        {
-          name,
-          email,
-          password,
-        }
-      )
+      const res = await api.post("/auth/signup", {
+        name,
+        email,
+        password,
+      })
+
+      if (res.data?.accessToken) {
+        localStorage.setItem("accessToken", res.data.accessToken)
+      }
 
       // ✅ Success
       setSuccess("Account created successfully! Redirecting...")

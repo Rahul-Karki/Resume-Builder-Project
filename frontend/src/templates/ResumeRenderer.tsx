@@ -1,5 +1,9 @@
 import React from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
+import { CompactTemplate } from "@/components/templates/CompactTemplate";
+import { ExecutiveTemplate } from "@/components/templates/ExecutiveTemplate";
+import { ModernTemplate } from "@/components/templates/ModernTemplate";
+import { SidebarTemplate } from "@/components/templates/SidebarTemplate";
 
 interface Props {
   resume: ResumeDocument;
@@ -135,18 +139,24 @@ function ClassicTemplate({ resume }: Props) {
     }}>
       {/* Header */}
       <div style={{ marginBottom: 18, textAlign: style.headerAlign === "center" ? "center" : "left" }}>
-        <h1 style={{ fontFamily: style.headingFont, fontSize: "26pt", fontWeight: 600, margin: "0 0 2px", color: style.headingColor, letterSpacing: "-0.3px" }}>
-          {p.name || "Your Name"}
-        </h1>
+        {p.name && (
+          <h1 style={{ fontFamily: style.headingFont, fontSize: "26pt", fontWeight: 600, margin: "0 0 2px", color: style.headingColor, letterSpacing: "-0.3px" }}>
+            {p.name}
+          </h1>
+        )}
         {p.title && <div style={{ fontSize: "11pt", color: style.accentColor, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", fontSize: "9pt", color: style.mutedColor, justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
-          {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).map((v, i) => (
-            <span key={i}>{v}</span>
-          ))}
-        </div>
+        {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", fontSize: "9pt", color: style.mutedColor, justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
+            {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).map((v, i) => (
+              <span key={i}>{v}</span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {style.showDividers && <hr style={{ border: "none", borderTop: `1.5px solid ${style.headingColor}`, marginBottom: spacingMap[style.sectionSpacing] }} />}
+      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.portfolio || p.summary || sectionOrder.some((key) => sectionVisibility[key] && sectionMap[key])) && (
+        <hr style={{ border: "none", borderTop: `1.5px solid ${style.headingColor}`, marginBottom: spacingMap[style.sectionSpacing] }} />
+      )}
 
       {/* Summary */}
       {p.summary && (
@@ -162,13 +172,21 @@ function ClassicTemplate({ resume }: Props) {
 }
 
 // ─── Template Router ───────────────────────────────────────────────────────────
-// For a production app you'd import more template variants here.
-// All templates receive the same ResumeDocument and apply style variables differently.
+const ClassicTemplateAdapter = ({ data }: { data: ResumeDocument }) => (
+  <ClassicTemplate resume={data} />
+);
+
 export function ResumeRenderer({ resume, forExport = false }: Props) {
-  // Currently all templates use the same base renderer with style variables.
-  // You can swap this for template-specific layouts:
-  // if (resume.templateId === "sidebar") return <SidebarTemplate resume={resume} />;
-  return <ClassicTemplate resume={resume} forExport={forExport} />;
+  const templatesById: Record<string, React.ComponentType<{ data: ResumeDocument }>> = {
+    classic: ClassicTemplateAdapter,
+    executive: ExecutiveTemplate,
+    modern: ModernTemplate,
+    compact: CompactTemplate,
+    sidebar: SidebarTemplate,
+  };
+
+  const SelectedTemplate = templatesById[resume.templateId] ?? ClassicTemplateAdapter;
+  return <SelectedTemplate data={resume} />;
 }
 
 export default ResumeRenderer;

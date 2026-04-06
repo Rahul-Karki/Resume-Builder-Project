@@ -230,6 +230,32 @@ function EducationSection() {
 // ─── SKILLS SECTION ────────────────────────────────────────────────────────────
 function SkillsSection() {
   const { resume, addSkillGroup, updateSkillGroup, removeSkillGroup } = useResumeBuilderStore();
+  const [skillDrafts, setSkillDrafts] = useState<Record<string, string>>({});
+
+  const commitSkills = (id: string) => {
+    const raw = skillDrafts[id];
+    if (raw === undefined) return;
+
+    const parsed = raw
+      .split(",")
+      .map(i => i.trim())
+      .filter(Boolean);
+
+    updateSkillGroup(id, "items", parsed);
+    setSkillDrafts(prev => ({ ...prev, [id]: parsed.join(", ") }));
+  };
+
+  const handleSkillChange = (id: string, raw: string) => {
+    setSkillDrafts(prev => ({ ...prev, [id]: raw }));
+
+    const parsed = raw
+      .split(",")
+      .map(i => i.trim())
+      .filter(Boolean);
+
+    updateSkillGroup(id, "items", parsed);
+  };
+
   return (
     <div>
       <div style={{ padding: "8px 10px", background: "#161616", borderRadius: 8, marginBottom: 12, fontSize: 11, color: "#555", lineHeight: 1.5 }}>
@@ -244,8 +270,15 @@ function SkillsSection() {
           <div>
             <span style={label}>Skills (comma-separated)</span>
             <input
-              value={sk.items.join(", ")}
-              onChange={v => updateSkillGroup(sk.id, "items", v.target.value.split(",").map(i => i.trim()).filter(Boolean))}
+              value={skillDrafts[sk.id] ?? sk.items.join(", ")}
+              onChange={v => handleSkillChange(sk.id, v.target.value)}
+              onBlur={() => commitSkills(sk.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitSkills(sk.id);
+                }
+              }}
               placeholder="Go, TypeScript, Python, Rust"
               style={inp}
             />

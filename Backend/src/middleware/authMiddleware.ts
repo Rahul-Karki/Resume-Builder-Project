@@ -1,38 +1,41 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
   user?: { userId: string };
 }
 
-const authMiddleware = (
-  req: AuthRequest,
+const authMiddleware: RequestHandler = (
+  req,
   res: Response,
   next: NextFunction,
-) => {
+) : void => {
   try {
-    const authHeader = req.headers.authorization;
+    const authReq = req as AuthRequest;
+    const authHeader = authReq.headers.authorization;
 
-    if (!authHeader) {
-      return res.status(401).json({
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : undefined;
+
+    if (!token) {
+      res.status(401).json({
         message: "Access token missing",
       });
+      return;
     }
-
-    const token = authHeader.split(" ")[1];
 
     const decoded = jwt.verify(
       token,
       process.env.JWT_ACCESS_SECRET as string,
     ) as { userId: string };
 
-    req.user = decoded;
+    authReq.user = decoded;
 
     next();
   } catch (error) {
-    return res.status(403).json({
+    res.status(403).json({
       message: "Invalid access token",
     });
+    return;
   }
 };
 

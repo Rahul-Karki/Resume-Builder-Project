@@ -1,9 +1,17 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { generateAccessToken } from "../utils/generateToken";
+import { parseCookies } from "../utils/cookieParser";
+
+const cookieBaseOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+};
 
 const refreshAccessToken = (req: Request, res: Response) => {
-  const token = req.cookies.refreshToken;
+  const cookies = parseCookies(req.headers.cookie);
+  const token = cookies.refreshToken;
 
   if (!token) return res.sendStatus(401);
 
@@ -13,9 +21,8 @@ const refreshAccessToken = (req: Request, res: Response) => {
     const newAccessToken = generateAccessToken(decoded.userId);
 
     res.cookie("accessToken", newAccessToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      ...cookieBaseOptions,
+      maxAge: 15 * 60 * 1000,
     });
 
     return res.json({ message: "Token refreshed" });

@@ -6,7 +6,8 @@ import {
 } from "./templateHelpers";
 
 export function CompactTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s } = data;
+  const { personalInfo: p, sections: s, sectionVisibility } = data;
+  const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&display=swap');
     .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; max-width:794px; margin:0 auto; box-sizing:border-box; font-size:9.5pt; line-height:1.45; }
@@ -37,19 +38,26 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
       <div className="comp-wrap">
         <div className="comp-header">
           <div className="comp-name">{p.name}</div>
-          <div className="comp-contact">
-            <span>{p.email}</span><span>·</span><span>{p.phone}</span><span>·</span>
-            <span>{p.location}</span><span>·</span><span>{p.linkedin}</span><span>·</span><span>{p.portfolio}</span>
+          {p.title && <div style={{ fontSize: "9pt", color: "#555", marginBottom: 6 }}>{p.title}</div>}
+          {contactItems.length > 0 && (
+            <div className="comp-contact">
+              {contactItems.map((item, i) => (
+                <span key={i}>{i > 0 ? ` · ${item}` : item}</span>
+              ))}
+            </div>
+          )}
+        </div>
+ 
+        {p.summary && (
+          <div className="comp-row">
+            <div className="comp-label">Summary</div>
+            <div className="comp-summary">{p.summary}</div>
           </div>
-        </div>
+        )}
  
-        <div className="comp-row">
-          <div className="comp-label">Summary</div>
-          <div className="comp-summary">{p.summary}</div>
-        </div>
+        {sectionVisibility.experience && s.experience.length > 0 && <hr className="comp-section-rule" />}
  
-        <hr className="comp-section-rule" />
- 
+        {sectionVisibility.experience && s.experience.length > 0 && (
         <div className="comp-row" style={{ alignItems: "start" }}>
           <div className="comp-label" style={{ paddingTop: 3 }}>Experience</div>
           <div>
@@ -70,9 +78,11 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
             ))}
           </div>
         </div>
+        )}
  
-        <hr className="comp-section-rule" />
+        {sectionVisibility.education && s.education.length > 0 && <hr className="comp-section-rule" />}
  
+        {sectionVisibility.education && s.education.length > 0 && (
         <div className="comp-row">
           <div className="comp-label">Education</div>
           <div>
@@ -87,9 +97,11 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
             ))}
           </div>
         </div>
+        )}
  
-        <hr className="comp-section-rule" />
+        {sectionVisibility.skills && s.skills.length > 0 && <hr className="comp-section-rule" />}
  
+        {sectionVisibility.skills && s.skills.length > 0 && (
         <div className="comp-row">
           <div className="comp-label">Skills</div>
           <div>
@@ -101,9 +113,11 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
             ))}
           </div>
         </div>
+        )}
  
-        <hr className="comp-section-rule" />
+        {sectionVisibility.projects && s.projects.length > 0 && <hr className="comp-section-rule" />}
  
+        {sectionVisibility.projects && s.projects.length > 0 && (
         <div className="comp-row">
           <div className="comp-label">Projects</div>
           <div>
@@ -116,15 +130,31 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
             ))}
           </div>
         </div>
+        )}
  
-        <hr className="comp-section-rule" />
+        {sectionVisibility.certifications && s.certifications.length > 0 && <hr className="comp-section-rule" />}
  
+        {sectionVisibility.certifications && s.certifications.length > 0 && (
         <div className="comp-row">
           <div className="comp-label">Certs</div>
           <div>
             {s.certifications.map((c, i) => <div className="comp-cert" key={i}>{formatCertification(c)}</div>)}
           </div>
         </div>
+        )}
+
+        {sectionVisibility.languages && s.languages.length > 0 && <hr className="comp-section-rule" />}
+
+        {sectionVisibility.languages && s.languages.length > 0 && (
+        <div className="comp-row">
+          <div className="comp-label">Languages</div>
+          <div>
+            {s.languages.map((l, i) => (
+              <div className="comp-cert" key={i}>{l.language}{l.proficiency ? ` (${l.proficiency})` : ""}</div>
+            ))}
+          </div>
+        </div>
+        )}
       </div>
     </>
   );

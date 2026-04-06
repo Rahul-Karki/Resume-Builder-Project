@@ -19,10 +19,11 @@ app.use(
 
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
+import resumeRoutes from "./router/resume.routes";
 
 app.use("/api/auth",authRoutes);
 app.use("/api",refreshRoutes);
- // app.use("/api/users", userRoutes);
+app.use("/api/resumes", resumeRoutes);
 
  
 app.listen(process.env.PORT, () => {

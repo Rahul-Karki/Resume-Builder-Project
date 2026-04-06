@@ -7,9 +7,27 @@ import {
   defaultStyle, defaultPersonalInfo, defaultResumeSections,
   defaultSectionVisibility, defaultSectionOrder,
 } from "@/types/resume-types";
+import { api } from "@/services/api";
 
 // ─── Helper: generate IDs ──────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9);
+
+const hasResumeContent = (resume: ResumeDocument) => {
+  const p = resume.personalInfo;
+  const s = resume.sections;
+
+  const personalFields = [
+    p.name, p.title, p.email, p.phone, p.location, p.linkedin, p.portfolio, p.summary,
+  ];
+
+  return personalFields.some(value => value.trim().length > 0)
+    || s.experience.some(entry => [entry.company, entry.role, entry.start, entry.end, entry.location, ...entry.bullets].some(value => value.trim().length > 0))
+    || s.education.some(entry => [entry.institution, entry.degree, entry.field, entry.year, entry.cgpa].some(value => value.trim().length > 0))
+    || s.skills.some(group => group.category.trim().length > 0 || group.items.some(item => item.trim().length > 0))
+    || s.projects.some(entry => [entry.name, entry.description, entry.tech, entry.link].some(value => value.trim().length > 0))
+    || s.certifications.some(entry => [entry.name, entry.issuer, entry.year].some(value => value.trim().length > 0))
+    || s.languages.some(entry => entry.language.trim().length > 0 || entry.proficiency.trim().length > 0);
+};
 
 // ─── Store Shape ───────────────────────────────────────────────────────────────
 interface ResumeBuilderStore {
@@ -330,6 +348,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             languages: [...s.resume.sections.languages, { id: uid(), language: "", proficiency: "Fluent" }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, languages: true },
         },
         ui: { ...s.ui, isDirty: true },
       })),
@@ -400,12 +419,27 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       set(s => ({ ui: { ...s.ui, isSaving: true, saveError: null } }));
       try {
         const { resume } = get();
-        // Simulate API call — replace with real fetch:
-        // const res = await fetch('/api/resumes', { method: resume.id ? 'PUT' : 'POST', body: JSON.stringify(resume), headers: {'Content-Type':'application/json','Authorization': `Bearer ${token}`} });
-        await new Promise(r => setTimeout(r, 900));
-        const savedId = resume.id ?? `res_${Date.now()}`;
+
+        if (!hasResumeContent(resume)) {
+          set(s => ({ ui: { ...s.ui, isSaving: false, saveError: "Please enter information before saving your resume." } }));
+          return;
+        }
+
+        const token = localStorage.getItem("accessToken");
+
+        if (!token) {
+          set(s => ({ ui: { ...s.ui, isSaving: false, saveError: "Please login before saving your resume." } }));
+          return;
+        }
+
+        const response = resume.id
+          ? await api.put(`/resumes/${resume.id}`, resume)
+          : await api.post(`/resumes`, resume);
+
+        const savedResume = response.data?.resume ?? response.data;
+        const savedId = savedResume?._id ?? savedResume?.id ?? resume.id ?? `res_${Date.now()}`;
         set(s => ({
-          resume: { ...s.resume, id: savedId, updatedAt: new Date().toISOString() },
+          resume: { ...s.resume, id: savedId, updatedAt: savedResume?.updatedAt ?? new Date().toISOString() },
           ui: { ...s.ui, isSaving: false, isSaved: true, isDirty: false },
         }));
       } catch (err) {
@@ -415,9 +449,27 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
 
     // ─── Load ────────────────────────────────────────────────────────────────
     loadResume: async (id) => {
-      // Replace with: const data = await fetch(`/api/resumes/${id}`).then(r => r.json());
-      await new Promise(r => setTimeout(r, 300));
-      // Stub: actual load would set resume state from API response
+      try {
+        const token = localStorage.getItem("accessToken");
+
+        if (!token) {
+          set(s => ({ ui: { ...s.ui, saveError: "Please log in before loading a resume." } }));
+          return;
+        }
+
+        const response = await api.get(`/resumes/${id}`);
+        const loadedResume = response.data?.resume ?? response.data;
+
+        set(s => ({
+          resume: {
+            ...loadedResume,
+            id: loadedResume._id ?? loadedResume.id ?? id,
+          },
+          ui: { ...s.ui, isSaved: true, isDirty: false, saveError: null },
+        }));
+      } catch (error) {
+        set(s => ({ ui: { ...s.ui, saveError: "Failed to load resume." } }));
+      }
     },
   }))
 );

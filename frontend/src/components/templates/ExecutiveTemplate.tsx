@@ -6,7 +6,14 @@ import {
 } from "./templateHelpers";
 
 export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s } = data;
+  const { personalInfo: p, sections: s, sectionVisibility } = data;
+  const contactItems = [
+    p.email ? `✉ ${p.email}` : "",
+    p.phone ? `☎ ${p.phone}` : "",
+    p.location ? `⌖ ${p.location}` : "",
+    p.linkedin ? `⌘ ${p.linkedin}` : "",
+    p.portfolio ? `◈ ${p.portfolio}` : "",
+  ].filter(Boolean);
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Lato:wght@300;400;700&display=swap');
     .exec-wrap { font-family:'Lato',sans-serif; color:#1c1c1c; background:#fff; max-width:794px; margin:0 auto; box-sizing:border-box; }
@@ -38,16 +45,15 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
       <div className="exec-wrap">
         <div className="exec-header">
           <div className="exec-name">{p.name}</div>
-          <div className="exec-title-bar">Senior Software Engineer</div>
-          <div className="exec-contact-bar">
-            <span>✉ {p.email}</span>
-            <span>☎ {p.phone}</span>
-            <span>⌖ {p.location}</span>
-            <span>⌘ {p.linkedin}</span>
-            <span>◈ {p.portfolio}</span>
-          </div>
+          {p.title && <div className="exec-title-bar">{p.title}</div>}
+          {contactItems.length > 0 && (
+            <div className="exec-contact-bar">
+              {contactItems.map((item, i) => <span key={i}>{item}</span>)}
+            </div>
+          )}
         </div>
         <div className="exec-body">
+          {sectionVisibility.experience && s.experience.length > 0 && (
           <div className="exec-section">
             <div className="exec-section-title">Professional Experience</div>
             {s.experience.map((e, i) => (
@@ -66,6 +72,8 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
               </div>
             ))}
           </div>
+          )}
+          {sectionVisibility.education && s.education.length > 0 && (
           <div className="exec-section">
             <div className="exec-section-title">Education</div>
             {s.education.map((e, i) => (
@@ -78,6 +86,8 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
               </div>
             ))}
           </div>
+          )}
+          {sectionVisibility.skills && s.skills.length > 0 && (
           <div className="exec-section">
             <div className="exec-section-title">Core Competencies</div>
             {s.skills.map((sk, i) => (
@@ -87,6 +97,8 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
               </div>
             ))}
           </div>
+          )}
+          {sectionVisibility.projects && s.projects.length > 0 && (
           <div className="exec-section">
             <div className="exec-section-title">Projects</div>
             {s.projects.map((pr, i) => (
@@ -97,10 +109,21 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
               </div>
             ))}
           </div>
+          )}
+          {sectionVisibility.certifications && s.certifications.length > 0 && (
           <div className="exec-section">
             <div className="exec-section-title">Certifications</div>
             {s.certifications.map((c, i) => <div className="exec-cert" key={i}>▸ {formatCertification(c)}</div>)}
           </div>
+          )}
+          {sectionVisibility.languages && s.languages.length > 0 && (
+          <div className="exec-section">
+            <div className="exec-section-title">Languages</div>
+            {s.languages.map((l, i) => (
+              <div className="exec-cert" key={i}>▸ {l.language}{l.proficiency ? ` (${l.proficiency})` : ""}</div>
+            ))}
+          </div>
+          )}
         </div>
       </div>
     </>

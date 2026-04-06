@@ -15,7 +15,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import axios from "axios"
+import { api } from "@/services/api"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
 
 export function LoginForm({
@@ -41,10 +41,14 @@ export function LoginForm({
   try {
     setLoading(true)
 
-    const res = await axios.post("http://localhost:5000/api/auth/login", {
+    const res = await api.post("/auth/login", {
       email,
       password,
     })
+
+    if (res.data?.accessToken) {
+      localStorage.setItem("accessToken", res.data.accessToken)
+    }
 
     setMessage("Login successful")
 
@@ -82,7 +86,7 @@ export function LoginForm({
     try {
       setLoading(true)
 
-      await axios.post("http://localhost:5000/api/auth/forgot-password", {
+      await api.post("/auth/forgot-password", {
         email,
       })
 

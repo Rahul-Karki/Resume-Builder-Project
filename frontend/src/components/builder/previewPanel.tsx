@@ -5,9 +5,10 @@ import type { ResumeDocument } from "../../types/resume-types";
 
 interface Props {
   onDownload: () => void;
+  canDownload: boolean;
 }
 
-export function PreviewPanel({ onDownload }: Props) {
+export function PreviewPanel({ onDownload, canDownload }: Props) {
   const { resume, ui } = useResumeBuilderStore();
   const scale = ui.previewScale;
   const previewRef = useRef<HTMLDivElement>(null);
@@ -18,11 +19,6 @@ export function PreviewPanel({ onDownload }: Props) {
 
   const scaledW = A4_W * scale;
   const scaledH = A4_H * scale;
-
-  const isEmpty =
-    !resume.personalInfo.name &&
-    resume.sections.experience.length === 0 &&
-    resume.sections.education.length === 0;
 
   return (
     <div style={{
@@ -49,51 +45,47 @@ export function PreviewPanel({ onDownload }: Props) {
 
       {/* Preview scroll area */}
       <div style={{ flex: 1, overflow: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 24px" }}>
-        {isEmpty ? (
-          <EmptyState />
-        ) : (
-          <div style={{ position: "relative" }}>
-            {/* Page shadow */}
-            <div style={{
-              position: "absolute", inset: 0, borderRadius: 4,
-              boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.4)",
-            }} />
+        <div style={{ position: "relative" }}>
+          {/* Page shadow */}
+          <div style={{
+            position: "absolute", inset: 0, borderRadius: 4,
+            boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 4px 16px rgba(0,0,0,0.4)",
+          }} />
 
-            {/* Scale wrapper */}
+          {/* Scale wrapper */}
+          <div
+            style={{
+              width: scaledW,
+              height: scaledH,
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: 4,
+              background: "#ffffff",
+            }}
+          >
+            {/* Inner content at 1:1 then scaled */}
             <div
+              ref={previewRef}
               style={{
-                width: scaledW,
-                height: scaledH,
-                position: "relative",
+                width: A4_W,
+                height: A4_H,
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
                 overflow: "hidden",
-                borderRadius: 4,
-                background: "#ffffff",
               }}
             >
-              {/* Inner content at 1:1 then scaled */}
-              <div
-                ref={previewRef}
-                style={{
-                  width: A4_W,
-                  height: A4_H,
-                  transform: `scale(${scale})`,
-                  transformOrigin: "top left",
-                  overflow: "hidden",
-                }}
-              >
-                <ResumeRenderer resume={resume} />
-              </div>
-            </div>
-
-            {/* Page number label */}
-            <div style={{
-              position: "absolute", bottom: -28, left: "50%", transform: "translateX(-50%)",
-              fontSize: 10, color: "#333", fontFamily: "'Outfit', sans-serif",
-            }}>
-              Page 1
+              <ResumeRenderer resume={resume} />
             </div>
           </div>
-        )}
+
+          {/* Page number label */}
+          <div style={{
+            position: "absolute", bottom: -28, left: "50%", transform: "translateX(-50%)",
+            fontSize: 10, color: "#333", fontFamily: "'Outfit', sans-serif",
+          }}>
+            Page 1
+          </div>
+        </div>
       </div>
 
       {/* Bottom bar with quick actions */}
@@ -110,10 +102,13 @@ export function PreviewPanel({ onDownload }: Props) {
         <div style={{ flex: 1 }} />
         <button
           onClick={onDownload}
+          disabled={!canDownload}
+          title={canDownload ? "Download as PDF" : "Save resume first to enable download"}
           style={{
             background: "none", border: "1px solid #2A2A2A", borderRadius: 6,
-            color: "#888", fontSize: 12, fontWeight: 600, padding: "5px 12px",
-            cursor: "pointer", fontFamily: "inherit",
+            color: canDownload ? "#888" : "#444", fontSize: 12, fontWeight: 600, padding: "5px 12px",
+            cursor: canDownload ? "pointer" : "not-allowed", fontFamily: "inherit",
+            opacity: canDownload ? 1 : 0.65,
           }}
         >
           ↓ Download PDF
@@ -147,20 +142,3 @@ function ATSScore({ resume }: { resume: ResumeDocument }) {
   );
 }
 
-// ─── Empty State ───────────────────────────────────────────────────────────────
-function EmptyState() {
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: 60, textAlign: "center", fontFamily: "'Outfit', sans-serif",
-    }}>
-      <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.15 }}>◎</div>
-      <div style={{ fontSize: 16, fontWeight: 600, color: "#333", marginBottom: 8 }}>
-        Start filling in your details
-      </div>
-      <div style={{ fontSize: 13, color: "#2A2A2A", lineHeight: 1.6, maxWidth: 260 }}>
-        Your resume will appear here in real-time as you type. Begin with your name and contact info.
-      </div>
-    </div>
-  );
-}

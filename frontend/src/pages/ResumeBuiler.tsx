@@ -142,6 +142,7 @@ function downloadResume(resume: ResumeDocument) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ResumeBuilder() {
   const { resume, ui, setActiveTab, saveResume, initFromTemplate } = useResumeBuilderStore();
+  const canDownload = ui.isSaved && !ui.isDirty && !ui.isSaving;
 
   // Init template from URL param on mount
   useEffect(() => {
@@ -175,7 +176,12 @@ export default function ResumeBuilder() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [ui.isDirty]);
 
-  const handleDownload = () => downloadResume(resume);
+  const handleDownload = () => {
+    if (!canDownload) {
+      return;
+    }
+    downloadResume(resume);
+  };
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=EB+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@300;400;700&family=Lora:wght@400;600&family=Source+Serif+4:wght@300;400;600&display=swap');
@@ -195,7 +201,7 @@ export default function ResumeBuilder() {
       <style>{css}</style>
       <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0A0A0A", overflow: "hidden" }}>
         {/* Top Toolbar */}
-        <BuilderToolbar onDownload={handleDownload} />
+        <BuilderToolbar onDownload={handleDownload} canDownload={canDownload} />
 
         {/* Error toast */}
         {ui.saveError && (
@@ -274,7 +280,7 @@ export default function ResumeBuilder() {
                 {/* Hidden 1:1 clone for PDF export — same renderer, no scaling */}
                 <ResumeRenderer resume={resume} />
               </div>
-              <PreviewPanel onDownload={handleDownload} />
+              <PreviewPanel onDownload={handleDownload} canDownload={canDownload} />
             </div>
           </div>
         </div>

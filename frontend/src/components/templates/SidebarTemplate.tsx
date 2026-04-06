@@ -2,7 +2,7 @@ import { ResumeDocument } from "@/types/resume-types";
 import { formatDateRange, formatProjectTech } from "@/components/templates/templateHelpers";
 
 export function SidebarTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s } = data;
+  const { personalInfo: p, sections: s, sectionVisibility } = data;
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;700&display=swap');
     .side-wrap { display:grid; grid-template-columns:210px 1fr; min-height:1040px; max-width:794px; margin:0 auto; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
@@ -36,24 +36,35 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   `;
  
   const allSkillItems = s.skills.flatMap(sk => sk.items);
+  const nameParts = p.name.trim().split(/\s+/).filter(Boolean);
+  const firstName = nameParts[0] || "";
+  const remainingName = nameParts.slice(1).join(" ");
+  const contactItems = [
+    p.email ? { icon: "✉", value: p.email } : null,
+    p.phone ? { icon: "☎", value: p.phone } : null,
+    p.location ? { icon: "⌖", value: p.location } : null,
+    p.linkedin ? { icon: "⌘", value: p.linkedin } : null,
+    p.portfolio ? { icon: "◈", value: p.portfolio } : null,
+  ].filter(Boolean) as Array<{ icon: string; value: string }>;
   return (
     <>
       <style>{css}</style>
       <div className="side-wrap">
         {/* LEFT SIDEBAR */}
         <div className="side-left">
-          <div className="side-name">{p.name.split(" ")[0]}<br />{p.name.split(" ").slice(1).join(" ")}</div>
-          <div className="side-subtitle">Software Engineer</div>
+          {p.name && <div className="side-name">{firstName}<br />{remainingName}</div>}
+          {p.title && <div className="side-subtitle">{p.title}</div>}
  
-          <div className="side-left-section">
-            <div className="side-left-title">Contact</div>
-            <div className="side-contact-item"><span>✉</span><span>{p.email}</span></div>
-            <div className="side-contact-item"><span>☎</span><span>{p.phone}</span></div>
-            <div className="side-contact-item"><span>⌖</span><span>{p.location}</span></div>
-            <div className="side-contact-item"><span>⌘</span><span>{p.linkedin}</span></div>
-            <div className="side-contact-item"><span>◈</span><span>{p.portfolio}</span></div>
-          </div>
+          {contactItems.length > 0 && (
+            <div className="side-left-section">
+              <div className="side-left-title">Contact</div>
+              {contactItems.map((item, i) => (
+                <div className="side-contact-item" key={i}><span>{item.icon}</span><span>{item.value}</span></div>
+              ))}
+            </div>
+          )}
  
+          {sectionVisibility.education && s.education.length > 0 && (
           <div className="side-left-section">
             <div className="side-left-title">Education</div>
             {s.education.map((e, i) => (
@@ -64,7 +75,9 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
               </div>
             ))}
           </div>
+          )}
  
+          {sectionVisibility.skills && s.skills.length > 0 && (
           <div className="side-left-section">
             <div className="side-left-title">Tech Stack</div>
             <div style={{ display: "flex", flexWrap: "wrap" }}>
@@ -73,21 +86,38 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
               ))}
             </div>
           </div>
+          )}
  
+          {sectionVisibility.certifications && s.certifications.length > 0 && (
           <div className="side-left-section">
             <div className="side-left-title">Certifications</div>
             {s.certifications.map((c, i) => (
               <div key={i} style={{ fontSize: "8pt", color: "#94A3B8", marginBottom: 5, lineHeight: 1.4 }}>{c.name}</div>
             ))}
           </div>
+          )}
+
+          {sectionVisibility.languages && s.languages.length > 0 && (
+          <div className="side-left-section">
+            <div className="side-left-title">Languages</div>
+            {s.languages.map((l, i) => (
+              <div key={i} style={{ fontSize: "8pt", color: "#94A3B8", marginBottom: 5, lineHeight: 1.4 }}>
+                {l.language}{l.proficiency ? ` (${l.proficiency})` : ""}
+              </div>
+            ))}
+          </div>
+          )}
         </div>
  
         {/* RIGHT MAIN */}
         <div className="side-right">
+          {p.summary && (
           <div className="side-section">
             <div className="side-section-title">Profile</div>
             <p className="side-summary">{p.summary}</p>
           </div>
+          )}
+          {sectionVisibility.experience && s.experience.length > 0 && (
           <div className="side-section">
             <div className="side-section-title">Experience</div>
             {s.experience.map((e, i) => (
@@ -105,6 +135,8 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
               </div>
             ))}
           </div>
+          )}
+          {sectionVisibility.projects && s.projects.length > 0 && (
           <div className="side-section">
             <div className="side-section-title">Projects</div>
             {s.projects.map((pr, i) => (
@@ -115,6 +147,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
     </>

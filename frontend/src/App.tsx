@@ -4,6 +4,7 @@ import Signup from "./pages/Signup"
 import ForgotPassword from "./pages/ResetPassword"
 import Home from "./pages/Home"
 import Templates from "./pages/Templates"
+import ResumeBuilder from "./pages/ResumeBuiler"
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/reset-password" element={<ForgotPassword />} />
         <Route path ="/templates" element={<Templates />} />
+        <Route path="/builder" element={<ResumeBuilder />} />
       </Routes>
     </BrowserRouter>
   )
