@@ -119,6 +119,7 @@ export interface SectionVisibility {
 // ─── Full Resume Document ──────────────────────────────────────────────────────
 
 export interface ResumeDocument {
+  _id?: string;
   id?: string;
   title: string;
   templateId: string;
@@ -236,3 +237,20 @@ export const spacingMap: Record<SectionSpacing, number> = {
   normal:  20,
   loose:   32,
 };
+
+export type TemplateId = "classic" | "executive" | "modern" | "compact" | "sidebar";
+
+export interface SavedResume {
+  id: string; title: string; templateId: TemplateId;
+  updatedAt: string; createdAt: string; completionScore: number;
+  personalInfo: { name: string; title: string; email: string; location: string; };
+  sectionCounts: { experience: number; education: number; skills: number; projects: number; certifications: number; };
+}
+
+export interface TemplateMeta {
+  id: TemplateId; name: string; tag: string; category: string;
+  description: string; isPremium: boolean; accent: string;
+  palette: { bg: string; primary: string; secondary: string; sidebar?: string; };
+}
+export type SortOption = "updatedAt" | "createdAt" | "title" | "completion";
+export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; }

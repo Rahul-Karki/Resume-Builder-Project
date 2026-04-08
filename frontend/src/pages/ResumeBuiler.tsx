@@ -141,13 +141,20 @@ function downloadResume(resume: ResumeDocument) {
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ResumeBuilder() {
-  const { resume, ui, setActiveTab, saveResume, initFromTemplate } = useResumeBuilderStore();
+  const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
   const canDownload = ui.isSaved && !ui.isDirty && !ui.isSaving;
 
-  // Init template from URL param on mount
+  // Init from URL params on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get("resume");
     const templateId = params.get("template") ?? "classic";
+
+    if (resumeId) {
+      void loadResume(resumeId);
+      return;
+    }
+
     initFromTemplate(templateId);
   }, []);
 

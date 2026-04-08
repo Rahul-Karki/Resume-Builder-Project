@@ -1,28 +1,88 @@
-import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
-const Navbar = () => {
-  const navigate = useNavigate();
+// ─── Navbar.tsx ───────────────────────────────────────────────────────────────
+// Sticky nav: transparent → solid on scroll
+// Nav links: Templates, My Resumes
+// Auth: Log In (ghost), Sign Up Free (lime CTA)
+
+export function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 48);
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center justify-between px-6">
-        <a href="/" className="flex items-center gap-2 text-xl font-bold text-foreground">
-          <FileText className="h-6 w-6 text-accent" />
-          ResuCraft
+    <nav
+      style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
+        height: 60,
+        background: scrolled ? "rgba(8,8,8,0.96)" : "transparent",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.05)" : "1px solid transparent",
+        backdropFilter: scrolled ? "blur(16px)" : "none",
+        display: "flex", alignItems: "center", padding: "0 40px",
+        transition: "all 0.35s ease",
+        fontFamily: "'Outfit', sans-serif",
+      }}
+    >
+      {/* Logo */}
+      <a
+        href="/"
+        style={{ textDecoration: "none", fontWeight: 800, fontSize: 17, letterSpacing: "-0.4px", color: "#F0EFE8", flexShrink: 0, lineHeight: 1 }}
+      >
+        Resume<span style={{ color: "#C8F55A" }}>Studio</span>
+      </a>
+
+      {/* Nav links */}
+      <div style={{ display: "flex", gap: 30, marginLeft: 48 }}>
+        {[
+          { label: "Templates", href: "/templates" },
+          { label: "My Resumes", href: "/resumes" },
+          { label: "Admin", href: "/admin" },
+        ].map(({ label, href }) => (
+          <a
+            key={label}
+            href={href}
+            style={{ fontSize: 13, fontWeight: 500, color: "#555", textDecoration: "none", transition: "color 0.15s" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#555")}
+          >
+            {label}
+          </a>
+        ))}
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      {/* Auth buttons */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <a
+          href="/login"
+          style={{
+            padding: "7px 20px", borderRadius: 8, border: "1px solid #222",
+            background: "transparent", color: "#777", fontSize: 13, fontWeight: 600,
+            textDecoration: "none", display: "inline-block", transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#777"; }}
+        >
+          Log In
         </a>
-        <div className="hidden items-center gap-8 md:flex">
-          <a href="/templates" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Templates</a>
-          <a href="/resume" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Resume</a>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>Log in</Button>
-          <Button variant="default" size="sm" onClick={() => navigate('/signup')}>Sign up free</Button>
-        </div>
+        <a
+          href="/signup"
+          style={{
+            padding: "7px 20px", borderRadius: 8, border: "none",
+            background: "#C8F55A", color: "#0E0E0E", fontSize: 13, fontWeight: 800,
+            textDecoration: "none", display: "inline-block", transition: "opacity 0.15s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
+          onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+        >
+          Sign Up Free
+        </a>
       </div>
     </nav>
   );
-};
-
-export default Navbar;
+}

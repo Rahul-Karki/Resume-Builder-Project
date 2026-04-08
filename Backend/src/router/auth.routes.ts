@@ -1,5 +1,6 @@
 import express from "express"
-import { registerUser , login, forgotPassword, resetPassword, resendResetLink, googleLogin } from "../controllers/authController"
+import { registerUser , login, forgotPassword, resetPassword, resendResetLink, googleLogin, getCurrentUser } from "../controllers/authController"
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
@@ -13,5 +14,6 @@ router.post("/resend",resendResetLink)
 
 
 router.post("/google-login", googleLogin);
+router.get("/me", authMiddleware, getCurrentUser);
 
 export default router;

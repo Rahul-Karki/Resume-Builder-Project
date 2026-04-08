@@ -16,7 +16,7 @@ const refreshAccessToken = (req: Request, res: Response) => {
   if (!token) return res.sendStatus(401);
 
   try {
-    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET!) as any;
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as any;
 
     const newAccessToken = generateAccessToken(decoded.userId);
 
@@ -25,7 +25,7 @@ const refreshAccessToken = (req: Request, res: Response) => {
       maxAge: 15 * 60 * 1000,
     });
 
-    return res.json({ message: "Token refreshed" });
+    return res.json({ message: "Token refreshed", accessToken: newAccessToken });
   } catch {
     return res.sendStatus(403);
   }

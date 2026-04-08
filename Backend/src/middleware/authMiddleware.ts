@@ -1,42 +1,86 @@
-import { Request, Response, NextFunction, RequestHandler } from "express";
+import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import User from "../models/User.model";   // your existing User model
 
-export interface AuthRequest extends Request {
-  user?: { userId: string };
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface JwtPayload {
+  id:   string;
+  role: "user" | "admin" | "superadmin";
+  iat:  number;
+  exp:  number;
 }
 
-const authMiddleware: RequestHandler = (
-  req,
-  res: Response,
-  next: NextFunction,
-) : void => {
+// Extend Express Request
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id:   string;
+        role: string;
+        name: string;
+      };
+    }
+  }
+}
+
+// ─── Extract token helper ─────────────────────────────────────────────────────
+
+function extractToken(req: Request): string | null {
+  const auth = req.headers.authorization;
+  if (auth?.startsWith("Bearer ")) return auth.slice(7);
+  // Fallback: cookie (if you use httpOnly cookies)
+  return req.cookies?.token ?? null;
+}
+
+// ─── Middleware: authenticate any logged-in user ──────────────────────────────
+
+export async function authenticate(req: Request, res: Response, next: NextFunction) {
+  const token = extractToken(req);
+  if (!token) {
+    return res.status(401).json({ error: "Authentication required." });
+  }
+
   try {
-    const authReq = req as AuthRequest;
-    const authHeader = authReq.headers.authorization;
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    const user    = await User.findById(payload.id).select("name role").lean();
 
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : undefined;
-
-    if (!token) {
-      res.status(401).json({
-        message: "Access token missing",
-      });
-      return;
+    if (!user) {
+      return res.status(401).json({ error: "User not found." });
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_ACCESS_SECRET as string,
-    ) as { userId: string };
-
-    authReq.user = decoded;
-
+    req.user = { id: String(user._id), role: user.role, name: user.name };
     next();
-  } catch (error) {
-    res.status(403).json({
-      message: "Invalid access token",
-    });
-    return;
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid or expired token." });
   }
-};
+}
 
-export { authMiddleware };
+// ─── Middleware: require admin or superadmin ──────────────────────────────────
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required." });
+  }
+  if (!["admin", "superadmin"].includes(req.user.role)) {
+    return res.status(403).json({
+      error: "Admin access required.",
+      hint:  "Your account does not have admin privileges.",
+    });
+  }
+  next();
+}
+
+// ─── Middleware: require superadmin only (e.g. delete templates) ──────────────
+
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user || req.user.role !== "superadmin") {
+    return res.status(403).json({ error: "Superadmin access required." });
+  }
+  next();
+}
+
+// ─── Composed guard: authenticate + requireAdmin ──────────────────────────────
+// Usage: router.get('/templates', adminGuard, controller)
+
+export const adminGuard = [authenticate, requireAdmin];

@@ -7,12 +7,32 @@ import ResetToken from "../models/ResetToken";
 import { sendEmail } from "../utils/sendEmail";
 import { verifyGoogleToken } from "../utils/google";
 import crypto from "crypto";
+import { AuthRequest } from "../middleware/authMiddleware";
+import { UserRole } from "../enums/userRole";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 
+const authCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+};
+
+const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
+  res.cookie("accessToken", accessToken, {
+    ...authCookieOptions,
+    maxAge: 15 * 60 * 1000,
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    ...authCookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+};
+
 const registerUser = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !password || !email) {
       return res.status(400).json({
@@ -36,12 +56,15 @@ const registerUser = async (req: Request, res: Response) => {
       name,
       email,
       password: hashedPassword,
-      role,
+      role: UserRole.USER,
     });
 
     await user.save();
 
     const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    setAuthCookies(res, accessToken, refreshToken);
 
     res.status(201).json({
       accessToken,
@@ -49,6 +72,7 @@ const registerUser = async (req: Request, res: Response) => {
         id: user._id,
         email: user.email,
         name: user.name,
+        role: user.role,
       }
     });
     // response is send to frontend
@@ -97,6 +121,9 @@ const login = async (req: Request, res: Response) => {
 
     // 5. Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    setAuthCookies(res, accessToken, refreshToken);
 
     // 7. Send response
     res.status(200).json({
@@ -105,6 +132,7 @@ const login = async (req: Request, res: Response) => {
         id: user._id,
         email: user.email,
         name: user.name,
+        role: user.role,
       },
     });
 
@@ -322,6 +350,9 @@ const googleLogin = async (req: Request, res: Response) => {
 
     // 🔑 Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
+    const refreshToken = generateRefreshToken(user._id.toString());
+
+    setAuthCookies(res, accessToken, refreshToken);
 
     return res.json({
       user,
@@ -333,6 +364,36 @@ const googleLogin = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const user = await User.findById(userId).select("name email avatar role authProvider");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || user.name?.trim()?.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "ME",
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Can't get current user", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
   
 
-export { registerUser, login, forgotPassword, resetPassword, resendResetLink , googleLogin };
+export { registerUser, login, forgotPassword, resetPassword, resendResetLink , googleLogin, getCurrentUser };

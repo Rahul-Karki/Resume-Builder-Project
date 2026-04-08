@@ -20,10 +20,12 @@ app.use(
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
 import resumeRoutes from "./router/resume.routes";
+import adminRoutes from "./router/admin.routes";
 
 app.use("/api/auth",authRoutes);
 app.use("/api",refreshRoutes);
 app.use("/api/resumes", resumeRoutes);
+app.use("/api/admin", adminRoutes);
 
  
 app.listen(process.env.PORT, () => {

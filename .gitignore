@@ -33,7 +33,6 @@ jsconfig.json
 # ========================
 dist/
 build/
-.vite/
 
 # ========================
 # ESLint
