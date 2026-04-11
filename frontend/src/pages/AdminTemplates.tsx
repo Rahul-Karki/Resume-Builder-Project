@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAdminTemplates } from "../hooks/useAdminTemplates";
+import { useAdminTemplates } from "../hooks/useAdminTemplate";
 import { TemplateCard } from "../components/admin/TemplateCard";
 import { TemplateFormModal } from "../components/admin/TemplateFormModal";
 import { AdminTemplate, TemplateStatus, TemplateCategory } from "../types/admin.types";

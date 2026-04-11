@@ -1,5 +1,5 @@
-import Template, { ITemplate } from "../models/Template.model";
-import TemplateUsage from "../models/TemplateUsage.model";
+import Template, { ITemplate } from "../models/Template";
+import TemplateUsage from "../models/TemplateUsage";
 import mongoose from "mongoose";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -217,7 +217,7 @@ export class TemplateService {
           layoutId:   tpl.layoutId,
           name:       tpl.name,
           status:     tpl.status,
-          totalUses:  monthlyUses + weeklyUses, // rough lifetime proxy
+          totalUses:  monthlyUses,
           weeklyUses,
           monthlyUses,
           daily,

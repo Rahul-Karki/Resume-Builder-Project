@@ -1,24 +1,75 @@
 import { JSX, useEffect, useState } from "react";
-import { ResumeDocument } from "@/types/resume-types";
-import {ClassicTemplate} from "@/components/templates/ClassicTemplate";
-import { ExecutiveTemplate } from "@/components/templates/ExecutiveTemplate";
-import { ModernTemplate } from "@/components/templates/ModernTemplate";
-import { CompactTemplate } from "@/components/templates/CompactTemplate";
-import { SidebarTemplate } from "@/components/templates/SidebarTemplate";
-import { templates } from "@/data/templateMeta";
+import { ResumeDocument, ResumeStyle, SectionVisibility } from "@/types/resume-types";
+import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { sampleData } from "@/data/sampleData";
 import { useNavigate } from "react-router-dom";
+import { api } from "@/services/api";
+import { TemplateMeta } from "@/data/templateMeta";
 
-const renderers: Record<string, (data: ResumeDocument) => JSX.Element> = {
-  classic:   (d) => <ClassicTemplate data={d} />,
-  executive: (d) => <ExecutiveTemplate data={d} />,
-  modern:    (d) => <ModernTemplate data={d} />,
-  compact:   (d) => <CompactTemplate data={d} />,
-  sidebar:   (d) => <SidebarTemplate data={d} />,
+type SlotKey = "summary" | "experience" | "education" | "skills" | "projects" | "certifications" | "languages";
+
+const SLOT_FALLBACK_SECTIONS: ResumeDocument["sections"] = {
+  experience: sampleData.sections.experience,
+  education: sampleData.sections.education,
+  skills: sampleData.sections.skills,
+  projects: sampleData.sections.projects,
+  certifications: sampleData.sections.certifications,
+  languages: sampleData.sections.languages.length
+    ? sampleData.sections.languages
+    : [
+        { id: "lang-1", language: "English", proficiency: "Native" },
+        { id: "lang-2", language: "Spanish", proficiency: "Intermediate" },
+      ],
+};
+
+const buildPreviewSample = (template: TemplateMeta): ResumeDocument => {
+  const stylePatch = template.cssVars ?? {};
+  const slotsPatch = template.slots ?? {};
+
+  const slotState: Record<SlotKey, boolean> = {
+    summary: slotsPatch.summary ?? true,
+    experience: slotsPatch.experience ?? sampleData.sectionVisibility.experience,
+    education: slotsPatch.education ?? sampleData.sectionVisibility.education,
+    skills: slotsPatch.skills ?? sampleData.sectionVisibility.skills,
+    projects: slotsPatch.projects ?? sampleData.sectionVisibility.projects,
+    certifications: slotsPatch.certifications ?? sampleData.sectionVisibility.certifications,
+    languages: slotsPatch.languages ?? sampleData.sectionVisibility.languages,
+  };
+
+  return {
+    ...sampleData,
+    templateId: template.id,
+    personalInfo: {
+      ...sampleData.personalInfo,
+      summary: slotState.summary ? sampleData.personalInfo.summary : "",
+    },
+    sections: {
+      experience: slotState.experience ? SLOT_FALLBACK_SECTIONS.experience : [],
+      education: slotState.education ? SLOT_FALLBACK_SECTIONS.education : [],
+      skills: slotState.skills ? SLOT_FALLBACK_SECTIONS.skills : [],
+      projects: slotState.projects ? SLOT_FALLBACK_SECTIONS.projects : [],
+      certifications: slotState.certifications ? SLOT_FALLBACK_SECTIONS.certifications : [],
+      languages: slotState.languages ? SLOT_FALLBACK_SECTIONS.languages : [],
+    },
+    style: {
+      ...sampleData.style,
+      ...stylePatch,
+    } as ResumeStyle,
+    sectionVisibility: {
+      ...sampleData.sectionVisibility,
+      experience: slotState.experience,
+      education: slotState.education,
+      skills: slotState.skills,
+      projects: slotState.projects,
+      certifications: slotState.certifications,
+      languages: slotState.languages,
+    } as SectionVisibility,
+  };
 };
 
 
-function ThumbnailSVG({ id }: { id: string }) {
+function ThumbnailSVG({ template }: { template: TemplateMeta }) {
+  const id = template.id;
   const configs: Record<string, JSX.Element> = {
     classic: (
       <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%" }}>
@@ -119,7 +170,27 @@ function ThumbnailSVG({ id }: { id: string }) {
       </svg>
     ),
   };
-  return configs[id] ?? <svg viewBox="0 0 240 310"><rect width="240" height="310" fill="#f0f0f0" /></svg>;
+  if (configs[id]) return configs[id];
+
+  const bg = template.cssVars?.backgroundColor ?? template.palette?.[0] ?? "#f8f8f8";
+  const accent = template.cssVars?.accentColor ?? template.accent ?? "#1a1a1a";
+  const text = template.cssVars?.textColor ?? template.palette?.[2] ?? "#444444";
+
+  return (
+    <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%" }}>
+      <rect width="240" height="310" fill={bg} />
+      <rect x="0" y="0" width="240" height="8" fill={accent} opacity="0.9" />
+      <rect x="18" y="24" width="120" height="10" rx="2" fill={accent} opacity="0.75" />
+      <rect x="18" y="40" width="170" height="3" rx="1" fill={text} opacity="0.35" />
+      <rect x="18" y="55" width="204" height="1" fill={accent} opacity="0.25" />
+      {[72, 95, 118, 141, 164, 187, 210, 233, 256, 279].map((y, i) => (
+        <g key={y}>
+          <rect x="18" y={y} width={48 + (i % 3) * 10} height="3" rx="1" fill={accent} opacity="0.6" />
+          <rect x="72" y={y} width={146 - (i % 4) * 12} height="2.2" rx="0.5" fill={text} opacity="0.18" />
+        </g>
+      ))}
+    </svg>
+  );
 }
 
     
@@ -214,6 +285,19 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     .tp-modal-nav-btn { padding: "5px 14px"; border-radius: 20px; border: 1px solid #252525; background: #161616; color: #666; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
     .tp-modal-nav-btn.active { background: #F0EFE8; color: #0E0E0E; border-color: #F0EFE8; }
     .tp-modal-nav-btn:hover:not(.active) { border-color: #444; color: #ccc; }
+
+    /* Loading skeleton */
+    @keyframes tp-pulse {
+      0% { opacity: 0.45; }
+      50% { opacity: 0.95; }
+      100% { opacity: 0.45; }
+    }
+    .tp-skeleton {
+      background: #1A1A1A;
+      border: 1px solid #252525;
+      border-radius: 8px;
+      animation: tp-pulse 1.2s ease-in-out infinite;
+    }
  
     @media (max-width: 768px) {
       .tp-grid { grid-template-columns: 1fr 1fr; padding: 0 20px 60px; gap: 16px; }
@@ -230,17 +314,88 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
 // ═══════════════════════════════════════════════════════════════
 export default function TemplatesPage() {
   const navigate = useNavigate();
+  const skeletonItems = Array.from({ length: 6 }, (_, index) => index);
+  const [templates, setTemplates] = useState<TemplateMeta[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
  
   const previewTemplate = templates.find(t => t.id === previewId);
+
+  const handleUseTemplate = (templateId: string) => {
+    const token = localStorage.getItem("accessToken");
+    const destination = `/builder?template=${templateId}`;
+
+    if (!token) {
+      navigate(`/login?redirect=${encodeURIComponent(destination)}`);
+      return;
+    }
+
+    navigate(destination);
+  };
  
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchTemplates = async () => {
+      try {
+        setLoadingTemplates(true);
+        setLoadError(null);
+
+        const response = await api.get("/templates");
+        const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
+
+        const mapped: TemplateMeta[] = rows.map((row: any) => {
+          const rawCategory = String(row.category ?? "Professional");
+          const category = rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1);
+          const accent = row.cssVars?.accentColor ?? "#1a1a1a";
+          const font = String(row.cssVars?.bodyFont ?? "Outfit").split(",")[0].trim();
+
+          return {
+            id: row.layoutId,
+            name: row.name ?? row.layoutId,
+            tag: row.tag ?? "General",
+            category,
+            accent,
+            font,
+            description: row.description ?? "",
+            isPremium: Boolean(row.isPremium),
+            palette: [
+              row.cssVars?.backgroundColor ?? "#ffffff",
+              accent,
+              row.cssVars?.textColor ?? "#333333",
+            ],
+            cssVars: row.cssVars ?? {},
+            slots: row.slots ?? {},
+          };
+        });
+
+        if (!mounted) return;
+
+        setTemplates(mapped);
+      } catch {
+        if (!mounted) return;
+        setLoadError("Could not load public templates from database.");
+        setTemplates([]);
+      } finally {
+        if (mounted) setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
  
   useEffect(() => {
@@ -269,7 +424,7 @@ export default function TemplatesPage() {
  
         {/* HERO */}
         <section className="tp-hero">
-          <div className="tp-hero-badge"><span className="tp-pill-dot" />5 ATS-Optimised Templates</div>
+          <div className="tp-hero-badge"><span className="tp-pill-dot" />{templates.length || 0} ATS-Optimised Templates</div>
           <h1 className="tp-hero-h1">
             Resumes that get<br />
             <em>past the bots,</em><br />
@@ -295,7 +450,47 @@ export default function TemplatesPage() {
         </div>
  
         {/* GRID */}
+        {loadError && (
+          <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 40px 24px", color: "#fda4af", fontSize: 14 }}>
+            {loadError}
+          </div>
+        )}
+
         <div className="tp-grid">
+          {loadingTemplates && (
+            <>
+              {skeletonItems.map((item) => (
+                <div key={item} className="tp-card" aria-hidden="true">
+                  <div className="tp-card-thumb">
+                    <div className="tp-card-thumb-inner">
+                      <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
+                        <div className="tp-skeleton" style={{ width: "100%", height: "100%" }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="tp-card-body">
+                    <div className="tp-card-top" style={{ marginBottom: 10 }}>
+                      <div className="tp-skeleton" style={{ width: "45%", height: 14 }} />
+                      <div className="tp-skeleton" style={{ width: 56, height: 18, borderRadius: 20 }} />
+                    </div>
+                    <div className="tp-skeleton" style={{ width: "92%", height: 10, marginBottom: 8 }} />
+                    <div className="tp-skeleton" style={{ width: "72%", height: 10, marginBottom: 14 }} />
+                    <div className="tp-card-footer">
+                      <div className="tp-skeleton" style={{ width: 90, height: 12 }} />
+                      <div className="tp-skeleton" style={{ width: 62, height: 12 }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {!loadingTemplates && filtered.length === 0 && (
+            <div style={{ gridColumn: "1 / -1", color: "#888", textAlign: "center", padding: "40px 0" }}>
+              No published templates found.
+            </div>
+          )}
+
           {filtered.map((t, idx) => (
             <div
               key={t.id}
@@ -307,7 +502,7 @@ export default function TemplatesPage() {
               <div className="tp-card-thumb">
                 <div className="tp-card-thumb-inner">
                   <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
-                    <ThumbnailSVG id={t.id} />
+                    <ThumbnailSVG template={t} />
                   </div>
                 </div>
                 <div className="tp-card-hover-overlay">
@@ -383,7 +578,7 @@ export default function TemplatesPage() {
                 <button
                   onClick={() => {
                     if (!previewId) return;
-                    navigate(`/builder?template=${previewId}`);
+                    handleUseTemplate(previewId);
                   }}
                   className="tp-modal-use-btn"
                   style={{ padding: "10px 24px" }}
@@ -413,7 +608,7 @@ export default function TemplatesPage() {
               </div>
  
               <div className="tp-modal-paper">
-                {renderers[previewId]?.(sampleData)}
+                <ResumeRenderer resume={buildPreviewSample(previewTemplate)} />
               </div>
               <div className="tp-modal-bottom-padding" />
             </div>

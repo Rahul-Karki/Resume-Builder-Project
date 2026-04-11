@@ -7,7 +7,6 @@ import ResetToken from "../models/ResetToken";
 import { sendEmail } from "../utils/sendEmail";
 import { verifyGoogleToken } from "../utils/google";
 import crypto from "crypto";
-import { AuthRequest } from "../middleware/authMiddleware";
 import { UserRole } from "../enums/userRole";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
@@ -16,6 +15,11 @@ const authCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
+};
+
+const clearAuthCookies = (res: Response) => {
+  res.clearCookie("accessToken", authCookieOptions);
+  res.clearCookie("refreshToken", authCookieOptions);
 };
 
 const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
@@ -28,6 +32,15 @@ const setAuthCookies = (res: Response, accessToken: string, refreshToken: string
     ...authCookieOptions,
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+};
+
+const logout = async (_req: Request, res: Response) => {
+  try {
+    clearAuthCookies(res);
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 
 const registerUser = async (req: Request, res: Response) => {
@@ -367,8 +380,7 @@ const googleLogin = async (req: Request, res: Response) => {
 
 const getCurrentUser = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
-    const userId = authReq.user?.userId;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -396,4 +408,4 @@ const getCurrentUser = async (req: Request, res: Response) => {
 };
   
 
-export { registerUser, login, forgotPassword, resetPassword, resendResetLink , googleLogin, getCurrentUser };
+export { registerUser, login, forgotPassword, resetPassword, resendResetLink , googleLogin, getCurrentUser, logout };

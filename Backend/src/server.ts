@@ -21,11 +21,13 @@ import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
 import resumeRoutes from "./router/resume.routes";
 import adminRoutes from "./router/admin.routes";
+import templateRoutes from "./router/template.routes";
 
 app.use("/api/auth",authRoutes);
 app.use("/api",refreshRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/templates", templateRoutes);
 
  
 app.listen(process.env.PORT, () => {

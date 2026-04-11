@@ -1,11 +1,13 @@
-import { ResumeDocument } from "@/types/resume-types";
+import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import { formatDateRange, formatProjectTech } from "@/components/templates/templateHelpers";
 
 export function SidebarTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s, sectionVisibility } = data;
+  const { personalInfo: p, sections: s, sectionVisibility, style } = data;
+  const pagePadding = marginMap[style.pageMargin];
+  const sectionGap = spacingMap[style.sectionSpacing];
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;700&display=swap');
-    .side-wrap { display:grid; grid-template-columns:210px 1fr; min-height:1040px; max-width:794px; margin:0 auto; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
+    .side-wrap { display:grid; grid-template-columns:210px 1fr; min-height:1123px; height:1123px; max-width:794px; margin:0 auto; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
     .side-left { background:#1E293B; color:#CBD5E1; padding:32px 22px; }
     .side-name { font-family:'Nunito',sans-serif; font-size:18pt; font-weight:700; color:#F1F5F9; margin:0 0 2px; line-height:1.2; }
     .side-subtitle { font-size:8.5pt; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px; }
@@ -19,8 +21,10 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
     .side-dot { width:8px; height:8px; border-radius:50%; }
     .side-tag { display:inline-block; background:#334155; color:#94A3B8; font-size:7.5pt; padding:2px 7px; border-radius:3px; margin:2px 2px 0 0; }
     .side-right { padding:32px 32px 32px 28px; }
+    .side-right, .side-right p, .side-right span, .side-right li, .side-right div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .side-section { margin-bottom:18px; }
-    .side-section-title { font-family:'Nunito',sans-serif; font-size:10.5pt; font-weight:700; color:#1E293B; text-transform:uppercase; letter-spacing:1.5px; border-bottom:2px solid #1E293B; padding-bottom:3px; margin-bottom:10px; }
+    .side-section-title { font-family:'Nunito',sans-serif; font-size:10.5pt; font-weight:700; color:#1E293B; text-transform:uppercase; letter-spacing:1.5px; padding-bottom:3px; margin-bottom:10px; position:relative; }
+    .side-section-title::after { content:""; display:block; width:64px; height:2px; background:#1E293B; margin-top:4px; }
     .side-summary { font-size:9.5pt; font-weight:300; line-height:1.6; color:#334155; }
     .side-job { margin-bottom:12px; }
     .side-job-top { display:flex; justify-content:space-between; }
@@ -49,11 +53,11 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="side-wrap">
+      <div className="side-wrap" style={{ background: style.backgroundColor }}>
         {/* LEFT SIDEBAR */}
-        <div className="side-left">
-          {p.name && <div className="side-name">{firstName}<br />{remainingName}</div>}
-          {p.title && <div className="side-subtitle">{p.title}</div>}
+        <div className="side-left" style={{ background: style.accentColor }}>
+          {p.name && <div className="side-name" style={{ fontFamily: style.headingFont }}>{firstName}<br />{remainingName}</div>}
+          {p.title && <div className="side-subtitle" style={{ color: style.mutedColor }}>{p.title}</div>}
  
           {contactItems.length > 0 && (
             <div className="side-left-section">
@@ -110,24 +114,24 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
         </div>
  
         {/* RIGHT MAIN */}
-        <div className="side-right">
+        <div className="side-right" style={{ padding: pagePadding, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight }}>
           {p.summary && (
-          <div className="side-section">
-            <div className="side-section-title">Profile</div>
+          <div className="side-section" style={{ marginBottom: sectionGap }}>
+            <div className="side-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor }}>Profile</div>
             <p className="side-summary">{p.summary}</p>
           </div>
           )}
           {sectionVisibility.experience && s.experience.length > 0 && (
-          <div className="side-section">
-            <div className="side-section-title">Experience</div>
+          <div className="side-section" style={{ marginBottom: sectionGap }}>
+            <div className="side-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor }}>Experience</div>
             {s.experience.map((e, i) => (
               <div className="side-job" key={i}>
                 <div className="side-job-top">
                   <div>
-                    <div className="side-role">{e.role}</div>
-                    <div className="side-company">{e.company} · {e.location}</div>
+                    <div className="side-role" style={{ color: style.headingColor }}>{e.role}</div>
+                    <div className="side-company" style={{ color: style.mutedColor }}>{e.company} · {e.location}</div>
                   </div>
-                  <span className="side-date">{formatDateRange(e.start, e.end, e.current)}</span>
+                  <span className="side-date" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
                 <ul className="side-bullets">
                   {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
@@ -137,11 +141,11 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
           </div>
           )}
           {sectionVisibility.projects && s.projects.length > 0 && (
-          <div className="side-section">
-            <div className="side-section-title">Projects</div>
+          <div className="side-section" style={{ marginBottom: sectionGap }}>
+            <div className="side-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor }}>Projects</div>
             {s.projects.map((pr, i) => (
               <div className="side-proj" key={i}>
-                <span className="side-proj-name">{pr.name}</span>
+                <span className="side-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>
                 <span style={{ color: "#94A3B8", fontSize: "8.5pt", marginLeft: 6 }}>{formatProjectTech(pr)}</span>
                 <div style={{ color: "#475569", fontWeight: 300, marginTop: 2 }}>{pr.description}</div>
               </div>

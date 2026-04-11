@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { api } from "@/services/api";
 
 // ─── Navbar.tsx ───────────────────────────────────────────────────────────────
 // Sticky nav: transparent → solid on scroll
@@ -7,12 +8,28 @@ import { useState, useEffect } from "react";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 48);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
+
+  useEffect(() => {
+    setIsAuthenticated(Boolean(localStorage.getItem("accessToken")));
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Always clear client-side auth state even if API logout fails.
+    } finally {
+      localStorage.removeItem("accessToken");
+      window.location.href = "/";
+    }
+  };
 
   return (
     <nav
@@ -58,30 +75,47 @@ export function Navbar() {
 
       {/* Auth buttons */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <a
-          href="/login"
-          style={{
-            padding: "7px 20px", borderRadius: 8, border: "1px solid #222",
-            background: "transparent", color: "#777", fontSize: 13, fontWeight: 600,
-            textDecoration: "none", display: "inline-block", transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#777"; }}
-        >
-          Log In
-        </a>
-        <a
-          href="/signup"
-          style={{
-            padding: "7px 20px", borderRadius: 8, border: "none",
-            background: "#C8F55A", color: "#0E0E0E", fontSize: 13, fontWeight: 800,
-            textDecoration: "none", display: "inline-block", transition: "opacity 0.15s",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
-          onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
-        >
-          Sign Up Free
-        </a>
+        {isAuthenticated ? (
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: "7px 20px", borderRadius: 8, border: "1px solid #222",
+              background: "transparent", color: "#777", fontSize: 13, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#777"; }}
+          >
+            Logout
+          </button>
+        ) : (
+          <>
+            <a
+              href="/login"
+              style={{
+                padding: "7px 20px", borderRadius: 8, border: "1px solid #222",
+                background: "transparent", color: "#777", fontSize: 13, fontWeight: 600,
+                textDecoration: "none", display: "inline-block", transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#777"; }}
+            >
+              Log In
+            </a>
+            <a
+              href="/signup"
+              style={{
+                padding: "7px 20px", borderRadius: 8, border: "none",
+                background: "#C8F55A", color: "#0E0E0E", fontSize: 13, fontWeight: 800,
+                textDecoration: "none", display: "inline-block", transition: "opacity 0.15s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+            >
+              Sign Up Free
+            </a>
+          </>
+        )}
       </div>
     </nav>
   );

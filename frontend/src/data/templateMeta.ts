@@ -8,6 +8,27 @@ export interface TemplateMeta {
   description: string;
   isPremium: boolean;
   palette: string[];
+  cssVars?: {
+    accentColor?: string;
+    headingColor?: string;
+    textColor?: string;
+    mutedColor?: string;
+    borderColor?: string;
+    backgroundColor?: string;
+    bodyFont?: string;
+    headingFont?: string;
+    fontSize?: string;
+    lineHeight?: string;
+  };
+  slots?: {
+    summary?: boolean;
+    experience?: boolean;
+    education?: boolean;
+    skills?: boolean;
+    projects?: boolean;
+    certifications?: boolean;
+    languages?: boolean;
+  };
 }
 
 export const templates: TemplateMeta[] = [

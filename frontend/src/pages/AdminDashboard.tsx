@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAnalytics } from "../hooks/useAnalytics";
-import { StatsBar } from "../components/admin/StatsBar";
+import { StatsBar } from "../components/admin/StatusBar";
 import { BarChart, AnalyticsRow } from "../components/admin/AnalyticsChart";
 
 // ─── Period selector ──────────────────────────────────────────────────────────

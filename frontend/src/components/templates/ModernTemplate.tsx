@@ -1,4 +1,4 @@
-import { ResumeDocument } from "@/types/resume-types";
+import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   formatCertification,
   formatDateRange,
@@ -6,12 +6,15 @@ import {
 } from "@/components/templates/templateHelpers";
 
 export function ModernTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s, sectionVisibility } = data;
+  const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
-  const accent = "#0F766E";
+  const accent = style.accentColor;
+  const pagePadding = marginMap[style.pageMargin];
+  const sectionGap = spacingMap[style.sectionSpacing];
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
     .mod-wrap { font-family:'DM Sans',sans-serif; color:#111; background:#fff; padding:44px 52px; max-width:794px; margin:0 auto; box-sizing:border-box; }
+    .mod-wrap, .mod-wrap p, .mod-wrap span, .mod-wrap li, .mod-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .mod-name { font-family:'DM Serif Display',serif; font-size:32pt; color:#0F1A14; margin:0 0 2px; }
     .mod-tagline { font-size:10pt; font-weight:300; color:#555; letter-spacing:0.5px; margin-bottom:10px; }
     .mod-contact { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:9pt; color:#444; margin-bottom:20px; }
@@ -36,11 +39,11 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="mod-wrap">
-        <h1 className="mod-name">{p.name}</h1>
-        {p.title && <div className="mod-tagline">{p.title}</div>}
+      <div className="mod-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding }}>
+        <h1 className="mod-name" style={{ color: style.headingColor, fontFamily: style.headingFont, textAlign: style.headerAlign }}>{p.name}</h1>
+        {p.title && <div className="mod-tagline" style={{ color: style.mutedColor, textAlign: style.headerAlign }}>{p.title}</div>}
         {contactItems.length > 0 && (
-          <div className="mod-contact">
+          <div className="mod-contact" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
             {contactItems.map((item, i) => (
               <span key={i}>{i > 0 ? ` · ${item}` : item}</span>
             ))}
@@ -48,23 +51,23 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         )}
  
         {p.summary && (
-          <div className="mod-section">
-            <div className="mod-section-title">Summary</div>
+          <div className="mod-section" style={{ marginBottom: sectionGap }}>
+            <div className="mod-section-title" style={{ color: style.accentColor }}>Summary</div>
             <p className="mod-summary">{p.summary}</p>
           </div>
         )}
  
         {sectionVisibility.experience && s.experience.length > 0 && (
-          <div className="mod-section">
-            <div className="mod-section-title">Experience</div>
+          <div className="mod-section" style={{ marginBottom: sectionGap }}>
+            <div className="mod-section-title" style={{ color: style.accentColor }}>Experience</div>
             {s.experience.map((e, i) => (
               <div className="mod-job" key={i}>
                 <div className="mod-job-head">
                   <div>
-                    <div className="mod-role">{e.role}</div>
-                    <div className="mod-company">{e.company} · {e.location}</div>
+                    <div className="mod-role" style={{ color: style.headingColor }}>{e.role}</div>
+                    <div className="mod-company" style={{ color: style.accentColor }}>{e.company} · {e.location}</div>
                   </div>
-                  <div className="mod-meta">{formatDateRange(e.start, e.end, e.current)}</div>
+                  <div className="mod-meta" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</div>
                 </div>
                 <ul className="mod-bullets">
                   {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
@@ -75,8 +78,8 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         )}
  
         {sectionVisibility.education && s.education.length > 0 && (
-          <div className="mod-section">
-            <div className="mod-section-title">Education</div>
+          <div className="mod-section" style={{ marginBottom: sectionGap }}>
+            <div className="mod-section-title" style={{ color: style.accentColor }}>Education</div>
             {s.education.map((e, i) => (
               <div className="mod-edu" key={i}>
                 <div>
@@ -90,14 +93,14 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         )}
  
         {sectionVisibility.skills && s.skills.length > 0 && (
-          <div className="mod-section">
-            <div className="mod-section-title">Skills</div>
+          <div className="mod-section" style={{ marginBottom: sectionGap }}>
+            <div className="mod-section-title" style={{ color: style.accentColor }}>Skills</div>
             {s.skills.map((sk, i) => (
               <div key={i} style={{ marginBottom: 6 }}>
-                <div style={{ fontSize: "9.5pt", fontWeight: 600, marginBottom: 4, color: "#333" }}>{sk.category}</div>
+                <div style={{ fontSize: "9.5pt", fontWeight: 600, marginBottom: 4, color: style.headingColor }}>{sk.category}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {sk.items.map((item, j) => (
-                    <span className="mod-skill-chip" key={j}>{item}</span>
+                    <span className="mod-skill-chip" key={j} style={{ color: style.accentColor, borderColor: style.borderColor }}>{item}</span>
                   ))}
                 </div>
               </div>
@@ -106,11 +109,11 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         )}
  
         {sectionVisibility.projects && s.projects.length > 0 && (
-          <div className="mod-section">
-            <div className="mod-section-title">Projects</div>
+          <div className="mod-section" style={{ marginBottom: sectionGap }}>
+            <div className="mod-section-title" style={{ color: style.accentColor }}>Projects</div>
             {s.projects.map((pr, i) => (
               <div className="mod-proj" key={i}>
-                <span className="mod-proj-name">{pr.name}</span>
+                <span className="mod-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>
                 <span style={{ color: "#888", fontSize: "9pt", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
                 <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{pr.description}</div>
               </div>
@@ -119,17 +122,17 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         )}
  
         {sectionVisibility.certifications && s.certifications.length > 0 && (
-          <div className="mod-section">
-            <div className="mod-section-title">Certifications</div>
-            {s.certifications.map((c, i) => <div className="mod-cert" key={i}>→ {formatCertification(c)}</div>)}
+          <div className="mod-section" style={{ marginBottom: sectionGap }}>
+            <div className="mod-section-title" style={{ color: style.accentColor }}>Certifications</div>
+            {s.certifications.map((c, i) => <div className="mod-cert" key={i}>{style.bulletStyle} {formatCertification(c)}</div>)}
           </div>
         )}
 
         {sectionVisibility.languages && s.languages.length > 0 && (
-          <div className="mod-section">
-            <div className="mod-section-title">Languages</div>
+          <div className="mod-section" style={{ marginBottom: sectionGap }}>
+            <div className="mod-section-title" style={{ color: style.accentColor }}>Languages</div>
             {s.languages.map((l, i) => (
-              <div className="mod-cert" key={i}>{l.language}{l.proficiency ? ` (${l.proficiency})` : ""}</div>
+              <div className="mod-cert" key={i}>{style.bulletStyle} {l.language}{l.proficiency ? ` (${l.proficiency})` : ""}</div>
             ))}
           </div>
         )}

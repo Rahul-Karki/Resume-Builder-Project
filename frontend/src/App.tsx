@@ -8,8 +8,6 @@ import ResumeBuilder from "./pages/ResumeBuiler"
 import MyResumePage from "./pages/MyResumePage"
 import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
-import AdminDashboard from "./pages/AdminDashboard"
-import AdminTemplates from "./pages/AdminTemplates"
 import Unauthorized from "./pages/Unauthorized"
 
 function App() {
@@ -32,8 +30,6 @@ function App() {
             </RequireRole>
           }
         >
-          <Route index element={<AdminDashboard />} />
-          <Route path="templates" element={<AdminTemplates />} />
         </Route>
       </Routes>
     </BrowserRouter>

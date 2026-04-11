@@ -1,9 +1,19 @@
-import { AuthRequest } from "../middleware/authMiddleware";
-import { Response, RequestHandler } from "express";
+import { Request, Response, RequestHandler } from "express";
 import Resume from "../models/Resume";
+import Template from "../models/Template";
+import TemplateUsage from "../models/TemplateUsage";
 
-const getUserId = (req: AuthRequest, res: Response) => {
-    const userId = req.user?.userId;
+const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
+    if (!layoutId) return;
+
+    const template = await Template.findOne({ layoutId }).select("_id").lean();
+    if (!template?._id) return;
+
+    await (TemplateUsage as any).recordUse(String(template._id), layoutId, type);
+};
+
+const getUserId = (req: Request, res: Response) => {
+    const userId = req.user?.id;
 
     if (!userId) {
         res.status(401).json({ message: "Unauthorized" });
@@ -15,8 +25,7 @@ const getUserId = (req: AuthRequest, res: Response) => {
 
 const getAllResumes: RequestHandler = async (req, res) => {
     try {
-        const authReq = req as AuthRequest;
-        const userId = getUserId(authReq, res);
+        const userId = getUserId(req, res);
         if (!userId) return;
 
         const resumes = await Resume.find({ userId }).sort({ updatedAt: -1 });
@@ -30,11 +39,10 @@ const getAllResumes: RequestHandler = async (req, res) => {
 
 const getResumeById: RequestHandler = async (req, res) => {
     try {
-        const authReq = req as AuthRequest;
-        const userId = getUserId(authReq, res);
+        const userId = getUserId(req, res);
         if (!userId) return;
 
-        const resume = await Resume.findOne({ _id: authReq.params.id, userId });
+        const resume = await Resume.findOne({ _id: req.params.id, userId });
 
         if (!resume) {
             return res.status(404).json({ message: "Resume not found" });
@@ -49,14 +57,15 @@ const getResumeById: RequestHandler = async (req, res) => {
 
 const createResume: RequestHandler = async (req, res) => {
     try {
-        const authReq = req as AuthRequest;
-        const userId = getUserId(authReq, res);
+        const userId = getUserId(req, res);
         if (!userId) return;
 
         const resume = await Resume.create({
-            ...authReq.body,
+            ...req.body,
             userId,
         });
+
+        await recordTemplateUsage(String(resume.templateId), "create");
 
         res.status(201).json({
             message: "Resume saved successfully",
@@ -70,19 +79,20 @@ const createResume: RequestHandler = async (req, res) => {
 
 const updateResume: RequestHandler = async (req, res) => {
     try {
-        const authReq = req as AuthRequest;
-        const userId = getUserId(authReq, res);
+        const userId = getUserId(req, res);
         if (!userId) return;
 
         const resume = await Resume.findOneAndUpdate(
-            { _id: authReq.params.id, userId },
-            { ...authReq.body, userId },
+            { _id: req.params.id, userId },
+            { ...req.body, userId },
             { new: true, runValidators: true },
         );
 
         if (!resume) {
             return res.status(404).json({ message: "Resume not found" });
         }
+
+        await recordTemplateUsage(String(resume.templateId), "edit");
 
         res.status(200).json({
             message: "Resume updated successfully",
@@ -96,11 +106,10 @@ const updateResume: RequestHandler = async (req, res) => {
 
 const deleteResume: RequestHandler = async (req, res) => {
     try {
-        const authReq = req as AuthRequest;
-        const userId = getUserId(authReq, res);
+        const userId = getUserId(req, res);
         if (!userId) return;
 
-        const resume = await Resume.findOneAndDelete({ _id: authReq.params.id, userId });
+        const resume = await Resume.findOneAndDelete({ _id: req.params.id, userId });
 
         if (!resume) {
             return res.status(404).json({ message: "Resume not found" });

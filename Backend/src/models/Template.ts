@@ -112,11 +112,10 @@ TemplateSchema.index({ createdAt: -1 });
 
 // ─── Pre-save hook: set publishedAt on first publish ──────────────────────────
 
-TemplateSchema.pre("save", function (next) {
+TemplateSchema.pre("save", function () {
   if (this.isModified("status") && this.status === "published" && !this.publishedAt) {
     this.publishedAt = new Date();
   }
-  next();
 });
 
 // ─── Model ────────────────────────────────────────────────────────────────────

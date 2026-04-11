@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { TemplateService, CreateTemplateDto, UpdateTemplateDto } from "../services/template.service";
+import { TemplateService, CreateTemplateDto, UpdateTemplateDto } from "../services/templateService";
 import TemplateUsage from "../models/TemplateUsage";
+import Template from "../models/Template";
 // ─── Helper: consistent response shape ────────────────────────────────────────
 
 const ok   = (res: Response, data: unknown, status = 200) => res.status(status).json({ ok: true,  data });
@@ -19,11 +20,23 @@ export async function listTemplates(req: Request, res: Response) {
   }
 }
 
+// ─── GET /templates (public) ─────────────────────────────────────────────────
+
+export async function listPublicTemplates(req: Request, res: Response) {
+  try {
+    const { category } = req.query as Record<string, string>;
+    const templates = await TemplateService.getAll({ status: "published", category });
+    return ok(res, templates);
+  } catch (err: any) {
+    return fail(res, err.message, 500);
+  }
+}
+
 // ─── GET /admin/templates/:id ─────────────────────────────────────────────────
 
 export async function getTemplate(req: Request, res: Response) {
   try {
-    const tpl = await TemplateService.getById(req.params.id);
+    const tpl = await TemplateService.getById(String(req.params.id));
     if (!tpl) return fail(res, "Template not found.", 404);
     return ok(res, tpl);
   } catch (err: any) {
@@ -66,7 +79,7 @@ export async function createTemplate(req: Request, res: Response) {
 export async function updateTemplate(req: Request, res: Response) {
   try {
     const dto: UpdateTemplateDto = req.body;
-    const updated = await TemplateService.update(req.params.id, dto, req.user!.id);
+    const updated = await TemplateService.update(String(req.params.id), dto, req.user!.id);
     if (!updated) return fail(res, "Template not found.", 404);
     return ok(res, updated);
   } catch (err: any) {
@@ -82,7 +95,7 @@ export async function setTemplateStatus(req: Request, res: Response) {
     if (!["draft", "published", "archived"].includes(status)) {
       return fail(res, "status must be draft | published | archived.", 422);
     }
-    const updated = await TemplateService.setStatus(req.params.id, status, req.user!.id);
+    const updated = await TemplateService.setStatus(String(req.params.id), status, req.user!.id);
     if (!updated) return fail(res, "Template not found.", 404);
     return ok(res, updated);
   } catch (err: any) {
@@ -94,7 +107,7 @@ export async function setTemplateStatus(req: Request, res: Response) {
 
 export async function togglePremium(req: Request, res: Response) {
   try {
-    const updated = await TemplateService.togglePremium(req.params.id, req.user!.id);
+    const updated = await TemplateService.togglePremium(String(req.params.id), req.user!.id);
     if (!updated) return fail(res, "Template not found.", 404);
     return ok(res, updated);
   } catch (err: any) {
@@ -106,7 +119,7 @@ export async function togglePremium(req: Request, res: Response) {
 
 export async function deleteTemplate(req: Request, res: Response) {
   try {
-    const deleted = await TemplateService.delete(req.params.id);
+    const deleted = await TemplateService.delete(String(req.params.id));
     if (!deleted) return fail(res, "Template not found.", 404);
     return ok(res, { deleted: true });
   } catch (err: any) {
@@ -156,8 +169,16 @@ export async function getAnalytics(req: Request, res: Response) {
 export async function recordUsage(req: Request, res: Response) {
   try {
     const { templateId, layoutId, type } = req.body;
-    if (!templateId || !layoutId) return fail(res, "templateId and layoutId required.", 422);
-    await (TemplateUsage as any).recordUse(templateId, layoutId, type ?? "create");
+    if (!layoutId) return fail(res, "layoutId required.", 422);
+
+    let resolvedTemplateId = templateId as string | undefined;
+    if (!resolvedTemplateId) {
+      const tpl = await Template.findOne({ layoutId }).select("_id").lean();
+      if (!tpl?._id) return fail(res, "Template not found for layoutId.", 404);
+      resolvedTemplateId = String(tpl._id);
+    }
+
+    await (TemplateUsage as any).recordUse(resolvedTemplateId, layoutId, type ?? "create");
     return ok(res, { recorded: true });
   } catch (err: any) {
     return fail(res, err.message, 500);

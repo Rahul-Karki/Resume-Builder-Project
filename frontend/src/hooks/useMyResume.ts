@@ -103,16 +103,6 @@ export function useMyResumes() {
   const [authRequired, setAuthRequired] = useState(false);
 
   const refresh = useCallback(async () => {
-    const token = localStorage.getItem("accessToken");
-
-    if (!token) {
-      setRawResumes([]);
-      setLoading(false);
-      setError(null);
-      setAuthRequired(true);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     setAuthRequired(false);

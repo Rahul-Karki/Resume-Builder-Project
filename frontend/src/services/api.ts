@@ -10,6 +10,7 @@ const AUTH_EXCLUDED_PATHS = [
   "/auth/login",
   "/auth/signup",
   "/auth/google-login",
+  "/auth/logout",
   "/auth/forgot-password",
   "/auth/reset-password",
   "/refresh",

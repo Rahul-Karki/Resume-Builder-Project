@@ -1,4 +1,4 @@
-import { ResumeDocument } from "../../types/resume-types";
+import { ResumeDocument, marginMap, spacingMap } from "../../types/resume-types";
 import {
   formatCertification,
   formatDateRange,
@@ -6,11 +6,14 @@ import {
 } from "./templateHelpers";
 
 export function CompactTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s, sectionVisibility } = data;
+  const { personalInfo: p, sections: s, sectionVisibility, style } = data;
+  const pagePadding = marginMap[style.pageMargin];
+  const sectionGap = spacingMap[style.sectionSpacing];
   const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&display=swap');
-    .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; max-width:794px; margin:0 auto; box-sizing:border-box; font-size:9.5pt; line-height:1.45; }
+    .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; max-width:794px; margin:0 auto; box-sizing:border-box; font-size:${style.fontSize}; line-height:${style.lineHeight}; }
+    .comp-wrap p, .comp-wrap span, .comp-wrap li, .comp-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .comp-header { border-bottom:2px solid #111; padding-bottom:10px; margin-bottom:10px; }
     .comp-name { font-family:'IBM Plex Serif',serif; font-size:24pt; font-weight:600; margin:0 0 4px; }
     .comp-contact { display:flex; flex-wrap:wrap; gap:3px 12px; font-size:8.5pt; color:#444; }
@@ -35,12 +38,12 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="comp-wrap">
+      <div className="comp-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding }}>
         <div className="comp-header">
-          <div className="comp-name">{p.name}</div>
-          {p.title && <div style={{ fontSize: "9pt", color: "#555", marginBottom: 6 }}>{p.title}</div>}
+          <div className="comp-name" style={{ fontFamily: style.headingFont, color: style.headingColor, textAlign: style.headerAlign }}>{p.name}</div>
+          {p.title && <div style={{ fontSize: "9pt", color: style.mutedColor, marginBottom: 6, textAlign: style.headerAlign }}>{p.title}</div>}
           {contactItems.length > 0 && (
-            <div className="comp-contact">
+            <div className="comp-contact" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
               {contactItems.map((item, i) => (
                 <span key={i}>{i > 0 ? ` · ${item}` : item}</span>
               ))}
@@ -49,16 +52,16 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
         </div>
  
         {p.summary && (
-          <div className="comp-row">
+          <div className="comp-row" style={{ marginBottom: sectionGap }}>
             <div className="comp-label">Summary</div>
             <div className="comp-summary">{p.summary}</div>
           </div>
         )}
  
-        {sectionVisibility.experience && s.experience.length > 0 && <hr className="comp-section-rule" />}
+        {sectionVisibility.experience && s.experience.length > 0 && style.showDividers && <hr className="comp-section-rule" style={{ borderTopColor: style.borderColor }} />}
  
         {sectionVisibility.experience && s.experience.length > 0 && (
-        <div className="comp-row" style={{ alignItems: "start" }}>
+        <div className="comp-row" style={{ alignItems: "start", marginBottom: sectionGap }}>
           <div className="comp-label" style={{ paddingTop: 3 }}>Experience</div>
           <div>
             {s.experience.map((e, i) => (
@@ -80,10 +83,10 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
         </div>
         )}
  
-        {sectionVisibility.education && s.education.length > 0 && <hr className="comp-section-rule" />}
+        {sectionVisibility.education && s.education.length > 0 && style.showDividers && <hr className="comp-section-rule" style={{ borderTopColor: style.borderColor }} />}
  
         {sectionVisibility.education && s.education.length > 0 && (
-        <div className="comp-row">
+        <div className="comp-row" style={{ marginBottom: sectionGap }}>
           <div className="comp-label">Education</div>
           <div>
             {s.education.map((e, i) => (
@@ -99,10 +102,10 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
         </div>
         )}
  
-        {sectionVisibility.skills && s.skills.length > 0 && <hr className="comp-section-rule" />}
+        {sectionVisibility.skills && s.skills.length > 0 && style.showDividers && <hr className="comp-section-rule" style={{ borderTopColor: style.borderColor }} />}
  
         {sectionVisibility.skills && s.skills.length > 0 && (
-        <div className="comp-row">
+        <div className="comp-row" style={{ marginBottom: sectionGap }}>
           <div className="comp-label">Skills</div>
           <div>
             {s.skills.map((sk, i) => (
@@ -115,10 +118,10 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
         </div>
         )}
  
-        {sectionVisibility.projects && s.projects.length > 0 && <hr className="comp-section-rule" />}
+        {sectionVisibility.projects && s.projects.length > 0 && style.showDividers && <hr className="comp-section-rule" style={{ borderTopColor: style.borderColor }} />}
  
         {sectionVisibility.projects && s.projects.length > 0 && (
-        <div className="comp-row">
+        <div className="comp-row" style={{ marginBottom: sectionGap }}>
           <div className="comp-label">Projects</div>
           <div>
             {s.projects.map((pr, i) => (
@@ -132,25 +135,25 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
         </div>
         )}
  
-        {sectionVisibility.certifications && s.certifications.length > 0 && <hr className="comp-section-rule" />}
+        {sectionVisibility.certifications && s.certifications.length > 0 && style.showDividers && <hr className="comp-section-rule" style={{ borderTopColor: style.borderColor }} />}
  
         {sectionVisibility.certifications && s.certifications.length > 0 && (
-        <div className="comp-row">
+        <div className="comp-row" style={{ marginBottom: sectionGap }}>
           <div className="comp-label">Certs</div>
           <div>
-            {s.certifications.map((c, i) => <div className="comp-cert" key={i}>{formatCertification(c)}</div>)}
+            {s.certifications.map((c, i) => <div className="comp-cert" key={i}>{style.bulletStyle} {formatCertification(c)}</div>)}
           </div>
         </div>
         )}
 
-        {sectionVisibility.languages && s.languages.length > 0 && <hr className="comp-section-rule" />}
+        {sectionVisibility.languages && s.languages.length > 0 && style.showDividers && <hr className="comp-section-rule" style={{ borderTopColor: style.borderColor }} />}
 
         {sectionVisibility.languages && s.languages.length > 0 && (
-        <div className="comp-row">
+        <div className="comp-row" style={{ marginBottom: sectionGap }}>
           <div className="comp-label">Languages</div>
           <div>
             {s.languages.map((l, i) => (
-              <div className="comp-cert" key={i}>{l.language}{l.proficiency ? ` (${l.proficiency})` : ""}</div>
+              <div className="comp-cert" key={i}>{style.bulletStyle} {l.language}{l.proficiency ? ` (${l.proficiency})` : ""}</div>
             ))}
           </div>
         </div>

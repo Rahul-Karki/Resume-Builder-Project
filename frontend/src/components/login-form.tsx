@@ -17,11 +17,19 @@ import {
 import { Input } from "@/components/ui/input"
 import { api } from "@/services/api"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
+import { useLocation } from "react-router-dom"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const location = useLocation()
+
+  const redirectParam = new URLSearchParams(location.search).get("redirect")
+  const redirectTo =
+    redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+      ? redirectParam
+      : "/"
 
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
@@ -52,8 +60,7 @@ export function LoginForm({
 
     setMessage("Login successful")
 
-    // 🔥 redirect to home
-    window.location.href = "/"
+    window.location.href = redirectTo
 
   } catch (err: any) {
     setMessage(err.response?.data?.message || "Invalid credentials")
@@ -99,11 +106,6 @@ export function LoginForm({
       setLoading(false)
     }
   }
-
-  const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
-  };
-
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -164,7 +166,7 @@ export function LoginForm({
               <Field>
                 <Button type="submit">Login</Button>
 
-                <GoogleAuthButton />
+                <GoogleAuthButton redirectTo={redirectTo} />
 
                 <FieldDescription className="text-center">
                   Don&apos;t have an account? <a href="/signup">Sign up</a>

@@ -1,86 +1,55 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import User from "../models/User.model";   // your existing User model
+import User from "../models/User";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
 
-export interface JwtPayload {
-  id:   string;
-  role: "user" | "admin" | "superadmin";
-  iat:  number;
-  exp:  number;
-}
-
-// Extend Express Request
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id:   string;
-        role: string;
-        name: string;
-      };
-    }
-  }
-}
-
-// ─── Extract token helper ─────────────────────────────────────────────────────
-
-function extractToken(req: Request): string | null {
-  const auth = req.headers.authorization;
-  if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  // Fallback: cookie (if you use httpOnly cookies)
-  return req.cookies?.token ?? null;
-}
-
-// ─── Middleware: authenticate any logged-in user ──────────────────────────────
-
-export async function authenticate(req: Request, res: Response, next: NextFunction) {
-  const token = extractToken(req);
-  if (!token) {
-    return res.status(401).json({ error: "Authentication required." });
-  }
-
+export const authMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
-    const user    = await User.findById(payload.id).select("name role").lean();
-
-    if (!user) {
-      return res.status(401).json({ error: "User not found." });
+    if (!JWT_SECRET) {
+      res.status(500).json({ message: "Server misconfigured" });
+      return;
     }
 
-    req.user = { id: String(user._id), role: user.role, name: user.name };
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid or expired token." });
+    const authHeader = req.headers.authorization;
+
+    // Check if token exists
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ message: "Unauthorized: No token provided" });
+      return;
+    }
+
+    // Extract token
+    const token = authHeader.split(" ")[1];
+
+    // Verify token and attach current user
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+
+    User.findById(decoded.userId)
+      .select("name role")
+      .lean()
+      .then((user) => {
+        if (!user) {
+          res.status(401).json({ message: "Unauthorized: User not found" });
+          return;
+        }
+
+        req.user = {
+          id: String(user._id),
+          role: String(user.role),
+          name: String(user.name),
+        };
+
+        next();
+      })
+      .catch(() => {
+        res.status(500).json({ message: "Server error" });
+      });
+  } catch (error) {
+    res.status(401).json({ message: "Unauthorized: Invalid token" });
   }
-}
-
-// ─── Middleware: require admin or superadmin ──────────────────────────────────
-
-export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ error: "Authentication required." });
-  }
-  if (!["admin", "superadmin"].includes(req.user.role)) {
-    return res.status(403).json({
-      error: "Admin access required.",
-      hint:  "Your account does not have admin privileges.",
-    });
-  }
-  next();
-}
-
-// ─── Middleware: require superadmin only (e.g. delete templates) ──────────────
-
-export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user || req.user.role !== "superadmin") {
-    return res.status(403).json({ error: "Superadmin access required." });
-  }
-  next();
-}
-
-// ─── Composed guard: authenticate + requireAdmin ──────────────────────────────
-// Usage: router.get('/templates', adminGuard, controller)
-
-export const adminGuard = [authenticate, requireAdmin];
+};

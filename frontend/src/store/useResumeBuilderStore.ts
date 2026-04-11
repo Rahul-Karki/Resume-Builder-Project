@@ -405,11 +405,20 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         compact:   { accentColor: "#111111", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "9.5pt" },
         sidebar:   { accentColor: "#1E293B", bodyFont: "Nunito Sans, sans-serif", headingFont: "Nunito Sans, sans-serif" },
       };
+      const sectionVisibilityPresets = {
+        classic:   { ...defaultSectionVisibility },
+        executive: { ...defaultSectionVisibility },
+        modern:    { ...defaultSectionVisibility },
+        compact:   { ...defaultSectionVisibility },
+        sidebar:   { ...defaultSectionVisibility },
+      } as Record<string, typeof defaultSectionVisibility>;
       set(s => ({
         resume: {
           ...s.resume,
           templateId,
           style: { ...defaultStyle, ...(stylePresets[templateId] ?? {}) },
+          sectionVisibility: { ...(sectionVisibilityPresets[templateId] ?? defaultSectionVisibility) },
+          sectionOrder: [...defaultSectionOrder],
         },
       }));
     },
@@ -425,19 +434,13 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           return;
         }
 
-        const token = localStorage.getItem("accessToken");
-
-        if (!token) {
-          set(s => ({ ui: { ...s.ui, isSaving: false, saveError: "Please login before saving your resume." } }));
-          return;
-        }
-
         const response = resume.id
           ? await api.put(`/resumes/${resume.id}`, resume)
           : await api.post(`/resumes`, resume);
 
         const savedResume = response.data?.resume ?? response.data;
         const savedId = savedResume?._id ?? savedResume?.id ?? resume.id ?? `res_${Date.now()}`;
+
         set(s => ({
           resume: { ...s.resume, id: savedId, updatedAt: savedResume?.updatedAt ?? new Date().toISOString() },
           ui: { ...s.ui, isSaving: false, isSaved: true, isDirty: false },
@@ -450,13 +453,6 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
     // ─── Load ────────────────────────────────────────────────────────────────
     loadResume: async (id) => {
       try {
-        const token = localStorage.getItem("accessToken");
-
-        if (!token) {
-          set(s => ({ ui: { ...s.ui, saveError: "Please log in before loading a resume." } }));
-          return;
-        }
-
         const response = await api.get(`/resumes/${id}`);
         const loadedResume = response.data?.resume ?? response.data;
 

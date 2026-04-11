@@ -85,7 +85,7 @@ function TopBar({ page, adminName }: { page: AdminPage; adminName: string }) {
             {adminName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
           </div>
           <span style={{ fontSize: 12, fontWeight: 600, color: "#666" }}>{adminName.split(" ")[0]}</span>
-          <span style={{ fontSize: 9, fontWeight: 800, color: "#F0EFE8", background: "#C8F55A", padding: "1px 6px", borderRadius: 20, color: "#0E0E0E" }}>ADMIN</span>
+          <span style={{ fontSize: 9, fontWeight: 800, color: "#F0EFE8", background: "#C8F55A", padding: "1px 6px", borderRadius: 20,  }}>ADMIN</span>
         </div>
       </div>
     </div>

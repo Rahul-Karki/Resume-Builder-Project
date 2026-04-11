@@ -1,7 +1,11 @@
 import { GoogleLogin } from "@react-oauth/google";
 import { api } from "@/services/api";
 
-const GoogleAuthButton = () => {
+interface GoogleAuthButtonProps {
+  redirectTo?: string;
+}
+
+const GoogleAuthButton = ({ redirectTo = "/" }: GoogleAuthButtonProps) => {
   return (
     <GoogleLogin
       onSuccess={async (credentialResponse) => {
@@ -14,8 +18,7 @@ const GoogleAuthButton = () => {
             localStorage.setItem("accessToken", res.data.accessToken);
           }
 
-          // redirect after login
-          window.location.href = "/";
+          window.location.href = redirectTo;
         } catch (err:any) {
           alert(err);
           console.error(err);
