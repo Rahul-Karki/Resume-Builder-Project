@@ -60,23 +60,23 @@ export function Navbar() {
           { label: "My Resumes", href: "/resumes" },
           { label: "Admin", href: "/admin" },
         ].map(({ label, href }) => (
-          <a
+          <Link
             key={label}
-            href={href}
+            to={href}
             style={{ fontSize: 13, fontWeight: 500, color: "#555", textDecoration: "none", transition: "color 0.15s" }}
             onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
             onMouseLeave={e => (e.currentTarget.style.color = "#555")}
           >
             {label}
-          </a>
-          <Link
-            to={href}
+          </Link>
+        ))}
+      </div>
 
       <div style={{ flex: 1 }} />
 
       {/* Auth buttons */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          </Link>
+        {isAuthenticated ? (
           <button
             onClick={handleLogout}
             style={{
