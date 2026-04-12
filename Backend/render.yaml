@@ -18,9 +18,9 @@ services:
         value: 5000
       - key: CORS_ORIGIN
         sync: false
-      - key: SENDER_EMAIL
+      - key: EMAIL_USER
         sync: false
-      - key: SENDER_PASSWORD
+      - key: EMAIL_PASS
         sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
