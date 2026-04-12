@@ -10,9 +10,11 @@ const app = express();
 app.use(express.json());
 connectDB();
 
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: corsOrigin.split(",").map(url => url.trim()),
     credentials: true, // if using cookies/auth
   })
 );
@@ -29,8 +31,8 @@ app.use("/api/resumes", resumeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/templates", templateRoutes);
 
- 
-app.listen(process.env.PORT, () => {
-  console.log("Server running");
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 

@@ -21,8 +21,10 @@ const isExcludedPath = (url?: string) => {
   return AUTH_EXCLUDED_PATHS.some((path) => url.includes(path));
 };
 
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
 export const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: apiBaseURL,
   withCredentials: true,
 });
 
