@@ -10,6 +10,7 @@ import crypto from "crypto";
 import { UserRole } from "../enums/userRole";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
+const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
 const authCookieOptions = {
   httpOnly: true,
@@ -200,7 +201,7 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     await resetToken.save();
 
-    const link = `http://localhost:5173/reset-password?token=${rawToken}`;
+    const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
 
     await sendEmail(user.email, link);
 
@@ -325,7 +326,7 @@ const resendResetLink = async (req: Request, res: Response) => {
 
     await existingToken.save();
 
-    const link = `http://localhost:5173/reset-password?token=${rawToken}`;
+    const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
     await sendEmail(user.email, link);
 
     res.status(200).json({

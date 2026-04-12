@@ -18,6 +18,8 @@ services:
         value: 5000
       - key: CORS_ORIGIN
         sync: false
+      - key: FRONTEND_URL
+        sync: false
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASS

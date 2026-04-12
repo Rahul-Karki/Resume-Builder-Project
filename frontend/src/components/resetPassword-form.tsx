@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import axios from "axios"
+import { api } from "@/services/api"
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/
 
@@ -33,7 +33,7 @@ export function ResetPasswordForm({
     }
 
     try {
-      await axios.post("http://localhost:5000/api/auth/reset-password", {
+      await api.post("/auth/reset-password", {
         token,
         password,
         confirmPassword,
