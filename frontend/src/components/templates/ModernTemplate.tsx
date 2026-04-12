@@ -13,7 +13,7 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
   const sectionGap = spacingMap[style.sectionSpacing];
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
-    .mod-wrap { font-family:'DM Sans',sans-serif; color:#111; background:#fff; padding:44px 52px; max-width:794px; margin:0 auto; box-sizing:border-box; }
+    .mod-wrap { font-family:'DM Sans',sans-serif; color:#111; background:#fff; padding:44px 52px; width:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .mod-wrap, .mod-wrap p, .mod-wrap span, .mod-wrap li, .mod-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .mod-name { font-family:'DM Serif Display',serif; font-size:32pt; color:#0F1A14; margin:0 0 2px; }
     .mod-tagline { font-size:10pt; font-weight:300; color:#555; letter-spacing:0.5px; margin-bottom:10px; }

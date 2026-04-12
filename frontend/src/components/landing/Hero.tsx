@@ -177,6 +177,19 @@ function LiveMockup() {
 }
 
 export function HeroSection() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const syncAuth = () => setIsAuthenticated(Boolean(localStorage.getItem("accessToken")));
+    syncAuth();
+    window.addEventListener("storage", syncAuth);
+    window.addEventListener("focus", syncAuth);
+    return () => {
+      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener("focus", syncAuth);
+    };
+  }, []);
+
   return (
     <section style={{
       minHeight: "100vh",
@@ -275,20 +288,22 @@ export function HeroSection() {
             >
               Browse Templates →
             </a>
-            <a
-              href="/login"
-              style={{
-                padding: "13px 28px", borderRadius: 10,
-                border: "1px solid #252525", background: "transparent",
-                color: "#777", fontSize: 14, fontWeight: 600,
-                textDecoration: "none", display: "inline-block", transition: "all 0.15s",
-                fontFamily: "'Outfit', sans-serif",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#777"; }}
-            >
-              Log In
-            </a>
+            {!isAuthenticated && (
+              <a
+                href="/login"
+                style={{
+                  padding: "13px 28px", borderRadius: 10,
+                  border: "1px solid #252525", background: "transparent",
+                  color: "#777", fontSize: 14, fontWeight: 600,
+                  textDecoration: "none", display: "inline-block", transition: "all 0.15s",
+                  fontFamily: "'Outfit', sans-serif",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#777"; }}
+              >
+                Log In
+              </a>
+            )}
           </div>
         </div>
 

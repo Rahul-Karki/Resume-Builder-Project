@@ -5,9 +5,10 @@ interface GoogleAuthButtonProps {
   redirectTo?: string;
 }
 
-const GoogleAuthButton = ({ redirectTo = "/" }: GoogleAuthButtonProps) => {
+const GoogleAuthButton = ({ redirectTo = "/resumes" }: GoogleAuthButtonProps) => {
   return (
     <GoogleLogin
+      shape="pill"
       onSuccess={async (credentialResponse) => {
         try {
           const res = await api.post("/auth/google-login", {

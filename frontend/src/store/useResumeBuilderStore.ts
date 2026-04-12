@@ -90,7 +90,7 @@ interface ResumeBuilderStore {
   // ── Persistence ────────────────────────────────────────────────────────────
   saveResume: () => Promise<void>;
   loadResume: (id: string) => Promise<void>;
-  initFromTemplate: (templateId: string) => void;
+  initFromTemplate: (templateId: string) => Promise<void>;
   markDirty: () => void;
 }
 
@@ -108,11 +108,46 @@ const initialResume: ResumeDocument = {
 const initialUI: BuilderUIState = {
   activeTab: "content",
   activeSection: "personal",
-  previewScale: 0.75,
+  previewScale: 0.5,
   isSaving: false,
   isSaved: false,
   isDirty: false,
   saveError: null,
+};
+
+const VALID_FONTS = new Set([
+  "EB Garamond, serif",
+  "Playfair Display, serif",
+  "Lora, serif",
+  "DM Sans, sans-serif",
+  "IBM Plex Sans, sans-serif",
+  "Nunito Sans, sans-serif",
+  "Outfit, sans-serif",
+  "Source Serif 4, serif",
+]);
+
+const VALID_FONT_SIZES = new Set(["9pt", "9.5pt", "10pt", "10.5pt", "11pt", "11.5pt"]);
+const VALID_LINE_HEIGHTS = new Set(["1.3", "1.4", "1.5", "1.6", "1.7"]);
+
+const safeFont = (value: unknown, fallback: ResumeStyle["bodyFont"]): ResumeStyle["bodyFont"] => {
+  if (typeof value === "string" && VALID_FONTS.has(value)) {
+    return value as ResumeStyle["bodyFont"];
+  }
+  return fallback;
+};
+
+const safeFontSize = (value: unknown, fallback: ResumeStyle["fontSize"]): ResumeStyle["fontSize"] => {
+  if (typeof value === "string" && VALID_FONT_SIZES.has(value)) {
+    return value as ResumeStyle["fontSize"];
+  }
+  return fallback;
+};
+
+const safeLineHeight = (value: unknown, fallback: ResumeStyle["lineHeight"]): ResumeStyle["lineHeight"] => {
+  if (typeof value === "string" && VALID_LINE_HEIGHTS.has(value)) {
+    return value as ResumeStyle["lineHeight"];
+  }
+  return fallback;
 };
 
 // ─── Store ─────────────────────────────────────────────────────────────────────
@@ -397,7 +432,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
     setPreviewScale: (scale) => set(s => ({ ui: { ...s.ui, previewScale: scale } })),
 
     // ─── Init from template ───────────────────────────────────────────────────
-    initFromTemplate: (templateId) => {
+    initFromTemplate: async (templateId) => {
       const stylePresets: Record<string, Partial<typeof defaultStyle>> = {
         classic:   { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
         executive: { accentColor: "#1B2B4B", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif" },
@@ -412,13 +447,70 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         compact:   { ...defaultSectionVisibility },
         sidebar:   { ...defaultSectionVisibility },
       } as Record<string, typeof defaultSectionVisibility>;
-      set(s => ({
+
+      const baseStyle = { ...defaultStyle, ...(stylePresets[templateId] ?? {}) };
+      const baseVisibility = { ...(sectionVisibilityPresets[templateId] ?? defaultSectionVisibility) };
+
+      try {
+        const response = await api.get("/templates");
+        const templates = Array.isArray(response.data?.data) ? response.data.data : [];
+        const matchedTemplate = templates.find((template: any) => template?.layoutId === templateId);
+
+        if (matchedTemplate) {
+          const cssVars = matchedTemplate.cssVars ?? {};
+          const slots = matchedTemplate.slots ?? {};
+
+          const resolvedStyle: ResumeStyle = {
+            ...baseStyle,
+            accentColor: cssVars.accentColor ?? baseStyle.accentColor,
+            headingColor: cssVars.headingColor ?? baseStyle.headingColor,
+            textColor: cssVars.textColor ?? baseStyle.textColor,
+            mutedColor: cssVars.mutedColor ?? baseStyle.mutedColor,
+            borderColor: cssVars.borderColor ?? baseStyle.borderColor,
+            backgroundColor: cssVars.backgroundColor ?? baseStyle.backgroundColor,
+            bodyFont: safeFont(cssVars.bodyFont, baseStyle.bodyFont),
+            headingFont: safeFont(cssVars.headingFont, baseStyle.headingFont),
+            fontSize: safeFontSize(cssVars.fontSize, baseStyle.fontSize),
+            lineHeight: safeLineHeight(cssVars.lineHeight, baseStyle.lineHeight),
+          };
+
+          set(() => ({
+            resume: {
+              ...initialResume,
+              templateId,
+              style: resolvedStyle,
+              sectionVisibility: {
+                ...baseVisibility,
+                experience: slots.experience ?? baseVisibility.experience,
+                education: slots.education ?? baseVisibility.education,
+                skills: slots.skills ?? baseVisibility.skills,
+                projects: slots.projects ?? baseVisibility.projects,
+                certifications: slots.certifications ?? baseVisibility.certifications,
+                languages: slots.languages ?? baseVisibility.languages,
+              },
+              sectionOrder: [...defaultSectionOrder],
+            },
+            ui: {
+              ...initialUI,
+            },
+          }));
+
+          return;
+        }
+      } catch {
+        // Fall back to local presets when templates API is unavailable.
+      }
+
+      set(() => ({
         resume: {
-          ...s.resume,
+          ...initialResume,
           templateId,
-          style: { ...defaultStyle, ...(stylePresets[templateId] ?? {}) },
-          sectionVisibility: { ...(sectionVisibilityPresets[templateId] ?? defaultSectionVisibility) },
+          style: baseStyle,
+          sectionVisibility: baseVisibility,
           sectionOrder: [...defaultSectionOrder],
+        },
+        ui: {
+          ...initialUI,
         },
       }));
     },

@@ -12,7 +12,7 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
   const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&display=swap');
-    .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; max-width:794px; margin:0 auto; box-sizing:border-box; font-size:${style.fontSize}; line-height:${style.lineHeight}; }
+    .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; width:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; font-size:${style.fontSize}; line-height:${style.lineHeight}; display:flex; flex-direction:column; }
     .comp-wrap p, .comp-wrap span, .comp-wrap li, .comp-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .comp-header { border-bottom:2px solid #111; padding-bottom:10px; margin-bottom:10px; }
     .comp-name { font-family:'IBM Plex Serif',serif; font-size:24pt; font-weight:600; margin:0 0 4px; }

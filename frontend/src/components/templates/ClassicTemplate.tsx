@@ -9,7 +9,7 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s } = data;
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap');
-    .classic-wrap { font-family:'Source Sans 3',sans-serif; color:#1a1a1a; font-size:10.5pt; line-height:1.5; background:#fff; padding:48px 52px; max-width:794px; margin:0 auto; box-sizing:border-box; }
+    .classic-wrap { font-family:'Source Sans 3',sans-serif; color:#1a1a1a; font-size:10.5pt; line-height:1.5; background:#fff; padding:48px 52px; width:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .classic-name { font-family:'EB Garamond',serif; font-size:28pt; font-weight:500; letter-spacing:0.5px; margin:0 0 4px; color:#111; }
     .classic-contact { font-size:9pt; color:#444; display:flex; flex-wrap:wrap; gap:4px 16px; margin-bottom:18px; }
     .classic-contact span::before { content:''; }

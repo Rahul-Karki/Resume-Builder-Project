@@ -184,7 +184,15 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
                   <input value={form.tag} onChange={e => set("tag", e.target.value)} placeholder="e.g. Tech-Ready" style={inp} />
                 </Field>
                 <Field label="Sort Order">
-                  <input type="number" value={form.sortOrder} onChange={e => set("sortOrder", Number(e.target.value))} style={inp} />
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={form.sortOrder}
+                    onChange={e => set("sortOrder", Number(e.target.value))}
+                    style={inp}
+                  />
+                  <div style={{ fontSize: 10, color: "#333", marginTop: 3 }}>Lower number shows earlier in the list.</div>
                 </Field>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

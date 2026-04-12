@@ -1,22 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { api } from "@/services/api";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
-import { PreviewScale } from "@/types/resume-types";
 
-const SCALES: { label: string; value: PreviewScale }[] = [
-  { label: "50%", value: 0.5 },
-  { label: "60%", value: 0.6 },
-  { label: "75%", value: 0.75 },
-  { label: "85%", value: 0.85 },
-  { label: "100%", value: 1 },
-];
-
-const TEMPLATES = [
-  { id: "classic",   label: "Classic" },
-  { id: "executive", label: "Executive" },
-  { id: "modern",    label: "Modern" },
-  { id: "compact",   label: "Compact" },
-  { id: "sidebar",   label: "Sidebar" },
-];
+type TemplateOption = {
+  layoutId: string;
+  name: string;
+  status?: string;
+  sortOrder?: number;
+};
 
 interface Props {
   onDownload: () => void;
@@ -24,10 +15,55 @@ interface Props {
 }
 
 export function BuilderToolbar({ onDownload, canDownload }: Props) {
-  const { resume, ui, saveResume, setPreviewScale, initFromTemplate, setTitle } = useResumeBuilderStore();
+  const { resume, ui, saveResume, initFromTemplate, setTitle } = useResumeBuilderStore();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(resume.title);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState<TemplateOption[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadTemplates = async () => {
+      try {
+        setTemplatesLoading(true);
+        const response = await api.get("/templates");
+        const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+        const mapped = rows
+          .map((row: any) => ({
+            layoutId: String(row.layoutId ?? ""),
+            name: String(row.name ?? row.layoutId ?? "Template"),
+            status: row.status,
+            sortOrder: typeof row.sortOrder === "number" ? row.sortOrder : 0,
+          }))
+          .filter((template: TemplateOption) => template.layoutId);
+
+        if (active) {
+          setTemplates(mapped.sort((a, b) => a.sortOrder! - b.sortOrder!));
+        }
+      } catch {
+        if (active) {
+          setTemplates([]);
+        }
+      } finally {
+        if (active) {
+          setTemplatesLoading(false);
+        }
+      }
+    };
+
+    void loadTemplates();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const currentTemplateLabel = templates.find((template) => template.layoutId === resume.templateId)?.name
+    ?? resume.templateId
+      .replace(/[-_]/g, " ")
+      .replace(/\b\w/g, (character) => character.toUpperCase());
 
   const handleSave = async () => {
     await saveResume();
@@ -102,7 +138,7 @@ export function BuilderToolbar({ onDownload, canDownload }: Props) {
             cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           }}
         >
-          ◈ {TEMPLATES.find(t => t.id === resume.templateId)?.label ?? "Template"}
+          ◈ {currentTemplateLabel}
           <span style={{ fontSize: 10, opacity: 0.5 }}>▾</span>
         </button>
         {showTemplates && (
@@ -113,21 +149,27 @@ export function BuilderToolbar({ onDownload, canDownload }: Props) {
               border: "1px solid #2A2A2A", borderRadius: 10, overflow: "hidden",
               zIndex: 50, minWidth: 160, boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
             }}>
-              {TEMPLATES.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => { initFromTemplate(t.id); setShowTemplates(false); }}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    padding: "9px 14px", background: resume.templateId === t.id ? "#222" : "transparent",
-                    border: "none", color: resume.templateId === t.id ? "#F0EFE8" : "#888",
-                    fontSize: 13, fontWeight: resume.templateId === t.id ? 700 : 400,
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}
-                >
-                  {resume.templateId === t.id ? "✓ " : "  "}{t.label}
-                </button>
-              ))}
+              {templatesLoading ? (
+                <div style={{ padding: "10px 14px", color: "#666", fontSize: 13 }}>Loading templates...</div>
+              ) : templates.length > 0 ? (
+                templates.map((template) => (
+                  <button
+                    key={template.layoutId}
+                    onClick={() => { void initFromTemplate(template.layoutId); setShowTemplates(false); }}
+                    style={{
+                      display: "block", width: "100%", textAlign: "left",
+                      padding: "9px 14px", background: resume.templateId === template.layoutId ? "#222" : "transparent",
+                      border: "none", color: resume.templateId === template.layoutId ? "#F0EFE8" : "#888",
+                      fontSize: 13, fontWeight: resume.templateId === template.layoutId ? 700 : 400,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    {resume.templateId === template.layoutId ? "✓ " : "  "}{template.name}
+                  </button>
+                ))
+              ) : (
+                <div style={{ padding: "10px 14px", color: "#666", fontSize: 13 }}>No templates found.</div>
+              )}
             </div>
           </>
         )}
@@ -135,26 +177,6 @@ export function BuilderToolbar({ onDownload, canDownload }: Props) {
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
-
-      {/* Preview scale */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-        <span style={{ fontSize: 11, color: "#555", marginRight: 4 }}>Zoom</span>
-        {SCALES.map(s => (
-          <button
-            key={s.value}
-            onClick={() => setPreviewScale(s.value)}
-            style={{
-              padding: "3px 8px", borderRadius: 5, border: "1px solid",
-              borderColor: ui.previewScale === s.value ? "#C8F55A" : "#2A2A2A",
-              background: ui.previewScale === s.value ? "rgba(200,245,90,0.1)" : "transparent",
-              color: ui.previewScale === s.value ? "#C8F55A" : "#555",
-              fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-            }}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
 
       <div style={{ width: 1, height: 24, background: "#2A2A2A" }} />
 

@@ -169,7 +169,7 @@ export default function Compiled() {
               )}
 
               {/* Empty state */}
-              {!loading&&!error&&resumes.length===0&&<EmptyState name={user?.name ?? "there"} onPick={(id)=>showMsg(`Creating resume with ${id} template…`)}/>}
+              {!loading&&!error&&resumes.length===0&&<EmptyState name={user?.name ?? "there"} onPick={(id)=>navigate(`/builder?template=${encodeURIComponent(id)}`)}/>}
 
               {/* Grid */}
               {!loading&&!error&&resumes.length>0&&(

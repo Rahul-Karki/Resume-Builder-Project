@@ -7,7 +7,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const sectionGap = spacingMap[style.sectionSpacing];
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;700&display=swap');
-    .side-wrap { display:grid; grid-template-columns:210px 1fr; min-height:1123px; height:1123px; max-width:794px; margin:0 auto; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
+    .side-wrap { display:grid; grid-template-columns:210px 1fr; width:100%; min-height:100%; height:100%; max-width:none; margin:0; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
     .side-left { background:#1E293B; color:#CBD5E1; padding:32px 22px; }
     .side-name { font-family:'Nunito',sans-serif; font-size:18pt; font-weight:700; color:#F1F5F9; margin:0 0 2px; line-height:1.2; }
     .side-subtitle { font-size:8.5pt; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px; }
@@ -20,7 +20,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
     .side-skill-dots { display:flex; gap:3px; }
     .side-dot { width:8px; height:8px; border-radius:50%; }
     .side-tag { display:inline-block; background:#334155; color:#94A3B8; font-size:7.5pt; padding:2px 7px; border-radius:3px; margin:2px 2px 0 0; }
-    .side-right { padding:32px 32px 32px 28px; }
+    .side-right { padding:32px 32px 32px 28px; height:100%; }
     .side-right, .side-right p, .side-right span, .side-right li, .side-right div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .side-section { margin-bottom:18px; }
     .side-section-title { font-family:'Nunito',sans-serif; font-size:10.5pt; font-weight:700; color:#1E293B; text-transform:uppercase; letter-spacing:1.5px; padding-bottom:3px; margin-bottom:10px; position:relative; }

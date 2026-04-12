@@ -1,8 +1,23 @@
+import { useEffect, useState } from "react";
+
 // ─── CTASection.tsx ───────────────────────────────────────────────────────────
 // Bottom CTA section. Two actions: Sign Up Free + Browse Templates.
 // Minimal editorial layout — no fluff, no fake claims.
 
 export function CTASection() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const syncAuth = () => setIsAuthenticated(Boolean(localStorage.getItem("accessToken")));
+    syncAuth();
+    window.addEventListener("storage", syncAuth);
+    window.addEventListener("focus", syncAuth);
+    return () => {
+      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener("focus", syncAuth);
+    };
+  }, []);
+
   return (
     <section style={{
       background: "#080808",
@@ -58,20 +73,22 @@ export function CTASection() {
 
         {/* CTAs */}
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <a
-            href="/signup"
-            style={{
-              padding: "14px 32px", borderRadius: 10, border: "none",
-              background: "#C8F55A", color: "#0E0E0E",
-              fontSize: 15, fontWeight: 800,
-              textDecoration: "none", display: "inline-block",
-              transition: "opacity 0.15s", fontFamily: "'Outfit', sans-serif",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
-            onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
-          >
-            Sign Up Free →
-          </a>
+          {!isAuthenticated && (
+            <a
+              href="/signup"
+              style={{
+                padding: "14px 32px", borderRadius: 10, border: "none",
+                background: "#C8F55A", color: "#0E0E0E",
+                fontSize: 15, fontWeight: 800,
+                textDecoration: "none", display: "inline-block",
+                transition: "opacity 0.15s", fontFamily: "'Outfit', sans-serif",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
+              onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+            >
+              Sign Up Free →
+            </a>
+          )}
           <a
             href="/templates"
             style={{

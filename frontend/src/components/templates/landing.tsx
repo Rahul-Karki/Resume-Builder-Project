@@ -414,12 +414,6 @@ export default function TemplatesPage() {
         {/* NAV */}
         <nav className={`tp-nav${scrolled ? " scrolled" : ""}`}>
           <div className="tp-logo">Resume<em>Studio</em></div>
-          <div className="tp-nav-links">
-            <span className="tp-nav-link active">Templates</span>
-            <span className="tp-nav-link">Features</span>
-            <span className="tp-nav-link">Pricing</span>
-          </div>
-          <button className="tp-nav-cta">Get Started Free</button>
         </nav>
  
         {/* HERO */}

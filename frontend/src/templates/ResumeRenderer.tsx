@@ -22,6 +22,207 @@ const sectionTitle = (style: ResumeDocument["style"], label: string) => ({
   marginBottom: "5px",
 });
 
+function GenericTemplate({ resume }: { resume: ResumeDocument }) {
+  const { personalInfo: p, sections: s, style, sectionOrder, sectionVisibility } = resume;
+  const padding = marginMap[style.pageMargin];
+  const sectionGap = spacingMap[style.sectionSpacing];
+
+  const SectionHeading = ({ title }: { title: string }) => (
+    <div style={{ marginBottom: 6 }}>
+      <div
+        style={{
+          fontFamily: style.headingFont,
+          fontSize: "11pt",
+          fontWeight: 700,
+          color: style.accentColor,
+          letterSpacing: "1.5px",
+          textTransform: "uppercase",
+        }}
+      >
+        {title}
+      </div>
+      {style.showDividers && <hr style={{ border: "none", borderTop: `1px solid ${style.borderColor}`, marginTop: 3 }} />}
+    </div>
+  );
+
+  const renderSection = (key: keyof ResumeDocument["sections"], title: string, content: React.ReactNode) => {
+    if (!sectionVisibility[key] || !content) return null;
+
+    return (
+      <div key={String(key)} style={{ marginBottom: sectionGap }}>
+        <SectionHeading title={title} />
+        {content}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        minHeight: "100%",
+        background: style.backgroundColor,
+        color: style.textColor,
+        fontFamily: style.bodyFont,
+        fontSize: style.fontSize,
+        lineHeight: style.lineHeight,
+        padding,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div style={{ marginBottom: 18, textAlign: style.headerAlign === "center" ? "center" : "left" }}>
+        {p.name && (
+          <h1 style={{ fontFamily: style.headingFont, fontSize: "26pt", fontWeight: 600, margin: "0 0 2px", color: style.headingColor, letterSpacing: "-0.3px" }}>
+            {p.name}
+          </h1>
+        )}
+        {p.title && <div style={{ fontSize: "11pt", color: style.accentColor, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>}
+        {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", fontSize: "9pt", color: style.mutedColor, justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
+            {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).map((value, index) => (
+              <span key={index}>{value}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.portfolio || p.summary || sectionOrder.some((key) => sectionVisibility[key])) && (
+        <hr style={{ border: "none", borderTop: `1.5px solid ${style.headingColor}`, marginBottom: spacingMap[style.sectionSpacing] }} />
+      )}
+
+      {p.summary && (
+        <div style={{ marginBottom: sectionGap, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor }}>
+          {p.summary}
+        </div>
+      )}
+
+      {sectionOrder.map((key) => {
+        if (key === "experience") {
+          return renderSection(
+            key,
+            "Experience",
+            s.experience.length > 0 ? (
+              s.experience.map((entry) => (
+                <div key={entry.id} style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                    <div>
+                      <span style={{ fontWeight: 700, fontSize: style.fontSize, color: style.headingColor }}>{entry.role}</span>
+                      {entry.company && (
+                        <>
+                          <span style={{ color: style.mutedColor, margin: "0 6px" }}>—</span>
+                          <span style={{ fontStyle: "italic", color: style.mutedColor }}>{entry.company}{entry.location ? `, ${entry.location}` : ""}</span>
+                        </>
+                      )}
+                    </div>
+                    <span style={{ fontSize: "9pt", color: style.mutedColor, whiteSpace: "nowrap" }}>
+                      {entry.start}{(entry.start || entry.end) ? " – " : ""}{entry.current ? "Present" : entry.end}
+                    </span>
+                  </div>
+                  {entry.bullets.filter((bullet) => bullet.trim()).length > 0 && (
+                    <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                      {entry.bullets.filter((bullet) => bullet.trim()).map((bullet, bulletIndex) => (
+                        <li key={bulletIndex} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor }}>
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))
+            ) : null,
+          );
+        }
+
+        if (key === "education") {
+          return renderSection(
+            key,
+            "Education",
+            s.education.length > 0 ? (
+              s.education.map((entry) => (
+                <div key={entry.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div>
+                    <span style={{ fontWeight: 700, color: style.headingColor }}>{entry.institution}</span>
+                    {entry.degree && <span style={{ color: style.textColor, marginLeft: 8 }}>{entry.degree}{entry.field ? ` ${entry.field}` : ""}</span>}
+                  </div>
+                  <span style={{ fontSize: "9pt", color: style.mutedColor }}>{entry.year}{entry.cgpa ? ` · GPA ${entry.cgpa}` : ""}</span>
+                </div>
+              ))
+            ) : null,
+          );
+        }
+
+        if (key === "skills") {
+          return renderSection(
+            key,
+            "Skills",
+            s.skills.length > 0 ? (
+              s.skills.map((skillGroup) => (
+                <div key={skillGroup.id} style={{ display: "flex", gap: 16, marginBottom: 4 }}>
+                  <span style={{ fontWeight: 700, minWidth: 100, fontSize: style.fontSize, color: style.headingColor }}>{skillGroup.category}:</span>
+                  <span style={{ fontSize: style.fontSize, color: style.textColor }}>{skillGroup.items.join(" · ")}</span>
+                </div>
+              ))
+            ) : null,
+          );
+        }
+
+        if (key === "projects") {
+          return renderSection(
+            key,
+            "Projects",
+            s.projects.length > 0 ? (
+              s.projects.map((project) => (
+                <div key={project.id} style={{ marginBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                    <span style={{ fontWeight: 700, color: style.headingColor, fontSize: style.fontSize }}>{project.name}</span>
+                    {project.tech && <span style={{ fontSize: "9pt", color: style.mutedColor }}>· {project.tech}</span>}
+                    {project.link && <span style={{ fontSize: "9pt", color: style.accentColor }}>{project.link}</span>}
+                  </div>
+                  {project.description && <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{project.description}</div>}
+                </div>
+              ))
+            ) : null,
+          );
+        }
+
+        if (key === "certifications") {
+          return renderSection(
+            key,
+            "Certifications",
+            s.certifications.length > 0 ? (
+              s.certifications.map((certification) => (
+                <div key={certification.id} style={{ fontSize: style.fontSize, color: style.textColor, marginBottom: 3 }}>
+                  {style.bulletStyle} <strong>{certification.name}</strong>{certification.issuer ? ` — ${certification.issuer}` : ""}{certification.year ? ` (${certification.year})` : ""}
+                </div>
+              ))
+            ) : null,
+          );
+        }
+
+        if (key === "languages") {
+          return renderSection(
+            key,
+            "Languages",
+            s.languages.length > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 24px" }}>
+                {s.languages.map((language) => (
+                  <span key={language.id} style={{ fontSize: style.fontSize, color: style.textColor }}>
+                    <strong>{language.language}</strong>{language.proficiency ? ` (${language.proficiency})` : ""}
+                  </span>
+                ))}
+              </div>
+            ) : null,
+          );
+        }
+
+        return null;
+      })}
+    </div>
+  );
+}
+
 // ─── Classic Template ──────────────────────────────────────────────────────────
 function ClassicTemplate({ resume }: Props) {
   const { personalInfo: p, sections: s, style, sectionOrder, sectionVisibility } = resume;
@@ -173,7 +374,7 @@ function ClassicTemplate({ resume }: Props) {
 
 // ─── Template Router ───────────────────────────────────────────────────────────
 const ClassicTemplateAdapter = ({ data }: { data: ResumeDocument }) => (
-  <ClassicTemplate resume={data} />
+  <GenericTemplate resume={data} />
 );
 
 export function ResumeRenderer({ resume, forExport = false }: Props) {

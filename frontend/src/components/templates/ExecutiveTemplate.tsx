@@ -18,12 +18,12 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
   ].filter(Boolean);
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Lato:wght@300;400;700&display=swap');
-    .exec-wrap { font-family:'Lato',sans-serif; color:#1c1c1c; background:#fff; max-width:794px; margin:0 auto; box-sizing:border-box; }
+    .exec-wrap { font-family:'Lato',sans-serif; color:#1c1c1c; background:#fff; width:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .exec-header { background:#1B2B4B; color:#fff; padding:36px 52px 28px; }
     .exec-name { font-family:'Playfair Display',serif; font-size:30pt; font-weight:700; margin:0 0 8px; letter-spacing:0.3px; }
     .exec-title-bar { font-size:9.5pt; font-weight:300; letter-spacing:2px; text-transform:uppercase; color:#A8BDD8; margin-bottom:14px; }
     .exec-contact-bar { display:flex; flex-wrap:wrap; gap:6px 24px; font-size:9pt; color:#c8d8ec; }
-    .exec-body { padding:28px 52px 40px; }
+    .exec-body { padding:28px 52px 40px; flex:1; }
     .exec-body, .exec-body p, .exec-body span, .exec-body li, .exec-body div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .exec-section { margin-bottom:18px; }
     .exec-section-title { font-family:'Playfair Display',serif; font-size:11pt; font-weight:500; color:#1B2B4B; text-transform:uppercase; letter-spacing:2px; border-bottom:2px solid #1B2B4B; padding-bottom:4px; margin-bottom:10px; }

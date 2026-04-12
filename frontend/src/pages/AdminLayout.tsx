@@ -3,6 +3,7 @@ import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminTemplates } from "./AdminTemplates";
 import { AdminPage } from "../types/admin.types";
+import { api } from "@/services/api";
 
 // ─── Global CSS (same design system as landing + my-resumes pages) ─────────────
 const GLOBAL_CSS = `
@@ -47,7 +48,7 @@ const GLOBAL_CSS = `
 `;
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
-function TopBar({ page, adminName }: { page: AdminPage; adminName: string }) {
+function TopBar({ page, onLogout }: { page: AdminPage; onLogout: () => Promise<void> }) {
   const titles: Record<AdminPage, string> = {
     dashboard: "Dashboard",
     templates: "Template Management",
@@ -79,14 +80,18 @@ function TopBar({ page, adminName }: { page: AdminPage; adminName: string }) {
         >
           ← Back to site
         </a>
-        {/* Admin badge */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#111", border: "1px solid #1A1A1A", borderRadius: 24, padding: "5px 12px 5px 6px" }}>
-          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#C8F55A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, fontWeight: 800, color: "#0E0E0E" }}>
-            {adminName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
-          </div>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#666" }}>{adminName.split(" ")[0]}</span>
-          <span style={{ fontSize: 9, fontWeight: 800, color: "#F0EFE8", background: "#C8F55A", padding: "1px 6px", borderRadius: 20,  }}>ADMIN</span>
-        </div>
+        <button
+          onClick={onLogout}
+          style={{
+            padding: "6px 14px", borderRadius: 7, border: "1px solid #1A1A1A",
+            background: "transparent", color: "#666", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#C8C7C0"; e.currentTarget.style.borderColor = "#2A2A2A"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#1A1A1A"; }}
+        >
+          Logout
+        </button>
       </div>
     </div>
   );
@@ -102,6 +107,17 @@ interface Props {
 export default function AdminLayout({ adminName = "Admin User" }: Props) {
   const [page, setPage] = useState<AdminPage>("dashboard");
 
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Always clear client-side auth state even if API logout fails.
+    } finally {
+      localStorage.removeItem("accessToken");
+      window.location.href = "/";
+    }
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
@@ -112,7 +128,7 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
 
         {/* Main area */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <TopBar page={page} adminName={adminName} />
+          <TopBar page={page} onLogout={handleLogout} />
           <div style={{ flex: 1, overflowY: "auto" }}>
             {page === "dashboard" && <AdminDashboard />}
             {page === "templates" && <AdminTemplates />}
