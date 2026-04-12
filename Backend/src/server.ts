@@ -10,14 +10,11 @@ const app = express();
 app.use(express.json());
 connectDB();
 
-const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
 
-app.use(
-  cors({
-    origin: corsOrigin.split(",").map(url => url.trim()),
-    credentials: true, // if using cookies/auth
-  })
-);
+app.use(cors({
+  origin: "https://resume-builder-project-3h9o.vercel.app",
+  credentials: true
+}));
 
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
