@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { JSX } from "react";
+import { Link } from "react-router-dom";
 
 // ─── TemplatesPreview.tsx ─────────────────────────────────────────────────────
 // Horizontal-scrolling carousel of all 5 ATS-verified templates.
@@ -198,7 +199,7 @@ export function TemplatesPreview() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#555"; }}
             >{arrow}</button>
           ))}
-          <a href="/templates" style={{
+          <Link to="/templates" style={{
             padding: "0 20px", height: 40, borderRadius: 8, border: "1px solid #222",
             background: "transparent", color: "#666", fontSize: 12, fontWeight: 700,
             textDecoration: "none", display: "inline-flex", alignItems: "center",
@@ -208,7 +209,7 @@ export function TemplatesPreview() {
           onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#666"; }}
           >
             View All →
-          </a>
+          </Link>
         </div>
       </div>
 

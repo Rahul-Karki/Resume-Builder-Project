@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 // ─── HeroSection.tsx ──────────────────────────────────────────────────────────
 // Full-viewport hero with:
@@ -275,8 +276,8 @@ export function HeroSection() {
 
           {/* CTAs */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <a
-              href="/templates"
+            <Link
+              to="/templates"
               style={{
                 padding: "13px 28px", borderRadius: 10, border: "none",
                 background: "#C8F55A", color: "#0E0E0E", fontSize: 14, fontWeight: 800,
@@ -287,10 +288,10 @@ export function HeroSection() {
               onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
             >
               Browse Templates →
-            </a>
+            </Link>
             {!isAuthenticated && (
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 style={{
                   padding: "13px 28px", borderRadius: 10,
                   border: "1px solid #252525", background: "transparent",
@@ -302,7 +303,7 @@ export function HeroSection() {
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#777"; }}
               >
                 Log In
-              </a>
+              </Link>
             )}
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import axios from "axios"
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/
@@ -125,7 +125,7 @@ export function ResetPasswordForm({
         </button>
 
         <p style={{ textAlign: "center", margin: "2px 0 0", color: "#666", fontSize: 12.5, width: "100%" }}>
-          Back to <a href="/login" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Login</a>
+          Back to <Link to="/login" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Login</Link>
         </p>
       </form>
     </div>

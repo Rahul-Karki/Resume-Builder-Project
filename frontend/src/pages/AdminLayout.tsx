@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom"
 import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AdminDashboard } from "./AdminDashboard";
 import { AdminTemplates } from "./AdminTemplates";
@@ -70,7 +71,7 @@ function TopBar({ page, onLogout }: { page: AdminPage; onLogout: () => Promise<v
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {/* Back to site */}
-        <a href="/" style={{
+        <Link to="/" style={{
           fontSize: 12, color: "#444", textDecoration: "none",
           padding: "5px 12px", borderRadius: 7, border: "1px solid #1A1A1A",
           transition: "all 0.15s",
@@ -79,7 +80,7 @@ function TopBar({ page, onLogout }: { page: AdminPage; onLogout: () => Promise<v
         onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.borderColor = "#1A1A1A"; }}
         >
           ← Back to site
-        </a>
+        </Link>
         <button
           onClick={onLogout}
           style={{

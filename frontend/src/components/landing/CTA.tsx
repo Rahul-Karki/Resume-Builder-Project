@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 // ─── CTASection.tsx ───────────────────────────────────────────────────────────
 // Bottom CTA section. Two actions: Sign Up Free + Browse Templates.
@@ -74,8 +75,8 @@ export function CTASection() {
         {/* CTAs */}
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           {!isAuthenticated && (
-            <a
-              href="/signup"
+            <Link
+              to="/signup"
               style={{
                 padding: "14px 32px", borderRadius: 10, border: "none",
                 background: "#C8F55A", color: "#0E0E0E",
@@ -87,10 +88,10 @@ export function CTASection() {
               onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
             >
               Sign Up Free →
-            </a>
+            </Link>
           )}
-          <a
-            href="/templates"
+          <Link
+            to="/templates"
             style={{
               padding: "14px 32px", borderRadius: 10,
               border: "1px solid #252525", background: "transparent",
@@ -102,7 +103,7 @@ export function CTASection() {
             onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#666"; }}
           >
             Browse Templates
-          </a>
+          </Link>
         </div>
 
         {/* Fine print */}

@@ -1,5 +1,5 @@
 import React from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
 import { api } from "@/services/api"
 
@@ -174,7 +174,7 @@ export function SignupForm({ ...props }: React.ComponentProps<"div">) {
         </div>
 
         <p style={{ textAlign: "center", margin: "2px 0 0", color: "#666", fontSize: 12.5 }}>
-          Already have an account? <a href="/login" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Sign in</a>
+          Already have an account? <Link to="/login" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Sign in</Link>
         </p>
       </form>
     </div>

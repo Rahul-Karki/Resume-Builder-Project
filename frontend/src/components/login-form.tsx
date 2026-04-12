@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Link } from "react-router-dom"
 import { api } from "@/services/api"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
 
@@ -167,7 +168,7 @@ export function LoginForm({
         </div>
 
         <p style={{ textAlign: "center", margin: "2px 0 0", color: "#666", fontSize: 12.5, width: "100%" }}>
-          Don&apos;t have an account? <a href="/signup" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Sign up</a>
+          Don&apos;t have an account? <Link to="/signup" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Sign up</Link>
         </p>
       </form>
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { api } from "@/services/api";
 
 // ─── Navbar.tsx ───────────────────────────────────────────────────────────────
@@ -45,12 +46,12 @@ export function Navbar() {
       }}
     >
       {/* Logo */}
-      <a
-        href="/"
+      <Link
+        to="/"
         style={{ textDecoration: "none", fontWeight: 800, fontSize: 17, letterSpacing: "-0.4px", color: "#F0EFE8", flexShrink: 0, lineHeight: 1 }}
       >
         Resume<span style={{ color: "#C8F55A" }}>Studio</span>
-      </a>
+      </Link>
 
       {/* Nav links */}
       <div style={{ display: "flex", gap: 30, marginLeft: 48 }}>
@@ -68,14 +69,14 @@ export function Navbar() {
           >
             {label}
           </a>
-        ))}
-      </div>
+          <Link
+            to={href}
 
       <div style={{ flex: 1 }} />
 
       {/* Auth buttons */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {isAuthenticated ? (
+          </Link>
           <button
             onClick={handleLogout}
             style={{
@@ -90,8 +91,8 @@ export function Navbar() {
           </button>
         ) : (
           <>
-            <a
-              href="/login"
+            <Link
+              to="/login"
               style={{
                 padding: "7px 20px", borderRadius: 8, border: "1px solid #222",
                 background: "transparent", color: "#777", fontSize: 13, fontWeight: 600,
@@ -101,9 +102,9 @@ export function Navbar() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#777"; }}
             >
               Log In
-            </a>
-            <a
-              href="/signup"
+            </Link>
+            <Link
+              to="/signup"
               style={{
                 padding: "7px 20px", borderRadius: 8, border: "none",
                 background: "#C8F55A", color: "#0E0E0E", fontSize: 13, fontWeight: 800,
@@ -113,7 +114,7 @@ export function Navbar() {
               onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
             >
               Sign Up Free
-            </a>
+            </Link>
           </>
         )}
       </div>

@@ -9,6 +9,7 @@ import MyResumePage from "./pages/MyResumePage"
 import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
 import Unauthorized from "./pages/Unauthorized"
+import NotFound from "./pages/NotFound"
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           }
         >
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )
