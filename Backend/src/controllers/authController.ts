@@ -117,12 +117,12 @@ const login = async (req: Request, res: Response) => {
       });
     }
 
-    // 3. Check auth provider (IMPORTANT FIX)
-    if (user.authProvider === "google") {
+    if(!user.password) {
       return res.status(400).json({
-        message: "This account is registered with Google. Please login using Google.",
+        message: "This account does not have a password. Please login using Google.",
       });
     }
+
 
     // 4. Compare password
     const isMatch = await bcrypt.compare(password, user.password!);
@@ -360,7 +360,7 @@ const googleLogin = async (req: Request, res: Response) => {
         name: payload.name,
         avatar: payload.picture,
         googleId: payload.sub,
-        authProvider: "google",
+        authProvider: ["google"],
       });
     }
 
