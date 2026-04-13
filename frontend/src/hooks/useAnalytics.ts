@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { DashboardStats, TemplateAnalytics } from "../types/admin.types";
+import { AdminTemplate, DashboardStats, TemplateAnalytics } from "../types/admin.types";
 import { api } from "@/services/api";
 
 type ApiEnvelope<T> = {
@@ -24,13 +24,28 @@ export function useAnalytics(period: 7 | 30 = 30) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [statsRes, analyticsRes] = await Promise.all([
-        api.get<ApiEnvelope<DashboardStats>>("/admin/analytics/dashboard"),
+      const [templatesRes, analyticsRes] = await Promise.all([
+        api.get<ApiEnvelope<AdminTemplate[]>>("/admin/templates"),
         api.get<ApiEnvelope<TemplateAnalytics[]>>(`/admin/analytics/templates?days=${period}`),
       ]);
 
-      setStats(statsRes.data.data ?? null);
-      setAnalytics(analyticsRes.data.data ?? []);
+      const templates = templatesRes.data.data ?? [];
+      const analyticsData = analyticsRes.data.data ?? [];
+      const publishedAnalytics = analyticsData.filter((item) => item.status === "published");
+
+      const computedStats: DashboardStats = {
+        totalTemplates: templates.length,
+        publishedTemplates: templates.filter((item) => item.status === "published").length,
+        draftTemplates: templates.filter((item) => item.status === "draft").length,
+        premiumTemplates: templates.filter((item) => item.isPremium).length,
+        totalUsesThisWeek: analyticsData.reduce((sum, item) => sum + (item.weeklyUses || 0), 0),
+        totalUsesThisMonth: analyticsData.reduce((sum, item) => sum + (item.monthlyUses || 0), 0),
+        mostUsed: publishedAnalytics[0] ?? null,
+        leastUsed: publishedAnalytics.length > 0 ? publishedAnalytics[publishedAnalytics.length - 1] : null,
+      };
+
+      setStats(computedStats);
+      setAnalytics(analyticsData);
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {

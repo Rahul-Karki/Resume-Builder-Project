@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { StatsBar } from "../components/admin/StatusBar";
 import { BarChart, AnalyticsRow } from "../components/admin/AnalyticsChart";
@@ -24,7 +24,32 @@ export function AdminDashboard() {
   const [selected, setSelected] = useState<string | null>(null);
   const { stats, analytics, loading, error } = useAnalytics(period);
 
-  const selectedAnalytics = analytics.find(a => a.templateId === selected) ?? analytics[0] ?? null;
+  const publishedAnalytics = useMemo(
+    () => analytics.filter((item) => item.status === "published"),
+    [analytics],
+  );
+
+  const selectedAnalytics = useMemo(
+    () => analytics.find((item) => item.templateId === selected) ?? publishedAnalytics[0] ?? analytics[0] ?? null,
+    [analytics, publishedAnalytics, selected],
+  );
+
+  const totalUsageSeries = useMemo(() => {
+    const dateMap: Record<string, { date: string; count: number; resumesCreated: number; resumesEdited: number }> = {};
+    analytics.forEach((item) => {
+      item.daily.forEach((day) => {
+        if (!dateMap[day.date]) {
+          dateMap[day.date] = { date: day.date, count: 0, resumesCreated: 0, resumesEdited: 0 };
+        }
+        dateMap[day.date].count += day.count;
+        dateMap[day.date].resumesCreated += day.resumesCreated;
+        dateMap[day.date].resumesEdited += day.resumesEdited;
+      });
+    });
+    return Object.values(dateMap)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-period);
+  }, [analytics, period]);
 
   if (loading) return (
     <div style={{ padding: 40, fontFamily: "'Outfit', sans-serif" }}>
@@ -72,19 +97,7 @@ export function AdminDashboard() {
         {/* Left: Total usage bar chart */}
         <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "20px 20px 16px" }}>
           <BarChart
-            data={(() => {
-              // Aggregate all templates per day
-              const dateMap: Record<string, { date: string; count: number; resumesCreated: number; resumesEdited: number }> = {};
-              analytics.forEach(a => {
-                a.daily.forEach(d => {
-                  if (!dateMap[d.date]) dateMap[d.date] = { date: d.date, count: 0, resumesCreated: 0, resumesEdited: 0 };
-                  dateMap[d.date].count          += d.count;
-                  dateMap[d.date].resumesCreated += d.resumesCreated;
-                  dateMap[d.date].resumesEdited  += d.resumesEdited;
-                });
-              });
-              return Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date)).slice(-period);
-            })()}
+            data={totalUsageSeries}
             color="#C8F55A"
             label={`Total Uses — Last ${period} Days`}
             height={180}
@@ -95,7 +108,7 @@ export function AdminDashboard() {
         <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "20px 20px 16px" }}>
           {/* Template picker for chart */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-            {analytics.filter(a => a.status === "published").slice(0, 5).map(a => (
+            {publishedAnalytics.map(a => (
               <button key={a.templateId}
                 onClick={() => setSelected(a.templateId)}
                 style={{
