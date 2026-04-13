@@ -10,7 +10,13 @@ export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
   onDuplicate:(id:string)=>void; onDelete:(id:string)=>void; delay?:number;
 }) {
   const [hov,setHov]=useState(false);
-  const tpl=TEMPLATES.find(t=>t.id===resume.templateId)??TEMPLATES[0];
+  const tpl=TEMPLATES.find(t=>t.id===resume.templateId);
+  const thumbTpl=tpl??TEMPLATES[0];
+  const templateName = tpl?.name ?? resume.templateId
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
   const sc=resume.completionScore>=80?"#4ADE80":resume.completionScore>=50?"#F59E0B":"#F87171";
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
@@ -26,7 +32,7 @@ export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
           <div style={{width:"100%",maxWidth:170,borderRadius:5,overflow:"hidden",
             boxShadow:"0 10px 40px rgba(0,0,0,0.7)",
             transform:hov?"scale(1.04)":"scale(1)",transition:"transform 0.3s ease"}}>
-            <Thumb t={tpl}/>
+            <Thumb t={thumbTpl}/>
           </div>
         </div>
         <div style={{position:"absolute",inset:0,background:hov?"rgba(0,0,0,0.5)":"rgba(0,0,0,0)",
@@ -42,13 +48,13 @@ export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
         <div style={{position:"absolute",top:10,left:10,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",
           border:"1px solid rgba(255,255,255,0.07)",borderRadius:20,padding:"3px 10px",
           fontSize:10,fontWeight:700,color:"#888",display:"flex",alignItems:"center",gap:5}}>
-          <div style={{width:6,height:6,borderRadius:"50%",background:tpl.accent,flexShrink:0}}/>{tpl.name}
+          <div style={{width:6,height:6,borderRadius:"50%",background:thumbTpl.accent,flexShrink:0}}/>{templateName}
         </div>
         <div style={{position:"absolute",top:10,right:10,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",
           border:`1px solid ${sc}33`,borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700,color:sc}}>
           {resume.completionScore}%
         </div>
-        {tpl.isPremium&&<div style={{position:"absolute",bottom:10,right:10,background:"#92400E",color:"#FCD34D",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20}}>★ PRO</div>}
+        {thumbTpl.isPremium&&<div style={{position:"absolute",bottom:10,right:10,background:"#92400E",color:"#FCD34D",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20}}>★ PRO</div>}
       </div>
       {/* Body */}
       <div style={{padding:"14px 16px 13px",flex:1,display:"flex",flexDirection:"column",fontFamily:"'Outfit',sans-serif"}}>

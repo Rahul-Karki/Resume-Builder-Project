@@ -7,7 +7,13 @@ import { calculateCompletionScore } from "@/hooks/useMyResume";
 
 export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;onClose:()=>void;onEdit:(id:string)=>void}) {
   const [zoom, setZoom] = useState(0.85);
-  const tpl=TEMPLATES.find(t=>t.id===resume.templateId)??TEMPLATES[0];
+  const tpl=TEMPLATES.find(t=>t.id===resume.templateId);
+  const displayTpl = tpl ?? TEMPLATES[0];
+  const templateName = tpl?.name ?? (resume.templateId || "custom")
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
   const completionScore = calculateCompletionScore(resume);
   const sc=completionScore>=80?"#4ADE80":completionScore>=50?"#F59E0B":"#F87171";
   const sectionCounts = {
@@ -29,10 +35,10 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
       {/* Bar */}
       <div style={{height:60,background:"#080808",borderBottom:"1px solid #141414",display:"flex",alignItems:"center",padding:"0 24px",gap:14,flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:8,height:8,borderRadius:"50%",background:tpl.accent}}/>
+          <div style={{width:8,height:8,borderRadius:"50%",background:displayTpl.accent}}/>
           <div>
             <div style={{fontSize:14,fontWeight:700,color:"#F0EFE8"}}>{resume.title}</div>
-            <div style={{fontSize:11,color:"#A7A7A7",lineHeight:1.3}}>{tpl.name} · {relativeTime(updatedAt)}</div>
+            <div style={{fontSize:11,color:"#A7A7A7",lineHeight:1.3}}>{templateName} · {relativeTime(updatedAt)}</div>
           </div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>

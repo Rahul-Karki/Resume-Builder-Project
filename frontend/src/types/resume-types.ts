@@ -241,7 +241,7 @@ export const spacingMap: Record<SectionSpacing, number> = {
 export type TemplateId = "classic" | "executive" | "modern" | "compact" | "sidebar";
 
 export interface SavedResume {
-  id: string; title: string; templateId: TemplateId;
+  id: string; title: string; templateId: string;
   updatedAt: string; createdAt: string; completionScore: number;
   personalInfo: { name: string; title: string; email: string; location: string; };
   sectionCounts: { experience: number; education: number; skills: number; projects: number; certifications: number; };
