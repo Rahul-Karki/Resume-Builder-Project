@@ -26,8 +26,9 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
     .comp-role { font-weight:600; font-size:9.5pt; }
     .comp-company { font-size:9pt; color:#444; }
     .comp-date { font-size:8.5pt; color:#666; white-space:nowrap; }
-    .comp-bullets { margin:2px 0 0 12px; padding:0; }
-    .comp-bullets li { margin-bottom:2px; font-size:9pt; font-weight:300; }
+    .comp-bullets { margin:2px 0 0 0; padding:0; list-style:none; }
+    .comp-bullets li { margin-bottom:2px; font-size:9pt; font-weight:300; display:flex; align-items:flex-start; gap:7px; }
+    .comp-bullets li::before { content:'${style.bulletStyle}'; color:${style.accentColor}; font-weight:700; line-height:inherit; }
     .comp-summary { font-size:9.5pt; font-weight:300; line-height:1.5; color:#222; }
     .comp-skill-row { margin-bottom:3px; font-size:9pt; }
     .comp-skill-cat { font-weight:600; margin-right:6px; }

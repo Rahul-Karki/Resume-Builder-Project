@@ -121,10 +121,11 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
                     </span>
                   </div>
                   {entry.bullets.filter((bullet) => bullet.trim()).length > 0 && (
-                    <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                    <ul style={{ margin: "4px 0 0 0", padding: 0, listStyle: "none" }}>
                       {entry.bullets.filter((bullet) => bullet.trim()).map((bullet, bulletIndex) => (
-                        <li key={bulletIndex} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor }}>
-                          {bullet}
+                        <li key={bulletIndex} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
+                          <span>{bullet}</span>
                         </li>
                       ))}
                     </ul>
@@ -256,10 +257,11 @@ function ClassicTemplate({ resume }: Props) {
               </span>
             </div>
             {e.bullets.filter(b => b.trim()).length > 0 && (
-              <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+              <ul style={{ margin: "4px 0 0 0", padding: 0, listStyle: "none" }}>
                 {e.bullets.filter(b => b.trim()).map((b, i) => (
-                  <li key={i} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor }}>
-                    {b}
+                  <li key={i} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
+                    <span>{b}</span>
                   </li>
                 ))}
               </ul>

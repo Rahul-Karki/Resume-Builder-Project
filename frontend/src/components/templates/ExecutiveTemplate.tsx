@@ -33,8 +33,9 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
     .exec-role { font-weight:700; font-size:10.5pt; color:#1B2B4B; }
     .exec-company { font-weight:400; font-size:10pt; color:#444; }
     .exec-date { font-size:9pt; color:#777; font-style:italic; white-space:nowrap; }
-    .exec-bullets { margin:5px 0 0 18px; padding:0; }
-    .exec-bullets li { font-size:10pt; margin-bottom:4px; font-weight:300; line-height:1.5; }
+    .exec-bullets { margin:5px 0 0 0; padding:0; list-style:none; }
+    .exec-bullets li { font-size:10pt; margin-bottom:4px; font-weight:300; line-height:1.5; display:flex; align-items:flex-start; gap:8px; }
+    .exec-bullets li::before { content:'${style.bulletStyle}'; color:${style.accentColor}; font-weight:700; line-height:inherit; }
     .exec-edu-entry { display:flex; justify-content:space-between; margin-bottom:6px; }
     .exec-skill-row { display:flex; gap:8px; margin-bottom:5px; align-items:flex-start; }
     .exec-skill-label { font-weight:700; font-size:9.5pt; color:#1B2B4B; min-width:110px; }

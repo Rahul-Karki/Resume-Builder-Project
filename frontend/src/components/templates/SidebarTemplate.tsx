@@ -31,8 +31,9 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
     .side-role { font-size:10pt; font-weight:700; color:#1E293B; }
     .side-company { font-size:9pt; color:#475569; font-weight:400; }
     .side-date { font-size:8.5pt; color:#94A3B8; background:#F1F5F9; padding:1px 7px; border-radius:3px; white-space:nowrap; font-family:'Nunito',sans-serif; }
-    .side-bullets { margin:4px 0 0 14px; padding:0; }
-    .side-bullets li { font-size:9pt; font-weight:300; margin-bottom:3px; line-height:1.5; }
+    .side-bullets { margin:4px 0 0 0; padding:0; list-style:none; }
+    .side-bullets li { font-size:9pt; font-weight:300; margin-bottom:3px; line-height:1.5; display:flex; align-items:flex-start; gap:8px; }
+    .side-bullets li::before { content:'${style.bulletStyle}'; color:${style.accentColor}; font-weight:700; line-height:inherit; }
     .side-edu { margin-bottom:8px; }
     .side-proj { margin-bottom:8px; font-size:9pt; }
     .side-proj-name { font-weight:700; color:#1E293B; }

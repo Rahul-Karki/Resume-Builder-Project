@@ -26,8 +26,9 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
     .mod-role { font-weight:600; font-size:10.5pt; }
     .mod-company { font-size:10pt; color:${accent}; font-weight:500; }
     .mod-meta { font-size:9pt; color:#777; }
-    .mod-bullets { margin:4px 0 0 0; padding-left:16px; }
-    .mod-bullets li { font-size:9.5pt; margin-bottom:3px; font-weight:300; line-height:1.5; }
+    .mod-bullets { margin:4px 0 0 0; padding:0; list-style:none; }
+    .mod-bullets li { font-size:9.5pt; margin-bottom:3px; font-weight:300; line-height:1.5; display:flex; align-items:flex-start; gap:8px; }
+    .mod-bullets li::before { content:'${style.bulletStyle}'; color:${accent}; font-weight:600; line-height:inherit; }
     .mod-edu { display:flex; justify-content:space-between; margin-bottom:4px; }
     .mod-skills-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
     .mod-skill-chip { background:#F0FDF4; border:1px solid #BBF7D0; border-radius:3px; padding:3px 8px; font-size:9pt; color:#166534; font-weight:500; text-align:center; }

@@ -6,7 +6,7 @@ import {
 } from "@/components/templates/templateHelpers";
 
 export function ClassicTemplate({ data }: { data: ResumeDocument }) {
-  const { personalInfo: p, sections: s } = data;
+  const { personalInfo: p, sections: s, style } = data;
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap');
     .classic-wrap { font-family:'Source Sans 3',sans-serif; color:#1a1a1a; font-size:10.5pt; line-height:1.5; background:#fff; padding:48px 52px; width:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
@@ -22,8 +22,9 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
     .classic-role { font-weight:600; font-size:10.5pt; }
     .classic-company { font-size:10pt; color:#333; font-style:italic; }
     .classic-date { font-size:9pt; color:#555; white-space:nowrap; }
-    .classic-bullets { margin:4px 0 0 16px; padding:0; }
-    .classic-bullets li { margin-bottom:3px; font-size:10pt; }
+    .classic-bullets { margin:4px 0 0 0; padding:0; list-style:none; }
+    .classic-bullets li { margin-bottom:3px; font-size:10pt; display:flex; align-items:flex-start; gap:8px; }
+    .classic-bullets li::before { content:'${style.bulletStyle}'; color:#111; line-height:inherit; }
     .classic-edu-row { display:flex; justify-content:space-between; }
     .classic-skills-row { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:6px; }
     .classic-skill-cat { font-weight:600; min-width:100px; font-size:10pt; }
