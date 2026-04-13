@@ -9,14 +9,9 @@ const app = express();
 app.use(express.json());
 connectDB();
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-]
-  .filter(Boolean)
-  .map((origin) => String(origin).replace(/\/$/, ""));
 
 const corsOptions: cors.CorsOptions = {
-  origin: allowedOrigins,
+  origin: process.env.FRONTEND_URL,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 };
