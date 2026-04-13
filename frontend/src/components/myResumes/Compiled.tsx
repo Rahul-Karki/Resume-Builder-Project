@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
 import { ResumeDocument, SavedResume, SortOption } from "@/types/resume-types";
@@ -17,6 +17,7 @@ import { DelModal } from "./DeleteConfirmModal";
 export default function Compiled() {
   const { user, rawResumes, resumes, loading, error, authRequired, refresh } = useMyResumes();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("updatedAt");
   const [delResume, setDelResume] = useState<SavedResume | null>(null);
@@ -29,6 +30,31 @@ export default function Compiled() {
     setToast(message);
     setTimeout(() => setToast(null), 3000);
   };
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRole = async () => {
+      if (!localStorage.getItem("accessToken")) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const response = await api.get("/auth/me");
+        if (!active) return;
+        setIsAdmin(response.data?.user?.role === "admin");
+      } catch {
+        if (!active) return;
+        setIsAdmin(false);
+      }
+    };
+
+    void loadRole();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const displayed = useMemo(
     () =>
@@ -74,7 +100,25 @@ export default function Compiled() {
  
         <nav style={{height:58,background:"#0A0A0A",borderBottom:"1px solid #111",display:"flex",alignItems:"center",padding:"0 28px",gap:24,position:"sticky",top:0,zIndex:40}}>
           <div style={{fontWeight:800,fontSize:16,letterSpacing:"-0.3px"}}>Resume<span style={{color:"#C8F55A"}}>Studio</span></div>
+          <Link
+            to="/templates"
+            style={{fontSize:13,fontWeight:500,color:"#666",textDecoration:"none",transition:"color 0.15s"}}
+            onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#666")}
+          >
+            Templates
+          </Link>
           <span style={{fontSize:13,fontWeight:700,color:"#F0EFE8",borderBottom:"1px solid #C8F55A",paddingBottom:2}}>My Resumes</span>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              style={{fontSize:13,fontWeight:500,color:"#666",textDecoration:"none",transition:"color 0.15s"}}
+              onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#666")}
+            >
+              Admin
+            </Link>
+          )}
           <div style={{flex:1}}/>
           {!user && (
             <div style={{display:"flex",alignItems:"center",gap:10}}>

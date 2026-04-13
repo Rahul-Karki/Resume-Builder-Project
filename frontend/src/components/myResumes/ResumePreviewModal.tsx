@@ -1,4 +1,4 @@
-import { useEffect } from "react";  
+import { useEffect, useState } from "react";  
 import { ResumeDocument } from "@/types/resume-types";
 import { TEMPLATES } from "@/utils/templateMapping";
 import { relativeTime } from "@/utils/relativeTime";
@@ -6,6 +6,7 @@ import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { calculateCompletionScore } from "@/hooks/useMyResume";
 
 export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;onClose:()=>void;onEdit:(id:string)=>void}) {
+  const [zoom, setZoom] = useState(0.85);
   const tpl=TEMPLATES.find(t=>t.id===resume.templateId)??TEMPLATES[0];
   const completionScore = calculateCompletionScore(resume);
   const sc=completionScore>=80?"#4ADE80":completionScore>=50?"#F59E0B":"#F87171";
@@ -35,6 +36,21 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
           </div>
         </div>
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
+          <button
+            onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.1).toFixed(2))))}
+            style={{width:30,height:30,borderRadius:8,background:"#1A1A1A",border:"1px solid #252525",color:"#888",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
+            title="Zoom out"
+          >
+            -
+          </button>
+          <span style={{fontSize:11,color:"#666",minWidth:40,textAlign:"center"}}>{Math.round(zoom * 100)}%</span>
+          <button
+            onClick={() => setZoom((z) => Math.min(1.2, Number((z + 0.1).toFixed(2))))}
+            style={{width:30,height:30,borderRadius:8,background:"#1A1A1A",border:"1px solid #252525",color:"#888",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
+            title="Zoom in"
+          >
+            +
+          </button>
           <span style={{fontSize:11,fontWeight:700,color:sc,background:sc+"18",border:`1px solid ${sc}33`,padding:"3px 10px",borderRadius:20}}>{completionScore}% Complete</span>
           <button onClick={()=>{onEdit(resumeId);onClose();}}
             style={{padding:"8px 20px",background:"#C8F55A",border:"none",borderRadius:9,color:"#0E0E0E",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
@@ -72,8 +88,8 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
         </div>
         {/* Large thumb */}
         <div style={{flex:1,overflow:"auto",background:"#050505",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"32px"}}>
-          <div style={{width:"100%",maxWidth:794,minHeight:"1123px",borderRadius:8,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.8)",background:"#fff"}}>
-            <div style={{width:"794px",minHeight:"1123px",margin:"0 auto",background:"#fff"}}>
+          <div style={{width:794 * zoom,minHeight:1123 * zoom,borderRadius:8,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.8)",background:"#fff",transition:"width 0.2s, min-height 0.2s"}}>
+            <div style={{width:"794px",minHeight:"1123px",background:"#fff",transform:`scale(${zoom})`,transformOrigin:"top left"}}>
               <ResumeRenderer resume={resume} />
             </div>
           </div>

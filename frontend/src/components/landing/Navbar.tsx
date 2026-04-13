@@ -10,6 +10,7 @@ import { api } from "@/services/api";
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 48);
@@ -19,6 +20,32 @@ export function Navbar() {
 
   useEffect(() => {
     setIsAuthenticated(Boolean(localStorage.getItem("accessToken")));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRole = async () => {
+      if (!localStorage.getItem("accessToken")) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const response = await api.get("/auth/me");
+        if (!active) return;
+        setIsAdmin(response.data?.user?.role === "admin");
+      } catch {
+        if (!active) return;
+        setIsAdmin(false);
+      }
+    };
+
+    void loadRole();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -58,7 +85,7 @@ export function Navbar() {
         {[
           { label: "Templates", href: "/templates" },
           { label: "My Resumes", href: "/resumes" },
-          { label: "Admin", href: "/admin" },
+          ...(isAdmin ? [{ label: "Admin", href: "/admin" }] : []),
         ].map(({ label, href }) => (
           <Link
             key={label}

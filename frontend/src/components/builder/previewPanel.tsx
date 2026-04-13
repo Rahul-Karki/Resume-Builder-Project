@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { ResumeRenderer } from "../../templates/ResumeRenderer";
-import type { ResumeDocument } from "../../types/resume-types";
+import type { PreviewScale, ResumeDocument } from "../../types/resume-types";
 
 interface Props {
   onDownload: () => void;
@@ -9,9 +9,11 @@ interface Props {
 }
 
 export function PreviewPanel({ onDownload, canDownload }: Props) {
-  const { resume, ui } = useResumeBuilderStore();
+  const { resume, ui, setPreviewScale } = useResumeBuilderStore();
   const scale = ui.previewScale;
   const previewRef = useRef<HTMLDivElement>(null);
+  const scaleOptions: PreviewScale[] = [0.5, 0.6, 0.7, 0.75, 0.85, 1];
+  const scaleIndex = scaleOptions.indexOf(scale);
 
   // A4 dimensions in px at 96dpi
   const A4_W = 794;
@@ -35,7 +37,45 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 10, color: "#333" }}>A4 · 210 × 297 mm</span>
         <span style={{ fontSize: 10, color: "#333" }}>·</span>
+        <button
+          onClick={() => {
+            if (scaleIndex > 0) setPreviewScale(scaleOptions[scaleIndex - 1]);
+          }}
+          disabled={scaleIndex <= 0}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            border: "1px solid #2A2A2A",
+            background: "#151515",
+            color: scaleIndex <= 0 ? "#444" : "#888",
+            cursor: scaleIndex <= 0 ? "not-allowed" : "pointer",
+            fontSize: 12,
+          }}
+          title="Zoom out"
+        >
+          -
+        </button>
         <span style={{ fontSize: 10, color: "#333" }}>{Math.round(scale * 100)}%</span>
+        <button
+          onClick={() => {
+            if (scaleIndex < scaleOptions.length - 1) setPreviewScale(scaleOptions[scaleIndex + 1]);
+          }}
+          disabled={scaleIndex >= scaleOptions.length - 1}
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            border: "1px solid #2A2A2A",
+            background: "#151515",
+            color: scaleIndex >= scaleOptions.length - 1 ? "#444" : "#888",
+            cursor: scaleIndex >= scaleOptions.length - 1 ? "not-allowed" : "pointer",
+            fontSize: 12,
+          }}
+          title="Zoom in"
+        >
+          +
+        </button>
         <span style={{ fontSize: 10, color: "#333" }}>·</span>
         <span style={{
           fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
