@@ -7,13 +7,30 @@ interface GoogleAuthButtonProps {
 
 const GoogleAuthButton = ({ redirectTo = "/resumes" }: GoogleAuthButtonProps) => {
   return (
-    <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-      <div style={{ width: "100%", maxWidth: "100%" }}>
+    <div style={{ width: "100%", display: "grid", gap: 12 }}>
+      {/* Divider */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 12 }}>
+        <div style={{ height: 1, background: "rgba(200,245,90,0.15)" }} />
+        <span style={{ color: "#666", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>or</span>
+        <div style={{ height: 1, background: "rgba(200,245,90,0.15)" }} />
+      </div>
+
+      {/* Google Button Container */}
+      <div style={{ 
+        width: "100%", 
+        display: "flex", 
+        justifyContent: "center",
+        borderRadius: 14,
+        background: "rgba(200,245,90,0.05)",
+        border: "1px solid rgba(200,245,90,0.1)",
+        padding: "8px 0",
+      }}>
         <GoogleLogin
           text="signin"
           size="large"
           shape="rectangular"
           logo_alignment="center"
+          theme="dark"
           onSuccess={async (credentialResponse) => {
             try {
               const res = await api.post("/auth/google-login", {
