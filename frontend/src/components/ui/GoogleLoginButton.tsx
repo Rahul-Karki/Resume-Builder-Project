@@ -16,21 +16,21 @@ const GoogleAuthButton = ({ redirectTo = "/resumes" }: GoogleAuthButtonProps) =>
       </div>
 
       {/* Google Button Container */}
-      <div style={{ 
-        width: "100%", 
-        display: "flex", 
+      <div style={{
+        width: "100%",
+        display: "flex",
         justifyContent: "center",
-        borderRadius: 14,
-        background: "rgba(200,245,90,0.05)",
-        border: "1px solid rgba(200,245,90,0.1)",
-        padding: "8px 0",
+        borderRadius: 12,
+        padding: "2px 0",
       }}>
         <GoogleLogin
-          text="signin"
+          type="standard"
+          text="signin_with"
           size="large"
           shape="rectangular"
+          width="320"
           logo_alignment="center"
-          theme="dark"
+          theme="filled_black"
           onSuccess={async (credentialResponse) => {
             try {
               const res = await api.post("/auth/google-login", {
