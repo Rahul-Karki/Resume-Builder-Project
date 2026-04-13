@@ -53,23 +53,6 @@ export function AdminSidebar({ activePage, onNavigate, adminName }: Props) {
           );
         })}
       </nav>
-
-      {/* User chip */}
-      <div style={{ padding: "12px 14px", borderTop: "1px solid #141414" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 30, height: 30, borderRadius: "50%",
-            background: "#C8F55A", display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 11, fontWeight: 800, color: "#0E0E0E", flexShrink: 0,
-          }}>
-            {adminName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#888", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{adminName}</div>
-            <div style={{ fontSize: 10, color: "#2A2A2A", marginTop: 1 }}>Administrator</div>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }
