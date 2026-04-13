@@ -31,7 +31,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
         setTemplatesLoading(true);
         const response = await api.get("/templates");
         const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-        const mapped = rows
+        const mapped: TemplateOption[] = rows
           .map((row: any) => ({
             layoutId: String(row.layoutId ?? ""),
             name: String(row.name ?? row.layoutId ?? "Template"),
@@ -41,7 +41,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           .filter((template: TemplateOption) => template.layoutId);
 
         if (active) {
-          setTemplates(mapped.sort((a, b) => a.sortOrder! - b.sortOrder!));
+          setTemplates(mapped.sort((a: TemplateOption, b: TemplateOption) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
         }
       } catch {
         if (active) {
