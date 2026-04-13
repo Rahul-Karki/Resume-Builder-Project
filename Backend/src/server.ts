@@ -9,28 +9,14 @@ const app = express();
 app.use(express.json());
 connectDB();
 
-const allowedOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
-const normalizeOrigin = (origin: string) => origin.replace(/\/$/, "");
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+]
+  .filter(Boolean)
+  .map((origin) => String(origin).replace(/\/$/, ""));
 
 const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    // Allow non-browser requests (like server-to-server or curl).
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    const normalizedOrigin = normalizeOrigin(origin);
-
-    if (allowedOrigins.some((allowed) => normalizeOrigin(allowed) === normalizedOrigin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error("Not allowed by CORS"));
-  },
+  origin: allowedOrigins,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 };
