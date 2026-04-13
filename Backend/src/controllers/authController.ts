@@ -15,21 +15,35 @@ const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
 const MAX_RESET_RESEND_ATTEMPTS = 3;
 const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 const isProduction = process.env.NODE_ENV === "production";
-const cookieSameSite = isProduction ? "none" : "lax";
+const isHttpsRequest = (req: Request) => {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const isForwardedHttps = typeof forwardedProto === "string"
+    ? forwardedProto.split(",")[0]?.trim() === "https"
+    : Array.isArray(forwardedProto)
+      ? forwardedProto[0] === "https"
+      : false;
 
-const authCookieOptions = {
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: cookieSameSite as "lax" | "none",
-  path: "/",
+  return req.secure || isForwardedHttps;
 };
 
-const clearAuthCookies = (res: Response) => {
+const getAuthCookieOptions = (req: Request) => {
+  const secure = isProduction && isHttpsRequest(req);
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: (secure ? "none" : "lax") as "lax" | "none",
+    path: "/",
+  };
+};
+
+const clearAuthCookies = (req: Request, res: Response) => {
+  const authCookieOptions = getAuthCookieOptions(req);
   res.clearCookie("accessToken", authCookieOptions);
   res.clearCookie("refreshToken", authCookieOptions);
 };
 
-const setAuthCookies = (res: Response, accessToken: string, refreshToken: string) => {
+const setAuthCookies = (req: Request, res: Response, accessToken: string, refreshToken: string) => {
+  const authCookieOptions = getAuthCookieOptions(req);
   res.cookie("accessToken", accessToken, {
     ...authCookieOptions,
     maxAge: 15 * 60 * 1000,
@@ -41,9 +55,9 @@ const setAuthCookies = (res: Response, accessToken: string, refreshToken: string
   });
 };
 
-const logout = async (_req: Request, res: Response) => {
+const logout = async (req: Request, res: Response) => {
   try {
-    clearAuthCookies(res);
+    clearAuthCookies(req, res);
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Server error" });
@@ -84,7 +98,7 @@ const registerUser = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    setAuthCookies(res, accessToken, refreshToken);
+    setAuthCookies(req, res, accessToken, refreshToken);
 
     res.status(201).json({
       accessToken,
@@ -143,7 +157,7 @@ const login = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    setAuthCookies(res, accessToken, refreshToken);
+    setAuthCookies(req, res, accessToken, refreshToken);
 
     // 7. Send response
     res.status(200).json({
@@ -429,7 +443,7 @@ const googleLogin = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    setAuthCookies(res, accessToken, refreshToken);
+    setAuthCookies(req, res, accessToken, refreshToken);
 
     return res.json({
       user,

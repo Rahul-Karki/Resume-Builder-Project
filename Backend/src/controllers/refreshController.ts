@@ -4,13 +4,26 @@ import { generateAccessToken } from "../utils/generateToken";
 import { parseCookies } from "../utils/cookieParser";
 
 const isProduction = process.env.NODE_ENV === "production";
-const cookieSameSite = isProduction ? "none" : "lax";
 
-const cookieBaseOptions = {
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: cookieSameSite as "lax" | "none",
-  path: "/",
+const isHttpsRequest = (req: Request) => {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const isForwardedHttps = typeof forwardedProto === "string"
+    ? forwardedProto.split(",")[0]?.trim() === "https"
+    : Array.isArray(forwardedProto)
+      ? forwardedProto[0] === "https"
+      : false;
+
+  return req.secure || isForwardedHttps;
+};
+
+const getCookieBaseOptions = (req: Request) => {
+  const secure = isProduction && isHttpsRequest(req);
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: (secure ? "none" : "lax") as "lax" | "none",
+    path: "/",
+  };
 };
 
 const refreshAccessToken = (req: Request, res: Response) => {
@@ -23,6 +36,7 @@ const refreshAccessToken = (req: Request, res: Response) => {
     const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as any;
 
     const newAccessToken = generateAccessToken(decoded.userId);
+    const cookieBaseOptions = getCookieBaseOptions(req);
 
     res.cookie("accessToken", newAccessToken, {
       ...cookieBaseOptions,
