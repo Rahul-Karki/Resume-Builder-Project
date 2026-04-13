@@ -3,10 +3,14 @@ import jwt from "jsonwebtoken";
 import { generateAccessToken } from "../utils/generateToken";
 import { parseCookies } from "../utils/cookieParser";
 
+const isProduction = process.env.NODE_ENV === "production";
+const cookieSameSite = isProduction ? "none" : "lax";
+
 const cookieBaseOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  secure: isProduction,
+  sameSite: cookieSameSite as "lax" | "none",
+  path: "/",
 };
 
 const refreshAccessToken = (req: Request, res: Response) => {

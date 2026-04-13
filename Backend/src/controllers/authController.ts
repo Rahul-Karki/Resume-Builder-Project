@@ -14,11 +14,14 @@ const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
 const MAX_RESET_RESEND_ATTEMPTS = 3;
 const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+const isProduction = process.env.NODE_ENV === "production";
+const cookieSameSite = isProduction ? "none" : "lax";
 
 const authCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  secure: isProduction,
+  sameSite: cookieSameSite as "lax" | "none",
+  path: "/",
 };
 
 const clearAuthCookies = (res: Response) => {
