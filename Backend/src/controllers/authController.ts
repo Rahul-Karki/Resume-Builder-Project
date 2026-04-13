@@ -10,6 +10,9 @@ import crypto from "crypto";
 import { UserRole } from "../enums/userRole";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
+const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
+const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
+const MAX_RESET_RESEND_ATTEMPTS = 3;
 const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
 const authCookieOptions = {
@@ -161,7 +164,8 @@ const login = async (req: Request, res: Response) => {
 const forgotPassword = async (req: Request, res: Response) => {
 
   try {
-    const { email } = req.body;
+    const rawEmail = String(req.body?.email ?? "").trim().toLowerCase();
+    const email = rawEmail;
 
     if (!email) {
       return res.status(400).json({
@@ -177,6 +181,17 @@ const forgotPassword = async (req: Request, res: Response) => {
       });
     }
 
+    const isGoogleOnlyUser =
+      Array.isArray(user.authProvider) &&
+      user.authProvider.includes("google") &&
+      !user.authProvider.includes("local");
+
+    if (isGoogleOnlyUser && !user.password) {
+      return res.status(400).json({
+        message: "This account uses Google login. Please continue with Google.",
+      });
+    }
+
 
     if (
       user.passwordResetAt &&
@@ -187,25 +202,48 @@ const forgotPassword = async (req: Request, res: Response) => {
       });
     }
 
+    const existingToken = await ResetToken.findOne({ userId: user._id });
+
+    if (
+      existingToken &&
+      Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS
+    ) {
+      return res.status(429).json({
+        message: "Please wait before requesting another reset email",
+        retryAfterSeconds: Math.ceil(
+          (RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000,
+        ),
+      });
+    }
+
+    if (existingToken && existingToken.resendCount >= MAX_RESET_RESEND_ATTEMPTS) {
+      return res.status(429).json({
+        message: "Maximum resend attempts reached, please try again later",
+      });
+    }
+
     const rawToken = crypto.randomBytes(32).toString("hex");
     const hashed = hashToken(rawToken);
 
-    await ResetToken.deleteMany({ userId: user._id }); // remove old tokens
+    if (existingToken) {
+      existingToken.token = hashed;
+      existingToken.expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+      existingToken.resendCount += 1;
+      existingToken.lastSeenAt = new Date();
+      await existingToken.save();
+    } else {
+      await ResetToken.create({
+        userId: user._id,
+        token: hashed,
+        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        resendCount: 0,
+        lastSeenAt: new Date(),
+      });
+    }
 
-    const resetToken = await ResetToken.create({
-      userId: user._id,
-      token: hashed,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-      lastSeenAt: Date.now(),
-    });
+    const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
 
-    await resetToken.save();
-
-    const link = `https://resume-builder-project-3h9o.vercel.app/reset-password?token=${rawToken}`;
-
-    await sendEmail(user.email, link).catch(err => {
-  console.error("Email failed", err);
-});
+    await sendEmail(user.email, link);
 
     res.status(200).json({
       message: "Password reset link sent to email",
@@ -275,7 +313,8 @@ const resetPassword = async (req: Request, res: Response) => {
 
 const resendResetLink = async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const rawEmail = String(req.body?.email ?? "").trim().toLowerCase();
+    const email = rawEmail;
 
     if (!email) {
       return res.status(400).json({
@@ -291,7 +330,21 @@ const resendResetLink = async (req: Request, res: Response) => {
       });
     }
 
-    const existingToken = await ResetToken.findOne({ userId: user._id });
+    const isGoogleOnlyUser =
+      Array.isArray(user.authProvider) &&
+      user.authProvider.includes("google") &&
+      !user.authProvider.includes("local");
+
+    if (isGoogleOnlyUser && !user.password) {
+      return res.status(400).json({
+        message: "This account uses Google login. Please continue with Google.",
+      });
+    }
+
+    const existingToken = await ResetToken.findOne({
+      userId: user._id,
+      expiresAt: { $gt: new Date() },
+    });
 
     if (!existingToken) {
       return res.status(400).json({
@@ -299,7 +352,7 @@ const resendResetLink = async (req: Request, res: Response) => {
       });
     }
 
-    if (existingToken.resendCount >= 3) {
+    if (existingToken.resendCount >= MAX_RESET_RESEND_ATTEMPTS) {
       return res.status(429).json({
         message: "Maximum resend attempts reached, please try again later",
       });
@@ -314,15 +367,20 @@ const resendResetLink = async (req: Request, res: Response) => {
       });
     }
 
-    if (Date.now() - existingToken.lastSeenAt.getTime() < 60000) {
-      return res.status(429).json({ message: "Wait before retry" });
+    if (Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS) {
+      return res.status(429).json({
+        message: "Please wait before requesting another reset email",
+        retryAfterSeconds: Math.ceil(
+          (RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000,
+        ),
+      });
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
     const hashed = hashToken(rawToken);
 
     existingToken.token = hashed;
-    existingToken.expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    existingToken.expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
     existingToken.resendCount += 1;
     existingToken.lastSeenAt = new Date(Date.now());
 

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { api } from "@/services/api"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
@@ -12,6 +12,7 @@ export function LoginForm({
   const [message, setMessage] = useState("")
   const [loading, setLoading] = useState(false)
   const [timer, setTimer] = useState(0)
+  const [hasRequestedReset, setHasRequestedReset] = useState(false)
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   
@@ -48,18 +49,15 @@ export function LoginForm({
 }
 
   // ⏱ Timer Logic
-  const startTimer = () => {
-    setTimer(60)
-    const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+  const startTimer = (seconds = 60) => {
+    setTimer(seconds)
   }
+
+  useEffect(() => {
+    if (timer <= 0) return
+    const timeout = window.setTimeout(() => setTimer((prev) => Math.max(prev - 1, 0)), 1000)
+    return () => window.clearTimeout(timeout)
+  }, [timer])
 
   // 📩 Forgot Password Click
   const handleForgotPassword = async () => {
@@ -68,17 +66,27 @@ export function LoginForm({
       return
     }
 
+    if (timer > 0) {
+      return
+    }
+
     try {
       setLoading(true)
 
-      await api.post("/auth/forgot-password", {
+      const endpoint = hasRequestedReset ? "/auth/resend" : "/auth/forgot-password"
+      await api.post(endpoint, {
         email,
       })
 
-      setMessage("Check your email for reset link")
+      setHasRequestedReset(true)
+      setMessage(hasRequestedReset ? "Reset link resent to your email" : "Check your email for reset link")
       startTimer()
 
     } catch (err:any) {
+      const retryAfter = Number(err?.response?.data?.retryAfterSeconds)
+      if (err?.response?.status === 429 && Number.isFinite(retryAfter) && retryAfter > 0) {
+        startTimer(retryAfter)
+      }
       setMessage(err.response?.data?.message || "Something went wrong")
     } finally {
       setLoading(false)
