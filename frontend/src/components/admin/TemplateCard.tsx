@@ -4,6 +4,7 @@ import { AdminTemplate, TemplateStatus } from "../../types/admin.types";
 interface Props {
   template:      AdminTemplate;
   onEdit:        (t: AdminTemplate) => void;
+  onPreview:     (t: AdminTemplate) => void;
   onSetStatus:   (id: string, status: TemplateStatus) => void;
   onTogglePremium: (id: string) => void;
   onDelete:      (id: string) => void;
@@ -47,7 +48,7 @@ const STATUS_CONFIG: Record<TemplateStatus, { label: string; bg: string; color: 
   archived:  { label: "◌ Archived", bg: "#1A0A0A", color: "#F87171" },
 };
 
-export function TemplateCard({ template: t, onEdit, onSetStatus, onTogglePremium, onDelete, animDelay = 0 }: Props) {
+export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTogglePremium, onDelete, animDelay = 0 }: Props) {
   const [hov, setHov] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -110,6 +111,9 @@ export function TemplateCard({ template: t, onEdit, onSetStatus, onTogglePremium
 
         {/* Action row */}
         <div style={{ display: "flex", gap: 4 }}>
+          {/* Preview */}
+          <ActionBtn label="Preview" onClick={() => onPreview(t)} />
+
           {/* Edit */}
           <ActionBtn label="Edit" onClick={() => onEdit(t)} />
 

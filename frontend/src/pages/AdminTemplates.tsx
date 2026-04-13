@@ -3,6 +3,9 @@ import { useAdminTemplates } from "../hooks/useAdminTemplate";
 import { TemplateCard } from "../components/admin/TemplateCard";
 import { TemplateFormModal } from "../components/admin/TemplateFormModal";
 import { AdminTemplate, TemplateStatus, TemplateCategory } from "../types/admin.types";
+import { ResumeRenderer } from "../templates/ResumeRenderer";
+import { sampleData } from "../data/sampleData";
+import { ResumeDocument, ResumeStyle, SectionVisibility } from "../types/resume-types";
 
 type FilterStatus = "all" | TemplateStatus;
 type FilterCategory = "all" | TemplateCategory;
@@ -19,10 +22,25 @@ export function AdminTemplates() {
   const [search,         setSearch]         = useState("");
   const [modalMode,      setModalMode]      = useState<"create" | "edit" | null>(null);
   const [editTarget,     setEditTarget]     = useState<AdminTemplate | null>(null);
+  const [previewTarget,   setPreviewTarget]  = useState<AdminTemplate | null>(null);
 
   const openCreate = () => { setEditTarget(null);   setModalMode("create"); };
   const openEdit   = (t: AdminTemplate) => { setEditTarget(t); setModalMode("edit"); };
   const closeModal = () => { setModalMode(null); setEditTarget(null); };
+  const closePreview = () => setPreviewTarget(null);
+
+  const buildPreviewResume = (template: AdminTemplate): ResumeDocument => ({
+    ...sampleData,
+    templateId: template.layoutId,
+    style: {
+      ...sampleData.style,
+      ...template.cssVars,
+    } as ResumeStyle,
+    sectionVisibility: {
+      ...sampleData.sectionVisibility,
+      ...template.slots,
+    } as SectionVisibility,
+  });
 
   const handleSave = async (form: Parameters<typeof createTemplate>[0]) => {
     if (modalMode === "create") return createTemplate(form);
@@ -144,6 +162,7 @@ export function AdminTemplates() {
                 template={t}
                 animDelay={i * 40}
                 onEdit={openEdit}
+                onPreview={setPreviewTarget}
                 onSetStatus={setStatus}
                 onTogglePremium={togglePremium}
                 onDelete={deleteTemplate}
@@ -175,6 +194,52 @@ export function AdminTemplates() {
         />
       )}
 
+      {/* Preview Modal */}
+      {previewTarget && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) closePreview(); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 180,
+            background: "rgba(0,0,0,0.9)", backdropFilter: "blur(8px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div style={{ width: "100%", maxWidth: 1040, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 18, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.75)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderBottom: "1px solid #1A1A1A" }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8" }}>{previewTarget.name}</div>
+                <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{previewTarget.layoutId} · {previewTarget.category}</div>
+              </div>
+              <button
+                onClick={closePreview}
+                style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid #2A2A2A", background: "#151515", color: "#F0EFE8", cursor: "pointer", fontSize: 18, fontWeight: 700 }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: 640 }}>
+              <div style={{ padding: 22, borderRight: "1px solid #1A1A1A", background: "#0A0A0A" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>Template Details</div>
+                <div style={{ display: "grid", gap: 12 }}>
+                  <InfoRow label="Status" value={previewTarget.status} />
+                  <InfoRow label="Tag" value={previewTarget.tag} />
+                  <InfoRow label="Premium" value={previewTarget.isPremium ? "Yes" : "No"} />
+                  <InfoRow label="Accent" value={previewTarget.cssVars.accentColor} />
+                  <InfoRow label="Body Font" value={previewTarget.cssVars.bodyFont.split(",")[0]} />
+                  <InfoRow label="Heading Font" value={previewTarget.cssVars.headingFont.split(",")[0]} />
+                </div>
+              </div>
+              <div style={{ overflow: "auto", background: "#050505", display: "flex", justifyContent: "center", padding: 24 }}>
+                <div style={{ width: 794, boxShadow: "0 32px 80px rgba(0,0,0,0.8)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                  <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast */}
       {toast && (
         <div style={{
@@ -191,6 +256,15 @@ export function AdminTemplates() {
           {toast.msg}
         </div>
       )}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "0.7px", marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 12.5, color: "#C8C7C0", lineHeight: 1.4 }}>{value}</div>
     </div>
   );
 }
