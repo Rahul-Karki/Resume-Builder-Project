@@ -31,6 +31,17 @@ export default function Compiled() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Always clear client auth state even if server logout fails.
+    } finally {
+      localStorage.removeItem("accessToken");
+      window.location.href = "/";
+    }
+  };
+
   useEffect(() => {
     let active = true;
 
@@ -129,6 +140,24 @@ export default function Compiled() {
                 Sign up
               </Link>
             </div>
+          )}
+          {user && (
+            <button
+              onClick={handleLogout}
+              style={{
+                padding:"8px 14px",
+                background:"transparent",
+                border:"1px solid #1A1A1A",
+                borderRadius:999,
+                color:"#CFCFCF",
+                fontSize:12,
+                fontWeight:700,
+                cursor:"pointer",
+                fontFamily:"inherit",
+              }}
+            >
+              Logout
+            </button>
           )}
         </nav>
  
