@@ -144,7 +144,9 @@ export default function ResumeBuilder() {
   const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
   const searchParams = new URLSearchParams(window.location.search);
   const isEditingExistingResume = Boolean(searchParams.get("resume"));
-  const canDownload = ui.isSaved && !ui.isDirty && !ui.isSaving;
+  const canDownload = isEditingExistingResume
+    ? Boolean(resume.id) && !ui.isSaving
+    : ui.isSaved && !ui.isDirty && !ui.isSaving;
 
   // Init from URL params on mount
   useEffect(() => {

@@ -64,7 +64,6 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
   useEffect(() => {
     if (isEditingExistingResume) {
       setShowTemplates(false);
-      setEditingTitle(false);
     }
   }, [isEditingExistingResume]);
 
@@ -97,7 +96,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
       <div style={{ width: 1, height: 24, background: "#2A2A2A", flexShrink: 0 }} />
 
       {/* Resume Title */}
-      {editingTitle && !isEditingExistingResume ? (
+      {editingTitle ? (
         <input
           autoFocus
           value={titleDraft}
@@ -113,18 +112,16 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
       ) : (
         <button
           onClick={() => {
-            if (isEditingExistingResume) return;
             setTitleDraft(resume.title);
             setEditingTitle(true);
           }}
-          title={isEditingExistingResume ? "Resume name is locked in edit mode" : "Click to rename"}
-          disabled={isEditingExistingResume}
+          title="Click to rename"
           style={{
             background: "none", border: "none", color: "#888", fontSize: 13,
-            fontWeight: 500, cursor: isEditingExistingResume ? "not-allowed" : "pointer", fontFamily: "inherit",
+            fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
             padding: "4px 8px", borderRadius: 6, maxWidth: 200,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-            transition: "color 0.15s", opacity: isEditingExistingResume ? 0.5 : 1,
+            transition: "color 0.15s", opacity: 1,
           }}
           onMouseEnter={e => (e.currentTarget.style.color = "#F0EFE8")}
           onMouseLeave={e => (e.currentTarget.style.color = "#888")}
