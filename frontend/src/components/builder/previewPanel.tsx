@@ -46,17 +46,18 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
             width: 22,
             height: 22,
             borderRadius: 6,
-            border: "1px solid #2A2A2A",
-            background: "#151515",
-            color: scaleIndex <= 0 ? "#444" : "#888",
+            border: "1px solid #3A3A3A",
+            background: "#171717",
+            color: scaleIndex <= 0 ? "#555" : "#F0EFE8",
             cursor: scaleIndex <= 0 ? "not-allowed" : "pointer",
             fontSize: 12,
+            fontWeight: 700,
           }}
           title="Zoom out"
         >
           -
         </button>
-        <span style={{ fontSize: 10, color: "#333" }}>{Math.round(scale * 100)}%</span>
+        <span style={{ fontSize: 10, color: "#C8F55A", fontWeight: 700 }}>{Math.round(scale * 100)}%</span>
         <button
           onClick={() => {
             if (scaleIndex < scaleOptions.length - 1) setPreviewScale(scaleOptions[scaleIndex + 1]);
@@ -66,11 +67,12 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
             width: 22,
             height: 22,
             borderRadius: 6,
-            border: "1px solid #2A2A2A",
-            background: "#151515",
-            color: scaleIndex >= scaleOptions.length - 1 ? "#444" : "#888",
+            border: "1px solid #3A3A3A",
+            background: "#171717",
+            color: scaleIndex >= scaleOptions.length - 1 ? "#555" : "#F0EFE8",
             cursor: scaleIndex >= scaleOptions.length - 1 ? "not-allowed" : "pointer",
             fontSize: 12,
+            fontWeight: 700,
           }}
           title="Zoom in"
         >

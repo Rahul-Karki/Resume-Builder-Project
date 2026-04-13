@@ -38,15 +38,15 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
           <button
             onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.1).toFixed(2))))}
-            style={{width:30,height:30,borderRadius:8,background:"#1A1A1A",border:"1px solid #252525",color:"#888",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
+            style={{width:30,height:30,borderRadius:8,background:"#1A1A1A",border:"1px solid #3A3A3A",color:"#F0EFE8",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
             title="Zoom out"
           >
             -
           </button>
-          <span style={{fontSize:11,color:"#666",minWidth:40,textAlign:"center"}}>{Math.round(zoom * 100)}%</span>
+          <span style={{fontSize:11,color:"#C8F55A",minWidth:40,textAlign:"center",fontWeight:700}}>{Math.round(zoom * 100)}%</span>
           <button
             onClick={() => setZoom((z) => Math.min(1.2, Number((z + 0.1).toFixed(2))))}
-            style={{width:30,height:30,borderRadius:8,background:"#1A1A1A",border:"1px solid #252525",color:"#888",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
+            style={{width:30,height:30,borderRadius:8,background:"#1A1A1A",border:"1px solid #3A3A3A",color:"#F0EFE8",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
             title="Zoom in"
           >
             +

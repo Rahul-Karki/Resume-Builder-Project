@@ -320,7 +320,6 @@ export default function TemplatesPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [previewZoom, setPreviewZoom] = useState(0.85);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
  
@@ -403,10 +402,6 @@ export default function TemplatesPage() {
     if (previewId) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
-  }, [previewId]);
-
-  useEffect(() => {
-    setPreviewZoom(0.85);
   }, [previewId]);
  
   const categories = ["All", ...Array.from(new Set(templates.map(t => t.category)))];
@@ -575,21 +570,6 @@ export default function TemplatesPage() {
               </div>
               <div className="tp-modal-actions">
                 <button
-                  onClick={() => setPreviewZoom((z) => Math.max(0.6, Number((z - 0.1).toFixed(2))))}
-                  className="tp-modal-close"
-                  title="Zoom out"
-                >
-                  -
-                </button>
-                <span style={{ fontSize: 12, color: "#777", minWidth: 42, textAlign: "center" }}>{Math.round(previewZoom * 100)}%</span>
-                <button
-                  onClick={() => setPreviewZoom((z) => Math.min(1.2, Number((z + 0.1).toFixed(2))))}
-                  className="tp-modal-close"
-                  title="Zoom in"
-                >
-                  +
-                </button>
-                <button
                   onClick={() => {
                     if (!previewId) return;
                     handleUseTemplate(previewId);
@@ -621,10 +601,8 @@ export default function TemplatesPage() {
                 </div>
               </div>
  
-              <div className="tp-modal-paper" style={{ width: 794 * previewZoom, maxWidth: "none" }}>
-                <div style={{ width: 794, transform: `scale(${previewZoom})`, transformOrigin: "top left" }}>
-                  <ResumeRenderer resume={buildPreviewSample(previewTemplate)} />
-                </div>
+              <div className="tp-modal-paper">
+                <ResumeRenderer resume={buildPreviewSample(previewTemplate)} />
               </div>
               <div className="tp-modal-bottom-padding" />
             </div>
