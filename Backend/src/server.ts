@@ -1,6 +1,5 @@
 import express from "express";
 import connectDB from "./config/db";
-import User from "./models/User";
 import dotenv from "dotenv"
 import cors from "cors";
 
@@ -37,7 +36,6 @@ const corsOptions: cors.CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
