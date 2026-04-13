@@ -201,9 +201,11 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     await resetToken.save();
 
-    const link = `https://resume-builder-project-3h9o.vercel.app/reset-password?token=${rawToken}`;
+    const link = `https://resume-builder-project-3h9o.vercel.app/login/reset-password?token=${rawToken}`;
 
-    await sendEmail(user.email, link);
+    await sendEmail(user.email, link).catch(err => {
+  console.error("Email failed", err);
+});
 
     res.status(200).json({
       message: "Password reset link sent to email",
