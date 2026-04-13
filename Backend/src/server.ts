@@ -10,11 +10,34 @@ const app = express();
 app.use(express.json());
 connectDB();
 
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-app.use(cors({
-  origin: "https://resume-builder-project-3h9o.vercel.app",
-  credentials: true
-}));
+const normalizeOrigin = (origin: string) => origin.replace(/\/$/, "");
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests (like server-to-server or curl).
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (allowedOrigins.some((allowed) => normalizeOrigin(allowed) === normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
