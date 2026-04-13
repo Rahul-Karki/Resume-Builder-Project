@@ -142,6 +142,8 @@ function downloadResume(resume: ResumeDocument) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ResumeBuilder() {
   const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
+  const searchParams = new URLSearchParams(window.location.search);
+  const isEditingExistingResume = Boolean(searchParams.get("resume"));
   const canDownload = ui.isSaved && !ui.isDirty && !ui.isSaving;
 
   // Init from URL params on mount
@@ -208,7 +210,11 @@ export default function ResumeBuilder() {
       <style>{css}</style>
       <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0A0A0A", overflow: "hidden" }}>
         {/* Top Toolbar */}
-        <BuilderToolbar onDownload={handleDownload} canDownload={canDownload} />
+        <BuilderToolbar
+          onDownload={handleDownload}
+          canDownload={canDownload}
+          isEditingExistingResume={isEditingExistingResume}
+        />
 
         {/* Error toast */}
         {ui.saveError && (

@@ -12,9 +12,10 @@ type TemplateOption = {
 interface Props {
   onDownload: () => void;
   canDownload: boolean;
+  isEditingExistingResume?: boolean;
 }
 
-export function BuilderToolbar({ onDownload, canDownload }: Props) {
+export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResume = false }: Props) {
   const { resume, ui, saveResume, initFromTemplate, setTitle } = useResumeBuilderStore();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(resume.title);
@@ -60,6 +61,13 @@ export function BuilderToolbar({ onDownload, canDownload }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (isEditingExistingResume) {
+      setShowTemplates(false);
+      setEditingTitle(false);
+    }
+  }, [isEditingExistingResume]);
+
   const currentTemplateLabel = templates.find((template) => template.layoutId === resume.templateId)?.name
     ?? resume.templateId
       .replace(/[-_]/g, " ")
@@ -89,7 +97,7 @@ export function BuilderToolbar({ onDownload, canDownload }: Props) {
       <div style={{ width: 1, height: 24, background: "#2A2A2A", flexShrink: 0 }} />
 
       {/* Resume Title */}
-      {editingTitle ? (
+      {editingTitle && !isEditingExistingResume ? (
         <input
           autoFocus
           value={titleDraft}
@@ -104,14 +112,19 @@ export function BuilderToolbar({ onDownload, canDownload }: Props) {
         />
       ) : (
         <button
-          onClick={() => { setTitleDraft(resume.title); setEditingTitle(true); }}
-          title="Click to rename"
+          onClick={() => {
+            if (isEditingExistingResume) return;
+            setTitleDraft(resume.title);
+            setEditingTitle(true);
+          }}
+          title={isEditingExistingResume ? "Resume name is locked in edit mode" : "Click to rename"}
+          disabled={isEditingExistingResume}
           style={{
             background: "none", border: "none", color: "#888", fontSize: 13,
-            fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
+            fontWeight: 500, cursor: isEditingExistingResume ? "not-allowed" : "pointer", fontFamily: "inherit",
             padding: "4px 8px", borderRadius: 6, maxWidth: 200,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-            transition: "color 0.15s",
+            transition: "color 0.15s", opacity: isEditingExistingResume ? 0.5 : 1,
           }}
           onMouseEnter={e => (e.currentTarget.style.color = "#F0EFE8")}
           onMouseLeave={e => (e.currentTarget.style.color = "#888")}
@@ -131,17 +144,23 @@ export function BuilderToolbar({ onDownload, canDownload }: Props) {
       {/* Template switcher */}
       <div style={{ position: "relative", marginLeft: 4 }}>
         <button
-          onClick={() => setShowTemplates(!showTemplates)}
+          onClick={() => {
+            if (isEditingExistingResume) return;
+            setShowTemplates(!showTemplates);
+          }}
+          title={isEditingExistingResume ? "Template is locked in edit mode" : "Switch template"}
+          disabled={isEditingExistingResume}
           style={{
             background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 7,
             color: "#C8C7C0", fontSize: 12, fontWeight: 600, padding: "5px 12px",
-            cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
+            cursor: isEditingExistingResume ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
+            opacity: isEditingExistingResume ? 0.6 : 1,
           }}
         >
           ◈ {currentTemplateLabel}
           <span style={{ fontSize: 10, opacity: 0.5 }}>▾</span>
         </button>
-        {showTemplates && (
+        {showTemplates && !isEditingExistingResume && (
           <>
             <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={() => setShowTemplates(false)} />
             <div style={{
