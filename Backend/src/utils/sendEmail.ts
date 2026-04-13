@@ -1,26 +1,20 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resendApiKey = process.env.RESEND_API_KEY;
+const resendFrom = process.env.RESEND_FROM || process.env.EMAIL_FROM;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 export const sendEmail = async (to: string, link: string) => {
-  const emailUser = process.env.EMAIL_USER || process.env.SENDER_EMAIL;
-  const emailPass = process.env.EMAIL_PASS || process.env.SENDER_PASSWORD;
-
-  if (!emailUser || !emailPass) {
-    throw new Error("Email credentials are not configured");
+  if (!resend) {
+    throw new Error("Resend API key is not configured");
   }
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-  });
+  if (!resendFrom) {
+    throw new Error("Resend sender address is not configured");
+  }
 
-  await transporter.sendMail({
-    from: `"Auth App" <${emailUser}>`,
+  const { error } = await resend.emails.send({
+    from: resendFrom,
     to,
     subject: "Reset Password",
     html: `
@@ -29,4 +23,8 @@ export const sendEmail = async (to: string, link: string) => {
       <a href="${link}">${link}</a>
     `,
   });
+
+  if (error) {
+    throw new Error(error.message || "Failed to send email with Resend");
+  }
 };

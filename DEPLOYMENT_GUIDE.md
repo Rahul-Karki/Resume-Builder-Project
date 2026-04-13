@@ -37,8 +37,8 @@ This guide helps you deploy the Resume Builder application with Backend on Rende
    JWT_SECRET=your_jwt_secret_key
    JWT_REFRESH_SECRET=your_jwt_refresh_secret_key
    CORS_ORIGIN=https://your-frontend.vercel.app
-   EMAIL_USER=your_email@gmail.com
-   EMAIL_PASS=your_app_password
+   RESEND_API_KEY=your_resend_api_key
+   RESEND_FROM=Your App <onboarding@resend.dev>
    GOOGLE_CLIENT_ID=your_google_client_id
    GOOGLE_CLIENT_SECRET=your_google_client_secret
    GOOGLE_CALLBACK_URL=https://your-backend.render.com/auth/google/callback
