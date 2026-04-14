@@ -1,12 +1,24 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { JSX } from "react";
 import { Link } from "react-router-dom";
+import { api } from "@/services/api";
 
 // ─── TemplatesPreview.tsx ─────────────────────────────────────────────────────
 // Horizontal-scrolling carousel of all 5 ATS-verified templates.
 // Each card shows the SVG thumbnail, template name, category, and a CTA.
 
-const TEMPLATES = [
+type LandingTemplate = {
+  id: string;
+  name: string;
+  tag: string;
+  category: string;
+  accent: string;
+  primary: string;
+  secondary: string;
+  desc: string;
+};
+
+const FALLBACK_TEMPLATES: LandingTemplate[] = [
   {
     id: "classic", name: "Classic", tag: "Timeless", category: "Professional",
     accent: "#1a1a1a", bg: "#FAF8F5", primary: "#1a1a1a", secondary: "#555",
@@ -32,9 +44,7 @@ const TEMPLATES = [
     accent: "#1E293B", bg: "#fff", primary: "#1E293B", secondary: "#94A3B8",
     desc: "Dark sidebar with two-column structure.",
   },
-] as const;
-
-type TemplateId = typeof TEMPLATES[number]["id"];
+];
 
 // ─── SVG thumbnails (one per template) ────────────────────────────────────────
 
@@ -149,7 +159,7 @@ function SidebarThumb({ p, s }: { p: string; s: string }) {
   );
 }
 
-const THUMB_MAP: Record<TemplateId, (p: string, s: string) => JSX.Element> = {
+const THUMB_MAP: Record<string, (p: string, s: string) => JSX.Element> = {
   classic:   (p, s) => <ClassicThumb   p={p} s={s} />,
   executive: (p, s) => <ExecutiveThumb p={p} s={s} />,
   modern:    (p, s) => <ModernThumb    p={p} s={s} />,
@@ -157,9 +167,51 @@ const THUMB_MAP: Record<TemplateId, (p: string, s: string) => JSX.Element> = {
   sidebar:   (p, s) => <SidebarThumb   p={p} s={s} />,
 };
 
+const renderThumb = (id: string, primary: string, secondary: string) => {
+  const renderer = THUMB_MAP[id] ?? THUMB_MAP.classic;
+  return renderer(primary, secondary);
+};
+
 export function TemplatesPreview() {
-  const [hovered, setHovered] = useState<TemplateId | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<LandingTemplate[]>(FALLBACK_TEMPLATES);
   const rowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchTemplates = async () => {
+      try {
+        const response = await api.get("/templates");
+        const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
+
+        const mapped: LandingTemplate[] = rows.map((row: any) => {
+          const accent = row.cssVars?.accentColor ?? "#1a1a1a";
+          return {
+            id: String(row.layoutId ?? "classic"),
+            name: String(row.name ?? "Template"),
+            tag: String(row.tag ?? "General"),
+            category: String(row.category ?? "Professional"),
+            accent,
+            primary: row.cssVars?.headingColor ?? accent,
+            secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
+            desc: String(row.description ?? "ATS-friendly resume template."),
+          };
+        });
+
+        if (!mounted || mapped.length === 0) return;
+        setTemplates(mapped);
+      } catch {
+        // Keep fallback templates when API is unavailable.
+      }
+    };
+
+    void fetchTemplates();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const scroll = (dir: "left" | "right") => {
     const el = rowRef.current;
@@ -224,7 +276,7 @@ export function TemplatesPreview() {
           scrollSnapType: "x mandatory",
         }}
       >
-        {TEMPLATES.map((t, i) => {
+        {templates.map((t, i) => {
           const isHov = hovered === t.id;
           return (
             <div
@@ -253,7 +305,7 @@ export function TemplatesPreview() {
                     transform: isHov ? "scale(1.04)" : "scale(1)", transition: "transform 0.3s ease",
                   }}>
                     <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%", display: "block" }} xmlns="http://www.w3.org/2000/svg">
-                      {THUMB_MAP[t.id](t.primary, t.secondary)}
+                      {renderThumb(t.id, t.primary, t.secondary)}
                     </svg>
                   </div>
                 </div>
