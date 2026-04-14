@@ -201,12 +201,13 @@ export function AdminTemplates() {
           style={{
             position: "fixed", inset: 0, zIndex: 180,
             background: "rgba(0,0,0,0.9)", backdropFilter: "blur(8px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
+            display: "flex", alignItems: "flex-start", justifyContent: "center",
             padding: 24,
+            overflow: "auto",
           }}
         >
-          <div style={{ width: "100%", maxWidth: 1040, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 18, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.75)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderBottom: "1px solid #1A1A1A" }}>
+          <div style={{ width: "100%", maxWidth: 1040, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 18, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.75)", marginTop: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderBottom: "1px solid #1A1A1A", position: "sticky", top: 0, background: "#0D0D0D", zIndex: 10 }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8" }}>{previewTarget.name}</div>
                 <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{previewTarget.layoutId} · {previewTarget.category}</div>
@@ -218,8 +219,8 @@ export function AdminTemplates() {
                 ×
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: 640 }}>
-              <div style={{ padding: 22, borderRight: "1px solid #1A1A1A", background: "#0A0A0A" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: "auto" }}>
+              <div style={{ padding: 22, borderRight: "1px solid #1A1A1A", background: "#0A0A0A", maxHeight: "calc(100vh - 160px)", overflow: "auto" }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>Template Details</div>
                 <div style={{ display: "grid", gap: 12 }}>
                   <InfoRow label="Status" value={previewTarget.status} />
@@ -230,7 +231,7 @@ export function AdminTemplates() {
                   <InfoRow label="Heading Font" value={previewTarget.cssVars.headingFont.split(",")[0]} />
                 </div>
               </div>
-              <div style={{ overflow: "auto", background: "#050505", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 24 }}>
+              <div style={{ overflow: "auto", background: "#050505", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 24, maxHeight: "calc(100vh - 160px)" }}>
                 <div style={{ width: 794, height: 1123, minHeight: 1123, boxShadow: "0 32px 80px rgba(0,0,0,0.8)", borderRadius: 8, overflow: "hidden", background: "#fff", flexShrink: 0 }}>
                   <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
                 </div>
