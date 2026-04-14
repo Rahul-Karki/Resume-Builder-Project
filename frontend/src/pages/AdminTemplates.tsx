@@ -200,39 +200,47 @@ export function AdminTemplates() {
           onClick={e => { if (e.target === e.currentTarget) closePreview(); }}
           style={{
             position: "fixed", inset: 0, zIndex: 180,
-            background: "rgba(0,0,0,0.9)", backdropFilter: "blur(8px)",
+            background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)",
             display: "flex", alignItems: "flex-start", justifyContent: "center",
             padding: 24,
             overflow: "auto",
           }}
         >
-          <div style={{ width: "100%", maxWidth: 1040, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 18, overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.75)", marginTop: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderBottom: "1px solid #1A1A1A", position: "sticky", top: 0, background: "#0D0D0D", zIndex: 10 }}>
+          <div style={{ width: "100%", maxWidth: 1100, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)", marginTop: 24 }}>
+            {/* Header with gradient background */}
+            <div style={{ background: "linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.02) 100%), #0D0D0D", borderBottom: "1.5px solid #1E1E1E", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 28px", position: "sticky", top: 0, zIndex: 10 }}>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8" }}>{previewTarget.name}</div>
-                <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{previewTarget.layoutId} · {previewTarget.category}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#F0EFE8", letterSpacing: "-0.5px" }}>{previewTarget.name}</div>
+                <div style={{ fontSize: 12, color: "#8AA0FF", marginTop: 6, fontWeight: 500 }}>
+                  <span style={{ color: "#444" }}>layoutId: </span>{previewTarget.layoutId} · <span style={{ color: "#444" }}>Category: </span>{previewTarget.category}
+                </div>
               </div>
               <button
                 onClick={closePreview}
-                style={{ width: 34, height: 34, borderRadius: 9, border: "1px solid #2A2A2A", background: "#151515", color: "#F0EFE8", cursor: "pointer", fontSize: 18, fontWeight: 700 }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#222"; e.currentTarget.style.transform = "scale(1.1)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#151515"; e.currentTarget.style.transform = "scale(1)"; }}
+                style={{ width: 38, height: 38, borderRadius: 12, border: "1.5px solid #2A2A2A", background: "#151515", color: "#F0EFE8", cursor: "pointer", fontSize: 20, fontWeight: 700, transition: "all 0.2s ease" }}
               >
                 ×
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: "auto" }}>
-              <div style={{ padding: 22, borderRight: "1px solid #1A1A1A", background: "#0A0A0A", maxHeight: "calc(100vh - 160px)", overflow: "auto" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 14 }}>Template Details</div>
-                <div style={{ display: "grid", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", minHeight: "auto" }}>
+              {/* Sidebar */}
+              <div style={{ padding: 28, borderRight: "1.5px solid #1A1A1A", background: "linear-gradient(180deg, #0F0F0F 0%, #0A0A0A 100%)", maxHeight: "calc(100vh - 160px)", overflow: "auto" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#C8F55A", textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: 20 }}>✨ Template Details</div>
+                <div style={{ display: "grid", gap: 16 }}>
                   <InfoRow label="Status" value={previewTarget.status} />
                   <InfoRow label="Tag" value={previewTarget.tag} />
-                  <InfoRow label="Premium" value={previewTarget.isPremium ? "Yes" : "No"} />
-                  <InfoRow label="Accent" value={previewTarget.cssVars.accentColor} />
+                  <div style={{ borderTop: "1px solid #1A1A1A", paddingTop: 16 }} />
+                  <InfoRow label="Premium" value={previewTarget.isPremium ? "✓ Yes" : "No"} isHighlight={previewTarget.isPremium} />
+                  <InfoRow label="Accent Color" value={previewTarget.cssVars.accentColor} showColor={previewTarget.cssVars.accentColor} />
                   <InfoRow label="Body Font" value={previewTarget.cssVars.bodyFont.split(",")[0]} />
                   <InfoRow label="Heading Font" value={previewTarget.cssVars.headingFont.split(",")[0]} />
                 </div>
               </div>
-              <div style={{ overflow: "auto", background: "#050505", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 24, maxHeight: "calc(100vh - 160px)" }}>
-                <div style={{ width: 794, height: 1123, minHeight: 1123, boxShadow: "0 32px 80px rgba(0,0,0,0.8)", borderRadius: 8, overflow: "hidden", background: "#fff", flexShrink: 0 }}>
+              {/* Preview */}
+              <div style={{ overflow: "auto", background: "linear-gradient(135deg, #080808 0%, #050505 100%)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 32, maxHeight: "calc(100vh - 160px)" }}>
+                <div style={{ width: 794, height: 1123, minHeight: 1123, boxShadow: "0 40px 100px rgba(0,0,0,0.9), inset 0 0 1px rgba(200,245,90,0.1)", borderRadius: 12, overflow: "hidden", background: "#fff", flexShrink: 0, border: "1px solid rgba(200,245,90,0.05)" }}>
                   <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
                 </div>
               </div>
@@ -261,11 +269,16 @@ export function AdminTemplates() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, isHighlight = false, showColor }: { label: string; value: string; isHighlight?: boolean; showColor?: string }) {
   return (
-    <div>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "0.7px", marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 12.5, color: "#C8C7C0", lineHeight: 1.4 }}>{value}</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: isHighlight ? "#C8F55A" : "#888", textTransform: "uppercase", letterSpacing: "0.8px" }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {showColor && (
+          <div style={{ width: 20, height: 20, borderRadius: 6, background: showColor, border: "1.5px solid #2A2A2A", boxShadow: `0 0 12px ${showColor}33` }} />
+        )}
+        <div style={{ fontSize: 13, fontWeight: 600, color: isHighlight ? "#4ADE80" : "#E8E8E8", fontFamily: showColor ? "monospace" : "inherit" }}>{value}</div>
+      </div>
     </div>
   );
 }
