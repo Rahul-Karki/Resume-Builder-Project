@@ -16,7 +16,6 @@ import {
   getResumeById as baseGetResumeById,
   updateResume as baseUpdateResume,
 } from "../controllers/resumeController";
-import { getShareAnalytics, upsertShareSettings } from "../controllers/shareController";
 import { validateRequest } from "../middleware/validateRequest";
 import {
   atsAnalyzeSchema,
@@ -25,7 +24,6 @@ import {
   createResumeSchema,
   exportPresetSchema,
   roleTailoredVariantSchema,
-  shareSettingsSchema,
   updateResumeSchema,
 } from "../validation/schemas";
 
@@ -48,8 +46,5 @@ router.post("/:id/restore/:versionNo", restoreResumeVersion);
 
 router.post("/:id/export-pdf", validateRequest({ body: exportPresetSchema }), getExportPreset);
 router.post("/:id/variants/role-tailored", validateRequest({ body: roleTailoredVariantSchema }), createRoleTailoredVariant);
-
-router.post("/:id/share", validateRequest({ body: shareSettingsSchema }), upsertShareSettings);
-router.get("/:id/share/analytics", getShareAnalytics);
 
 export default router;

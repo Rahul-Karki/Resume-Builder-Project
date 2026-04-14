@@ -138,7 +138,7 @@ export interface ResumeDocument {
 
 // ─── Builder UI State ──────────────────────────────────────────────────────────
 
-export type EditorTab = "content" | "style" | "sections" | "pro";
+export type EditorTab = "content" | "style" | "sections";
 export type ActiveSection =
   | "personal"
   | "experience"
@@ -184,13 +184,6 @@ export interface ResumeVersionMeta {
   snapshot?: {
     title?: string;
   };
-}
-
-export interface ShareAnalytics {
-  views: number;
-  downloads: number;
-  uniqueViewers: number;
-  recentEvents: Array<{ eventType: "view" | "download"; at: string }>;
 }
 
 export interface BuilderUIState {

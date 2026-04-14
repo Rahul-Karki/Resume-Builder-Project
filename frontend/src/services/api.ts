@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AtsAnalysis, ExportPreset, ResumeVersionMeta, ShareAnalytics } from "@/types/resume-types";
+import { AtsAnalysis, ExportPreset, ResumeVersionMeta } from "@/types/resume-types";
 
 type RetriableConfig = {
   _retry?: boolean;
@@ -95,39 +95,6 @@ export const createRoleTailoredVariant = async (resumeId: string, payload: { tar
 export const getResumeExportPreset = async (resumeId: string, preset: ExportPreset) => {
   const response = await api.post(`/resumes/${resumeId}/export-pdf`, { preset });
   return response.data?.export as { preset: ExportPreset; options: { scale: number }; filename: string };
-};
-
-export const upsertResumeShareSettings = async (
-  resumeId: string,
-  payload: { visibility: "public" | "unlisted" | "password"; password?: string; allowDownload?: boolean; isActive?: boolean; expiresAt?: string },
-) => {
-  const response = await api.post(`/resumes/${resumeId}/share`, payload);
-  return response.data?.share as {
-    id: string;
-    slug: string;
-    visibility: "public" | "unlisted" | "password";
-    allowDownload: boolean;
-    isActive: boolean;
-    expiresAt?: string;
-    url: string;
-  };
-};
-
-export const getResumeShareAnalytics = async (resumeId: string) => {
-  const response = await api.get(`/resumes/${resumeId}/share/analytics`);
-  return response.data?.analytics as ShareAnalytics;
-};
-
-export const getPublicSharedResume = async (slug: string, password?: string) => {
-  const response = await api.get(`/share/${slug}`, {
-    params: password ? { password } : undefined,
-  });
-  return response.data;
-};
-
-export const trackSharedResumeDownload = async (slug: string, password?: string) => {
-  const response = await api.post(`/share/${slug}/download`, { password });
-  return response.data;
 };
 
 export async function bootstrapAuthSession() {

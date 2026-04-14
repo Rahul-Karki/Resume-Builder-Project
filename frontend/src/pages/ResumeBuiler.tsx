@@ -5,7 +5,6 @@ import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
 import { EditorPanel } from "@/components/builder/editorPanel";
 import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
-import { ProPanel } from "@/components/builder/proPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { getResumeExportPreset } from "@/services/api";
@@ -15,7 +14,6 @@ const TABS: { id: EditorTab; label: string; icon: string; description: string }[
   { id: "content",  label: "Content",  icon: "◉", description: "Fill in your resume information" },
   { id: "style",    label: "Style",    icon: "◈", description: "Customize colors, fonts & layout" },
   { id: "sections", label: "Sections", icon: "◧", description: "Show/hide and reorder sections" },
-  { id: "pro",      label: "Pro",      icon: "✦", description: "ATS, versions, variants, sharing and export presets" },
 ];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────
@@ -306,11 +304,6 @@ export default function ResumeBuilder() {
               {ui.activeTab === "sections" && (
                 <div style={{ overflowY: "auto", flex: 1 }}>
                   <SectionsTab />
-                </div>
-              )}
-              {ui.activeTab === "pro" && (
-                <div style={{ overflowY: "auto", flex: 1 }}>
-                  <ProPanel onDownload={handleDownload} canDownload={canDownload} />
                 </div>
               )}
             </div>

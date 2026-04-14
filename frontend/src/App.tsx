@@ -10,7 +10,6 @@ import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
 import Unauthorized from "./pages/Unauthorized"
 import NotFound from "./pages/NotFound"
-import SharedResume from "./pages/SharedResume"
 
 function App() {
   return (
@@ -24,7 +23,6 @@ function App() {
         <Route path="/builder" element={<ResumeBuilder />} />
         <Route path="/resumes" element={<MyResumePage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route path="/share/:slug" element={<SharedResume />} />
         <Route
           path="/admin"
           element={

@@ -134,18 +134,6 @@ const exportPresetSchema = z.object({
   preset: z.enum(["web", "standard", "print"]).optional(),
 }).strict();
 
-const shareSettingsSchema = z.object({
-  visibility: z.enum(["public", "unlisted", "password"]).optional(),
-  password: z.string().max(120).optional(),
-  allowDownload: z.boolean().optional(),
-  isActive: z.boolean().optional(),
-  expiresAt: z.string().datetime().optional(),
-}).strict();
-
-const shareDownloadSchema = z.object({
-  password: z.string().max(120).optional(),
-}).strict();
-
 const resumeEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
   company: z.string().max(160).optional(),
@@ -264,8 +252,6 @@ export {
   reorderTemplatesSchema,
   roleTailoredVariantSchema,
   setTemplateStatusSchema,
-  shareDownloadSchema,
-  shareSettingsSchema,
   templateListQuerySchema,
   updateResumeSchema,
   updateTemplateSchema,
