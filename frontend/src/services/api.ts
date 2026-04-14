@@ -8,6 +8,12 @@ type RetriableConfig = {
   method?: string;
 };
 
+const isCsrfFailure = (error: any) => {
+  const status = error?.response?.status;
+  const message = String(error?.response?.data?.message ?? "");
+  return status === 403 && message.toLowerCase().includes("csrf");
+};
+
 const AUTH_EXCLUDED_PATHS = [
   "/auth/login",
   "/auth/signup",
@@ -157,12 +163,32 @@ api.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status;
     const originalRequest = error?.config as RetriableConfig | undefined;
+    const excludedPath = isExcludedPath(originalRequest?.url);
 
     if (
       status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
-      !isExcludedPath(originalRequest.url)
+      !excludedPath
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshResponse = await api.post("/refresh", {});
+        setStoredCsrfToken(refreshResponse.data?.csrfToken);
+        localStorage.setItem("accessToken", "session");
+        return api(originalRequest);
+      } catch {
+        localStorage.removeItem("accessToken");
+        clearStoredCsrfToken();
+      }
+    }
+
+    if (
+      isCsrfFailure(error) &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !excludedPath
     ) {
       originalRequest._retry = true;
 
