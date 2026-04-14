@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AtsAnalysis, ExportPreset, ResumeVersionMeta } from "@/types/resume-types";
+import { ExportPreset } from "@/types/resume-types";
 
 type RetriableConfig = {
   _retry?: boolean;
@@ -51,46 +51,6 @@ export const api = axios.create({
   withCredentials: true,
   timeout: 15000,
 });
-
-export type VersionCompareResponse = {
-  left: { versionNo: number; snapshot: Record<string, unknown> };
-  right: { versionNo: number; snapshot: Record<string, unknown> };
-  diff: {
-    titleChanged: boolean;
-    summaryChanged: boolean;
-    sectionCountDelta: Record<string, number>;
-  };
-};
-
-export const analyzeResumeAts = async (resumeId: string, payload: { jobTitle?: string; keywords?: string[] }) => {
-  const response = await api.post(`/resumes/${resumeId}/ats-analyze`, payload);
-  return response.data?.analysis as AtsAnalysis;
-};
-
-export const applyResumeAtsSuggestion = async (resumeId: string, payload: { analysisId: string; suggestionId: string }) => {
-  const response = await api.patch(`/resumes/${resumeId}/ats-suggestions/apply`, payload);
-  return response.data?.resume;
-};
-
-export const listResumeVersions = async (resumeId: string) => {
-  const response = await api.get(`/resumes/${resumeId}/versions`);
-  return (response.data?.versions ?? []) as ResumeVersionMeta[];
-};
-
-export const compareResumeVersions = async (resumeId: string, leftVersion: number, rightVersion: number) => {
-  const response = await api.post(`/resumes/${resumeId}/compare`, { leftVersion, rightVersion });
-  return response.data as VersionCompareResponse;
-};
-
-export const restoreResumeVersion = async (resumeId: string, versionNo: number) => {
-  const response = await api.post(`/resumes/${resumeId}/restore/${versionNo}`);
-  return response.data?.resume;
-};
-
-export const createRoleTailoredVariant = async (resumeId: string, payload: { targetRole: string; keywords?: string[] }) => {
-  const response = await api.post(`/resumes/${resumeId}/variants/role-tailored`, payload);
-  return response.data?.resume;
-};
 
 export const getResumeExportPreset = async (resumeId: string, preset: ExportPreset) => {
   const response = await api.post(`/resumes/${resumeId}/export-pdf`, { preset });

@@ -151,30 +151,6 @@ export type ActiveSection =
 export type PreviewScale = 0.5 | 0.6 | 0.7 | 0.75 | 0.85 | 1;
 export type ExportPreset = "web" | "standard" | "print";
 
-export interface AtsSuggestion {
-  id: string;
-  path: string;
-  originalText: string;
-  suggestionText: string;
-  reason: string;
-  impact: "low" | "medium" | "high";
-}
-
-export interface AtsAnalysis {
-  _id: string;
-  scoreOverall: number;
-  sectionScores: {
-    summary: number;
-    experience: number;
-    skills: number;
-    education: number;
-    formatting: number;
-  };
-  missingKeywords: string[];
-  rewriteSuggestions: AtsSuggestion[];
-  updatedAt: string;
-}
-
 export interface ResumeVersionMeta {
   _id: string;
   versionNo: number;

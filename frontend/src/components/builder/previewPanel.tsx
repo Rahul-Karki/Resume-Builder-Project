@@ -78,11 +78,6 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
         >
           +
         </button>
-        <span style={{ fontSize: 10, color: "#333" }}>·</span>
-        <span style={{
-          fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-          background: "rgba(200,245,90,0.1)", color: "#C8F55A", border: "1px solid rgba(200,245,90,0.2)",
-        }}>✓ ATS Friendly</span>
       </div>
 
       {/* Preview scroll area */}
@@ -139,11 +134,6 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
         display: "flex", alignItems: "center", padding: "0 16px", gap: 10,
         fontFamily: "'Outfit', sans-serif", flexShrink: 0,
       }}>
-        {/* ATS score indicator */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, color: "#555" }}>ATS Score</span>
-          <ATSScore resume={resume} />
-        </div>
         <div style={{ flex: 1 }} />
         <button
           onClick={onDownload}
@@ -159,30 +149,6 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
           ↓ Download PDF
         </button>
       </div>
-    </div>
-  );
-}
-
-// ─── ATS Score ─────────────────────────────────────────────────────────────────
-function ATSScore({ resume }: { resume: ResumeDocument }) {
-  const p = resume.personalInfo;
-  const s = resume.sections;
-  let score = 0;
-  if (p.name) score += 15;
-  if (p.email) score += 10;
-  if (p.phone) score += 10;
-  if (p.summary) score += 15;
-  if (s.experience.length > 0) score += 20;
-  if (s.education.length > 0) score += 15;
-  if (s.skills.length > 0) score += 15;
-
-  const color = score >= 80 ? "#4ADE80" : score >= 50 ? "#F59E0B" : "#F87171";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 80, height: 4, background: "#1A1A1A", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ width: `${score}%`, height: "100%", background: color, borderRadius: 2, transition: "width 0.4s" }} />
-      </div>
-      <span style={{ fontSize: 11, fontWeight: 700, color }}>{score}%</span>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/services/api";
 
 // ─── TemplatesPreview.tsx ─────────────────────────────────────────────────────
-// Horizontal-scrolling carousel of all 5 ATS-verified templates.
+// Horizontal-scrolling carousel of all templates.
 // Each card shows the SVG thumbnail, template name, category, and a CTA.
 
 type LandingTemplate = {
@@ -196,7 +196,7 @@ export function TemplatesPreview() {
             accent,
             primary: row.cssVars?.headingColor ?? accent,
             secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
-            desc: String(row.description ?? "ATS-friendly resume template."),
+            desc: String(row.description ?? "Clean resume template."),
           };
         });
 
@@ -231,11 +231,11 @@ export function TemplatesPreview() {
       <div style={{ maxWidth: 1200, margin: "0 auto 52px", padding: "0 40px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 20 }}>
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#333", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 14, fontFamily: "'Outfit', sans-serif" }}>
-            ATS-Verified Templates
+            Templates
           </div>
           <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(30px, 3vw, 44px)", fontWeight: 300, letterSpacing: "-1.2px", color: "#F0EFE8", margin: 0, lineHeight: 1.1 }}>
             {templateCountLabel}. Every one<br />
-            <em style={{ fontStyle: "italic", color: "#C8F55A" }}>ATS-tested.</em>
+            <em style={{ fontStyle: "italic", color: "#C8F55A" }}>clean and ready.</em>
           </h2>
         </div>
 
@@ -329,7 +329,7 @@ export function TemplatesPreview() {
                   </div>
                 </div>
 
-                {/* ATS badge */}
+                {/* Badge */}
                 <div style={{
                   position: "absolute", top: 10, left: 10,
                   background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)",
@@ -340,7 +340,7 @@ export function TemplatesPreview() {
                   fontFamily: "'Outfit', sans-serif",
                 }}>
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ADE80", flexShrink: 0 }} />
-                  ATS Verified
+                  Preview Ready
                 </div>
               </div>
 

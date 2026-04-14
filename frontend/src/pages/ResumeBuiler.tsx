@@ -85,20 +85,6 @@ function SectionsTab() {
         );
       })}
 
-      {/* ATS tips */}
-      <div style={{ marginTop: 24, padding: "14px", background: "#0D1A12", border: "1px solid #1A3A24", borderRadius: 10 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#4ADE80", marginBottom: 8 }}>✓ ATS Best Practices</div>
-        {[
-          "Always include Experience and Education — ATS parsers expect them.",
-          "Skills sections dramatically improve keyword matching scores.",
-          "Keep sections in a logical reading order: Experience → Education → Skills.",
-        ].map((tip, i) => (
-          <div key={i} style={{ fontSize: 11, color: "#3A7A50", marginBottom: 4, paddingLeft: 12, position: "relative" }}>
-            <span style={{ position: "absolute", left: 0 }}>·</span>
-            {tip}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

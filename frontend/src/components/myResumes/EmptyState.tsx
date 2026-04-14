@@ -113,7 +113,7 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
           No resumes yet, <em style={{fontStyle:"italic",color:"#C8F55A"}}>{name.split(" ")[0]}</em>
         </h2>
         <p style={{fontSize:14,color:"#444",maxWidth:440,margin:"0 auto",lineHeight:1.6}}>
-          Pick one of our ATS-friendly templates below and create your first resume in minutes.
+          Pick one of our templates below and create your first resume in minutes.
         </p>
       </div>
 
@@ -161,7 +161,7 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
       </div>
 
       <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
-        {["✓ ATS Optimised","✓ Live Preview","✓ Custom Colors","✓ Export PDF","✓ Auto-save"].map((f)=>(
+        {["✓ Live Preview","✓ Custom Colors","✓ Export PDF","✓ Auto-save"].map((f)=>(
           <div key={f} style={{fontSize:12,fontWeight:600,color:"#333",background:"#0D0D0D",border:"1px solid #1A1A1A",padding:"6px 14px",borderRadius:20}}>{f}</div>
         ))}
       </div>

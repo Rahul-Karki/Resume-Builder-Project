@@ -230,7 +230,7 @@ export function HeroSection() {
             fontFamily: "'Outfit', sans-serif",
           }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#C8F55A", flexShrink: 0 }} />
-            ATS-Verified Templates
+            Resume Templates
           </div>
 
           {/* Headline */}
@@ -253,14 +253,14 @@ export function HeroSection() {
             fontSize: 16, color: "#555", lineHeight: 1.7, maxWidth: 480,
             marginBottom: 36, fontFamily: "'Outfit', sans-serif", fontWeight: 300,
           }}>
-            Build your resume with ATS-verified templates, see your ATS score in real-time, and style every detail — colors, fonts, spacing — exactly how you want.
+            Build your resume with clean templates and style every detail — colors, fonts, spacing — exactly how you want.
           </p>
 
           {/* Feature pills */}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 40 }}>
             {[
-              "✓ ATS-Verified Templates",
-              "✓ Live ATS Score",
+              "✓ Clean Template Layouts",
+              "✓ Live Preview",
               "✓ Full Style Control",
             ].map(f => (
               <div key={f} style={{

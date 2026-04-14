@@ -110,26 +110,6 @@ const usageSchema = z.object({
   type: z.enum(["create", "edit"]).optional(),
 }).strict();
 
-const atsAnalyzeSchema = z.object({
-  jobTitle: z.string().trim().max(120).optional(),
-  keywords: z.array(z.string().trim().min(1).max(60)).max(30).optional(),
-}).strict();
-
-const atsApplySuggestionSchema = z.object({
-  analysisId: z.string().regex(objectIdRegex, "Invalid analysisId"),
-  suggestionId: z.string().trim().min(1).max(120),
-}).strict();
-
-const compareVersionsSchema = z.object({
-  leftVersion: z.coerce.number().int().min(1),
-  rightVersion: z.coerce.number().int().min(1),
-}).strict();
-
-const roleTailoredVariantSchema = z.object({
-  targetRole: z.string().trim().min(2).max(120),
-  keywords: z.array(z.string().trim().min(1).max(60)).max(30).optional(),
-}).strict();
-
 const exportPresetSchema = z.object({
   preset: z.enum(["web", "standard", "print"]).optional(),
 }).strict();
@@ -234,14 +214,11 @@ const createResumeSchema = resumeSchema;
 const updateResumeSchema = resumeSchema.partial().strict();
 
 export {
-  atsAnalyzeSchema,
-  atsApplySuggestionSchema,
   analyticsQuerySchema,
   authEmailSchema,
   authLoginSchema,
   authResetPasswordSchema,
   authSignupSchema,
-  compareVersionsSchema,
   createResumeSchema,
   createTemplateSchema,
   emptyObjectSchema,
@@ -250,7 +227,6 @@ export {
   objectIdParamSchema,
   publicTemplateListQuerySchema,
   reorderTemplatesSchema,
-  roleTailoredVariantSchema,
   setTemplateStatusSchema,
   templateListQuerySchema,
   updateResumeSchema,

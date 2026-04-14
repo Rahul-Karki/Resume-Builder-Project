@@ -69,7 +69,7 @@ export function CTASection() {
           marginBottom: 44, fontFamily: "'Outfit', sans-serif", fontWeight: 300,
           maxWidth: 480, margin: "0 auto 44px",
         }}>
-          Pick a template, fill in your details, and watch your ATS score update live. Save when you're ready.
+          Pick a template, fill in your details, and watch the preview update live. Save when you're ready.
         </p>
 
         {/* CTAs */}

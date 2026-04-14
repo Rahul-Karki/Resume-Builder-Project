@@ -2,15 +2,15 @@ import { useState } from "react";
 
 // ─── FeaturesSection.tsx ──────────────────────────────────────────────────────
 // Only 3 features — exactly what the product delivers:
-//   1. ATS-Verified Templates
-//   2. Live ATS Score Calculation
-//   3. Full Style Customization
+//   1. Template rendering
+//   2. Live preview
+//   3. Full style customization
 
 const FEATURES = [
   {
     number: "01",
-    title: "ATS-Verified Templates",
-    body: "Every template is built as real HTML — not images, not tables — so applicant tracking systems parse every word correctly. We've tested each layout against major ATS parsers.",
+    title: "Template Rendering",
+    body: "Every template is built as real HTML and reusable layout components, so your resume stays consistent across browser preview and export.",
     accent: "#C8F55A",
     visual: (
       <svg viewBox="0 0 320 200" width="100%" xmlns="http://www.w3.org/2000/svg">
@@ -50,8 +50,8 @@ const FEATURES = [
   },
   {
     number: "02",
-    title: "Live ATS Score",
-    body: "As you fill in your resume, a live score calculates how complete and ATS-ready it is. See exactly what's missing and fix it before you apply.",
+    title: "Live Preview",
+    body: "As you fill in your resume, the preview updates instantly. See layout, spacing, and typography changes before you export.",
     accent: "#4ADE80",
     visual: (
       <svg viewBox="0 0 320 200" width="100%" xmlns="http://www.w3.org/2000/svg">
@@ -61,7 +61,7 @@ const FEATURES = [
         <circle cx="90" cy="100" r="60" fill="none" stroke="#4ADE80" strokeWidth="10"
           strokeDasharray="302 376" strokeLinecap="round" strokeDashoffset="94" />
         <text x="90" y="95" textAnchor="middle" fontSize="26" fontWeight="800" fill="#F0EFE8" fontFamily="sans-serif">92</text>
-        <text x="90" y="113" textAnchor="middle" fontSize="11" fontWeight="500" fill="#4ADE80" fontFamily="sans-serif">ATS Score</text>
+        <text x="90" y="113" textAnchor="middle" fontSize="11" fontWeight="500" fill="#4ADE80" fontFamily="sans-serif">Live Preview</text>
 
         {/* Breakdown bars */}
         {[

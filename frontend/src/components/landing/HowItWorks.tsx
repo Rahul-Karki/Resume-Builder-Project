@@ -1,12 +1,12 @@
 // ─── HowItWorks.tsx ───────────────────────────────────────────────────────────
-// Three-step process: Pick Template → Fill Details → Download & Apply
+// Three-step process: Pick Template → Fill Details → Download
 // Clean numbered layout with connector lines
 
 const STEPS = [
   {
     num: "1",
     title: "Pick a template",
-    body: "Browse 5 ATS-verified templates. Each one is built as real HTML — readable by every applicant tracking system.",
+    body: "Browse the available templates. Each one is built as real HTML for consistent browser and PDF output.",
     icon: (
       <svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect x="8" y="6" width="22" height="28" rx="3" fill="#1A1A1A" stroke="#2A2A2A" strokeWidth="1" />
@@ -52,8 +52,8 @@ const STEPS = [
   },
   {
     num: "3",
-    title: "Check your ATS score",
-    body: "Your live ATS score updates as you type. Once you're satisfied, save your resume to your account and download it.",
+    title: "Download your resume",
+    body: "Save your resume to your account when you’re ready, then export it as a PDF.",
     icon: (
       <svg viewBox="0 0 48 48" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="22" cy="22" r="14" fill="none" stroke="#1A1A1A" strokeWidth="3" />
