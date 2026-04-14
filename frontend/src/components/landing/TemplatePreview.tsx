@@ -176,6 +176,7 @@ export function TemplatesPreview() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [templates, setTemplates] = useState<LandingTemplate[]>(FALLBACK_TEMPLATES);
   const rowRef = useRef<HTMLDivElement>(null);
+  const templateCountLabel = `${templates.length} ${templates.length === 1 ? "layout" : "layouts"}`;
 
   useEffect(() => {
     let mounted = true;
@@ -233,7 +234,7 @@ export function TemplatesPreview() {
             ATS-Verified Templates
           </div>
           <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(30px, 3vw, 44px)", fontWeight: 300, letterSpacing: "-1.2px", color: "#F0EFE8", margin: 0, lineHeight: 1.1 }}>
-            5 layouts. Every one<br />
+            {templateCountLabel}. Every one<br />
             <em style={{ fontStyle: "italic", color: "#C8F55A" }}>ATS-tested.</em>
           </h2>
         </div>
