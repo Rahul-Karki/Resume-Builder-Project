@@ -9,12 +9,13 @@ import { verifyGoogleToken } from "../utils/google";
 import crypto from "crypto";
 import { UserRole } from "../enums/userRole";
 import { clearAuthCookies, setAuthCookies } from "../utils/authCookies";
+import { env } from "../config/env";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
 const MAX_RESET_RESEND_ATTEMPTS = 3;
-const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+const frontendBaseUrl = env.FRONTEND_URL;
 
 const logout = async (req: Request, res: Response) => {
   try {

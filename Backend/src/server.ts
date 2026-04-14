@@ -1,18 +1,17 @@
 import express from "express";
 import connectDB from "./config/db";
-import dotenv from "dotenv"
+import { env } from "./config/env";
 import cors from "cors";
 import helmet from "helmet";
 import { csrfProtection } from "./middleware/csrfProtection";
 
-dotenv.config();
 const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
 
 const configuredOrigins = [
-  process.env.FRONTEND_URL,
-  ...(process.env.FRONTEND_URLS ?? "").split(","),
+  env.FRONTEND_URL,
+  ...env.FRONTEND_URLS,
 ]
   .map((origin) => origin?.trim())
   .filter((origin): origin is string => Boolean(origin));
@@ -62,7 +61,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/share", shareRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = env.PORT;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

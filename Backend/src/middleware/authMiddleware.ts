@@ -2,8 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
 import { parseCookies } from "../utils/cookieParser";
+import { env } from "../config/env";
 
-const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+const JWT_SECRET = env.JWT_ACCESS_SECRET;
 
 export const authMiddleware = (
   req: Request,
@@ -11,11 +12,6 @@ export const authMiddleware = (
   next: NextFunction
 ): void => {
   try {
-    if (!JWT_SECRET) {
-      res.status(500).json({ message: "Server misconfigured" });
-      return;
-    }
-
     const cookies = parseCookies(req.headers.cookie);
     const token = cookies.accessToken;
 

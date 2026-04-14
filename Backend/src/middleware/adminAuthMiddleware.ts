@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";   // your existing User model
 import { parseCookies } from "../utils/cookieParser";
+import { env } from "../config/env";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,12 +43,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 
   try {
-    const jwtSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      return res.status(500).json({ error: "Server misconfigured." });
-    }
-
-    const payload = jwt.verify(token, jwtSecret) as JwtPayload;
+    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
     const userId = payload.userId ?? payload.id;
 
     if (!userId) {

@@ -1,18 +1,10 @@
 import { Resend } from "resend";
+import { env } from "../config/env";
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resendFrom = process.env.RESEND_FROM || process.env.EMAIL_FROM;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const resend = new Resend(env.RESEND_API_KEY);
+const resendFrom = env.RESEND_FROM;
 
 export const sendEmail = async (to: string, link: string) => {
-  if (!resend) {
-    throw new Error("Resend API key is not configured");
-  }
-
-  if (!resendFrom) {
-    throw new Error("Resend sender address is not configured");
-  }
-
   const { error } = await resend.emails.send({
     from: resendFrom,
     to,

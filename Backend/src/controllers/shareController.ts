@@ -4,6 +4,7 @@ import { Request, RequestHandler, Response } from "express";
 import Resume from "../models/Resume";
 import ResumeShare from "../models/ResumeShare";
 import ResumeShareEvent from "../models/ResumeShareEvent";
+import { env } from "../config/env";
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -105,7 +106,7 @@ export const upsertShareSettings: RequestHandler = async (req, res) => {
 
     await share.save();
 
-    const frontendBase = process.env.FRONTEND_URL || "http://localhost:5173";
+    const frontendBase = env.FRONTEND_URL;
     res.status(200).json({
       share: {
         id: share._id,
