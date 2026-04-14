@@ -102,7 +102,7 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
               position: "relative",
               overflow: "hidden",
               borderRadius: 4,
-              background: "#ffffff",
+              background: resume.style.backgroundColor,
             }}
           >
             {/* Inner content at 1:1 then scaled */}
@@ -114,9 +114,12 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
                 overflow: "hidden",
+                background: resume.style.backgroundColor,
               }}
             >
-              <ResumeRenderer resume={resume} />
+              <div style={{ width: "100%", height: "100%", minHeight: "100%" }}>
+                <ResumeRenderer resume={resume} />
+              </div>
             </div>
           </div>
 
