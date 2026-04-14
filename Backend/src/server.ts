@@ -1,9 +1,11 @@
+import "./instrumentation";
 import express from "express";
 import connectDB from "./config/db";
 import { env } from "./config/env";
 import cors from "cors";
 import helmet from "helmet";
 import { csrfProtection } from "./middleware/csrfProtection";
+import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -17,6 +19,7 @@ const configuredOrigins = [
   .filter((origin): origin is string => Boolean(origin));
 
 app.use(express.json());
+app.use(requestLogger);
 connectDB();
 
 
@@ -46,6 +49,11 @@ app.use(helmet({
 }));
 app.use(cors(corsOptions));
 app.use(csrfProtection);
+app.use(metricsMiddleware);
+
+if (env.ENABLE_METRICS) {
+  app.get(env.METRICS_PATH, metricsHandler);
+}
 
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
@@ -63,6 +71,13 @@ app.use("/api/share", shareRoutes);
 
 const PORT = env.PORT;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(
+    {
+      port: PORT,
+      metricsEnabled: env.ENABLE_METRICS,
+      metricsPath: env.METRICS_PATH,
+    },
+    "Server started",
+  );
 });
 

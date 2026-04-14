@@ -1,6 +1,16 @@
 import "dotenv/config";
 import { z } from "zod";
 
+const booleanFromEnv = z.preprocess((value) => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+
+  return value;
+}, z.boolean());
+
 const baseEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(5000),
@@ -14,6 +24,26 @@ const baseEnvSchema = z.object({
   RESEND_FROM: z.string().email("RESEND_FROM must be a valid email").optional(),
   EMAIL_FROM: z.string().email("EMAIL_FROM must be a valid email").optional(),
   GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+    .default("info"),
+  SERVICE_NAME: z.string().min(1).default("resume-builder-backend"),
+  SERVICE_VERSION: z.string().min(1).default("1.0.0"),
+  ENABLE_METRICS: booleanFromEnv.default(true),
+  METRICS_PATH: z.string().default("/metrics"),
+  GRAFANA_OTLP_ENDPOINT: z.string().url().optional(),
+  OTLP_INSTANCE_ID: z.string().optional().default(""),
+  OPTL_INSTANCE_ID: z.string().optional().default(""),
+  GRAFANA_API_TOKEN: z.string().optional().default(""),
+  GRAFANA_LOKI_URL: z.string().url().optional().default(""),
+  LOKI_INSTANCE_ID: z.string().optional().default(""),
+  OTEL_SERVICE_NAME: z.string().min(1).optional(),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_HEADERS: z.string().optional().default(""),
+  OTEL_TRACES_SAMPLER_ARG: z.coerce.number().min(0).max(1).default(1),
+  OTEL_METRIC_EXPORT_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
 });
 
 const envSchema = baseEnvSchema
@@ -42,6 +72,15 @@ const envSchema = baseEnvSchema
         message: "Either RESEND_FROM or EMAIL_FROM must be set",
       });
     }
+
+    if (!value.METRICS_PATH.startsWith("/")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["METRICS_PATH"],
+        message: "METRICS_PATH must start with '/'",
+      });
+    }
+
   })
   .transform((value) => ({
     ...value,
@@ -50,6 +89,13 @@ const envSchema = baseEnvSchema
       .map((origin) => origin.trim())
       .filter(Boolean),
     RESEND_FROM: value.RESEND_FROM ?? value.EMAIL_FROM!,
+    SERVICE_NAME: value.SERVICE_NAME || value.OTEL_SERVICE_NAME || "resume-builder-backend",
+    OTEL_EXPORTER_OTLP_HEADERS: value.OTEL_EXPORTER_OTLP_HEADERS.trim(),
+    GRAFANA_LOKI_URL: value.GRAFANA_LOKI_URL.trim(),
+    LOKI_INSTANCE_ID: value.LOKI_INSTANCE_ID.trim(),
+    OTLP_INSTANCE_ID: (value.OTLP_INSTANCE_ID || value.OPTL_INSTANCE_ID || "").trim(),
+    OPTL_INSTANCE_ID: value.OPTL_INSTANCE_ID.trim(),
+    GRAFANA_API_TOKEN: value.GRAFANA_API_TOKEN.trim(),
   }));
 
 const parsed = envSchema.safeParse(process.env);

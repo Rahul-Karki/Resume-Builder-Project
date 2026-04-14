@@ -2,7 +2,7 @@ import { JSX, useEffect, useState } from "react";
 import { ResumeDocument, ResumeStyle, SectionVisibility } from "@/types/resume-types";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { sampleData } from "@/data/sampleData";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
 import { TemplateMeta } from "@/data/templateMeta";
 
@@ -414,6 +414,7 @@ export default function TemplatesPage() {
         {/* NAV */}
         <nav className={`tp-nav${scrolled ? " scrolled" : ""}`}>
           <div className="tp-logo">Resume<em>Studio</em></div>
+          < Link to="/my-resume" className="tp-nav-cta">My Resume</Link>
         </nav>
  
         {/* HERO */}

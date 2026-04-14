@@ -239,6 +239,20 @@ RESEND_API_KEY=your_resend_api_key
 RESEND_FROM=Your App <onboarding@resend.dev>
 GOOGLE_CLIENT_ID=your_google_client_id
 NODE_ENV=development
+LOG_LEVEL=info
+SERVICE_NAME=resume-builder-backend
+SERVICE_VERSION=1.0.0
+ENABLE_METRICS=true
+METRICS_PATH=/metrics
+GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-<region>.grafana.net/otlp
+OTLP_INSTANCE_ID=your_grafana_otlp_instance_id
+GRAFANA_API_TOKEN=your_grafana_cloud_api_token
+GRAFANA_LOKI_URL=https://logs-prod-<region>.grafana.net/loki/api/v1/push
+LOKI_INSTANCE_ID=your_grafana_loki_instance_id
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://otlp-gateway-prod-<region>.grafana.net/otlp/v1/traces
+OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=https://otlp-gateway-prod-<region>.grafana.net/otlp/v1/metrics
+OTEL_METRIC_EXPORT_INTERVAL_MS=15000
+OTEL_TRACES_SAMPLER_ARG=1
 ```
 
 ## 3. Frontend environment (`frontend/.env`)
