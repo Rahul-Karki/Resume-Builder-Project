@@ -389,7 +389,20 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
   };
 
   const SelectedTemplate = templatesById[resume.templateId] ?? ClassicTemplateAdapter;
-  return <SelectedTemplate data={resume} />;
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        minHeight: "100%",
+        background: resume.style.backgroundColor,
+        boxSizing: "border-box",
+        overflow: forExport ? "hidden" : "visible",
+      }}
+    >
+      <SelectedTemplate data={resume} />
+    </div>
+  );
 }
 
 export default ResumeRenderer;
