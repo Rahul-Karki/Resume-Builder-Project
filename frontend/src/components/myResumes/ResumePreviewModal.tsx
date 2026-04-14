@@ -94,8 +94,8 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
         </div>
         {/* Large thumb */}
         <div style={{flex:1,overflow:"auto",background:"#050505",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"32px"}}>
-          <div style={{width:794 * zoom,minHeight:1123 * zoom,borderRadius:8,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.8)",background:"#fff",transition:"width 0.2s, min-height 0.2s"}}>
-            <div style={{width:"794px",minHeight:"1123px",background:"#fff",transform:`scale(${zoom})`,transformOrigin:"top left"}}>
+          <div style={{width:794 * zoom,height:1123 * zoom,minHeight:1123 * zoom,borderRadius:8,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.8)",background:resume.style.backgroundColor,transition:"width 0.2s, height 0.2s"}}>
+            <div style={{width:"794px",height:"1123px",minHeight:"1123px",background:resume.style.backgroundColor,transform:`scale(${zoom})`,transformOrigin:"top left"}}>
               <ResumeRenderer resume={resume} />
             </div>
           </div>
