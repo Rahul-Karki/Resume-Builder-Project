@@ -5,6 +5,8 @@ import ResumeVersion from "../models/ResumeVersion";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
 import { createResumeVersion } from "../services/resumeVersionService";
+import { logger } from "../observability";
+import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 
 const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
@@ -180,6 +182,7 @@ const setPathValue = (target: any, path: string, value: string) => {
 };
 
 export const analyzeAts: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.analyzeAts", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -209,14 +212,20 @@ export const analyzeAts: RequestHandler = async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
+    logger.info({ userId, resumeId: req.params.id }, "ATS analysis generated");
+    markSpanSuccess(span);
     res.status(200).json({ analysis: saved });
   } catch (error) {
-    console.error("Failed to analyze ATS score", error);
+    markSpanError(span, error as Error, "Failed to analyze ATS score");
+    logger.error({ error, resumeId: req.params.id }, "Failed to analyze ATS score");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const applyAtsSuggestion: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.applyAtsSuggestion", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -258,14 +267,20 @@ export const applyAtsSuggestion: RequestHandler = async (req, res) => {
     await createResumeVersion(updated, "Applied ATS rewrite suggestion");
     await recordTemplateUsage(String(updated.templateId), "edit");
 
+    logger.info({ userId, resumeId: req.params.id, suggestionId }, "ATS suggestion applied");
+    markSpanSuccess(span);
     res.status(200).json({ message: "Suggestion applied", resume: updated });
   } catch (error) {
-    console.error("Failed to apply ATS suggestion", error);
+    markSpanError(span, error as Error, "Failed to apply ATS suggestion");
+    logger.error({ error, resumeId: req.params.id }, "Failed to apply ATS suggestion");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const listResumeVersions: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.listResumeVersions", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -281,10 +296,15 @@ export const listResumeVersions: RequestHandler = async (req, res) => {
       .select("versionNo note createdAt updatedAt snapshot.title")
       .lean();
 
+    logger.info({ userId, resumeId: req.params.id, count: versions.length }, "Resume versions listed");
+    markSpanSuccess(span);
     res.status(200).json({ versions });
   } catch (error) {
-    console.error("Failed to list resume versions", error);
+    markSpanError(span, error as Error, "Failed to list resume versions");
+    logger.error({ error, resumeId: req.params.id }, "Failed to list resume versions");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
@@ -298,6 +318,7 @@ const getSectionCounts = (snapshot: any) => ({
 });
 
 export const compareResumeVersions: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.compareResumeVersions", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -341,13 +362,19 @@ export const compareResumeVersions: RequestHandler = async (req, res) => {
       right,
       diff,
     });
+    logger.info({ userId, resumeId: req.params.id, leftVersionNo, rightVersionNo }, "Resume versions compared");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to compare versions", error);
+    markSpanError(span, error as Error, "Failed to compare resume versions");
+    logger.error({ error, resumeId: req.params.id }, "Failed to compare resume versions");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const restoreResumeVersion: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.restoreResumeVersion", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -389,13 +416,19 @@ export const restoreResumeVersion: RequestHandler = async (req, res) => {
       message: "Resume restored",
       resume: restored,
     });
+    logger.info({ userId, resumeId: req.params.id, versionNo }, "Resume version restored");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to restore resume version", error);
+    markSpanError(span, error as Error, "Failed to restore resume version");
+    logger.error({ error, resumeId: req.params.id }, "Failed to restore resume version");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const createRoleTailoredVariant: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.createRoleTailoredVariant", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -447,13 +480,19 @@ export const createRoleTailoredVariant: RequestHandler = async (req, res) => {
       message: "Role-tailored variant created",
       resume: variant,
     });
+    logger.info({ userId, resumeId: req.params.id, variantId: variant._id.toString(), targetRole }, "Role-tailored variant created");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to create variant", error);
+    markSpanError(span, error as Error, "Failed to create role-tailored variant");
+    logger.error({ error, resumeId: req.params.id }, "Failed to create role-tailored variant");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const getExportPreset: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.getExportPreset", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -495,8 +534,13 @@ export const getExportPreset: RequestHandler = async (req, res) => {
         generatedAt: new Date().toISOString(),
       },
     });
+    logger.info({ userId, resumeId: req.params.id, preset: selectedPreset }, "Export preset resolved");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to resolve export preset", error);
+    markSpanError(span, error as Error, "Failed to resolve export preset");
+    logger.error({ error, resumeId: req.params.id }, "Failed to resolve export preset");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };

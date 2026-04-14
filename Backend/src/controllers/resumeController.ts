@@ -3,6 +3,8 @@ import Resume from "../models/Resume";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
 import { createResumeVersion } from "../services/resumeVersionService";
+import { logger } from "../observability";
+import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -25,20 +27,27 @@ const getUserId = (req: Request, res: Response) => {
 };
 
 const getAllResumes: RequestHandler = async (req, res) => {
+    const span = startControllerSpan("resume.getAllResumes", req);
     try {
         const userId = getUserId(req, res);
         if (!userId) return;
 
         const resumes = await Resume.find({ userId }).sort({ updatedAt: -1 });
 
+        logger.info({ userId, count: resumes.length }, "Fetched resumes");
+        markSpanSuccess(span);
         res.status(200).json({ resumes });
     } catch (error) {
-        console.error("Can't get all resumes", error);
+        markSpanError(span, error as Error, "Failed to fetch resumes");
+        logger.error({ error }, "Failed to fetch resumes");
         res.status(500).json({ message: "Server error" });
+    } finally {
+        finishControllerSpan(span);
     }
 };
 
 const getResumeById: RequestHandler = async (req, res) => {
+    const span = startControllerSpan("resume.getResumeById", req);
     try {
         const userId = getUserId(req, res);
         if (!userId) return;
@@ -46,17 +55,24 @@ const getResumeById: RequestHandler = async (req, res) => {
         const resume = await Resume.findOne({ _id: req.params.id, userId });
 
         if (!resume) {
+            logger.warn({ userId, resumeId: req.params.id }, "Resume not found");
             return res.status(404).json({ message: "Resume not found" });
         }
 
+        logger.info({ userId, resumeId: req.params.id }, "Fetched resume by id");
+        markSpanSuccess(span);
         res.status(200).json({ resume });
     } catch (error) {
-        console.error("Can't get resume by id", error);
+        markSpanError(span, error as Error, "Failed to fetch resume by id");
+        logger.error({ error, resumeId: req.params.id }, "Failed to fetch resume by id");
         res.status(500).json({ message: "Server error" });
+    } finally {
+        finishControllerSpan(span);
     }
 };
 
 const createResume: RequestHandler = async (req, res) => {
+    const span = startControllerSpan("resume.createResume", req);
     try {
         const userId = getUserId(req, res);
         if (!userId) return;
@@ -73,13 +89,19 @@ const createResume: RequestHandler = async (req, res) => {
             message: "Resume saved successfully",
             resume,
         });
+        logger.info({ userId, resumeId: resume._id.toString() }, "Resume created");
+        markSpanSuccess(span);
     } catch (error) {
-        console.error("Can't create resume", error);
+        markSpanError(span, error as Error, "Failed to create resume");
+        logger.error({ error }, "Failed to create resume");
         res.status(500).json({ message: "Server error" });
+    } finally {
+        finishControllerSpan(span);
     }
 };
 
 const updateResume: RequestHandler = async (req, res) => {
+    const span = startControllerSpan("resume.updateResume", req);
     try {
         const userId = getUserId(req, res);
         if (!userId) return;
@@ -91,6 +113,7 @@ const updateResume: RequestHandler = async (req, res) => {
         );
 
         if (!resume) {
+            logger.warn({ userId, resumeId: req.params.id }, "Resume not found for update");
             return res.status(404).json({ message: "Resume not found" });
         }
 
@@ -101,13 +124,19 @@ const updateResume: RequestHandler = async (req, res) => {
             message: "Resume updated successfully",
             resume,
         });
+        logger.info({ userId, resumeId: req.params.id }, "Resume updated");
+        markSpanSuccess(span);
     } catch (error) {
-        console.error("Can't update resume", error);
+        markSpanError(span, error as Error, "Failed to update resume");
+        logger.error({ error, resumeId: req.params.id }, "Failed to update resume");
         res.status(500).json({ message: "Server error" });
+    } finally {
+        finishControllerSpan(span);
     }
 };
 
 const deleteResume: RequestHandler = async (req, res) => {
+    const span = startControllerSpan("resume.deleteResume", req);
     try {
         const userId = getUserId(req, res);
         if (!userId) return;
@@ -115,13 +144,19 @@ const deleteResume: RequestHandler = async (req, res) => {
         const resume = await Resume.findOneAndDelete({ _id: req.params.id, userId });
 
         if (!resume) {
+            logger.warn({ userId, resumeId: req.params.id }, "Resume not found for delete");
             return res.status(404).json({ message: "Resume not found" });
         }
 
+        logger.info({ userId, resumeId: req.params.id }, "Resume deleted");
+        markSpanSuccess(span);
         res.status(200).json({ message: "Resume deleted successfully" });
     } catch (error) {
-        console.error("Can't delete resume", error);
+        markSpanError(span, error as Error, "Failed to delete resume");
+        logger.error({ error, resumeId: req.params.id }, "Failed to delete resume");
         res.status(500).json({ message: "Server error" });
+    } finally {
+        finishControllerSpan(span);
     }
 };
 

@@ -5,6 +5,8 @@ import Resume from "../models/Resume";
 import ResumeShare from "../models/ResumeShare";
 import ResumeShareEvent from "../models/ResumeShareEvent";
 import { env } from "../config/env";
+import { logger } from "../observability";
+import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -62,6 +64,7 @@ const validateShareAccess = async (share: any, providedPassword?: string) => {
 };
 
 export const upsertShareSettings: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("share.upsertShareSettings", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -118,13 +121,19 @@ export const upsertShareSettings: RequestHandler = async (req, res) => {
         url: `${frontendBase}/share/${share.slug}`,
       },
     });
+    logger.info({ userId, resumeId: req.params.id, slug: share.slug }, "Share settings upserted");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to upsert share settings", error);
+    markSpanError(span, error as Error, "Failed to upsert share settings");
+    logger.error({ error, resumeId: req.params.id }, "Failed to upsert share settings");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const getShareAnalytics: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("share.getShareAnalytics", req);
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -170,13 +179,19 @@ export const getShareAnalytics: RequestHandler = async (req, res) => {
         expiresAt: share.expiresAt,
       },
     });
+    logger.info({ userId, resumeId: req.params.id }, "Share analytics fetched");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to fetch share analytics", error);
+    markSpanError(span, error as Error, "Failed to fetch share analytics");
+    logger.error({ error, resumeId: req.params.id }, "Failed to fetch share analytics");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const getPublicShareResume: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("share.getPublicShareResume", req);
   try {
     const share = await ResumeShare.findOne({ slug: req.params.slug }).lean();
     const password = typeof req.query?.password === "string" ? req.query.password : undefined;
@@ -207,13 +222,19 @@ export const getPublicShareResume: RequestHandler = async (req, res) => {
       },
       resume: sanitizeResume(resume),
     });
+    logger.info({ slug: req.params.slug }, "Public shared resume fetched");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to fetch shared resume", error);
+    markSpanError(span, error as Error, "Failed to fetch shared resume");
+    logger.error({ error, slug: req.params.slug }, "Failed to fetch shared resume");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 export const downloadPublicShareResume: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("share.downloadPublicShareResume", req);
   try {
     const share = await ResumeShare.findOne({ slug: req.params.slug }).lean();
     const password = typeof req.body?.password === "string" ? req.body.password : undefined;
@@ -245,8 +266,13 @@ export const downloadPublicShareResume: RequestHandler = async (req, res) => {
       message: "Download tracked",
       resume: sanitizeResume(resume),
     });
+    logger.info({ slug: req.params.slug }, "Public shared resume download tracked");
+    markSpanSuccess(span);
   } catch (error) {
-    console.error("Failed to handle shared resume download", error);
+    markSpanError(span, error as Error, "Failed to handle shared resume download");
+    logger.error({ error, slug: req.params.slug }, "Failed to handle shared resume download");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };

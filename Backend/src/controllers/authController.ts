@@ -10,6 +10,8 @@ import crypto from "crypto";
 import { UserRole } from "../enums/userRole";
 import { clearAuthCookies, setAuthCookies } from "../utils/authCookies";
 import { env } from "../config/env";
+import { logger } from "../observability";
+import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
@@ -18,19 +20,28 @@ const MAX_RESET_RESEND_ATTEMPTS = 3;
 const frontendBaseUrl = env.FRONTEND_URL;
 
 const logout = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.logout", req);
   try {
     clearAuthCookies(req, res);
+    logger.info({ route: req.originalUrl }, "User logged out");
+    markSpanSuccess(span);
     return res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
+    markSpanError(span, error as Error, "Logout failed");
+    logger.error({ error }, "Logout failed");
     return res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 const registerUser = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.registerUser", req);
   try {
     const { name, email, password } = req.body;
 
     if (!name || !password || !email) {
+      logger.warn({ route: req.originalUrl }, "Register validation failed");
       return res.status(400).json({
         message: "Enter all mandatory fields",
       });
@@ -39,6 +50,7 @@ const registerUser = async (req: Request, res: Response) => {
     const check = await User.findOne({ email });
 
     if (check) {
+      logger.warn({ email }, "Register rejected because user exists");
       return res.status(400).json({
         message: "User already exists",
       });
@@ -72,19 +84,27 @@ const registerUser = async (req: Request, res: Response) => {
       }
     });
     // response is send to frontend
+    logger.info({ userId: user._id.toString(), email: user.email }, "User registered");
+    markSpanSuccess(span);
 
   } catch (error) {
+    markSpanError(span, error as Error, "User registration failed");
+    logger.error({ error }, "User registration failed");
     res.status(500).json({
       message: "server error",
     });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 const login = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.login", req);
   try {
     const { email, password } = req.body;
 
     // 1. Validate input
     if (!email || !password) {
+      logger.warn({ route: req.originalUrl }, "Login validation failed");
       return res.status(400).json({
         message: "Email and password are required",
       });
@@ -94,12 +114,14 @@ const login = async (req: Request, res: Response) => {
     const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
+      logger.warn({ email }, "Login failed: unknown user");
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
     if(!user.password) {
+      logger.warn({ email }, "Login failed: password not set for account");
       return res.status(400).json({
         message: "This account does not have a password. Please login using Google.",
       });
@@ -110,6 +132,7 @@ const login = async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.password!);
 
     if (!isMatch) {
+      logger.warn({ email }, "Login failed: invalid password");
       return res.status(401).json({
         message: "Invalid email or password",
       });
@@ -139,22 +162,29 @@ const login = async (req: Request, res: Response) => {
         role: user.role,
       },
     });
+    logger.info({ userId: user._id.toString(), email: user.email }, "User login successful");
+    markSpanSuccess(span);
 
   } catch (error) {
-    console.error(error); // 👈 always log errors
+    markSpanError(span, error as Error, "Login failed");
+    logger.error({ error }, "Login failed");
     res.status(500).json({
       message: "Server error",
     });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 const forgotPassword = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.forgotPassword", req);
 
   try {
     const rawEmail = String(req.body?.email ?? "").trim().toLowerCase();
     const email = rawEmail;
 
     if (!email) {
+      logger.warn({ route: req.originalUrl }, "Forgot password missing email");
       return res.status(400).json({
         message: "Please provide an email",
       });
@@ -163,6 +193,7 @@ const forgotPassword = async (req: Request, res: Response) => {
     const user = await User.findOne({ email });
 
     if (!user) {
+      logger.warn({ email }, "Forgot password user not found");
       return res.status(404).json({
         message: "User not found",
       });
@@ -174,6 +205,7 @@ const forgotPassword = async (req: Request, res: Response) => {
       !user.authProvider.includes("local");
 
     if (isGoogleOnlyUser && !user.password) {
+      logger.warn({ email }, "Forgot password blocked for google-only account");
       return res.status(400).json({
         message: "This account uses Google login. Please continue with Google.",
       });
@@ -235,24 +267,33 @@ const forgotPassword = async (req: Request, res: Response) => {
     res.status(200).json({
       message: "Password reset link sent to email",
     });
+    logger.info({ userId: user._id.toString(), email: user.email }, "Password reset link sent");
+    markSpanSuccess(span);
   } catch (error) {
+    markSpanError(span, error as Error, "Forgot password failed");
+    logger.error({ error }, "Forgot password failed");
     return res.status(500).json({
       message: "Server error",
     });
+  } finally {
+    finishControllerSpan(span);
   }
 }
 
 const resetPassword = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.resetPassword", req);
   try {
     const { token, password, confirmPassword } = req.body;
 
     if (!token || !password || !confirmPassword) {
+      logger.warn({ route: req.originalUrl }, "Reset password validation failed");
       return res.status(400).json({
         message: "Please provide all required fields",
       });
     }
 
     if (password !== confirmPassword) {
+      logger.warn({ route: req.originalUrl }, "Reset password mismatch");
       return res.status(400).json({
         message: "Passwords do not match",
       });
@@ -267,6 +308,7 @@ const resetPassword = async (req: Request, res: Response) => {
     });
 
     if (!record) {
+      logger.warn({ route: req.originalUrl }, "Reset password token invalid or expired");
       return res.status(400).json({
         message: "Invalid or expired token",
       });
@@ -275,6 +317,7 @@ const resetPassword = async (req: Request, res: Response) => {
     const user = await User.findById(record.userId);
 
     if (!user) {
+      logger.warn({ route: req.originalUrl }, "Reset password user not found");
       return res.status(404).json({
         message: "User not found",
       });
@@ -291,19 +334,27 @@ const resetPassword = async (req: Request, res: Response) => {
     res.status(200).json({
       message: "Password reset successful",
     });
+    logger.info({ userId: user._id.toString() }, "Password reset successful");
+    markSpanSuccess(span);
   } catch (error) {
+    markSpanError(span, error as Error, "Reset password failed");
+    logger.error({ error }, "Reset password failed");
     return res.status(500).json({
       message: "Server error",
     });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 const resendResetLink = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.resendResetLink", req);
   try {
     const rawEmail = String(req.body?.email ?? "").trim().toLowerCase();
     const email = rawEmail;
 
     if (!email) {
+      logger.warn({ route: req.originalUrl }, "Resend reset link missing email");
       return res.status(400).json({
         message: "Please provide an email",
       });
@@ -312,6 +363,7 @@ const resendResetLink = async (req: Request, res: Response) => {
     const user = await User.findOne({ email });
 
     if (!user) {
+      logger.warn({ email }, "Resend reset link user not found");
       return res.status(404).json({
         message: "User not found",
       });
@@ -323,6 +375,7 @@ const resendResetLink = async (req: Request, res: Response) => {
       !user.authProvider.includes("local");
 
     if (isGoogleOnlyUser && !user.password) {
+      logger.warn({ email }, "Resend reset blocked for google-only account");
       return res.status(400).json({
         message: "This account uses Google login. Please continue with Google.",
       });
@@ -379,20 +432,28 @@ const resendResetLink = async (req: Request, res: Response) => {
     res.status(200).json({
       message: "Password reset link resent to email",
     });
+    logger.info({ userId: user._id.toString(), email: user.email }, "Password reset link resent");
+    markSpanSuccess(span);
   } catch (error) {
+    markSpanError(span, error as Error, "Resend reset link failed");
+    logger.error({ error }, "Resend reset link failed");
     return res.status(500).json({
       message: "Server error",
     });
+  } finally {
+    finishControllerSpan(span);
   }
 }
 
 const googleLogin = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.googleLogin", req);
   try {
     const { token } = req.body;
 
     const payload = await verifyGoogleToken(token);
 
     if (!payload || !payload.email) {
+      logger.warn({ route: req.originalUrl }, "Google login token invalid");
       return res.status(400).json({ message: "Invalid Google token" });
     }
 
@@ -425,30 +486,40 @@ const googleLogin = async (req: Request, res: Response) => {
 
     setAuthCookies(req, res, accessToken, refreshToken);
 
+    logger.info({ userId: user._id.toString(), email: user.email }, "Google login successful");
+    markSpanSuccess(span);
     return res.json({
       user,
       message: "Google login successful",
     });
   } catch (error) {
-    console.error(error);
+    markSpanError(span, error as Error, "Google login failed");
+    logger.error({ error }, "Google login failed");
     return res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
 
 const getCurrentUser = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.getCurrentUser", req);
   try {
     const userId = req.user?.id;
 
     if (!userId) {
+      logger.warn({ route: req.originalUrl }, "Get current user unauthorized");
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     const user = await User.findById(userId).select("name email avatar role authProvider");
 
     if (!user) {
+      logger.warn({ userId }, "Get current user not found");
       return res.status(404).json({ message: "User not found" });
     }
 
+    logger.info({ userId }, "Current user fetched");
+    markSpanSuccess(span);
     return res.status(200).json({
       user: {
         id: user._id,
@@ -459,8 +530,11 @@ const getCurrentUser = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Can't get current user", error);
+    markSpanError(span, error as Error, "Get current user failed");
+    logger.error({ error }, "Get current user failed");
     return res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
   }
 };
   
