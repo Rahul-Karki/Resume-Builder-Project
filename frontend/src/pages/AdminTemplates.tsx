@@ -230,8 +230,8 @@ export function AdminTemplates() {
                   <InfoRow label="Heading Font" value={previewTarget.cssVars.headingFont.split(",")[0]} />
                 </div>
               </div>
-              <div style={{ overflow: "auto", background: "#050505", display: "flex", justifyContent: "center", padding: 24 }}>
-                <div style={{ width: 794, boxShadow: "0 32px 80px rgba(0,0,0,0.8)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+              <div style={{ overflow: "auto", background: "#050505", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 24 }}>
+                <div style={{ width: 794, height: 1123, minHeight: 1123, boxShadow: "0 32px 80px rgba(0,0,0,0.8)", borderRadius: 8, overflow: "hidden", background: "#fff", flexShrink: 0 }}>
                   <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
                 </div>
               </div>
