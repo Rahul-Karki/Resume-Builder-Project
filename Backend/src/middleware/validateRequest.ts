@@ -22,8 +22,6 @@ export const validateRequest = (schemas: ValidationSchemas) => {
       const parsedParams = schemas.params.safeParse(req.params ?? {});
       if (!parsedParams.success) {
         issues.push(...parsedParams.error.issues);
-      } else {
-        req.params = parsedParams.data as Request["params"];
       }
     }
 
@@ -31,8 +29,6 @@ export const validateRequest = (schemas: ValidationSchemas) => {
       const parsedQuery = schemas.query.safeParse(req.query ?? {});
       if (!parsedQuery.success) {
         issues.push(...parsedQuery.error.issues);
-      } else {
-        req.query = parsedQuery.data as Request["query"];
       }
     }
 
