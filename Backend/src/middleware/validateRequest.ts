@@ -18,20 +18,6 @@ export const validateRequest = (schemas: ValidationSchemas) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const issues: ZodIssue[] = [];
 
-    if (schemas.params) {
-      const parsedParams = schemas.params.safeParse(req.params ?? {});
-      if (!parsedParams.success) {
-        issues.push(...parsedParams.error.issues);
-      }
-    }
-
-    if (schemas.query) {
-      const parsedQuery = schemas.query.safeParse(req.query ?? {});
-      if (!parsedQuery.success) {
-        issues.push(...parsedQuery.error.issues);
-      }
-    }
-
     if (schemas.body) {
       const parsedBody = schemas.body.safeParse(req.body ?? {});
       if (!parsedBody.success) {

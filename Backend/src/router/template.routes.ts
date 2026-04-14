@@ -5,6 +5,6 @@ import { publicTemplateListQuerySchema } from "../validation/schemas";
 
 const router = Router();
 
-router.get("/", validateRequest({ query: publicTemplateListQuerySchema }), listPublicTemplates);
+router.get("/", listPublicTemplates);
 
 export default router;

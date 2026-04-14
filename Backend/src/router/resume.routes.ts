@@ -19,10 +19,10 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get("/", validateRequest({ query: emptyObjectSchema }), getAllResumes);
-router.get("/:id", validateRequest({ params: objectIdParamSchema, query: emptyObjectSchema }), getResumeById);
+router.get("/", getAllResumes);
+router.get("/:id", getResumeById);
 router.post("/", validateRequest({ body: createResumeSchema }), createResume);
-router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }), updateResume);
-router.delete("/:id", validateRequest({ params: objectIdParamSchema, query: emptyObjectSchema }), deleteResume);
+router.put("/:id", validateRequest({ body: updateResumeSchema }), updateResume);
+router.delete("/:id", deleteResume);
 
 export default router;

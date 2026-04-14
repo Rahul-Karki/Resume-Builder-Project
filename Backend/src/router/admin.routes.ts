@@ -31,18 +31,18 @@ const router = Router();
 // ─── All /admin routes require adminGuard ─────────────────────────────────────
 
 // Dashboard analytics
-router.get("/analytics/dashboard", validateRequest({ query: emptyObjectSchema }), adminGuard, getDashboardStats);
-router.get("/analytics/templates", validateRequest({ query: analyticsQuerySchema }), adminGuard, getAnalytics);
+router.get("/analytics/dashboard", adminGuard, getDashboardStats);
+router.get("/analytics/templates", adminGuard, getAnalytics);
 
 // Template CRUD
-router.get("/templates", validateRequest({ query: templateListQuerySchema }), adminGuard, listTemplates);
-router.get("/templates/:id", validateRequest({ params: objectIdParamSchema, query: emptyObjectSchema }), adminGuard, getTemplate);
+router.get("/templates", adminGuard, listTemplates);
+router.get("/templates/:id", adminGuard, getTemplate);
 router.post("/templates", validateRequest({ body: createTemplateSchema }), adminGuard, createTemplate);
 router.put("/templates/reorder", validateRequest({ body: reorderTemplatesSchema }), adminGuard, reorderTemplates);   // before :id route
-router.put("/templates/:id", validateRequest({ params: objectIdParamSchema, body: updateTemplateSchema }), adminGuard, updateTemplate);
-router.patch("/templates/:id/status", validateRequest({ params: objectIdParamSchema, body: setTemplateStatusSchema }), adminGuard, setTemplateStatus);
-router.patch("/templates/:id/premium", validateRequest({ params: objectIdParamSchema, body: emptyObjectSchema }), adminGuard, togglePremium);
-router.delete("/templates/:id", validateRequest({ params: objectIdParamSchema, query: emptyObjectSchema }), adminGuard, deleteTemplate);
+router.put("/templates/:id", validateRequest({ body: updateTemplateSchema }), adminGuard, updateTemplate);
+router.patch("/templates/:id/status", validateRequest({ body: setTemplateStatusSchema }), adminGuard, setTemplateStatus);
+router.patch("/templates/:id/premium", adminGuard, togglePremium);
+router.delete("/templates/:id", adminGuard, deleteTemplate);
 
 // ─── Public route: record template usage (called from resume builder) ─────────
 // Uses authenticate (not adminGuard) — any logged-in user can record usage

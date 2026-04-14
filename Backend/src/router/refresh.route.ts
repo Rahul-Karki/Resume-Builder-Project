@@ -5,6 +5,6 @@ import { emptyObjectSchema } from "../validation/schemas";
 
 const router = express.Router();
 
-router.post("/refresh", validateRequest({ body: emptyObjectSchema }), refreshAccessToken);
+router.post("/refresh", refreshAccessToken);
 
 export default router;
