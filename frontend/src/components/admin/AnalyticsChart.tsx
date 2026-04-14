@@ -11,9 +11,11 @@ interface BarChartProps {
 // ─── Mini Sparkline ────────────────────────────────────────────────────────────
 export function Sparkline({ data, color, width = 80, height = 28 }: { data: number[]; color: string; width?: number; height?: number }) {
   if (!data.length) return null;
-  const max = Math.max(...data, 1);
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * width;
+  const safeData = data.map((value) => (Number.isFinite(value) ? value : 0));
+  const max = Math.max(...safeData, 1);
+  const pointCount = safeData.length;
+  const pts = safeData.map((v, i) => {
+    const x = pointCount === 1 ? width / 2 : (i / (pointCount - 1)) * width;
     const y = height - (v / max) * height;
     return `${x},${y}`;
   }).join(" ");
@@ -97,7 +99,7 @@ export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
 export function AnalyticsRow({ analytics, rank }: { analytics: TemplateAnalytics; rank: number }) {
   const trendColor = analytics.trend === "up" ? "#4ADE80" : analytics.trend === "down" ? "#F87171" : "#555";
   const trendIcon  = analytics.trend === "up" ? "↑" : analytics.trend === "down" ? "↓" : "→";
-  const counts     = analytics.daily.slice(-14).map(d => d.count);
+  const counts     = analytics.daily.slice(-14).map((d) => (Number.isFinite(d.count) ? d.count : 0));
 
   return (
     <div style={{
