@@ -29,6 +29,24 @@ export const api = axios.create({
   timeout: 15000,
 });
 
+export async function bootstrapAuthSession() {
+  try {
+    const refreshResponse = await api.post("/refresh");
+    const newAccessToken = refreshResponse?.data?.accessToken as string | undefined;
+
+    if (newAccessToken) {
+      localStorage.setItem("accessToken", newAccessToken);
+      return true;
+    }
+
+    localStorage.removeItem("accessToken");
+    return false;
+  } catch {
+    localStorage.removeItem("accessToken");
+    return false;
+  }
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
 
