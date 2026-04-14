@@ -11,6 +11,7 @@ const CSRF_EXEMPT_PATHS = new Set([
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
   "/api/auth/resend",
+  "/api/auth/logout",
 ]);
 
 const secureCompare = (a: string, b: string) => {

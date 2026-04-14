@@ -23,7 +23,7 @@ router.post("/resend", validateRequest({ body: authEmailSchema }), resendResetLi
 
 
 router.post("/google-login", validateRequest({ body: googleLoginSchema }), googleLogin);
-router.post("/logout", validateRequest({ body: emptyObjectSchema }), logout);
+router.post("/logout", validateRequest({ body: emptyObjectSchema }), authMiddleware, logout);
 router.get("/me", validateRequest({ query: emptyObjectSchema }), authMiddleware, getCurrentUser);
 
 export default router;
