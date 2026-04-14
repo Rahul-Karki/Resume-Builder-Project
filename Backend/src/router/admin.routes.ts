@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { adminGuard, authenticate } from "../middleware/adminAuthMiddleware";
+import { env } from "../config/env";
 import {
   listTemplates,
   getTemplate,
@@ -25,29 +26,60 @@ import {
   updateTemplateSchema,
   usageSchema,
 } from "../validation/schemas";
+import { createRedisCacheMiddleware } from "../middleware/redisCache";
+import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
 
 const router = Router();
+
+const dashboardCacheTtlSeconds = Math.min(env.REDIS_CACHE_TTL_SECONDS, 120);
+const analyticsCacheTtlSeconds = Math.min(env.REDIS_CACHE_TTL_SECONDS, 300);
+const templateListCacheTtlSeconds = Math.min(env.REDIS_CACHE_TTL_SECONDS, 180);
+
+const adminCache = (scope: string) => createRedisCacheMiddleware({
+  scope,
+  ttlSeconds: scope === "admin-dashboard"
+    ? dashboardCacheTtlSeconds
+    : scope === "admin-analytics"
+      ? analyticsCacheTtlSeconds
+      : templateListCacheTtlSeconds,
+});
+
+const adminWriteLimiter = createRedisRateLimitMiddleware({
+  scope: "admin-template-usage",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(20, Math.floor(env.REDIS_RATE_LIMIT_MAX / 2)),
+  keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+  message: "Too many template usage requests. Please try again later.",
+});
+
+const adminTemplateMutationLimiter = createRedisRateLimitMiddleware({
+  scope: "admin-template-mutations",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(10, Math.floor(env.REDIS_RATE_LIMIT_MAX / 2)),
+  keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+  message: "Too many template changes. Please try again later.",
+});
 
 // ─── All /admin routes require adminGuard ─────────────────────────────────────
 
 // Dashboard analytics
-router.get("/analytics/dashboard", adminGuard, getDashboardStats);
-router.get("/analytics/templates", adminGuard, getAnalytics);
+router.get("/analytics/dashboard", adminGuard, adminCache("admin-dashboard"), getDashboardStats);
+router.get("/analytics/templates", adminGuard, adminCache("admin-analytics"), getAnalytics);
 
 // Template CRUD
-router.get("/templates", adminGuard, listTemplates);
-router.get("/templates/:id", adminGuard, getTemplate);
-router.post("/templates", validateRequest({ body: createTemplateSchema }), adminGuard, createTemplate);
-router.put("/templates/reorder", validateRequest({ body: reorderTemplatesSchema }), adminGuard, reorderTemplates);   // before :id route
-router.put("/templates/:id", validateRequest({ body: updateTemplateSchema }), adminGuard, updateTemplate);
-router.patch("/templates/:id/status", validateRequest({ body: setTemplateStatusSchema }), adminGuard, setTemplateStatus);
-router.patch("/templates/:id/premium", adminGuard, togglePremium);
-router.delete("/templates/:id", adminGuard, deleteTemplate);
+router.get("/templates", adminGuard, validateRequest({ query: templateListQuerySchema }), adminCache("admin-templates"), listTemplates);
+router.get("/templates/:id", adminGuard, adminCache("admin-templates-item"), getTemplate);
+router.post("/templates", validateRequest({ body: createTemplateSchema }), adminGuard, adminTemplateMutationLimiter, createTemplate);
+router.put("/templates/reorder", validateRequest({ body: reorderTemplatesSchema }), adminGuard, adminTemplateMutationLimiter, reorderTemplates);   // before :id route
+router.put("/templates/:id", validateRequest({ body: updateTemplateSchema }), adminGuard, adminTemplateMutationLimiter, updateTemplate);
+router.patch("/templates/:id/status", validateRequest({ body: setTemplateStatusSchema }), adminGuard, adminTemplateMutationLimiter, setTemplateStatus);
+router.patch("/templates/:id/premium", adminGuard, adminTemplateMutationLimiter, togglePremium);
+router.delete("/templates/:id", adminGuard, adminTemplateMutationLimiter, deleteTemplate);
 
 // ─── Public route: record template usage (called from resume builder) ─────────
 // Uses authenticate (not adminGuard) — any logged-in user can record usage
 
-router.post("/usage", validateRequest({ body: usageSchema }), authenticate, recordUsage);
+router.post("/usage", validateRequest({ body: usageSchema }), authenticate, adminWriteLimiter, recordUsage);
 
 export default router;
 

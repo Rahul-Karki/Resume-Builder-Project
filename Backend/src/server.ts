@@ -6,6 +6,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { csrfProtection } from "./middleware/csrfProtection";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
+import { closeRedisClient, getRedisClient } from "./utils/redis";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -68,14 +69,39 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/templates", templateRoutes);
 
 const PORT = env.PORT;
-app.listen(PORT, () => {
-  logger.info(
-    {
-      port: PORT,
-      metricsEnabled: env.ENABLE_METRICS,
-      metricsPath: env.METRICS_PATH,
-    },
-    "Server started",
-  );
-});
+
+const startServer = async () => {
+  await connectDB();
+  void getRedisClient();
+
+  const server = app.listen(PORT, () => {
+    logger.info(
+      {
+        port: PORT,
+        metricsEnabled: env.ENABLE_METRICS,
+        metricsPath: env.METRICS_PATH,
+        redisConfigured: Boolean(env.REDIS_URL),
+      },
+      "Server started",
+    );
+  });
+
+  const shutdown = async (signal: string) => {
+    logger.info({ signal }, "Shutting down server");
+    server.close(async () => {
+      await closeRedisClient();
+      process.exit(0);
+    });
+  };
+
+  process.once("SIGINT", () => {
+    void shutdown("SIGINT");
+  });
+
+  process.once("SIGTERM", () => {
+    void shutdown("SIGTERM");
+  });
+};
+
+void startServer();
 

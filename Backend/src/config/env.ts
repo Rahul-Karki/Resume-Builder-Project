@@ -31,6 +31,11 @@ const baseEnvSchema = z.object({
   SERVICE_VERSION: z.string().min(1).default("1.0.0"),
   ENABLE_METRICS: booleanFromEnv.default(true),
   METRICS_PATH: z.string().default("/metrics"),
+  REDIS_URL: z.string().optional().default(""),
+  REDIS_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(5000),
+  REDIS_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).default(300),
+  REDIS_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(900000),
+  REDIS_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(100),
   GRAFANA_OTLP_ENDPOINT: z.string().url().optional(),
   OTLP_INSTANCE_ID: z.string().optional().default(""),
   OPTL_INSTANCE_ID: z.string().optional().default(""),
@@ -81,6 +86,18 @@ const envSchema = baseEnvSchema
       });
     }
 
+    if (value.REDIS_URL) {
+      try {
+        new URL(value.REDIS_URL);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["REDIS_URL"],
+          message: "REDIS_URL must be a valid Redis connection URL",
+        });
+      }
+    }
+
   })
   .transform((value) => ({
     ...value,
@@ -96,6 +113,7 @@ const envSchema = baseEnvSchema
     OTLP_INSTANCE_ID: (value.OTLP_INSTANCE_ID || value.OPTL_INSTANCE_ID || "").trim(),
     OPTL_INSTANCE_ID: value.OPTL_INSTANCE_ID.trim(),
     GRAFANA_API_TOKEN: value.GRAFANA_API_TOKEN.trim(),
+    REDIS_URL: value.REDIS_URL.trim(),
   }));
 
 const parsed = envSchema.safeParse(process.env);

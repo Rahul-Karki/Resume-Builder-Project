@@ -4,10 +4,28 @@ import TemplateUsage from "../models/TemplateUsage";
 import Template from "../models/Template";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
+import { invalidateRedisCache, redisCacheScopes } from "../middleware/redisCache";
 // ─── Helper: consistent response shape ────────────────────────────────────────
 
 const ok   = (res: Response, data: unknown, status = 200) => res.status(status).json({ ok: true,  data });
 const fail = (res: Response, msg: string,   status = 400) => res.status(status).json({ ok: false, error: msg });
+
+const invalidateTemplateCaches = async () => {
+  await invalidateRedisCache([
+    redisCacheScopes.publicTemplates,
+    redisCacheScopes.adminTemplates,
+    redisCacheScopes.adminDashboard,
+    redisCacheScopes.adminAnalytics,
+    "admin-templates-item",
+  ]);
+};
+
+const invalidateTemplateAnalyticsCaches = async () => {
+  await invalidateRedisCache([
+    redisCacheScopes.adminDashboard,
+    redisCacheScopes.adminAnalytics,
+  ]);
+};
 
 // ─── GET /admin/templates ─────────────────────────────────────────────────────
 // Query params: ?status=published&category=technical
@@ -93,6 +111,7 @@ export async function createTemplate(req: Request, res: Response) {
     }
 
     const template = await TemplateService.create(dto, req.user!.id);
+    await invalidateTemplateCaches();
     logger.info({ templateId: String(template._id), userId: req.user?.id }, "Template created");
     markSpanSuccess(span);
     return ok(res, template, 201);
@@ -114,6 +133,7 @@ export async function updateTemplate(req: Request, res: Response) {
     const dto: UpdateTemplateDto = req.body;
     const updated = await TemplateService.update(String(req.params.id), dto, req.user!.id);
     if (updated) {
+      await invalidateTemplateCaches();
       logger.info({ templateId: String(req.params.id), userId: req.user?.id }, "Template updated");
       markSpanSuccess(span);
     }
@@ -139,6 +159,7 @@ export async function setTemplateStatus(req: Request, res: Response) {
     }
     const updated = await TemplateService.setStatus(String(req.params.id), status, req.user!.id);
     if (updated) {
+      await invalidateTemplateCaches();
       logger.info({ templateId: String(req.params.id), status, userId: req.user?.id }, "Template status updated");
       markSpanSuccess(span);
     }
@@ -160,6 +181,7 @@ export async function togglePremium(req: Request, res: Response) {
   try {
     const updated = await TemplateService.togglePremium(String(req.params.id), req.user!.id);
     if (updated) {
+      await invalidateTemplateCaches();
       logger.info({ templateId: String(req.params.id), userId: req.user?.id }, "Template premium toggled");
       markSpanSuccess(span);
     }
@@ -181,6 +203,7 @@ export async function deleteTemplate(req: Request, res: Response) {
   try {
     const deleted = await TemplateService.delete(String(req.params.id));
     if (deleted) {
+      await invalidateTemplateCaches();
       logger.info({ templateId: String(req.params.id), userId: req.user?.id }, "Template deleted");
       markSpanSuccess(span);
     }
@@ -203,6 +226,7 @@ export async function reorderTemplates(req: Request, res: Response) {
     const { orderedIds } = req.body;
     if (!Array.isArray(orderedIds)) return fail(res, "orderedIds must be an array.", 422);
     await TemplateService.reorder(orderedIds, req.user!.id);
+    await invalidateTemplateCaches();
     logger.info({ userId: req.user?.id, count: orderedIds.length }, "Templates reordered");
     markSpanSuccess(span);
     return ok(res, { reordered: true });
@@ -269,6 +293,7 @@ export async function recordUsage(req: Request, res: Response) {
     }
 
     await (TemplateUsage as any).recordUse(resolvedTemplateId, layoutId, type ?? "create");
+    await invalidateTemplateAnalyticsCaches();
     logger.info({ templateId: resolvedTemplateId, layoutId, type: type ?? "create" }, "Template usage recorded");
     markSpanSuccess(span);
     return ok(res, { recorded: true });
