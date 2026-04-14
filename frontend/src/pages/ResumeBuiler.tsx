@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
 import { EditorPanel } from "@/components/builder/editorPanel";
@@ -164,6 +165,7 @@ function downloadResume(resume: ResumeDocument) {
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ResumeBuilder() {
   const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
+  const location = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const isEditingExistingResume = Boolean(searchParams.get("resume"));
   const canDownload = isEditingExistingResume
@@ -175,9 +177,10 @@ export default function ResumeBuilder() {
     const params = new URLSearchParams(window.location.search);
     const resumeId = params.get("resume");
     const templateId = params.get("template") ?? "classic";
+    const preloadedResume = (location.state as { preloadedResume?: ResumeDocument } | null)?.preloadedResume;
 
     if (resumeId) {
-      void loadResume(resumeId);
+      void loadResume(resumeId, preloadedResume);
       return;
     }
 

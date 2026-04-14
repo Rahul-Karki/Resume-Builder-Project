@@ -89,7 +89,7 @@ interface ResumeBuilderStore {
 
   // ── Persistence ────────────────────────────────────────────────────────────
   saveResume: () => Promise<void>;
-  loadResume: (id: string) => Promise<void>;
+  loadResume: (id: string, preloadedResume?: ResumeDocument) => Promise<void>;
   initFromTemplate: (templateId: string) => Promise<void>;
   markDirty: () => void;
 }
@@ -543,20 +543,72 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
     },
 
     // ─── Load ────────────────────────────────────────────────────────────────
-    loadResume: async (id) => {
+    loadResume: async (id, preloadedResume) => {
+      if (preloadedResume) {
+        set(s => ({
+          resume: {
+            ...initialResume,
+            ...preloadedResume,
+            personalInfo: {
+              ...defaultPersonalInfo,
+              ...(preloadedResume.personalInfo ?? {}),
+            },
+            sections: {
+              ...defaultResumeSections,
+              ...(preloadedResume.sections ?? {}),
+            },
+            style: {
+              ...defaultStyle,
+              ...(preloadedResume.style ?? {}),
+            },
+            sectionOrder: Array.isArray(preloadedResume.sectionOrder)
+              ? [...preloadedResume.sectionOrder]
+              : [...defaultSectionOrder],
+            sectionVisibility: {
+              ...defaultSectionVisibility,
+              ...(preloadedResume.sectionVisibility ?? {}),
+            },
+            id: preloadedResume._id ?? preloadedResume.id ?? id,
+          },
+          ui: { ...s.ui, isSaved: true, isDirty: false, saveError: null },
+        }));
+      }
+
       try {
         const response = await api.get(`/resumes/${id}`);
         const loadedResume = response.data?.resume ?? response.data;
 
         set(s => ({
           resume: {
+            ...initialResume,
             ...loadedResume,
-            id: loadedResume._id ?? loadedResume.id ?? id,
+            personalInfo: {
+              ...defaultPersonalInfo,
+              ...(loadedResume?.personalInfo ?? {}),
+            },
+            sections: {
+              ...defaultResumeSections,
+              ...(loadedResume?.sections ?? {}),
+            },
+            style: {
+              ...defaultStyle,
+              ...(loadedResume?.style ?? {}),
+            },
+            sectionOrder: Array.isArray(loadedResume?.sectionOrder)
+              ? [...loadedResume.sectionOrder]
+              : [...defaultSectionOrder],
+            sectionVisibility: {
+              ...defaultSectionVisibility,
+              ...(loadedResume?.sectionVisibility ?? {}),
+            },
+            id: loadedResume?._id ?? loadedResume?.id ?? id,
           },
           ui: { ...s.ui, isSaved: true, isDirty: false, saveError: null },
         }));
       } catch (error) {
-        set(s => ({ ui: { ...s.ui, saveError: "Failed to load resume." } }));
+        if (!preloadedResume) {
+          set(s => ({ ui: { ...s.ui, saveError: "Failed to load resume." } }));
+        }
       }
     },
   }))

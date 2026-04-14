@@ -251,7 +251,12 @@ export default function Compiled() {
                     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
                       {displayed.map((resume,i)=>(
                         <Card key={resume.id} resume={resume} delay={i*55}
-                          onEdit={id=>navigate(`/builder?resume=${encodeURIComponent(id)}`)}
+                          onEdit={id=>{
+                            const selected = rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id);
+                            navigate(`/builder?resume=${encodeURIComponent(id)}`, {
+                              state: selected ? { preloadedResume: selected } : undefined,
+                            });
+                          }}
                           onPreview={id=>setPrevResume(rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id) ?? null)}
                           onDuplicate={async id=>{
                             const source = rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id);
@@ -314,7 +319,7 @@ export default function Compiled() {
             setDelResume(null);
           }
         }} onCancel={()=>setDelResume(null)}/>}
-        {prevResume&&<PreviewModal resume={prevResume} onClose={()=>setPrevResume(null)} onEdit={id=>navigate(`/builder?resume=${encodeURIComponent(id)}`)}/>}
+        {prevResume&&<PreviewModal resume={prevResume} onClose={()=>setPrevResume(null)} onEdit={id=>navigate(`/builder?resume=${encodeURIComponent(id)}`, { state: { preloadedResume: prevResume } })}/>}
         {templateOverlayOpen&&(
           <div
             onClick={(event)=>{ if (event.target === event.currentTarget) setTemplateOverlayOpen(false); }}
