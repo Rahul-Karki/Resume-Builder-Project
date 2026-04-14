@@ -42,6 +42,7 @@ const setCsrfCookie = (req: Request, res: Response) => {
     ...getCsrfCookieOptions(req),
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+  return csrfToken;
 };
 
 const setAccessTokenCookie = (req: Request, res: Response, accessToken: string) => {
@@ -59,7 +60,7 @@ const setAuthCookies = (req: Request, res: Response, accessToken: string, refres
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  setCsrfCookie(req, res);
+  return setCsrfCookie(req, res);
 };
 
 const clearAuthCookies = (req: Request, res: Response) => {

@@ -24,11 +24,18 @@ const isExcludedPath = (url?: string) => {
 };
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const CSRF_STORAGE_KEY = "csrfToken";
 
-const getCookie = (name: string) => {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : "";
+const getStoredCsrfToken = () => localStorage.getItem(CSRF_STORAGE_KEY) ?? "";
+
+const setStoredCsrfToken = (token?: unknown) => {
+  if (typeof token === "string" && token.trim().length > 0) {
+    localStorage.setItem(CSRF_STORAGE_KEY, token);
+  }
+};
+
+const clearStoredCsrfToken = () => {
+  localStorage.removeItem(CSRF_STORAGE_KEY);
 };
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
@@ -119,10 +126,12 @@ export const trackSharedResumeDownload = async (slug: string, password?: string)
 
 export async function bootstrapAuthSession() {
   try {
-    await api.post("/refresh", {});
+    const response = await api.post("/refresh", {});
+    setStoredCsrfToken(response.data?.csrfToken);
     localStorage.setItem("accessToken", "session");
     return true;
   } catch {
+    clearStoredCsrfToken();
     return false;
   }
 }
@@ -130,7 +139,7 @@ export async function bootstrapAuthSession() {
 api.interceptors.request.use((config) => {
   const method = (config.method ?? "GET").toUpperCase();
   if (!SAFE_METHODS.has(method)) {
-    const csrfToken = getCookie("csrfToken");
+    const csrfToken = getStoredCsrfToken();
     config.headers = config.headers ?? {};
     if (csrfToken) {
       config.headers["X-CSRF-Token"] = csrfToken;
@@ -141,7 +150,10 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    setStoredCsrfToken(response.data?.csrfToken);
+    return response;
+  },
   async (error) => {
     const status = error?.response?.status;
     const originalRequest = error?.config as RetriableConfig | undefined;
@@ -155,11 +167,13 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        await api.post("/refresh", {});
+        const refreshResponse = await api.post("/refresh", {});
+        setStoredCsrfToken(refreshResponse.data?.csrfToken);
         localStorage.setItem("accessToken", "session");
         return api(originalRequest);
       } catch {
         localStorage.removeItem("accessToken");
+        clearStoredCsrfToken();
       }
     }
 

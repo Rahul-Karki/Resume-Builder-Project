@@ -73,9 +73,10 @@ const registerUser = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    setAuthCookies(req, res, accessToken, refreshToken);
+    const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
     res.status(201).json({
+      csrfToken,
       user: {
         id: user._id,
         email: user.email,
@@ -151,10 +152,11 @@ const login = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    setAuthCookies(req, res, accessToken, refreshToken);
+    const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
     // 7. Send response
     res.status(200).json({
+      csrfToken,
       user: {
         id: user._id,
         email: user.email,
@@ -484,11 +486,12 @@ const googleLogin = async (req: Request, res: Response) => {
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    setAuthCookies(req, res, accessToken, refreshToken);
+    const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
     logger.info({ userId: user._id.toString(), email: user.email }, "Google login successful");
     markSpanSuccess(span);
     return res.json({
+      csrfToken,
       user,
       message: "Google login successful",
     });

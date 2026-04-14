@@ -24,10 +24,10 @@ const refreshAccessToken = (req: Request, res: Response) => {
 
     const newAccessToken = generateAccessToken(decoded.userId);
     setAccessTokenCookie(req, res, newAccessToken);
-    setCsrfCookie(req, res);
+    const csrfToken = setCsrfCookie(req, res);
     logger.info({ userId: decoded.userId }, "Access token refreshed");
     markSpanSuccess(span);
-    return res.json({ message: "Token refreshed" });
+    return res.json({ message: "Token refreshed", csrfToken });
   } catch (error) {
     markSpanError(span, error as Error, "Refresh token verification failed");
     logger.error({ error }, "Failed to refresh access token");
