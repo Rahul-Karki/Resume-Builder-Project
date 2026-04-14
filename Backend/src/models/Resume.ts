@@ -96,6 +96,10 @@ interface ISectionVisibility {
 
 export interface IResume extends Document {
   userId: mongoose.Types.ObjectId;
+  baseResumeId?: mongoose.Types.ObjectId;
+  isVariant?: boolean;
+  variantLabel?: string;
+  targetRole?: string;
   title: string;
   templateId: string;
   personalInfo: IPersonalInfo;
@@ -113,6 +117,27 @@ const ResumeSchema = new Schema<IResume>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+
+    baseResumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Resume",
+      default: undefined,
+    },
+
+    isVariant: {
+      type: Boolean,
+      default: false,
+    },
+
+    variantLabel: {
+      type: String,
+      default: "",
+    },
+
+    targetRole: {
+      type: String,
+      default: "",
     },
 
     title: {

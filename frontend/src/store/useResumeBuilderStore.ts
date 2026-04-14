@@ -3,7 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import {
   ResumeDocument, BuilderUIState, PersonalInfo, ResumeStyle,
   WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry,
-  ActiveSection, EditorTab, PreviewScale, SectionVisibility,
+  ActiveSection, EditorTab, ExportPreset, PreviewScale, SectionVisibility,
   defaultStyle, defaultPersonalInfo, defaultResumeSections,
   defaultSectionVisibility, defaultSectionOrder,
 } from "@/types/resume-types";
@@ -86,6 +86,7 @@ interface ResumeBuilderStore {
   setActiveTab: (tab: EditorTab) => void;
   setActiveSection: (section: ActiveSection) => void;
   setPreviewScale: (scale: PreviewScale) => void;
+  setExportPreset: (preset: ExportPreset) => void;
 
   // ── Persistence ────────────────────────────────────────────────────────────
   saveResume: () => Promise<void>;
@@ -109,6 +110,7 @@ const initialUI: BuilderUIState = {
   activeTab: "content",
   activeSection: "personal",
   previewScale: 0.5,
+  exportPreset: "standard",
   isSaving: false,
   isSaved: false,
   isDirty: false,
@@ -430,6 +432,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
     setActiveTab: (tab) => set(s => ({ ui: { ...s.ui, activeTab: tab } })),
     setActiveSection: (section) => set(s => ({ ui: { ...s.ui, activeSection: section } })),
     setPreviewScale: (scale) => set(s => ({ ui: { ...s.ui, previewScale: scale } })),
+    setExportPreset: (preset) => set(s => ({ ui: { ...s.ui, exportPreset: preset } })),
 
     // ─── Init from template ───────────────────────────────────────────────────
     initFromTemplate: async (templateId) => {

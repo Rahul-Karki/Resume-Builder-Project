@@ -5,14 +5,17 @@ import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
 import { EditorPanel } from "@/components/builder/editorPanel";
 import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
+import { ProPanel } from "@/components/builder/proPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
+import { getResumeExportPreset } from "@/services/api";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
   { id: "content",  label: "Content",  icon: "◉", description: "Fill in your resume information" },
   { id: "style",    label: "Style",    icon: "◈", description: "Customize colors, fonts & layout" },
   { id: "sections", label: "Sections", icon: "◧", description: "Show/hide and reorder sections" },
+  { id: "pro",      label: "Pro",      icon: "✦", description: "ATS, versions, variants, sharing and export presets" },
 ];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────
@@ -103,7 +106,15 @@ function SectionsTab() {
 }
 
 // ─── PDF Download (browser print approach) ────────────────────────────────────
-function downloadResume(resume: ResumeDocument) {
+async function downloadResume(resume: ResumeDocument, preset: "web" | "standard" | "print", resumeId?: string) {
+  if (resumeId) {
+    try {
+      await getResumeExportPreset(resumeId, preset);
+    } catch {
+      // Keep browser export available even if preset endpoint fails.
+    }
+  }
+
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
 
@@ -116,7 +127,7 @@ function downloadResume(resume: ResumeDocument) {
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>${resume.title}</title>
+      <title>${resume.title} (${preset})</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@300;400;700&family=Lora:wght@400;600&family=Outfit:wght@300;400;500;600&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet">
       <style>
@@ -216,7 +227,8 @@ export default function ResumeBuilder() {
     if (!canDownload) {
       return;
     }
-    downloadResume(resume);
+    const resumeId = resume.id ?? resume._id;
+    void downloadResume(resume, ui.exportPreset, resumeId);
   };
 
   const css = `
@@ -294,6 +306,11 @@ export default function ResumeBuilder() {
               {ui.activeTab === "sections" && (
                 <div style={{ overflowY: "auto", flex: 1 }}>
                   <SectionsTab />
+                </div>
+              )}
+              {ui.activeTab === "pro" && (
+                <div style={{ overflowY: "auto", flex: 1 }}>
+                  <ProPanel onDownload={handleDownload} canDownload={canDownload} />
                 </div>
               )}
             </div>

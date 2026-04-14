@@ -2,6 +2,7 @@ import { Request, Response, RequestHandler } from "express";
 import Resume from "../models/Resume";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
+import { createResumeVersion } from "../services/resumeVersionService";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -66,6 +67,7 @@ const createResume: RequestHandler = async (req, res) => {
         });
 
         await recordTemplateUsage(String(resume.templateId), "create");
+        await createResumeVersion(resume, "Initial version");
 
         res.status(201).json({
             message: "Resume saved successfully",
@@ -93,6 +95,7 @@ const updateResume: RequestHandler = async (req, res) => {
         }
 
         await recordTemplateUsage(String(resume.templateId), "edit");
+        await createResumeVersion(resume, "Updated resume");
 
         res.status(200).json({
             message: "Resume updated successfully",

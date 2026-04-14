@@ -121,6 +121,10 @@ export interface SectionVisibility {
 export interface ResumeDocument {
   _id?: string;
   id?: string;
+  baseResumeId?: string;
+  isVariant?: boolean;
+  variantLabel?: string;
+  targetRole?: string;
   title: string;
   templateId: string;
   personalInfo: PersonalInfo;
@@ -134,7 +138,7 @@ export interface ResumeDocument {
 
 // ─── Builder UI State ──────────────────────────────────────────────────────────
 
-export type EditorTab = "content" | "style" | "sections";
+export type EditorTab = "content" | "style" | "sections" | "pro";
 export type ActiveSection =
   | "personal"
   | "experience"
@@ -145,11 +149,55 @@ export type ActiveSection =
   | "languages";
 
 export type PreviewScale = 0.5 | 0.6 | 0.7 | 0.75 | 0.85 | 1;
+export type ExportPreset = "web" | "standard" | "print";
+
+export interface AtsSuggestion {
+  id: string;
+  path: string;
+  originalText: string;
+  suggestionText: string;
+  reason: string;
+  impact: "low" | "medium" | "high";
+}
+
+export interface AtsAnalysis {
+  _id: string;
+  scoreOverall: number;
+  sectionScores: {
+    summary: number;
+    experience: number;
+    skills: number;
+    education: number;
+    formatting: number;
+  };
+  missingKeywords: string[];
+  rewriteSuggestions: AtsSuggestion[];
+  updatedAt: string;
+}
+
+export interface ResumeVersionMeta {
+  _id: string;
+  versionNo: number;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+  snapshot?: {
+    title?: string;
+  };
+}
+
+export interface ShareAnalytics {
+  views: number;
+  downloads: number;
+  uniqueViewers: number;
+  recentEvents: Array<{ eventType: "view" | "download"; at: string }>;
+}
 
 export interface BuilderUIState {
   activeTab: EditorTab;
   activeSection: ActiveSection;
   previewScale: PreviewScale;
+  exportPreset: ExportPreset;
   isSaving: boolean;
   isSaved: boolean;
   isDirty: boolean;
