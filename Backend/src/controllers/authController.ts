@@ -91,6 +91,7 @@ const registerUser = async (req: Request, res: Response) => {
       email,
       password: hashedPassword,
       role: UserRole.USER,
+      authProvider: ["local"],
     });
 
     await user.save();
@@ -153,7 +154,16 @@ const login = async (req: Request, res: Response) => {
       });
     }
 
-    // 5. Generate tokens
+    // 5. Ensure local is in authProvider
+    if (!Array.isArray(user.authProvider)) {
+      user.authProvider = [];
+    }
+    if (!user.authProvider.includes("local")) {
+      user.authProvider.push("local");
+      await user.save();
+    }
+
+    // 6. Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
@@ -437,6 +447,16 @@ const googleLogin = async (req: Request, res: Response) => {
         googleId: payload.sub,
         authProvider: ["google"],
       });
+    } else {
+      // User exists - add google to authProvider if not already there
+      if (!Array.isArray(user.authProvider)) {
+        user.authProvider = [];
+      }
+      if (!user.authProvider.includes("google")) {
+        user.authProvider.push("google");
+        user.googleId = payload.sub;
+        await user.save();
+      }
     }
 
     // 🔑 Generate tokens
