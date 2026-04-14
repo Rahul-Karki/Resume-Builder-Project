@@ -121,12 +121,34 @@ function downloadResume(resume: ResumeDocument) {
       <style>
         @page { size: A4; margin: 0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { width: 210mm; min-height: 297mm; }
-        @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+        html, body { width: 210mm; height: 297mm; }
+        body {
+          overflow: hidden;
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+        .pdf-page {
+          width: 210mm;
+          height: 297mm;
+          min-height: 297mm;
+          overflow: hidden;
+        }
+        .pdf-page > * {
+          width: 100% !important;
+          height: 100% !important;
+          min-height: 100% !important;
+        }
+        @media print {
+          html, body, .pdf-page {
+            width: 210mm;
+            height: 297mm;
+            min-height: 297mm;
+          }
+        }
       </style>
     </head>
     <body>
-      ${content.innerHTML}
+      <div class="pdf-page">${content.innerHTML}</div>
     </body>
     </html>
   `);
