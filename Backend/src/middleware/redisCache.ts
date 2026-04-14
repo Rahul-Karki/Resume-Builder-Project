@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { appMetrics, logger } from "../observability";
-import { withRedis } from "../utils/redis";
+import { getRedisClient, withRedis } from "../utils/redis";
 
 const CACHE_NAMESPACE = "resume-builder:cache";
 
@@ -25,18 +25,47 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
     }
 
     const cacheKey = buildCacheKey(scope, keyBuilder?.(req) ?? req.originalUrl);
-    const cached = await withRedis(async (client) => client.get(cacheKey));
+    res.setHeader("X-Cache-Key", hashValue(cacheKey));
+
+    const markMiss = (reason: string) => {
+      res.setHeader("X-Cache", "MISS");
+      res.setHeader("X-Cache-Reason", reason);
+    };
+
+    const redisClient = await getRedisClient();
+
+    if (!redisClient) {
+      appMetrics.cacheMisses.add(1, { scope });
+      markMiss("redis-unavailable");
+      next();
+      return;
+    }
+
+    let cached: string | null = null;
+    try {
+      cached = await redisClient.get(cacheKey);
+    } catch (error) {
+      logger.warn({ error, scope }, "Redis read failed");
+      appMetrics.cacheMisses.add(1, { scope });
+      markMiss("redis-read-error");
+      next();
+      return;
+    }
 
     if (cached) {
       try {
         const parsed = JSON.parse(cached) as { statusCode: number; body: unknown };
         appMetrics.cacheHits.add(1, { scope });
         res.setHeader("X-Cache", "HIT");
+        res.setHeader("X-Cache-Reason", "hit");
         res.status(parsed.statusCode).json(parsed.body);
         return;
       } catch (error) {
         logger.warn({ error, scope }, "Cached response could not be parsed");
+        markMiss("invalid-cached-payload");
       }
+    } else {
+      markMiss("miss-no-entry");
     }
 
     appMetrics.cacheMisses.add(1, { scope });
@@ -46,14 +75,19 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
       const statusCode = res.statusCode;
 
       if (statusCode >= 200 && statusCode < 300) {
-        void withRedis(async (client) => {
-          await client.set(
+        void redisClient
+          .set(
             cacheKey,
             JSON.stringify({ statusCode, body }),
             { EX: ttlSeconds },
-          );
-        });
-        res.setHeader("X-Cache", "MISS");
+          )
+          .catch((error) => {
+            logger.warn({ error, scope }, "Redis write failed");
+          });
+      }
+
+      if (statusCode < 200 || statusCode >= 300) {
+        res.setHeader("X-Cache-Reason", "non-2xx-not-cached");
       }
 
       return originalJson(body);
