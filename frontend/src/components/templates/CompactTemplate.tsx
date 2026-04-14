@@ -12,7 +12,7 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
   const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&display=swap');
-    .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; width:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; font-size:${style.fontSize}; line-height:${style.lineHeight}; display:flex; flex-direction:column; }
+    .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; font-size:${style.fontSize}; line-height:${style.lineHeight}; display:flex; flex-direction:column; }
     .comp-wrap p, .comp-wrap span, .comp-wrap li, .comp-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .comp-header { border-bottom:2px solid #111; padding-bottom:10px; margin-bottom:10px; }
     .comp-name { font-family:'IBM Plex Serif',serif; font-size:24pt; font-weight:600; margin:0 0 4px; }
@@ -39,7 +39,7 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="comp-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding }}>
+      <div className="comp-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding, height: "100%", minHeight: "100%" }}>
         <div className="comp-header">
           <div className="comp-name" style={{ fontFamily: style.headingFont, color: style.headingColor, textAlign: style.headerAlign }}>{p.name}</div>
           {p.title && <div style={{ fontSize: "9pt", color: style.mutedColor, marginBottom: 6, textAlign: style.headerAlign }}>{p.title}</div>}

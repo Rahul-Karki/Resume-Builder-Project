@@ -7,7 +7,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const sectionGap = spacingMap[style.sectionSpacing];
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;700&display=swap');
-    .side-wrap { display:grid; grid-template-columns:210px 1fr; width:100%; min-height:100%; height:100%; max-width:none; margin:0; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
+    .side-wrap { display:grid; grid-template-columns:210px 1fr; width:100%; height:100%; min-height:100%; max-width:none; margin:0; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
     .side-left { background:#1E293B; color:#CBD5E1; padding:32px 22px; }
     .side-name { font-family:'Nunito',sans-serif; font-size:18pt; font-weight:700; color:#F1F5F9; margin:0 0 2px; line-height:1.2; }
     .side-subtitle { font-size:8.5pt; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px; }
@@ -54,7 +54,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="side-wrap" style={{ background: style.backgroundColor }}>
+      <div className="side-wrap" style={{ background: style.backgroundColor, height: "100%", minHeight: "100%" }}>
         {/* LEFT SIDEBAR */}
         <div className="side-left" style={{ background: style.accentColor }}>
           {p.name && <div className="side-name" style={{ fontFamily: style.headingFont }}>{firstName}<br />{remainingName}</div>}

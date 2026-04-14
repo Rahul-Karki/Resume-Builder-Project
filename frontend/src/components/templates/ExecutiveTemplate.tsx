@@ -18,7 +18,7 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
   ].filter(Boolean);
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Lato:wght@300;400;700&display=swap');
-    .exec-wrap { font-family:'Lato',sans-serif; color:#1c1c1c; background:#fff; width:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
+    .exec-wrap { font-family:'Lato',sans-serif; color:#1c1c1c; background:#fff; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .exec-header { background:#1B2B4B; color:#fff; padding:36px 52px 28px; }
     .exec-name { font-family:'Playfair Display',serif; font-size:30pt; font-weight:700; margin:0 0 8px; letter-spacing:0.3px; }
     .exec-title-bar { font-size:9.5pt; font-weight:300; letter-spacing:2px; text-transform:uppercase; color:#A8BDD8; margin-bottom:14px; }
@@ -46,7 +46,7 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="exec-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight }}>
+      <div className="exec-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, height: "100%", minHeight: "100%" }}>
         <div className="exec-header" style={{ background: style.accentColor, padding: `36px ${pagePadding.split(" ")[1]} 28px` }}>
           <div className="exec-name" style={{ fontFamily: style.headingFont, textAlign: style.headerAlign }}>{p.name}</div>
           {p.title && <div className="exec-title-bar" style={{ color: style.mutedColor, textAlign: style.headerAlign }}>{p.title}</div>}
