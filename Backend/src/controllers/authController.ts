@@ -8,52 +8,13 @@ import { sendEmail } from "../utils/sendEmail";
 import { verifyGoogleToken } from "../utils/google";
 import crypto from "crypto";
 import { UserRole } from "../enums/userRole";
+import { clearAuthCookies, setAuthCookies } from "../utils/authCookies";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
 const MAX_RESET_RESEND_ATTEMPTS = 3;
 const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-const isProduction = process.env.NODE_ENV === "production";
-const isHttpsRequest = (req: Request) => {
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  const isForwardedHttps = typeof forwardedProto === "string"
-    ? forwardedProto.split(",")[0]?.trim() === "https"
-    : Array.isArray(forwardedProto)
-      ? forwardedProto[0] === "https"
-      : false;
-
-  return req.secure || isForwardedHttps;
-};
-
-const getAuthCookieOptions = (req: Request) => {
-  const secure = isProduction && isHttpsRequest(req);
-  return {
-    httpOnly: true,
-    secure,
-    sameSite: (secure ? "none" : "lax") as "lax" | "none",
-    path: "/",
-  };
-};
-
-const clearAuthCookies = (req: Request, res: Response) => {
-  const authCookieOptions = getAuthCookieOptions(req);
-  res.clearCookie("accessToken", authCookieOptions);
-  res.clearCookie("refreshToken", authCookieOptions);
-};
-
-const setAuthCookies = (req: Request, res: Response, accessToken: string, refreshToken: string) => {
-  const authCookieOptions = getAuthCookieOptions(req);
-  res.cookie("accessToken", accessToken, {
-    ...authCookieOptions,
-    maxAge: 15 * 60 * 1000,
-  });
-
-  res.cookie("refreshToken", refreshToken, {
-    ...authCookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-};
 
 const logout = async (req: Request, res: Response) => {
   try {
@@ -102,7 +63,6 @@ const registerUser = async (req: Request, res: Response) => {
     setAuthCookies(req, res, accessToken, refreshToken);
 
     res.status(201).json({
-      accessToken,
       user: {
         id: user._id,
         email: user.email,
@@ -171,7 +131,6 @@ const login = async (req: Request, res: Response) => {
 
     // 7. Send response
     res.status(200).json({
-      accessToken,
       user: {
         id: user._id,
         email: user.email,
@@ -468,7 +427,6 @@ const googleLogin = async (req: Request, res: Response) => {
     return res.json({
       user,
       message: "Google login successful",
-      accessToken,
     });
   } catch (error) {
     console.error(error);

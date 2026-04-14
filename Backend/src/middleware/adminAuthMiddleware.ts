@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";   // your existing User model
+import { parseCookies } from "../utils/cookieParser";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,10 +29,8 @@ declare global {
 // ─── Extract token helper ─────────────────────────────────────────────────────
 
 function extractToken(req: Request): string | null {
-  const auth = req.headers.authorization;
-  if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  // Fallback: cookie (if you use httpOnly cookies)
-  return req.cookies?.accessToken ?? req.cookies?.token ?? null;
+  const cookies = parseCookies(req.headers.cookie);
+  return cookies.accessToken ?? null;
 }
 
 // ─── Middleware: authenticate any logged-in user ──────────────────────────────

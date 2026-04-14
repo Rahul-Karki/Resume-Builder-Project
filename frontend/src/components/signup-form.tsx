@@ -51,8 +51,8 @@ export function SignupForm({ ...props }: React.ComponentProps<"div">) {
         password,
       })
 
-      if (res.data?.accessToken) {
-        localStorage.setItem("accessToken", res.data.accessToken)
+      if (res.status === 201) {
+        localStorage.setItem("accessToken", "session")
       }
 
       // ✅ Success

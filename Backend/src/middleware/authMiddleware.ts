@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import { parseCookies } from "../utils/cookieParser";
 
 const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
 
@@ -15,16 +16,14 @@ export const authMiddleware = (
       return;
     }
 
-    const authHeader = req.headers.authorization;
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies.accessToken;
 
     // Check if token exists
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
       res.status(401).json({ message: "Unauthorized: No token provided" });
       return;
     }
-
-    // Extract token
-    const token = authHeader.split(" ")[1];
 
     // Verify token and attach current user
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };

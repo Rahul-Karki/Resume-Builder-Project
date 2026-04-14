@@ -33,8 +33,8 @@ export function LoginForm({
       password,
     })
 
-    if (res.data?.accessToken) {
-      localStorage.setItem("accessToken", res.data.accessToken)
+    if (res.status === 200) {
+      localStorage.setItem("accessToken", "session")
     }
 
     setMessage("Login successful")

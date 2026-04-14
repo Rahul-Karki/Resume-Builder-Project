@@ -37,8 +37,8 @@ const GoogleAuthButton = ({ redirectTo = "/resumes" }: GoogleAuthButtonProps) =>
                 token: credentialResponse.credential,
               });
 
-              if (res.data?.accessToken) {
-                localStorage.setItem("accessToken", res.data.accessToken);
+              if (res.status === 200) {
+                localStorage.setItem("accessToken", "session");
               }
 
               window.location.href = redirectTo;

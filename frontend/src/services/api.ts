@@ -4,6 +4,7 @@ type RetriableConfig = {
   _retry?: boolean;
   url?: string;
   headers?: Record<string, string>;
+  method?: string;
 };
 
 const AUTH_EXCLUDED_PATHS = [
@@ -21,6 +22,14 @@ const isExcludedPath = (url?: string) => {
   return AUTH_EXCLUDED_PATHS.some((path) => url.includes(path));
 };
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+const getCookie = (name: string) => {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : "";
+};
+
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 export const api = axios.create({
@@ -31,28 +40,22 @@ export const api = axios.create({
 
 export async function bootstrapAuthSession() {
   try {
-    const refreshResponse = await api.post("/refresh");
-    const newAccessToken = refreshResponse?.data?.accessToken as string | undefined;
-
-    if (newAccessToken) {
-      localStorage.setItem("accessToken", newAccessToken);
-      return true;
-    }
-
-    localStorage.removeItem("accessToken");
-    return false;
+    await api.post("/refresh", {});
+    localStorage.setItem("accessToken", "session");
+    return true;
   } catch {
-    localStorage.removeItem("accessToken");
     return false;
   }
 }
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-
-  if (token) {
+  const method = (config.method ?? "GET").toUpperCase();
+  if (!SAFE_METHODS.has(method)) {
+    const csrfToken = getCookie("csrfToken");
     config.headers = config.headers ?? {};
-    config.headers.Authorization = `Bearer ${token}`;
+    if (csrfToken) {
+      config.headers["X-CSRF-Token"] = csrfToken;
+    }
   }
 
   return config;
@@ -73,15 +76,9 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshResponse = await api.post("/refresh");
-        const newAccessToken = refreshResponse?.data?.accessToken as string | undefined;
-
-        if (newAccessToken) {
-          localStorage.setItem("accessToken", newAccessToken);
-          originalRequest.headers = originalRequest.headers ?? {};
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return api(originalRequest);
-        }
+        await api.post("/refresh", {});
+        localStorage.setItem("accessToken", "session");
+        return api(originalRequest);
       } catch {
         localStorage.removeItem("accessToken");
       }
