@@ -6,7 +6,8 @@ import { cacheGet, cacheSet, deleteByPattern, getCacheProvider } from "../utils/
 const CACHE_NAMESPACE = "resume-builder:cache";
 
 export type RedisCacheOptions = {
-  scope: string;
+  scope: string | ((req: Request) => string);
+  metricsScope?: string;
   ttlSeconds: number;
   keyBuilder?: (req: Request) => string;
 };
@@ -17,14 +18,16 @@ const buildCacheKey = (scope: string, sourceKey: string) => `${CACHE_NAMESPACE}:
 
 const buildCachePattern = (scope: string) => `${CACHE_NAMESPACE}:${scope}:*`;
 
-export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: RedisCacheOptions): RequestHandler => {
+export const createRedisCacheMiddleware = ({ scope, metricsScope, ttlSeconds, keyBuilder }: RedisCacheOptions): RequestHandler => {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (req.method !== "GET") {
       next();
       return;
     }
 
-    const cacheKey = buildCacheKey(scope, keyBuilder?.(req) ?? req.originalUrl);
+    const resolvedScope = typeof scope === "function" ? scope(req) : scope;
+    const scopeForMetrics = metricsScope ?? (typeof scope === "string" ? scope : "dynamic");
+    const cacheKey = buildCacheKey(resolvedScope, keyBuilder?.(req) ?? req.originalUrl);
     res.setHeader("X-Cache-Key", hashValue(cacheKey));
 
     const markMiss = (reason: string) => {
@@ -35,7 +38,7 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
     const provider = getCacheProvider();
 
     if (provider === "none") {
-      appMetrics.cacheMisses.add(1, { scope });
+      appMetrics.cacheMisses.add(1, { scope: scopeForMetrics });
       markMiss("cache-backend-unavailable");
       next();
       return;
@@ -45,8 +48,8 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
     try {
       cached = await cacheGet(cacheKey);
     } catch (error) {
-      logger.warn({ error, scope }, "Cache read failed");
-      appMetrics.cacheMisses.add(1, { scope });
+      logger.warn({ error, scope: resolvedScope }, "Cache read failed");
+      appMetrics.cacheMisses.add(1, { scope: scopeForMetrics });
       markMiss("cache-read-error");
       next();
       return;
@@ -55,20 +58,20 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
     if (cached) {
       try {
         const parsed = JSON.parse(cached) as { statusCode: number; body: unknown };
-        appMetrics.cacheHits.add(1, { scope });
+        appMetrics.cacheHits.add(1, { scope: scopeForMetrics });
         res.setHeader("X-Cache", "HIT");
         res.setHeader("X-Cache-Reason", "hit");
         res.status(parsed.statusCode).json(parsed.body);
         return;
       } catch (error) {
-        logger.warn({ error, scope }, "Cached response could not be parsed");
+        logger.warn({ error, scope: resolvedScope }, "Cached response could not be parsed");
         markMiss("invalid-cached-payload");
       }
     } else {
       markMiss("miss-no-entry");
     }
 
-    appMetrics.cacheMisses.add(1, { scope });
+    appMetrics.cacheMisses.add(1, { scope: scopeForMetrics });
 
     const originalJson = res.json.bind(res);
     res.json = ((body: unknown) => {
@@ -81,7 +84,7 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
           ttlSeconds,
         ).then((written) => {
           if (!written) {
-            logger.warn({ scope }, "Cache write skipped or failed");
+            logger.warn({ scope: resolvedScope }, "Cache write skipped or failed");
           }
         });
       }

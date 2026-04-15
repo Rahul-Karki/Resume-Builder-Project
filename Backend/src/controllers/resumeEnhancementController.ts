@@ -7,6 +7,7 @@ import TemplateUsage from "../models/TemplateUsage";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
+import { invalidateRedisCache } from "../middleware/redisCache";
 
 const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
@@ -181,6 +182,8 @@ const setPathValue = (target: any, path: string, value: string) => {
   target.sections.experience[expIndex].bullets[bulletIndex] = value;
 };
 
+const resumeCacheScope = (userId: string) => `resumes-user:${userId}`;
+
 export const analyzeAts: RequestHandler = async (req, res) => {
   const span = startControllerSpan("resumeEnhancement.analyzeAts", req);
   try {
@@ -266,6 +269,7 @@ export const applyAtsSuggestion: RequestHandler = async (req, res) => {
 
     await createResumeVersion(updated, "Applied ATS rewrite suggestion");
     await recordTemplateUsage(String(updated.templateId), "edit");
+    await invalidateRedisCache([resumeCacheScope(userId)]);
 
     logger.info({ userId, resumeId: req.params.id, suggestionId }, "ATS suggestion applied");
     markSpanSuccess(span);

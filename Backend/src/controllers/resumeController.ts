@@ -5,6 +5,7 @@ import TemplateUsage from "../models/TemplateUsage";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
+import { invalidateRedisCache } from "../middleware/redisCache";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -25,6 +26,8 @@ const getUserId = (req: Request, res: Response) => {
 
     return userId;
 };
+
+const resumeCacheScope = (userId: string) => `resumes-user:${userId}`;
 
 const getAllResumes: RequestHandler = async (req, res) => {
     const span = startControllerSpan("resume.getAllResumes", req);
@@ -84,6 +87,7 @@ const createResume: RequestHandler = async (req, res) => {
 
         await recordTemplateUsage(String(resume.templateId), "create");
         await createResumeVersion(resume, "Initial version");
+        await invalidateRedisCache([resumeCacheScope(userId)]);
 
         res.status(201).json({
             message: "Resume saved successfully",
@@ -119,6 +123,7 @@ const updateResume: RequestHandler = async (req, res) => {
 
         await recordTemplateUsage(String(resume.templateId), "edit");
         await createResumeVersion(resume, "Updated resume");
+        await invalidateRedisCache([resumeCacheScope(userId)]);
 
         res.status(200).json({
             message: "Resume updated successfully",
@@ -150,6 +155,7 @@ const deleteResume: RequestHandler = async (req, res) => {
 
         logger.info({ userId, resumeId: req.params.id }, "Resume deleted");
         markSpanSuccess(span);
+        await invalidateRedisCache([resumeCacheScope(userId)]);
         res.status(200).json({ message: "Resume deleted successfully" });
     } catch (error) {
         markSpanError(span, error as Error, "Failed to delete resume");
