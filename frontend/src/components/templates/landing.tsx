@@ -414,7 +414,7 @@ export default function TemplatesPage() {
         {/* NAV */}
         <nav className={`tp-nav${scrolled ? " scrolled" : ""}`}>
           <div className="tp-logo">Resume<em>Studio</em></div>
-          < Link to="/my-resume" className="tp-nav-cta">My Resume</Link>
+          < Link to="/resumes" className="tp-nav-cta">My Resume</Link>
         </nav>
  
         {/* HERO */}
