@@ -29,6 +29,90 @@ const hasResumeContent = (resume: ResumeDocument) => {
     || s.languages.some(entry => entry.language.trim().length > 0 || entry.proficiency.trim().length > 0);
 };
 
+const toResumePayload = (resume: ResumeDocument) => ({
+  title: resume.title,
+  templateId: resume.templateId,
+  personalInfo: {
+    name: resume.personalInfo.name,
+    title: resume.personalInfo.title,
+    email: resume.personalInfo.email,
+    phone: resume.personalInfo.phone,
+    location: resume.personalInfo.location,
+    linkedin: resume.personalInfo.linkedin,
+    portfolio: resume.personalInfo.portfolio,
+    summary: resume.personalInfo.summary,
+  },
+  sections: {
+    experience: resume.sections.experience.map((entry) => ({
+      id: entry.id,
+      company: entry.company,
+      role: entry.role,
+      start: entry.start,
+      end: entry.end,
+      location: entry.location,
+      current: entry.current,
+      bullets: [...entry.bullets],
+    })),
+    education: resume.sections.education.map((entry) => ({
+      id: entry.id,
+      institution: entry.institution,
+      degree: entry.degree,
+      field: entry.field,
+      year: entry.year,
+      cgpa: entry.cgpa,
+    })),
+    skills: resume.sections.skills.map((entry) => ({
+      id: entry.id,
+      category: entry.category,
+      items: [...entry.items],
+    })),
+    projects: resume.sections.projects.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      description: entry.description,
+      tech: entry.tech,
+      link: entry.link,
+    })),
+    certifications: resume.sections.certifications.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      issuer: entry.issuer,
+      year: entry.year,
+    })),
+    languages: resume.sections.languages.map((entry) => ({
+      id: entry.id,
+      language: entry.language,
+      proficiency: entry.proficiency,
+    })),
+  },
+  style: {
+    accentColor: resume.style.accentColor,
+    headingColor: resume.style.headingColor,
+    textColor: resume.style.textColor,
+    mutedColor: resume.style.mutedColor,
+    borderColor: resume.style.borderColor,
+    backgroundColor: resume.style.backgroundColor,
+    bodyFont: resume.style.bodyFont,
+    headingFont: resume.style.headingFont,
+    fontSize: resume.style.fontSize,
+    lineHeight: resume.style.lineHeight,
+    pageMargin: resume.style.pageMargin,
+    sectionSpacing: resume.style.sectionSpacing,
+    showDividers: resume.style.showDividers,
+    bulletStyle: resume.style.bulletStyle,
+    headerAlign: resume.style.headerAlign,
+  },
+  sectionOrder: [...resume.sectionOrder],
+  sectionVisibility: {
+    experience: resume.sectionVisibility.experience,
+    education: resume.sectionVisibility.education,
+    skills: resume.sectionVisibility.skills,
+    projects: resume.sectionVisibility.projects,
+    certifications: resume.sectionVisibility.certifications,
+    languages: resume.sectionVisibility.languages,
+  },
+});
+
 // ─── Store Shape ───────────────────────────────────────────────────────────────
 interface ResumeBuilderStore {
   // Document state
@@ -523,6 +607,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       set(s => ({ ui: { ...s.ui, isSaving: true, saveError: null } }));
       try {
         const { resume } = get();
+        const payload = toResumePayload(resume);
 
         if (!hasResumeContent(resume)) {
           set(s => ({ ui: { ...s.ui, isSaving: false, saveError: "Please enter information before saving your resume." } }));
@@ -530,8 +615,8 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         }
 
         const response = resume.id
-          ? await api.put(`/resumes/${resume.id}`, resume)
-          : await api.post(`/resumes`, resume);
+          ? await api.put(`/resumes/${resume.id}`, payload)
+          : await api.post(`/resumes`, payload);
 
         const savedResume = response.data?.resume ?? response.data;
         const savedId = savedResume?._id ?? savedResume?.id ?? resume.id ?? `res_${Date.now()}`;
