@@ -6,7 +6,13 @@
   "scripts": {
     "build": "tsc",
     "start": "node -r ./dist/instrumentation.js dist/server.js",
-    "test": "echo \"No automated tests configured. Use manual hit-and-trial testing from README.\"",
+    "test": "npm run build && node --test automated-tests/**/*.test.js",
+    "test:automated": "npm run test",
+    "test:manual": "echo \"Run one or more manual test scripts from ./manual-tests\"",
+    "test:rate-limit": "node src/test.js",
+    "test:rate-limit:login": "node manual-tests/rate-limit-login.test.js",
+    "test:rate-limit:forgot-password": "node manual-tests/rate-limit-forgot-password.test.js",
+    "test:cache:templates": "node manual-tests/cache-templates-hit.test.js",
     "dev": "ts-node -r ./src/instrumentation.ts src/server.ts"
   },
   "keywords": [],

@@ -221,13 +221,51 @@ Provider selection order:
 - Resume create/update/delete invalidates current user resume scope.
 - ATS suggestion apply invalidates current user resume scope.
 
-## Basic Hit-and-Trial Testing
+## Testing
 
-Build validation:
+### Automated Backend Tests
+
+Automated tests are now available for core backend utility and middleware behavior.
+
+Covered by `npm test` in `Backend`:
+
+1. Token hashing utility (`hashToken`) deterministic and format behavior.
+2. Cookie parsing utility (`parseCookies`) parsing and decode behavior.
+3. JWT generation utilities (`generateAccessToken`, `generateRefreshToken`) signature and payload behavior.
+4. Auth cookie helpers (`setAccessTokenCookie`, `setCsrfCookie`, `setAuthCookies`, `clearAuthCookies`) cookie contract behavior.
+5. Request validation middleware (`validateRequest`) success and error response behavior.
+
+Run automated tests:
 
 ```bash
 cd Backend
-npm run build
+npm test
+```
+
+You can also run:
+
+```bash
+cd Backend
+npm run test:automated
+```
+
+### Manual Testing (Still Required)
+
+The following areas still require manual or integration-level testing because they depend on external services and full request flows:
+
+1. End-to-end auth flows with real cookies across frontend and backend.
+2. Redis/Upstash distributed cache hit, miss, and invalidation behavior.
+3. Rate-limit enforcement behavior under repeated real requests.
+4. Email delivery and reset-link flow.
+5. Google login verification flow.
+
+Run existing manual scripts:
+
+```bash
+cd Backend
+npm run test:rate-limit:login
+npm run test:rate-limit:forgot-password
+npm run test:cache:templates
 ```
 
 ## Manual Testing Procedure
