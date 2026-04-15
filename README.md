@@ -2,6 +2,105 @@
 
 A full-stack resume builder platform with authentication, resume editing, template browsing, and admin tools.
 
+## Whole Project Overview
+
+Resume Builder SaaS is a two-application system:
+
+1. A frontend SPA (React + Vite) deployed on Vercel for user and admin interfaces.
+2. A backend API (Express + TypeScript) deployed on Render for business logic, auth, and data APIs.
+
+Core platform responsibilities:
+
+1. User identity and session lifecycle (signup, login, logout, reset, refresh).
+2. Resume data management with secure user scoping.
+3. Template discovery and admin template operations.
+4. ATS analysis and suggestion-apply flows.
+5. Distributed caching and rate limiting for performance and abuse control.
+6. Observability (logs, metrics, tracing) and security middleware.
+
+## Architecture Diagram
+
+```mermaid
+flowchart LR
+	U[User Browser] --> F[Vercel Frontend\nReact + Vite SPA]
+	A[Admin Browser] --> F
+
+	F -->|HTTPS API| B[Render Backend\nExpress + TypeScript]
+
+	B --> M[(MongoDB\nPrimary Data Store)]
+	B --> C[(Cache + Rate Limit Store\nRedis URL or Upstash REST)]
+	B --> E[Resend Email Service]
+	B --> G[Google OAuth Verify]
+
+	subgraph Backend Request Pipeline
+		R[Router Layer] --> MW[Middleware Layer\nCORS, Helmet, CSRF, Auth, Validation, Cache, Rate Limit]
+		MW --> CT[Controller Layer]
+		CT --> SV[Service Layer]
+		SV --> DB[(Mongoose Models)]
+	end
+
+	B --> R
+```
+
+## Feature Explainer
+
+### 1. Authentication and Session
+
+1. Email/password signup and login.
+2. Google login integration.
+3. Access and refresh token cookie flow.
+4. Password reset and resend handling.
+5. Current user identity endpoint and logout.
+
+### 2. Resume Management
+
+1. Create, list, update, and delete resumes.
+2. Resume detail retrieval by ID with user ownership checks.
+3. Export preset endpoint for rendering/export behavior.
+4. Versioning support for resume changes.
+
+### 3. ATS Enhancement
+
+1. ATS scoring and keyword analysis.
+2. Suggestion generation for bullet and summary improvements.
+3. Apply-suggestion flow that updates resume content.
+4. Resume version comparison support.
+
+### 4. Template and Admin Operations
+
+1. Public template listing for end users.
+2. Admin template CRUD, status updates, premium toggles, and reorder.
+3. Usage recording and analytics/dashboard endpoints.
+
+### 5. Performance and Safety
+
+1. Distributed response caching on selected read endpoints.
+2. Per-user cache scoping for private resume data.
+3. Cache invalidation on write operations.
+4. Route-level rate limiting for auth and admin mutations.
+5. Fail-open behavior if cache backend is unavailable.
+
+### 6. Security and Observability
+
+1. Helmet and strict CORS origin validation.
+2. CSRF protection for state-changing endpoints.
+3. Request schema validation via Zod.
+4. Structured logging and metrics/tracing hooks.
+
+## End-to-End Flow
+
+1. Frontend sends request to backend API.
+2. Backend router matches endpoint.
+3. Middleware stack executes:
+	 1. security and CORS checks,
+	 2. auth/admin checks,
+	 3. request validation,
+	 4. cache lookup and/or rate-limit checks.
+4. Controller executes business logic and data access.
+5. Response is cached when eligible.
+6. On write endpoints, related cache scopes are invalidated.
+7. Response returns with operational headers such as cache and rate-limit metadata.
+
 ## Repository Layout
 
 - Backend: Node.js, Express, TypeScript, MongoDB
@@ -178,3 +277,97 @@ Add these screenshots:
 - docker-compose.yml supports local development services.
 - render.yaml is used for backend deployment settings.
 - vercel.json is used for frontend SPA routing on Vercel.
+
+---
+
+## Previous README (Restored)
+
+# Resume Builder SaaS
+
+A full-stack resume builder platform with authentication, resume editing, template browsing, and an admin dashboard.
+
+This repository is split into:
+- `Backend` - Node.js, Express, TypeScript, MongoDB
+- `frontend` - React, TypeScript, Vite, Zustand
+
+## What It Does
+
+- Email/password signup and login
+- Google OAuth login
+- JWT access and refresh token session flow
+- Resume create, edit, save, load, and delete
+- Style customization for fonts, spacing, colors, and layout
+- Section visibility and ordering controls
+- Live resume preview and browser-based PDF export
+- Public template browsing and template initialization
+- Admin analytics and template management
+- Security hardening with Helmet, CORS, and CSRF protection
+- Request validation, structured logging, and metrics/tracing
+
+## Project Structure
+
+### Backend
+
+- `src/config/` - database and environment setup
+- `src/controllers/` - auth, resume, template, and refresh handlers
+- `src/middleware/` - auth, CSRF, and validation middleware
+- `src/models/` - MongoDB models for users, resumes, templates, reset tokens, usage, and versions
+- `src/router/` - route registration by feature area
+- `src/services/` - template and resume version helpers
+- `src/utils/` - token helpers, email, cookies, logging helpers
+- `src/validation/` - Zod schemas for request payloads
+
+### Frontend
+
+- `src/pages/` - route-level pages like home, login, builder, resumes, templates, and admin
+- `src/components/` - UI grouped by domain
+- `src/store/` - Zustand resume builder state
+- `src/services/` - Axios client and session bootstrap
+- `src/templates/` - resume rendering engine
+- `src/types/` - shared TypeScript contracts
+
+## Running Locally
+
+### Backend
+
+1. Install dependencies in `Backend`.
+2. Set environment variables for MongoDB, frontend URL, JWT secrets, email provider, and OAuth.
+3. Start the server on the configured port.
+
+### Frontend
+
+1. Install dependencies in `frontend`.
+2. Set `VITE_API_BASE_URL` to the backend API URL.
+3. Start the Vite dev server.
+
+## Environment Variables
+
+### Backend
+
+- `NODE_ENV`
+- `PORT`
+- `MONGO_URI`
+- `FRONTEND_URL`
+- `FRONTEND_URLS`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `RESEND_API_KEY`
+- `RESEND_FROM` or `EMAIL_FROM`
+- `GOOGLE_CLIENT_ID`
+
+### Frontend
+
+- `VITE_API_BASE_URL`
+- `VITE_GOOGLE_CLIENT_ID`
+
+## Notes
+
+- The builder now focuses on resume creation, editing, preview, and export.
+- Public share links and the separate Pro panel have been removed.
+- The admin dashboard still provides template and usage insights.
+
+## Deployment
+
+- Dockerfiles are included for both apps.
+- `docker-compose.yml` can be used for local development with MongoDB.
+- `render.yaml` and `vercel.json` support deployment targets.
