@@ -1,4 +1,30 @@
-# Resume Builder SaaS
+$uri = "http://localhost:5000/api/auth/login"
+$body = @{ email = "wrong@example.com"; password = "wrongpass" } | ConvertTo-Json
+$headers = @{ "Content-Type" = "application/json" }
+
+1..30 | ForEach-Object {
+  try {
+    $res = Invoke-WebRequest -Uri $uri -Method POST -Headers $headers -Body $body
+    Write-Host "Attempt $($_): $($res.StatusCode) Remaining=$($res.Headers['X-RateLimit-Remaining'])"
+  } catch {
+    $status = $_.Exception.Response.StatusCode.value__
+    $retry = $_.Exception.Response.Headers["Retry-After"]
+    Write-Host "Attempt $($_): $status Retry-After=$retry"
+  }
+}$uri = "http://localhost:5000/api/auth/login"
+$body = @{ email = "wrong@example.com"; password = "wrongpass" } | ConvertTo-Json
+$headers = @{ "Content-Type" = "application/json" }
+
+1..30 | ForEach-Object {
+  try {
+    $res = Invoke-WebRequest -Uri $uri -Method POST -Headers $headers -Body $body
+    Write-Host "Attempt $($_): $($res.StatusCode) Remaining=$($res.Headers['X-RateLimit-Remaining'])"
+  } catch {
+    $status = $_.Exception.Response.StatusCode.value__
+    $retry = $_.Exception.Response.Headers["Retry-After"]
+    Write-Host "Attempt $($_): $status Retry-After=$retry"
+  }
+}# Resume Builder SaaS
 
 A full-stack resume builder platform with authentication, resume editing, template browsing, and admin tools.
 
