@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { appMetrics, logger } from "../observability";
-import { getRedisClient, withRedis } from "../utils/redis";
+import { cacheGet, cacheSet, deleteByPattern, getCacheProvider } from "../utils/redis";
 
 const CACHE_NAMESPACE = "resume-builder:cache";
 
@@ -32,22 +32,22 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
       res.setHeader("X-Cache-Reason", reason);
     };
 
-    const redisClient = await getRedisClient();
+    const provider = getCacheProvider();
 
-    if (!redisClient) {
+    if (provider === "none") {
       appMetrics.cacheMisses.add(1, { scope });
-      markMiss("redis-unavailable");
+      markMiss("cache-backend-unavailable");
       next();
       return;
     }
 
     let cached: string | null = null;
     try {
-      cached = await redisClient.get(cacheKey);
+      cached = await cacheGet(cacheKey);
     } catch (error) {
-      logger.warn({ error, scope }, "Redis read failed");
+      logger.warn({ error, scope }, "Cache read failed");
       appMetrics.cacheMisses.add(1, { scope });
-      markMiss("redis-read-error");
+      markMiss("cache-read-error");
       next();
       return;
     }
@@ -75,15 +75,15 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
       const statusCode = res.statusCode;
 
       if (statusCode >= 200 && statusCode < 300) {
-        void redisClient
-          .set(
-            cacheKey,
-            JSON.stringify({ statusCode, body }),
-            { EX: ttlSeconds },
-          )
-          .catch((error) => {
-            logger.warn({ error, scope }, "Redis write failed");
-          });
+        void cacheSet(
+          cacheKey,
+          JSON.stringify({ statusCode, body }),
+          ttlSeconds,
+        ).then((written) => {
+          if (!written) {
+            logger.warn({ scope }, "Cache write skipped or failed");
+          }
+        });
       }
 
       if (statusCode < 200 || statusCode >= 300) {
@@ -98,25 +98,9 @@ export const createRedisCacheMiddleware = ({ scope, ttlSeconds, keyBuilder }: Re
 };
 
 export const invalidateRedisCache = async (scopes: string[]): Promise<void> => {
-  await withRedis(async (client) => {
-    for (const scope of scopes) {
-      const pattern = buildCachePattern(scope);
-      const keys: string[] = [];
-
-      for await (const key of client.scanIterator({ MATCH: pattern, COUNT: 100 })) {
-        keys.push(String(key));
-
-        if (keys.length >= 200) {
-          await client.del(keys);
-          keys.length = 0;
-        }
-      }
-
-      if (keys.length > 0) {
-        await client.del(keys);
-      }
-    }
-  });
+  for (const scope of scopes) {
+    await deleteByPattern(buildCachePattern(scope));
+  }
 };
 
 export const redisCacheScopes = {

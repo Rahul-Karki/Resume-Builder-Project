@@ -6,7 +6,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { csrfProtection } from "./middleware/csrfProtection";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
-import { closeRedisClient, getRedisClient } from "./utils/redis";
+import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -72,7 +72,8 @@ const PORT = env.PORT;
 
 const startServer = async () => {
   await connectDB();
-  void getRedisClient();
+  const cacheProvider = getCacheProvider();
+  void warmupCacheBackend();
 
   const server = app.listen(PORT, () => {
     logger.info(
@@ -80,7 +81,8 @@ const startServer = async () => {
         port: PORT,
         metricsEnabled: env.ENABLE_METRICS,
         metricsPath: env.METRICS_PATH,
-        redisConfigured: Boolean(env.REDIS_URL),
+        cacheProvider,
+        cacheConfigured: cacheProvider !== "none",
       },
       "Server started",
     );

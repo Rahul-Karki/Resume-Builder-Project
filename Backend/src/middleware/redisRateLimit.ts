@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
-import { withRedis } from "../utils/redis";
+import { consumeRateLimit } from "../utils/redis";
 
 const RATE_LIMIT_NAMESPACE = "resume-builder:rate-limit";
 
@@ -27,17 +27,7 @@ export const createRedisRateLimitMiddleware = ({
     const limiterKey = `${RATE_LIMIT_NAMESPACE}:${scope}:${hashValue(keyBuilder?.(req) ?? defaultKeyBuilder(req))}`;
     const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
 
-    const result = await withRedis(async (client) => {
-      const count = await client.incr(limiterKey);
-
-      if (count === 1) {
-        await client.expire(limiterKey, windowSeconds);
-      }
-
-      const ttlSeconds = await client.ttl(limiterKey);
-
-      return { count, ttlSeconds };
-    });
+    const result = await consumeRateLimit(limiterKey, windowSeconds);
 
     if (!result) {
       next();

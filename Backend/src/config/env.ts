@@ -32,6 +32,8 @@ const baseEnvSchema = z.object({
   ENABLE_METRICS: booleanFromEnv.default(true),
   METRICS_PATH: z.string().default("/metrics"),
   REDIS_URL: z.string().optional().default(""),
+  UPSTASH_REDIS_REST_URL: z.string().optional().default(""),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(""),
   REDIS_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(5000),
   REDIS_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).default(300),
   REDIS_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(900000),
@@ -98,6 +100,29 @@ const envSchema = baseEnvSchema
       }
     }
 
+    if (value.UPSTASH_REDIS_REST_URL) {
+      try {
+        new URL(value.UPSTASH_REDIS_REST_URL);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["UPSTASH_REDIS_REST_URL"],
+          message: "UPSTASH_REDIS_REST_URL must be a valid URL",
+        });
+      }
+    }
+
+    const hasUpstashUrl = value.UPSTASH_REDIS_REST_URL.trim().length > 0;
+    const hasUpstashToken = value.UPSTASH_REDIS_REST_TOKEN.trim().length > 0;
+
+    if (hasUpstashUrl !== hasUpstashToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["UPSTASH_REDIS_REST_TOKEN"],
+        message: "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be provided together",
+      });
+    }
+
   })
   .transform((value) => ({
     ...value,
@@ -114,6 +139,8 @@ const envSchema = baseEnvSchema
     OPTL_INSTANCE_ID: value.OPTL_INSTANCE_ID.trim(),
     GRAFANA_API_TOKEN: value.GRAFANA_API_TOKEN.trim(),
     REDIS_URL: value.REDIS_URL.trim(),
+    UPSTASH_REDIS_REST_URL: value.UPSTASH_REDIS_REST_URL.trim(),
+    UPSTASH_REDIS_REST_TOKEN: value.UPSTASH_REDIS_REST_TOKEN.trim(),
   }));
 
 const parsed = envSchema.safeParse(process.env);
