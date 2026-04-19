@@ -61,12 +61,14 @@ import refreshRoutes from "./router/refresh.route";
 import resumeRoutes from "./router/resume.routes";
 import adminRoutes from "./router/admin.routes";
 import templateRoutes from "./router/template.routes";
+import healthRoutes from "./router/health.routes";
 
 app.use("/api/auth",authRoutes);
 app.use("/api",refreshRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/templates", templateRoutes);
+app.use("/health", healthRoutes);
 
 const PORT = env.PORT;
 

@@ -199,6 +199,31 @@ Provider selection order:
 - GET /api/resumes (per-user scoped cache)
 - GET /api/resumes/:id (per-user scoped cache)
 
+## Health check and keep-alive
+
+The backend exposes a lightweight health endpoint at `/health` that returns a 200 JSON payload when the service is up.
+
+Use an external monitor (for example UptimeRobot or Pingdom) to periodically hit `https://<your-backend>/health` to keep the service awake on platforms that idle after inactivity.
+
+Example curl:
+
+```bash
+curl -v https://your-backend.example.com/health
+```
+
+For local Docker Compose runs, a `healthcheck` is included in `docker-compose.yml` that probes `http://localhost:5000/health`.
+
+## Keep-alive using GitHub Actions
+
+You can keep your production backend awake by adding a scheduled GitHub Actions workflow that periodically pings the `/health` endpoint.
+
+1. Add the repository secret `BACKEND_URL` with the value of your backend root URL (for example `https://api.example.com`).
+2. The workflow `.github/workflows/keep-alive.yml` (already added) runs every 10 minutes and sends a GET to `$BACKEND_URL/health`.
+3. You can trigger the workflow manually via the Actions tab (`workflow_dispatch`) if needed.
+
+Note: Use a secure repository secret for `BACKEND_URL` to avoid exposing infrastructure URLs in logs.
+
+
 ## Routes with Rate Limiting Applied
 
 - POST /api/auth/signup

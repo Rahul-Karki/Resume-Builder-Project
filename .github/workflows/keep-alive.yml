@@ -1,0 +1,27 @@
+name: Keep backend awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # every 10 minutes
+  workflow_dispatch: {}
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          if [ -z "$BACKEND_URL" ]; then
+            echo "Secret BACKEND_URL is not set. Set it in repository Secrets."
+            exit 1
+          fi
+          echo "Pinging $BACKEND_URL/health"
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health" || true)
+          echo "HTTP status: $status"
+          if [ "$status" = "200" ]; then
+            echo "Backend is up"
+          else
+            echo "Ping returned $status"
+          fi
