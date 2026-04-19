@@ -31,6 +31,8 @@ export const sampleData: ResumeDocument = {
         end: "",
         location: "San Francisco, CA",
         current: true,
+        contentMode: "bullets",
+        description: "",
         bullets: [
           "Architected real-time fraud detection pipeline processing 500K transactions/sec using Kafka and Flink, reducing chargebacks by 32%.",
           "Led migration of monolithic payments service to microservices, cutting deployment time from 4h to 12min.",
@@ -45,6 +47,8 @@ export const sampleData: ResumeDocument = {
         end: "Feb 2021",
         location: "San Francisco, CA",
         current: false,
+        contentMode: "bullets",
+        description: "",
         bullets: [
           "Built dynamic pricing engine serving 6M+ listings across 220 countries using ML models integrated into Go microservices.",
           "Reduced API latency by 60% through caching layer redesign and database query optimization.",
@@ -59,6 +63,8 @@ export const sampleData: ResumeDocument = {
         end: "May 2018",
         location: "New York, NY",
         current: false,
+        contentMode: "bullets",
+        description: "",
         bullets: [
           "Developed data ingestion pipelines for government clients processing 10TB+ daily using Spark and HDFS.",
           "Built internal tooling that reduced analyst workflow time by 45% across 3 enterprise contracts.",
@@ -84,14 +90,18 @@ export const sampleData: ResumeDocument = {
       {
         id: "proj-1",
         name: "OpenDistribute",
+        contentMode: "paragraph",
         description: "Open-source distributed task queue with 2.4K GitHub stars, supporting 10+ pluggable backends.",
+        bullets: [""],
         tech: "Go, Redis, gRPC",
         link: "",
       },
       {
         id: "proj-2",
         name: "BudgetOS",
+        contentMode: "paragraph",
         description: "Personal finance dashboard with bank sync, ML-based categorization, and forecasting.",
+        bullets: [""],
         tech: "Next.js, Python, Plaid API",
         link: "",
       },

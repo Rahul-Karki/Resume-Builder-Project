@@ -19,6 +19,8 @@ export interface WorkEntry {
   end: string;
   location: string;
   current: boolean;
+  contentMode: "bullets" | "paragraph";
+  description: string;
   bullets: string[];
 }
 
@@ -40,7 +42,9 @@ export interface SkillGroup {
 export interface Project {
   id: string;
   name: string;
+  contentMode: "bullets" | "paragraph";
   description: string;
+  bullets: string[];
   tech: string;
   link: string;
 }

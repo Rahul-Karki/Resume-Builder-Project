@@ -122,6 +122,8 @@ const resumeEntrySchema = z.object({
   end: z.string().max(50).optional(),
   location: z.string().max(120).optional(),
   current: z.boolean().optional(),
+  contentMode: z.enum(["bullets", "paragraph"]).optional(),
+  description: z.string().max(1200).optional(),
   bullets: z.array(z.string().max(300)).optional(),
 }).strict();
 
@@ -143,7 +145,9 @@ const skillEntrySchema = z.object({
 const projectEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
   name: z.string().max(180).optional(),
+  contentMode: z.enum(["bullets", "paragraph"]).optional(),
   description: z.string().max(500).optional(),
+  bullets: z.array(z.string().max(300)).optional(),
   tech: z.string().max(240).optional(),
   link: z.string().max(2048).optional(),
 }).strict();

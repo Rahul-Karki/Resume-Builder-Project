@@ -21,10 +21,10 @@ const hasResumeContent = (resume: ResumeDocument) => {
   ];
 
   return personalFields.some(value => value.trim().length > 0)
-    || s.experience.some(entry => [entry.company, entry.role, entry.start, entry.end, entry.location, ...entry.bullets].some(value => value.trim().length > 0))
+    || s.experience.some(entry => [entry.company, entry.role, entry.start, entry.end, entry.location, entry.description, ...entry.bullets].some(value => value.trim().length > 0))
     || s.education.some(entry => [entry.institution, entry.degree, entry.field, entry.year, entry.cgpa].some(value => value.trim().length > 0))
     || s.skills.some(group => group.category.trim().length > 0 || group.items.some(item => item.trim().length > 0))
-    || s.projects.some(entry => [entry.name, entry.description, entry.tech, entry.link].some(value => value.trim().length > 0))
+    || s.projects.some(entry => [entry.name, entry.description, entry.tech, entry.link, ...entry.bullets].some(value => value.trim().length > 0))
     || s.certifications.some(entry => [entry.name, entry.issuer, entry.year].some(value => value.trim().length > 0))
     || s.languages.some(entry => entry.language.trim().length > 0 || entry.proficiency.trim().length > 0);
 };
@@ -51,6 +51,8 @@ const toResumePayload = (resume: ResumeDocument) => ({
       end: entry.end,
       location: entry.location,
       current: entry.current,
+      contentMode: entry.contentMode,
+      description: entry.description,
       bullets: [...entry.bullets],
     })),
     education: resume.sections.education.map((entry) => ({
@@ -69,7 +71,9 @@ const toResumePayload = (resume: ResumeDocument) => ({
     projects: resume.sections.projects.map((entry) => ({
       id: entry.id,
       name: entry.name,
+      contentMode: entry.contentMode,
       description: entry.description,
+      bullets: [...entry.bullets],
       tech: entry.tech,
       link: entry.link,
     })),
@@ -149,6 +153,9 @@ interface ResumeBuilderStore {
   // ── Projects ───────────────────────────────────────────────────────────────
   addProject: () => void;
   updateProject: (id: string, field: keyof Project, value: string) => void;
+  addProjectBullet: (projectId: string) => void;
+  updateProjectBullet: (projectId: string, index: number, value: string) => void;
+  removeProjectBullet: (projectId: string, index: number) => void;
   removeProject: (id: string) => void;
 
   // ── Certifications ─────────────────────────────────────────────────────────
@@ -269,7 +276,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       set(s => {
         const newEntry: WorkEntry = {
           id: uid(), company: "", role: "", start: "", end: "",
-          location: "", current: false, bullets: [""],
+          location: "", current: false, contentMode: "bullets", description: "", bullets: [""],
         };
         return {
           resume: { ...s.resume, sections: { ...s.resume.sections, experience: [...s.resume.sections.experience, newEntry] } },
@@ -409,7 +416,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         resume: {
           ...s.resume, sections: {
             ...s.resume.sections,
-            projects: [...s.resume.sections.projects, { id: uid(), name: "", description: "", tech: "", link: "" }],
+            projects: [...s.resume.sections.projects, { id: uid(), name: "", contentMode: "paragraph", description: "", bullets: [""], tech: "", link: "" }],
           },
         },
         ui: { ...s.ui, isDirty: true, activeSection: "projects" },
@@ -421,6 +428,52 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           ...s.resume, sections: {
             ...s.resume.sections,
             projects: s.resume.sections.projects.map(p => p.id === id ? { ...p, [field]: value } : p),
+          },
+        },
+        ui: { ...s.ui, isDirty: true },
+      })),
+
+    addProjectBullet: (projectId) =>
+      set(s => ({
+        resume: {
+          ...s.resume,
+          sections: {
+            ...s.resume.sections,
+            projects: s.resume.sections.projects.map((p) =>
+              p.id === projectId ? { ...p, bullets: [...p.bullets, ""] } : p,
+            ),
+          },
+        },
+        ui: { ...s.ui, isDirty: true },
+      })),
+
+    updateProjectBullet: (projectId, index, value) =>
+      set(s => ({
+        resume: {
+          ...s.resume,
+          sections: {
+            ...s.resume.sections,
+            projects: s.resume.sections.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              const bullets = [...p.bullets];
+              bullets[index] = value;
+              return { ...p, bullets };
+            }),
+          },
+        },
+        ui: { ...s.ui, isDirty: true },
+      })),
+
+    removeProjectBullet: (projectId, index) =>
+      set(s => ({
+        resume: {
+          ...s.resume,
+          sections: {
+            ...s.resume.sections,
+            projects: s.resume.sections.projects.map((p) => {
+              if (p.id !== projectId) return p;
+              return { ...p, bullets: p.bullets.filter((_, i) => i !== index) };
+            }),
           },
         },
         ui: { ...s.ui, isDirty: true },
@@ -644,6 +697,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             sections: {
               ...defaultResumeSections,
               ...(preloadedResume.sections ?? {}),
+              experience: (preloadedResume.sections?.experience ?? []).map((entry) => ({
+                ...entry,
+                contentMode: entry.contentMode ?? "bullets",
+                description: entry.description ?? "",
+                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
+              })),
+              projects: (preloadedResume.sections?.projects ?? []).map((entry) => ({
+                ...entry,
+                contentMode: entry.contentMode ?? "paragraph",
+                description: entry.description ?? "",
+                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
+              })),
             },
             style: {
               ...defaultStyle,
@@ -677,6 +742,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             sections: {
               ...defaultResumeSections,
               ...(loadedResume?.sections ?? {}),
+              experience: (loadedResume?.sections?.experience ?? []).map((entry: any) => ({
+                ...entry,
+                contentMode: entry.contentMode ?? "bullets",
+                description: entry.description ?? "",
+                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
+              })),
+              projects: (loadedResume?.sections?.projects ?? []).map((entry: any) => ({
+                ...entry,
+                contentMode: entry.contentMode ?? "paragraph",
+                description: entry.description ?? "",
+                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
+              })),
             },
             style: {
               ...defaultStyle,

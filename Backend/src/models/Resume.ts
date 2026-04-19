@@ -8,6 +8,8 @@ interface IWorkEntry {
   end: string;
   location: string;
   current: boolean;
+  contentMode: "bullets" | "paragraph";
+  description: string;
   bullets: string[];
 }
 
@@ -29,7 +31,9 @@ interface ISkillGroup {
 interface IProject {
   id: string;
   name: string;
+  contentMode: "bullets" | "paragraph";
   description: string;
+  bullets: string[];
   tech: string;
   link: string;
 }
@@ -173,6 +177,8 @@ const ResumeSchema = new Schema<IResume>(
             end: { type: String, default: "" },
             location: { type: String, default: "" },
             current: { type: Boolean, default: false },
+            contentMode: { type: String, enum: ["bullets", "paragraph"], default: "bullets" },
+            description: { type: String, default: "" },
             bullets: { type: [String], default: [] },
           },
         ],
@@ -206,7 +212,9 @@ const ResumeSchema = new Schema<IResume>(
           {
             id: { type: String, required: true },
             name: { type: String, default: "" },
+            contentMode: { type: String, enum: ["bullets", "paragraph"], default: "paragraph" },
             description: { type: String, default: "" },
+            bullets: { type: [String], default: [] },
             tech: { type: String, default: "" },
             link: { type: String, default: "" },
           },

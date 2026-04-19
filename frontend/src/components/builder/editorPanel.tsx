@@ -14,6 +14,52 @@ const fieldGroup = (children: React.ReactNode, key?: string) => (
   <div key={key} style={{ marginBottom: 10 }}>{children}</div>
 );
 
+const modeToggleWrap: React.CSSProperties = {
+  display: "inline-flex",
+  gap: 4,
+  padding: 3,
+  borderRadius: 7,
+  border: "1px solid #252525",
+  background: "#111",
+};
+
+function ContentModeToggle({
+  value,
+  onChange,
+}: {
+  value: "bullets" | "paragraph";
+  onChange: (value: "bullets" | "paragraph") => void;
+}) {
+  return (
+    <div style={modeToggleWrap}>
+      {(["bullets", "paragraph"] as const).map((mode) => {
+        const active = value === mode;
+        return (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => onChange(mode)}
+            style={{
+              border: "1px solid",
+              borderColor: active ? "#C8F55A" : "transparent",
+              borderRadius: 6,
+              background: active ? "rgba(200,245,90,0.12)" : "transparent",
+              color: active ? "#C8F55A" : "#888",
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "capitalize",
+              padding: "4px 10px",
+              cursor: "pointer",
+            }}
+          >
+            {mode}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Nav Sidebar ───────────────────────────────────────────────────────────────
 const NAV_ITEMS: { id: ActiveSection; label: string; icon: string }[] = [
   { id: "personal",        label: "Personal",      icon: "◉" },
@@ -171,29 +217,49 @@ function ExperienceSection() {
               </label>
             </div>
           </div>
-          {/* Bullets */}
-          <div>
-            <span style={label}>Bullet Points (Achievements)</span>
-            {e.bullets.map((b, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "flex-start" }}>
-                <span style={{ color: "#555", paddingTop: 8, flexShrink: 0, fontSize: 14 }}>›</span>
-                <textarea
-                  value={b}
-                  onChange={v => updateBullet(e.id, i, v.target.value)}
-                  placeholder="Describe a quantifiable achievement…"
-                  rows={2}
-                  style={{ ...ta, flex: 1, minHeight: 44 }}
-                />
-                <button onClick={() => removeBullet(e.id, i)}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 8, flexShrink: 0 }}>✕</button>
-              </div>
-            ))}
-            <button onClick={() => addBullet(e.id)} style={{
-              background: "none", border: "1px dashed #2A2A2A", borderRadius: 6, color: "#555",
-              fontSize: 12, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
-              display: "flex", alignItems: "center", gap: 4,
-            }}>+ Add bullet</button>
+          <div style={{ marginBottom: 10 }}>
+            <span style={label}>Description Format</span>
+            <ContentModeToggle
+              value={e.contentMode}
+              onChange={(mode) => updateExperience(e.id, "contentMode", mode)}
+            />
           </div>
+
+          {e.contentMode === "paragraph" ? (
+            <div>
+              <span style={label}>Experience Summary</span>
+              <textarea
+                value={e.description}
+                onChange={v => updateExperience(e.id, "description", v.target.value)}
+                rows={4}
+                placeholder="Summarize your impact in a concise paragraph..."
+                style={ta}
+              />
+            </div>
+          ) : (
+            <div>
+              <span style={label}>Bullet Points (Achievements)</span>
+              {e.bullets.map((b, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "flex-start" }}>
+                  <span style={{ color: "#555", paddingTop: 8, flexShrink: 0, fontSize: 14 }}>›</span>
+                  <textarea
+                    value={b}
+                    onChange={v => updateBullet(e.id, i, v.target.value)}
+                    placeholder="Describe a quantifiable achievement…"
+                    rows={2}
+                    style={{ ...ta, flex: 1, minHeight: 44 }}
+                  />
+                  <button onClick={() => removeBullet(e.id, i)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 8, flexShrink: 0 }}>✕</button>
+                </div>
+              ))}
+              <button onClick={() => addBullet(e.id)} style={{
+                background: "none", border: "1px dashed #2A2A2A", borderRadius: 6, color: "#555",
+                fontSize: 12, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 4,
+              }}>+ Add bullet</button>
+            </div>
+          )}
         </EntryCard>
       ))}
       <AddBtn label="Add Experience" onClick={addExperience} />
@@ -300,7 +366,7 @@ function SkillsSection() {
 
 // ─── PROJECTS SECTION ──────────────────────────────────────────────────────────
 function ProjectsSection() {
-  const { resume, addProject, updateProject, removeProject } = useResumeBuilderStore();
+  const { resume, addProject, updateProject, addProjectBullet, updateProjectBullet, removeProjectBullet, removeProject } = useResumeBuilderStore();
   return (
     <div>
       {resume.sections.projects.map((pr: Project, idx: number) => (
@@ -313,11 +379,48 @@ function ProjectsSection() {
             <div><span style={label}>Tech Stack</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} placeholder="Go, Redis, gRPC" style={inp} /></div>
             <div><span style={label}>Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} placeholder="github.com/you/project" style={inp} /></div>
           </div>
-          <div>
-            <span style={label}>Description</span>
-            <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)}
-              rows={3} placeholder="Open-source distributed task queue with 2.4K GitHub stars…" style={ta} />
+          <div style={{ marginBottom: 10 }}>
+            <span style={label}>Description Format</span>
+            <ContentModeToggle
+              value={pr.contentMode}
+              onChange={(mode) => updateProject(pr.id, "contentMode", mode)}
+            />
           </div>
+
+          {pr.contentMode === "paragraph" ? (
+            <div>
+              <span style={label}>Description</span>
+              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)}
+                rows={3} placeholder="Open-source distributed task queue with 2.4K GitHub stars…" style={ta} />
+            </div>
+          ) : (
+            <div>
+              <span style={label}>Bullet Points</span>
+              {pr.bullets.map((b, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "flex-start" }}>
+                  <span style={{ color: "#555", paddingTop: 8, flexShrink: 0, fontSize: 14 }}>›</span>
+                  <textarea
+                    value={b}
+                    onChange={v => updateProjectBullet(pr.id, i, v.target.value)}
+                    placeholder="Highlight one project outcome or feature..."
+                    rows={2}
+                    style={{ ...ta, flex: 1, minHeight: 44 }}
+                  />
+                  <button
+                    onClick={() => removeProjectBullet(pr.id, i)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 8, flexShrink: 0 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button onClick={() => addProjectBullet(pr.id)} style={{
+                background: "none", border: "1px dashed #2A2A2A", borderRadius: 6, color: "#555",
+                fontSize: 12, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+                display: "flex", alignItems: "center", gap: 4,
+              }}>+ Add bullet</button>
+            </div>
+          )}
         </EntryCard>
       ))}
       <AddBtn label="Add Project" onClick={addProject} />

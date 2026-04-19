@@ -3,6 +3,10 @@ import {
   formatCertification,
   formatDateRange,
   formatProjectTech,
+  getDisplayBullets,
+  getExperienceParagraph,
+  getProjectParagraph,
+  isParagraphMode,
 } from "@/components/templates/templateHelpers";
 
 export function ClassicTemplate({ data }: { data: ResumeDocument }) {
@@ -63,9 +67,15 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
                 </div>
                 <span className="classic-date">{formatDateRange(e.start, e.end, e.current)}</span>
               </div>
-              <ul className="classic-bullets">
-                {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
-              </ul>
+              {isParagraphMode(e.contentMode) ? (
+                getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#333", marginTop: 2 }}>{getExperienceParagraph(e)}</div> : null
+              ) : (
+                getDisplayBullets(e.bullets).length > 0 && (
+                  <ul className="classic-bullets">
+                    {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                  </ul>
+                )
+              )}
             </div>
           ))}
         </section>
@@ -100,7 +110,15 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
               <span className="classic-proj-name">{pr.name}</span>
               <span style={{ margin: "0 6px", color: "#888" }}>|</span>
               <span style={{ fontSize: "9.5pt", color: "#555" }}>{formatProjectTech(pr)}</span>
-              <div style={{ fontSize: "10pt", color: "#333", marginTop: 2 }}>{pr.description}</div>
+              {isParagraphMode(pr.contentMode) ? (
+                getProjectParagraph(pr) ? <div style={{ fontSize: "10pt", color: "#333", marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+              ) : (
+                getDisplayBullets(pr.bullets).length > 0 && (
+                  <ul className="classic-bullets" style={{ marginTop: 2 }}>
+                    {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                  </ul>
+                )
+              )}
             </div>
           ))}
         </section>

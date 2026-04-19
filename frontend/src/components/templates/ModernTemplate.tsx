@@ -3,6 +3,10 @@ import {
   formatCertification,
   formatDateRange,
   formatProjectTech,
+  getDisplayBullets,
+  getExperienceParagraph,
+  getProjectParagraph,
+  isParagraphMode,
 } from "@/components/templates/templateHelpers";
 
 export function ModernTemplate({ data }: { data: ResumeDocument }) {
@@ -70,9 +74,15 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
                   </div>
                   <div className="mod-meta" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</div>
                 </div>
-                <ul className="mod-bullets">
-                  {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
-                </ul>
+                {isParagraphMode(e.contentMode) ? (
+                  getExperienceParagraph(e) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                ) : (
+                  getDisplayBullets(e.bullets).length > 0 && (
+                    <ul className="mod-bullets">
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>
@@ -116,7 +126,15 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
               <div className="mod-proj" key={i}>
                 <span className="mod-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>
                 <span style={{ color: "#888", fontSize: "9pt", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
-                <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{pr.description}</div>
+                {isParagraphMode(pr.contentMode) ? (
+                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                ) : (
+                  getDisplayBullets(pr.bullets).length > 0 && (
+                    <ul className="mod-bullets" style={{ marginTop: 2 }}>
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>

@@ -12,6 +12,7 @@ interface Props {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const nl2br = (text: string) => text;
+const nonEmptyBullets = (items: string[]) => items.filter((item) => item.trim());
 const sectionTitle = (style: ResumeDocument["style"], label: string) => ({
   fontFamily: style.headingFont,
   fontSize: "10.5pt",
@@ -121,16 +122,22 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
                       {entry.start}{(entry.start || entry.end) ? " – " : ""}{entry.current ? "Present" : entry.end}
                     </span>
                   </div>
-                  {entry.bullets.filter((bullet) => bullet.trim()).length > 0 && (
+                  {entry.contentMode === "paragraph" ? (
+                    entry.description.trim() ? (
+                      <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>
+                        {entry.description}
+                      </div>
+                    ) : null
+                  ) : nonEmptyBullets(entry.bullets).length > 0 ? (
                     <ul style={{ margin: "4px 0 0 0", padding: 0, listStyle: "none" }}>
-                      {entry.bullets.filter((bullet) => bullet.trim()).map((bullet, bulletIndex) => (
+                      {nonEmptyBullets(entry.bullets).map((bullet, bulletIndex) => (
                         <li key={bulletIndex} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
                           <span>{bullet}</span>
                         </li>
                       ))}
                     </ul>
-                  )}
+                  ) : null}
                 </div>
               ))
             ) : null,
@@ -182,7 +189,20 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
                     {project.tech && <span style={{ fontSize: "9pt", color: style.mutedColor }}>· {project.tech}</span>}
                     {project.link && <span style={{ fontSize: "9pt", color: style.accentColor }}>{project.link}</span>}
                   </div>
-                  {project.description && <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{project.description}</div>}
+                  {project.contentMode === "paragraph" ? (
+                    project.description.trim() ? (
+                      <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{project.description}</div>
+                    ) : null
+                  ) : nonEmptyBullets(project.bullets).length > 0 ? (
+                    <ul style={{ margin: "4px 0 0 0", padding: 0, listStyle: "none" }}>
+                      {nonEmptyBullets(project.bullets).map((bullet, bulletIndex) => (
+                        <li key={bulletIndex} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
+                          <span>{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               ))
             ) : null,
@@ -257,16 +277,20 @@ function ClassicTemplate({ resume }: Props) {
                 {e.start}{(e.start || e.end) ? " – " : ""}{e.current ? "Present" : e.end}
               </span>
             </div>
-            {e.bullets.filter(b => b.trim()).length > 0 && (
+            {e.contentMode === "paragraph" ? (
+              e.description.trim() ? (
+                <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{e.description}</div>
+              ) : null
+            ) : nonEmptyBullets(e.bullets).length > 0 ? (
               <ul style={{ margin: "4px 0 0 0", padding: 0, listStyle: "none" }}>
-                {e.bullets.filter(b => b.trim()).map((b, i) => (
+                {nonEmptyBullets(e.bullets).map((b, i) => (
                   <li key={i} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
                     <span>{b}</span>
                   </li>
                 ))}
               </ul>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
@@ -306,7 +330,20 @@ function ClassicTemplate({ resume }: Props) {
               {pr.tech && <span style={{ fontSize: "9pt", color: style.mutedColor }}>· {pr.tech}</span>}
               {pr.link && <span style={{ fontSize: "9pt", color: style.accentColor }}>{pr.link}</span>}
             </div>
-            {pr.description && <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{pr.description}</div>}
+            {pr.contentMode === "paragraph" ? (
+              pr.description.trim() ? (
+                <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{pr.description}</div>
+              ) : null
+            ) : nonEmptyBullets(pr.bullets).length > 0 ? (
+              <ul style={{ margin: "4px 0 0 0", padding: 0, listStyle: "none" }}>
+                {nonEmptyBullets(pr.bullets).map((b, i) => (
+                  <li key={i} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         ))}
       </div>

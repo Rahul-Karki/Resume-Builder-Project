@@ -3,6 +3,10 @@ import {
   formatCertification,
   formatDateRange,
   formatProjectTech,
+  getDisplayBullets,
+  getExperienceParagraph,
+  getProjectParagraph,
+  isParagraphMode,
 } from "./templateHelpers";
 
 export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
@@ -70,9 +74,15 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
                   </div>
                   <span className="exec-date" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
-                <ul className="exec-bullets">
-                  {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
-                </ul>
+                {isParagraphMode(e.contentMode) ? (
+                  getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#444", marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                ) : (
+                  getDisplayBullets(e.bullets).length > 0 && (
+                    <ul className="exec-bullets">
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>
@@ -109,7 +119,15 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
               <div className="exec-proj" key={i}>
                 <strong style={{ fontSize: "10pt" }}>{pr.name}</strong>
                 <span style={{ fontSize: "9pt", color: "#666", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
-                <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 2 }}>{pr.description}</div>
+                {isParagraphMode(pr.contentMode) ? (
+                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                ) : (
+                  getDisplayBullets(pr.bullets).length > 0 && (
+                    <ul className="exec-bullets" style={{ marginTop: 2 }}>
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>

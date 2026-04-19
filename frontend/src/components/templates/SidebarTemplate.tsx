@@ -1,5 +1,5 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
-import { formatDateRange, formatProjectTech } from "@/components/templates/templateHelpers";
+import { formatDateRange, formatProjectTech, getDisplayBullets, getExperienceParagraph, getProjectParagraph, isParagraphMode } from "@/components/templates/templateHelpers";
 
 export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
@@ -134,9 +134,15 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
                   </div>
                   <span className="side-date" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
-                <ul className="side-bullets">
-                  {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
-                </ul>
+                {isParagraphMode(e.contentMode) ? (
+                  getExperienceParagraph(e) ? <div style={{ color: "#475569", fontWeight: 300, marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                ) : (
+                  getDisplayBullets(e.bullets).length > 0 && (
+                    <ul className="side-bullets">
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>
@@ -148,7 +154,15 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
               <div className="side-proj" key={i}>
                 <span className="side-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>
                 <span style={{ color: "#94A3B8", fontSize: "8.5pt", marginLeft: 6 }}>{formatProjectTech(pr)}</span>
-                <div style={{ color: "#475569", fontWeight: 300, marginTop: 2 }}>{pr.description}</div>
+                {isParagraphMode(pr.contentMode) ? (
+                  getProjectParagraph(pr) ? <div style={{ color: "#475569", fontWeight: 300, marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                ) : (
+                  getDisplayBullets(pr.bullets).length > 0 && (
+                    <ul className="side-bullets" style={{ marginTop: 2 }}>
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>

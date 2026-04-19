@@ -3,6 +3,10 @@ import {
   formatCertification,
   formatDateRange,
   formatProjectTech,
+  getDisplayBullets,
+  getExperienceParagraph,
+  getProjectParagraph,
+  isParagraphMode,
 } from "./templateHelpers";
 
 export function CompactTemplate({ data }: { data: ResumeDocument }) {
@@ -75,9 +79,15 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
                   </div>
                   <span className="comp-date">{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
-                <ul className="comp-bullets">
-                  {e.bullets.map((b, j) => <li key={j}>{b}</li>)}
-                </ul>
+                {isParagraphMode(e.contentMode) ? (
+                  getExperienceParagraph(e) ? <div style={{ color: "#444", fontWeight: 300, marginTop: 2 }}>{getExperienceParagraph(e)}</div> : null
+                ) : (
+                  getDisplayBullets(e.bullets).length > 0 && (
+                    <ul className="comp-bullets">
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>
@@ -129,7 +139,15 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
               <div className="comp-proj" key={i}>
                 <strong>{pr.name}</strong>
                 <span style={{ color: "#777", marginLeft: 6 }}>{formatProjectTech(pr)}</span>
-                <div style={{ color: "#444", fontWeight: 300 }}>{pr.description}</div>
+                {isParagraphMode(pr.contentMode) ? (
+                  getProjectParagraph(pr) ? <div style={{ color: "#444", fontWeight: 300 }}>{getProjectParagraph(pr)}</div> : null
+                ) : (
+                  getDisplayBullets(pr.bullets).length > 0 && (
+                    <ul className="comp-bullets" style={{ marginTop: 2 }}>
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  )
+                )}
               </div>
             ))}
           </div>
