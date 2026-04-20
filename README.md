@@ -221,7 +221,7 @@ You can keep your production backend awake by adding a scheduled GitHub Actions 
 2. The workflow `.github/workflows/keep-alive.yml` (already added) runs every 10 minutes and sends a GET to `$BACKEND_URL/health`.
 3. You can trigger the workflow manually via the Actions tab (`workflow_dispatch`) if needed.
 
-Note: Use a secure repository secret for `BACKEND_URL` to avoid exposing infrastructure URLs in logs.
+Note: GitHub scheduled workflows are best-effort, not exact timers. They can run a few minutes late, only run from the default branch, and may not run if the repository is inactive or if the schedule has not yet been picked up by GitHub. Use a secure repository secret for `BACKEND_URL` to avoid exposing infrastructure URLs in logs.
 
 
 ## Routes with Rate Limiting Applied
@@ -250,7 +250,7 @@ Note: Use a secure repository secret for `BACKEND_URL` to avoid exposing infrast
 
 ### Automated Backend Tests
 
-Automated tests are now available for core backend utility and middleware behavior.
+Automated tests are now available for core backend utility, auth, refresh, and security behavior.
 
 Covered by `npm test` in `Backend`:
 
@@ -258,7 +258,14 @@ Covered by `npm test` in `Backend`:
 2. Cookie parsing utility (`parseCookies`) parsing and decode behavior.
 3. JWT generation utilities (`generateAccessToken`, `generateRefreshToken`) signature and payload behavior.
 4. Auth cookie helpers (`setAccessTokenCookie`, `setCsrfCookie`, `setAuthCookies`, `clearAuthCookies`) cookie contract behavior.
-5. Request validation middleware (`validateRequest`) success and error response behavior.
+5. Request validation middleware (`validateRequest`) payload parsing and error formatting.
+6. Refresh controller behavior for missing, valid, and invalid refresh tokens.
+7. Auth middleware behavior for missing tokens, invalid tokens, missing users, and valid sessions.
+8. CSRF protection behavior for safe methods, exempt routes, matching tokens, and token mismatch.
+
+### Test Results File
+
+The latest pass/fail snapshot is stored in [`TEST_RESULTS.md`](TEST_RESULTS.md).
 
 Run automated tests:
 
