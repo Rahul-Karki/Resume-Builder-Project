@@ -15,8 +15,8 @@ const renderApp = () => {
   )
 }
 
-void (async () => {
-  await bootstrapAuthSession()
-  renderApp()
-})()
+renderApp()
+
+// Run auth bootstrap in the background so public routes render immediately.
+void bootstrapAuthSession()
 

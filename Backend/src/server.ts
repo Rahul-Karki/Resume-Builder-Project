@@ -21,7 +21,6 @@ const configuredOrigins = [
 
 app.use(express.json());
 app.use(requestLogger);
-connectDB();
 
 
 const corsOptions: cors.CorsOptions = {
