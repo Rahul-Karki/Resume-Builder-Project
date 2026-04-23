@@ -25,6 +25,14 @@ export default function Compiled() {
   const [templateOverlayOpen, setTemplateOverlayOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 900);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
  
   const showMsg = (message: string) => {
     setToast(message);
@@ -109,7 +117,7 @@ export default function Compiled() {
       <style>{css}</style>
         <div style={{minHeight:"100vh",background:"#080808",color:"#F0EFE8",fontFamily:"'Outfit',sans-serif"}}>
  
-        <nav style={{height:58,background:"#0A0A0A",borderBottom:"1px solid #111",display:"flex",alignItems:"center",padding:"0 28px",gap:24,position:"sticky",top:0,zIndex:40}}>
+        <nav style={{minHeight:58,background:"#0A0A0A",borderBottom:"1px solid #111",display:"flex",alignItems:"center",padding:isMobile ? "8px 12px" : "0 28px",gap:isMobile ? 10 : 24,position:"sticky",top:0,zIndex:40,flexWrap:isMobile ? "wrap" : "nowrap"}}>
           <div style={{fontWeight:800,fontSize:16,letterSpacing:"-0.3px"}}>Resume<span style={{color:"#C8F55A"}}>Studio</span></div>
           <Link
             to="/templates"
@@ -130,9 +138,9 @@ export default function Compiled() {
               Admin
             </Link>
           )}
-          <div style={{flex:1}}/>
+          <div style={{flex:1,minWidth:isMobile ? "100%" : "auto"}}/>
           {!user && (
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,width:isMobile ? "100%" : "auto"}}>
               <Link to="/login" style={{padding:"8px 14px",background:"#111",border:"1px solid #1A1A1A",borderRadius:999,color:"#CFCFCF",fontSize:12,fontWeight:700,textDecoration:"none"}}>
                 Log in
               </Link>
@@ -161,7 +169,7 @@ export default function Compiled() {
           )}
         </nav>
  
-        <div style={{maxWidth:1280,margin:"0 auto",padding:"32px 28px 80px"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",padding:isMobile ? "20px 12px 56px" : "32px 28px 80px"}}>
 
           {authRequired && !loading ? (
             <div style={{display:"grid",placeItems:"center",minHeight:"calc(100vh - 140px)",padding:"24px 0"}}>
@@ -193,7 +201,7 @@ export default function Compiled() {
               {!loading&&resumes.length>0&&(
                 <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24,flexWrap:"wrap"}}>
                   {/* Search */}
-                  <div style={{position:"relative",flex:1,minWidth:200,maxWidth:300}}>
+                  <div style={{position:"relative",flex:1,minWidth:200,maxWidth:isMobile ? "100%" : 300,width:isMobile ? "100%" : "auto"}}>
                     <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#333",pointerEvents:"none"}}>⌕</span>
                     <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search resumes…"
                       style={{width:"100%",padding:"8px 12px 8px 32px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#C8C7C0",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}
@@ -201,9 +209,9 @@ export default function Compiled() {
                     {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:14}}>×</button>}
                   </div>
                   {/* Sort */}
-                  <div style={{position:"relative"}}>
+                  <div style={{position:"relative",width:isMobile ? "100%" : "auto"}}>
                     <button onClick={()=>setSortOpen(o=>!o)}
-                      style={{padding:"8px 14px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#666",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                      style={{padding:"8px 14px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#666",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "space-between" : "flex-start"}}>
                       ⇅ {SORT_OPTS.find(o=>o.v===sortBy)?.l}<span style={{fontSize:10,opacity:0.5}}>▾</span>
                     </button>
                     {sortOpen&&<>
@@ -218,10 +226,10 @@ export default function Compiled() {
                       </div>
                     </>}
                   </div>
-                  <span style={{fontSize:12,color:"#2A2A2A"}}>{displayed.length} result{displayed.length!==1?"s":""}</span>
-                  <div style={{flex:1}}/>
+                  <span style={{fontSize:12,color:"#2A2A2A",width:isMobile ? "100%" : "auto"}}>{displayed.length} result{displayed.length!==1?"s":""}</span>
+                  <div style={{flex:1,minWidth:isMobile ? "100%" : "auto"}}/>
                   <button onClick={()=>setTemplateOverlayOpen(true)}
-                    style={{padding:"9px 20px",background:"#C8F55A",border:"none",borderRadius:9,color:"#0E0E0E",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:7,whiteSpace:"nowrap"}}
+                    style={{padding:"9px 20px",background:"#C8F55A",border:"none",borderRadius:9,color:"#0E0E0E",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:7,whiteSpace:"nowrap",width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "center" : "flex-start"}}
                     onMouseEnter={e=>e.currentTarget.style.opacity="0.88"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
                     + Create Resume
                   </button>
@@ -229,7 +237,7 @@ export default function Compiled() {
               )}
 
               {/* Loading */}
-              {loading&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>{[1,2,3].map(i=><Skeleton key={i}/>)}</div>}
+              {loading&&<div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isMobile ? 220 : 280}px,1fr))`,gap:20}}>{[1,2,3].map(i=><Skeleton key={i}/>)}</div>}
 
               {/* Error */}
               {!loading&&error&&(
@@ -248,7 +256,7 @@ export default function Compiled() {
               {!loading&&!error&&resumes.length>0&&(
                 <>
                   {displayed.length>0?(
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
+                    <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isMobile ? 220 : 280}px,1fr))`,gap:20}}>
                       {displayed.map((resume,i)=>(
                         <Card key={resume.id} resume={resume} delay={i*55}
                           onEdit={id=>{

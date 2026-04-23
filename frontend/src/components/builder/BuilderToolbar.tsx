@@ -22,6 +22,14 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
   const [showTemplates, setShowTemplates] = useState(false);
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 900);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -83,8 +91,9 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
 
   return (
     <header style={{
-      height: 56, background: "#0F0F0F", borderBottom: "1px solid #1E1E1E",
-      display: "flex", alignItems: "center", padding: "0 20px", gap: 16,
+      minHeight: 56, background: "#0F0F0F", borderBottom: "1px solid #1E1E1E",
+      display: "flex", alignItems: "center", padding: isMobile ? "8px 10px" : "0 20px", gap: isMobile ? 10 : 16,
+      flexWrap: isMobile ? "wrap" : "nowrap",
       fontFamily: "'Outfit', sans-serif", position: "relative", zIndex: 40,
       flexShrink: 0,
     }}>
@@ -119,7 +128,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           style={{
             background: "none", border: "none", color: "#888", fontSize: 13,
             fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-            padding: "4px 8px", borderRadius: 6, maxWidth: 200,
+            padding: "4px 8px", borderRadius: 6, maxWidth: isMobile ? 140 : 200,
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
             transition: "color 0.15s", opacity: 1,
           }}
@@ -149,7 +158,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           disabled={isEditingExistingResume}
           style={{
             background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 7,
-            color: "#C8C7C0", fontSize: 12, fontWeight: 600, padding: "5px 12px",
+            color: "#C8C7C0", fontSize: 12, fontWeight: 600, padding: isMobile ? "8px 10px" : "5px 12px",
             cursor: isEditingExistingResume ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
             opacity: isEditingExistingResume ? 0.6 : 1,
           }}
@@ -192,9 +201,9 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
       </div>
 
       {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: 1, minWidth: isMobile ? "100%" : "auto" }} />
 
-      <div style={{ width: 1, height: 24, background: "#2A2A2A" }} />
+      {!isMobile && <div style={{ width: 1, height: 24, background: "#2A2A2A" }} />}
 
       {/* Actions */}
       <button
@@ -203,9 +212,11 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
         title={canDownload ? "Download as PDF" : "Save resume first to enable download"}
         style={{
           background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 7,
-          color: canDownload ? "#C8C7C0" : "#555", fontSize: 13, fontWeight: 600, padding: "7px 14px",
+          color: canDownload ? "#C8C7C0" : "#555", fontSize: 13, fontWeight: 600, padding: isMobile ? "10px 14px" : "7px 14px",
           cursor: canDownload ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           flexShrink: 0,
+          width: isMobile ? "calc(50% - 5px)" : "auto",
+          justifyContent: "center",
           opacity: canDownload ? 1 : 0.7,
         }}
       >
@@ -217,9 +228,11 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
         disabled={ui.isSaving}
         style={{
           background: "#C8F55A", border: "none", borderRadius: 7,
-          color: "#0E0E0E", fontSize: 13, fontWeight: 800, padding: "7px 18px",
+          color: "#0E0E0E", fontSize: 13, fontWeight: 800, padding: isMobile ? "10px 14px" : "7px 18px",
           cursor: ui.isSaving ? "wait" : "pointer", fontFamily: "inherit",
           opacity: ui.isSaving ? 0.7 : 1, flexShrink: 0,
+          width: isMobile ? "calc(50% - 5px)" : "auto",
+          justifyContent: "center",
           display: "flex", alignItems: "center", gap: 6,
         }}
       >

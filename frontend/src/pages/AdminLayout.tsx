@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom"
 import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AdminDashboard } from "./AdminDashboard";
@@ -49,7 +49,7 @@ const GLOBAL_CSS = `
 `;
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
-function TopBar({ page, onLogout }: { page: AdminPage; onLogout: () => Promise<void> }) {
+function TopBar({ page, onLogout, isMobile }: { page: AdminPage; onLogout: () => Promise<void>; isMobile: boolean }) {
   const titles: Record<AdminPage, string> = {
     dashboard: "Dashboard",
     templates: "Template Management",
@@ -61,7 +61,7 @@ function TopBar({ page, onLogout }: { page: AdminPage; onLogout: () => Promise<v
   return (
     <div style={{
       height: 56, background: "#0A0A0A", borderBottom: "1px solid #111",
-      display: "flex", alignItems: "center", padding: "0 32px",
+      display: "flex", alignItems: "center", padding: isMobile ? "0 12px" : "0 32px",
       justifyContent: "space-between", flexShrink: 0,
       fontFamily: "'Outfit', sans-serif",
     }}>
@@ -107,6 +107,14 @@ interface Props {
 
 export default function AdminLayout({ adminName = "Admin User" }: Props) {
   const [page, setPage] = useState<AdminPage>("dashboard");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -122,14 +130,14 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
-      <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#080808" }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", overflow: "hidden", background: "#080808" }}>
 
         {/* Sidebar */}
-        <AdminSidebar activePage={page} onNavigate={setPage} adminName={adminName} />
+        <AdminSidebar activePage={page} onNavigate={setPage} adminName={adminName} isMobile={isMobile} />
 
         {/* Main area */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <TopBar page={page} onLogout={handleLogout} />
+          <TopBar page={page} onLogout={handleLogout} isMobile={isMobile} />
           <div style={{ flex: 1, overflowY: "auto" }}>
             {page === "dashboard" && <AdminDashboard />}
             {page === "templates" && <AdminTemplates />}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { StatsBar } from "../components/admin/StatusBar";
 import { BarChart, AnalyticsRow } from "../components/admin/AnalyticsChart";
@@ -22,7 +22,15 @@ function PeriodBtn({ label, active, onClick }: { label: string; active: boolean;
 export function AdminDashboard() {
   const [period, setPeriod] = useState<7 | 30>(30);
   const [selected, setSelected] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { stats, analytics, loading, error } = useAnalytics(period);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   const publishedAnalytics = useMemo(
     () => analytics.filter((item) => item.status === "published"),
@@ -68,10 +76,10 @@ export function AdminDashboard() {
   );
 
   return (
-    <div style={{ padding: "28px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ padding: isMobile ? "20px 12px" : "28px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 1400, margin: "0 auto" }}>
 
       {/* Page header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 10 : 0 }}>
         <div>
           <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 300, color: "#F0EFE8", letterSpacing: "-0.5px", margin: 0, marginBottom: 4 }}>
             Dashboard
@@ -92,7 +100,7 @@ export function AdminDashboard() {
       )}
 
       {/* Charts section */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
 
         {/* Left: Total usage bar chart */}
         <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "20px 20px 16px" }}>
@@ -135,7 +143,7 @@ export function AdminDashboard() {
 
       {/* Most / Least used highlight cards */}
       {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
           {[
             { label: "Most Used This Week",  data: stats.mostUsed,  accent: "#4ADE80" },
             { label: "Least Used This Week", data: stats.leastUsed, accent: "#F87171" },
@@ -165,10 +173,11 @@ export function AdminDashboard() {
       {/* Full analytics table */}
       <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, overflow: "hidden" }}>
         {/* Table header */}
+        <div style={{ overflowX: "auto" }}>
         <div style={{
           display: "grid", gridTemplateColumns: "32px 1fr 80px 80px 80px 80px",
           gap: 16, padding: "10px 16px",
-          background: "#0A0A0A", borderBottom: "1px solid #1A1A1A",
+          background: "#0A0A0A", borderBottom: "1px solid #1A1A1A", minWidth: 560,
         }}>
           {["#", "Template", "This Week", "This Month", "Trend", "14-day"].map(h => (
             <div key={h} style={{ fontSize: 9.5, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "0.8px", textAlign: h === "#" ? "center" : h === "This Week" || h === "This Month" || h === "Trend" || h === "14-day" ? "right" : "left", fontFamily: "'Outfit', sans-serif" }}>
@@ -180,10 +189,13 @@ export function AdminDashboard() {
         {analytics.length === 0 ? (
           <div style={{ padding: "40px", textAlign: "center", color: "#333", fontSize: 13 }}>No analytics data yet.</div>
         ) : (
-          analytics.map((a, i) => (
-            <AnalyticsRow key={a.templateId} analytics={a} rank={i + 1} />
-          ))
+          <div style={{ minWidth: 560 }}>
+            {analytics.map((a, i) => (
+              <AnalyticsRow key={a.templateId} analytics={a} rank={i + 1} />
+            ))}
+          </div>
         )}
+        </div>
       </div>
     </div>
   );

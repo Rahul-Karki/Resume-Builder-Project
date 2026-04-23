@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // ─── FeaturesSection.tsx ──────────────────────────────────────────────────────
 // Only 3 features — exactly what the product delivers:
@@ -156,11 +156,19 @@ const FEATURES = [
 
 export function FeaturesSection() {
   const [hovered, setHovered] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   return (
     <section style={{
       background: "#080808",
-      padding: "100px 40px",
+      padding: isMobile ? "72px 16px" : "100px 40px",
       borderTop: "1px solid #111",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
@@ -190,10 +198,10 @@ export function FeaturesSection() {
               onMouseLeave={() => setHovered(null)}
               style={{
                 display: "grid",
-                gridTemplateColumns: "64px 1fr 360px",
-                gap: 40,
+                gridTemplateColumns: isMobile ? "1fr" : "64px 1fr 360px",
+                gap: isMobile ? 16 : 40,
                 alignItems: "center",
-                padding: "48px 32px",
+                padding: isMobile ? "20px 14px" : "48px 32px",
                 borderRadius: 16,
                 background: hovered === i ? "#0D0D0D" : "transparent",
                 border: `1px solid ${hovered === i ? "#1E1E1E" : "transparent"}`,
@@ -207,6 +215,7 @@ export function FeaturesSection() {
                 fontSize: 36, fontWeight: 300, color: "#1E1E1E",
                 lineHeight: 1, userSelect: "none",
                 transition: "color 0.25s",
+                display: isMobile ? "none" : "block",
                 ...(hovered === i ? { color: feat.accent } : {}),
               }}>
                 {feat.number}

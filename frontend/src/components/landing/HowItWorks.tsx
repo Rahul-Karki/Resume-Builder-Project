@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 // ─── HowItWorks.tsx ───────────────────────────────────────────────────────────
 // Three-step process: Pick Template → Fill Details → Download
 // Clean numbered layout with connector lines
@@ -69,10 +71,19 @@ const STEPS = [
 ] as const;
 
 export function HowItWorks() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
   return (
     <section style={{
       background: "#060606",
-      padding: "100px 40px",
+      padding: isMobile ? "72px 16px" : "100px 40px",
       borderTop: "1px solid #111",
     }}>
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
@@ -96,7 +107,7 @@ export function HowItWorks() {
         </div>
 
         {/* Steps */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 40px 1fr 40px 1fr", alignItems: "start", gap: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 40px 1fr 40px 1fr", alignItems: "start", gap: 0 }}>
           {STEPS.map((step, i) => (
             <>
               <div
@@ -142,10 +153,10 @@ export function HowItWorks() {
               {i < 2 && (
                 <div key={`arrow-${i}`} style={{
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  height: 120, color: "#252525", fontSize: 20,
+                  height: isMobile ? 42 : 120, color: "#252525", fontSize: 20,
                   fontFamily: "sans-serif",
                 }}>
-                  →
+                  {isMobile ? "↓" : "→"}
                 </div>
               )}
             </>

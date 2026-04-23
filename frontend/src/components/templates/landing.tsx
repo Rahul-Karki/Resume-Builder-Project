@@ -257,7 +257,7 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
  
     /* MODAL */
     .tp-modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.88); display: flex; flex-direction: column; animation: fadein 0.2s ease; backdrop-filter: blur(4px); }
-    .tp-modal-topbar { flex-shrink: 0; height: 68px; background: #0E0E0E; border-bottom: 1px solid #1F1F1F; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; }
+    .tp-modal-topbar { flex-shrink: 0; min-height: 68px; background: #0E0E0E; border-bottom: 1px solid #1F1F1F; display: flex; align-items: center; justify-content: space-between; padding: 8px 32px; gap: 12px; flex-wrap: wrap; }
     .tp-modal-info { display: flex; align-items: center; gap: 14px; }
     .tp-modal-name { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; color: #F0EFE8; }
     .tp-modal-category { font-size: 11px; font-weight: 600; color: #666; background: #1A1A1A; border: 1px solid #252525; padding: "3px 10px"; border-radius: 20px; }
@@ -266,8 +266,8 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     .tp-modal-close:hover { background: #222; color: #F0EFE8; }
     .tp-modal-use-btn { padding: "10px 24px"; background: #C8F55A; color: #0E0E0E; border: none; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
     .tp-modal-use-btn:hover { opacity: 0.88; }
-    .tp-modal-scroll { flex: 1; overflow-y: auto; background: #F5F4F0; }
-    .tp-modal-paper { max-width: 900px; margin: 40px auto; border-radius: 8px; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.4); }
+    .tp-modal-scroll { flex: 1; overflow-y: auto; background: #F5F4F0; min-height: 0; }
+    .tp-modal-paper { width: min(900px, calc(100% - 24px)); max-width: 900px; margin: 24px auto; border-radius: 8px; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.4); }
     .tp-modal-bottom-padding { height: 60px; }
  
     /* ATS section */
@@ -281,7 +281,7 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     .tp-ats-card-body { font-size: 12px; color: #555; line-height: 1.6; }
  
     /* Template nav strip in modal */
-    .tp-modal-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tp-modal-nav { display: flex; gap: 6px; flex-wrap: wrap; max-width: 100%; }
     .tp-modal-nav-btn { padding: "5px 14px"; border-radius: 20px; border: 1px solid #252525; background: #161616; color: #666; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
     .tp-modal-nav-btn.active { background: #F0EFE8; color: #0E0E0E; border-color: #F0EFE8; }
     .tp-modal-nav-btn:hover:not(.active) { border-color: #444; color: #ccc; }
@@ -299,14 +299,34 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
       animation: tp-pulse 1.2s ease-in-out infinite;
     }
  
+    @media (max-width: 1024px) {
+      .tp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0 24px 64px; gap: 18px; }
+      .tp-hero { padding: 66px 24px 44px; }
+      .tp-nav { padding: 0 24px; }
+      .tp-filter { padding: 0 24px 30px; }
+      .tp-modal-topbar { padding: 10px 20px; }
+      .tp-modal-paper { width: min(900px, calc(100% - 20px)); }
+    }
+
     @media (max-width: 768px) {
-      .tp-grid { grid-template-columns: 1fr 1fr; padding: 0 20px 60px; gap: 16px; }
+      .tp-grid { grid-template-columns: 1fr; padding: 0 20px 60px; gap: 16px; }
       .tp-hero { padding: 60px 20px 40px; }
       .tp-nav { padding: 0 20px; }
       .tp-filter { padding: 0 20px 28px; }
       .tp-ats-grid { grid-template-columns: 1fr; }
-      .tp-modal-topbar { padding: 0 16px; }
-      .tp-modal-paper { margin: 20px; }
+      .tp-modal-topbar { padding: 10px 16px; align-items: flex-start; }
+      .tp-modal-nav { width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+      .tp-modal-nav-btn { flex-shrink: 0; }
+      .tp-modal-actions { width: 100%; justify-content: space-between; }
+      .tp-modal-use-btn { width: 100%; justify-content: center; }
+      .tp-modal-paper { width: calc(100% - 12px); margin: 12px auto; border-radius: 6px; }
+    }
+
+    @media (max-width: 480px) {
+      .tp-nav { height: auto; min-height: 56px; padding: 8px 12px; }
+      .tp-nav-cta { width: 100%; text-align: center; }
+      .tp-hero-h1 { letter-spacing: -1.3px; }
+      .tp-card-thumb { height: 280px; }
     }`
  
 // ═══════════════════════════════════════════════════════════════

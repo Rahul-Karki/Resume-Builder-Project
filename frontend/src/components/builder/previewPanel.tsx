@@ -14,6 +14,7 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
   const previewRef = useRef<HTMLDivElement>(null);
   const scaleOptions: PreviewScale[] = [0.5, 0.6, 0.7, 0.75, 0.85, 1];
   const scaleIndex = scaleOptions.indexOf(scale);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 900;
 
   // A4 dimensions in px at 96dpi
   const A4_W = 794;
@@ -29,8 +30,9 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
     }}>
       {/* Preview toolbar */}
       <div style={{
-        height: 40, background: "#0F0F0F", borderBottom: "1px solid #1A1A1A",
-        display: "flex", alignItems: "center", padding: "0 16px", gap: 12,
+        minHeight: 40, background: "#0F0F0F", borderBottom: "1px solid #1A1A1A",
+        display: "flex", alignItems: "center", padding: isMobile ? "6px 10px" : "0 16px", gap: 12,
+        flexWrap: isMobile ? "wrap" : "nowrap",
         fontFamily: "'Outfit', sans-serif", flexShrink: 0,
       }}>
         <span style={{ fontSize: 11, color: "#444", fontWeight: 500 }}>LIVE PREVIEW</span>
@@ -81,7 +83,7 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
       </div>
 
       {/* Preview scroll area */}
-      <div style={{ flex: 1, overflow: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "32px 24px" }}>
+      <div style={{ flex: 1, overflow: "auto", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: isMobile ? "14px 8px" : "32px 24px" }}>
         <div style={{ position: "relative" }}>
           {/* Page shadow */}
           <div style={{

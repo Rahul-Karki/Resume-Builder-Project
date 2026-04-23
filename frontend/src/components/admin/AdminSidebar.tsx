@@ -4,30 +4,32 @@ interface Props {
   activePage: AdminPage;
   onNavigate: (page: AdminPage) => void;
   adminName:  string;
+  isMobile?: boolean;
 }
 
-export function AdminSidebar({ activePage, onNavigate, adminName }: Props) {
+export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = false }: Props) {
   return (
     <aside style={{
-      width: 220, flexShrink: 0,
+      width: isMobile ? "100%" : 220, flexShrink: 0,
       background: "#0A0A0A",
-      borderRight: "1px solid #141414",
+      borderRight: isMobile ? "none" : "1px solid #141414",
+      borderBottom: isMobile ? "1px solid #141414" : "none",
       display: "flex", flexDirection: "column",
-      height: "100vh", position: "sticky", top: 0,
+      height: isMobile ? "auto" : "100vh", position: isMobile ? "relative" : "sticky", top: 0,
       fontFamily: "'Outfit', sans-serif",
     }}>
       {/* Logo */}
-      <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #141414" }}>
+      <div style={{ padding: isMobile ? "10px 12px" : "20px 20px 16px", borderBottom: "1px solid #141414" }}>
         <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: "-0.3px", color: "#F0EFE8" }}>
           Resume<span style={{ color: "#C8F55A" }}>Studio</span>
         </div>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", marginTop: 4, textTransform: "uppercase", letterSpacing: "1.5px" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", marginTop: 4, textTransform: "uppercase", letterSpacing: "1.5px", display: isMobile ? "none" : "block" }}>
           Admin Panel
         </div>
       </div>
 
       {/* Nav items */}
-      <nav style={{ padding: "12px 10px", flex: 1 }}>
+      <nav style={{ padding: isMobile ? "8px 8px" : "12px 10px", flex: 1, display: "flex", gap: 6, overflowX: isMobile ? "auto" : "visible", whiteSpace: isMobile ? "nowrap" : "normal", scrollbarWidth: "none" }}>
         {NAV_ITEMS.map(item => {
           const active = activePage === item.id;
           return (
@@ -35,14 +37,15 @@ export function AdminSidebar({ activePage, onNavigate, adminName }: Props) {
               key={item.id}
               onClick={() => onNavigate(item.id)}
               style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: "9px 12px", borderRadius: 8, border: "none",
+                width: isMobile ? "auto" : "100%", display: "flex", alignItems: "center", gap: 10,
+                padding: isMobile ? "11px 12px" : "9px 12px", borderRadius: 8, border: "none",
                 background: active ? "#161616" : "transparent",
                 color: active ? "#F0EFE8" : "#444",
                 fontSize: 13, fontWeight: active ? 600 : 400,
-                cursor: "pointer", fontFamily: "inherit", marginBottom: 2,
+                cursor: "pointer", fontFamily: "inherit", marginBottom: isMobile ? 0 : 2,
                 transition: "all 0.15s",
                 borderLeft: active ? "2px solid #C8F55A" : "2px solid transparent",
+                flexShrink: 0,
               }}
               onMouseEnter={e => { if (!active) e.currentTarget.style.color = "#888"; }}
               onMouseLeave={e => { if (!active) e.currentTarget.style.color = "#444"; }}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAdminTemplates } from "../hooks/useAdminTemplate";
 import { TemplateCard } from "../components/admin/TemplateCard";
 import { TemplateFormModal } from "../components/admin/TemplateFormModal";
@@ -23,6 +23,14 @@ export function AdminTemplates() {
   const [modalMode,      setModalMode]      = useState<"create" | "edit" | null>(null);
   const [editTarget,     setEditTarget]     = useState<AdminTemplate | null>(null);
   const [previewTarget,   setPreviewTarget]  = useState<AdminTemplate | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   const openCreate = () => { setEditTarget(null);   setModalMode("create"); };
   const openEdit   = (t: AdminTemplate) => { setEditTarget(t); setModalMode("edit"); };
@@ -62,10 +70,10 @@ export function AdminTemplates() {
   };
 
   return (
-    <div style={{ padding: "28px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 1400, margin: "0 auto" }}>
+    <div style={{ padding: isMobile ? "20px 12px" : "28px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 1400, margin: "0 auto" }}>
 
       {/* Page header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0 }}>
         <div>
           <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 300, color: "#F0EFE8", letterSpacing: "-0.5px", margin: 0, marginBottom: 4 }}>
             Templates
@@ -90,9 +98,9 @@ export function AdminTemplates() {
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
         {/* Search */}
-        <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: 280 }}>
+        <div style={{ position: "relative", flex: 1, minWidth: 200, maxWidth: isMobile ? "100%" : 280, width: isMobile ? "100%" : "auto" }}>
           <span style={{ position: "absolute", left: 11, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#333", pointerEvents: "none" }}>⌕</span>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates…"
             style={{ width: "100%", padding: "7px 12px 7px 30px", background: "#111", border: "1px solid #1A1A1A", borderRadius: 8, color: "#C8C7C0", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
@@ -125,7 +133,7 @@ export function AdminTemplates() {
           ))}
         </select>
 
-        <span style={{ fontSize: 12, color: "#2A2A2A", marginLeft: "auto" }}>
+        <span style={{ fontSize: 12, color: "#2A2A2A", marginLeft: isMobile ? 0 : "auto" }}>
           {filtered.length} result{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -202,13 +210,13 @@ export function AdminTemplates() {
             position: "fixed", inset: 0, zIndex: 180,
             background: "rgba(0,0,0,0.92)", backdropFilter: "blur(12px)",
             display: "flex", alignItems: "flex-start", justifyContent: "center",
-            padding: 24,
+            padding: isMobile ? 10 : 24,
             overflow: "auto",
           }}
         >
-          <div style={{ width: "100%", maxWidth: 1100, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)", marginTop: 24 }}>
+          <div style={{ width: "100%", maxWidth: 1100, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)", marginTop: isMobile ? 8 : 24 }}>
             {/* Header with gradient background */}
-            <div style={{ background: "linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.02) 100%), #0D0D0D", borderBottom: "1.5px solid #1E1E1E", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 28px", position: "sticky", top: 0, zIndex: 10 }}>
+            <div style={{ background: "linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.02) 100%), #0D0D0D", borderBottom: "1.5px solid #1E1E1E", display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "14px 12px" : "24px 28px", position: "sticky", top: 0, zIndex: 10, gap: 12 }}>
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: "#F0EFE8", letterSpacing: "-0.5px" }}>{previewTarget.name}</div>
                 <div style={{ fontSize: 12, color: "#8AA0FF", marginTop: 6, fontWeight: 500 }}>
@@ -224,9 +232,9 @@ export function AdminTemplates() {
                 ×
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", minHeight: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "320px 1fr", minHeight: "auto" }}>
               {/* Sidebar */}
-              <div style={{ padding: 28, borderRight: "1.5px solid #1A1A1A", background: "linear-gradient(180deg, #0F0F0F 0%, #0A0A0A 100%)", maxHeight: "calc(100vh - 160px)", overflow: "auto" }}>
+              <div style={{ padding: isMobile ? 14 : 28, borderRight: isMobile ? "none" : "1.5px solid #1A1A1A", borderBottom: isMobile ? "1.5px solid #1A1A1A" : "none", background: "linear-gradient(180deg, #0F0F0F 0%, #0A0A0A 100%)", maxHeight: isMobile ? "none" : "calc(100vh - 160px)", overflow: "auto" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "#C8F55A", textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: 20 }}>✨ Template Details</div>
                 <div style={{ display: "grid", gap: 16 }}>
                   <InfoRow label="Status" value={previewTarget.status} />
@@ -239,8 +247,8 @@ export function AdminTemplates() {
                 </div>
               </div>
               {/* Preview */}
-              <div style={{ overflow: "auto", background: "linear-gradient(135deg, #080808 0%, #050505 100%)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: 32, maxHeight: "calc(100vh - 160px)" }}>
-                <div style={{ width: 794, height: 1123, minHeight: 1123, boxShadow: "0 40px 100px rgba(0,0,0,0.9), inset 0 0 1px rgba(200,245,90,0.1)", borderRadius: 12, overflow: "hidden", background: "#fff", flexShrink: 0, border: "1px solid rgba(200,245,90,0.05)" }}>
+              <div style={{ overflow: "auto", background: "linear-gradient(135deg, #080808 0%, #050505 100%)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: isMobile ? 12 : 32, maxHeight: isMobile ? "70vh" : "calc(100vh - 160px)" }}>
+                <div style={{ width: isMobile ? "100%" : 794, maxWidth: "100%", height: isMobile ? "auto" : 1123, minHeight: isMobile ? "auto" : 1123, boxShadow: "0 40px 100px rgba(0,0,0,0.9), inset 0 0 1px rgba(200,245,90,0.1)", borderRadius: 12, overflow: "hidden", background: "#fff", flexShrink: 0, border: "1px solid rgba(200,245,90,0.05)" }}>
                   <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
                 </div>
               </div>

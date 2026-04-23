@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from "react";
+import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
@@ -161,6 +161,7 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
 export default function ResumeBuilder() {
   const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(false);
   const searchParams = new URLSearchParams(window.location.search);
   const isEditingExistingResume = Boolean(searchParams.get("resume"));
   const canDownload = isEditingExistingResume
@@ -215,11 +216,18 @@ export default function ResumeBuilder() {
     void downloadResume(resume, ui.exportPreset, resumeId);
   };
 
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 1100);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=EB+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@300;400;700&family=Lora:wght@400;600&family=Source+Serif+4:wght@300;400;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
-    body { background: #0A0A0A; overflow: hidden; }
+    body { background: #0A0A0A; overflow-x: hidden; }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: #0A0A0A; }
     ::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 2px; }
@@ -231,7 +239,7 @@ export default function ResumeBuilder() {
   return (
     <>
       <style>{css}</style>
-      <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0A0A0A", overflow: "hidden" }}>
+      <div style={{ display: "flex", flexDirection: "column", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#0A0A0A", overflow: isMobile ? "visible" : "hidden" }}>
         {/* Top Toolbar */}
         <BuilderToolbar
           onDownload={handleDownload}
@@ -242,7 +250,7 @@ export default function ResumeBuilder() {
         {/* Error toast */}
         {ui.saveError && (
           <div style={{
-            position: "fixed", top: 64, right: 20, background: "#7F1D1D", color: "#FCA5A5",
+            position: "fixed", top: 64, right: isMobile ? 12 : 20, left: isMobile ? 12 : "auto", background: "#7F1D1D", color: "#FCA5A5",
             padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
             fontFamily: "'Outfit', sans-serif", zIndex: 100, border: "1px solid #991B1B",
           }}>
@@ -251,12 +259,12 @@ export default function ResumeBuilder() {
         )}
 
         {/* Main 3-column layout */}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <div style={{ display: "flex", flex: 1, overflow: "hidden", flexDirection: isMobile ? "column" : "row" }}>
 
           {/* ─── LEFT PANEL: Editor / Style / Sections ─── */}
           <div style={{
-            width: 360, flexShrink: 0, display: "flex", flexDirection: "column",
-            background: "#0F0F0F", borderRight: "1px solid #1E1E1E",
+            width: isMobile ? "100%" : 360, maxHeight: isMobile ? "50vh" : "none", flexShrink: 0, display: "flex", flexDirection: "column",
+            background: "#0F0F0F", borderRight: isMobile ? "none" : "1px solid #1E1E1E", borderBottom: isMobile ? "1px solid #1E1E1E" : "none",
           }}>
             {/* Tab switcher */}
             <div style={{
@@ -309,7 +317,7 @@ export default function ResumeBuilder() {
           </div>
 
           {/* ─── RIGHT PANEL: Live Preview ─── */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+          <div style={{ flex: 1, minHeight: isMobile ? "50vh" : "auto", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
             {/* Preview panel with inner ID for export */}
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <div id="resume-preview-inner" style={{ display: "none" }}>

@@ -175,8 +175,16 @@ const renderThumb = (id: string, primary: string, secondary: string) => {
 export function TemplatesPreview() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [templates, setTemplates] = useState<LandingTemplate[]>(FALLBACK_TEMPLATES);
+  const [isMobile, setIsMobile] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const templateCountLabel = `${templates.length} ${templates.length === 1 ? "layout" : "layouts"}`;
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 900);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -223,12 +231,12 @@ export function TemplatesPreview() {
   return (
     <section style={{
       background: "#080808",
-      padding: "100px 0",
+      padding: isMobile ? "72px 0" : "100px 0",
       borderTop: "1px solid #111",
       overflow: "hidden",
     }}>
       {/* Header */}
-      <div style={{ maxWidth: 1200, margin: "0 auto 52px", padding: "0 40px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 20 }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto 52px", padding: isMobile ? "0 16px" : "0 40px", display: "flex", alignItems: isMobile ? "stretch" : "flex-end", justifyContent: "space-between", gap: 20, flexDirection: isMobile ? "column" : "row" }}>
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#333", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 14, fontFamily: "'Outfit', sans-serif" }}>
             Templates
@@ -239,7 +247,7 @@ export function TemplatesPreview() {
           </h2>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0, alignSelf: isMobile ? "flex-start" : "auto" }}>
           {["←", "→"].map((arrow, i) => (
             <button key={arrow} onClick={() => scroll(i === 0 ? "left" : "right")}
               style={{
@@ -272,7 +280,7 @@ export function TemplatesPreview() {
         style={{
           display: "flex", gap: 16,
           overflowX: "auto", overflowY: "visible",
-          padding: "8px 40px 32px",
+          padding: isMobile ? "8px 16px 24px" : "8px 40px 32px",
           scrollbarWidth: "none",
           scrollSnapType: "x mandatory",
         }}

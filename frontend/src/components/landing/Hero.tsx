@@ -179,6 +179,14 @@ function LiveMockup() {
 
 export function HeroSection() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
 
   useEffect(() => {
     const syncAuth = () => setIsAuthenticated(Boolean(localStorage.getItem("accessToken")));
@@ -196,7 +204,7 @@ export function HeroSection() {
       minHeight: "100vh",
       background: "#080808",
       display: "flex", alignItems: "center",
-      padding: "80px 40px 60px",
+      padding: isMobile ? "88px 16px 44px" : "80px 40px 60px",
       position: "relative",
       overflow: "hidden",
     }}>
@@ -216,10 +224,11 @@ export function HeroSection() {
 
       <div style={{
         maxWidth: 1200, margin: "0 auto", width: "100%",
-        display: "flex", alignItems: "center", gap: 80,
+        display: "flex", alignItems: "center", gap: isMobile ? 30 : 80,
+        flexDirection: isMobile ? "column" : "row",
       }}>
         {/* Left: copy */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, width: "100%", textAlign: isMobile ? "center" : "left" }}>
           {/* Eyebrow */}
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 8,
@@ -252,12 +261,14 @@ export function HeroSection() {
           <p style={{
             fontSize: 16, color: "#555", lineHeight: 1.7, maxWidth: 480,
             marginBottom: 36, fontFamily: "'Outfit', sans-serif", fontWeight: 300,
+            marginLeft: isMobile ? "auto" : 0,
+            marginRight: isMobile ? "auto" : 0,
           }}>
             Build your resume with clean templates and style every detail — colors, fonts, spacing — exactly how you want.
           </p>
 
           {/* Feature pills */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 40 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 40, justifyContent: isMobile ? "center" : "flex-start" }}>
             {[
               "✓ Clean Template Layouts",
               "✓ Live Preview",
@@ -275,7 +286,7 @@ export function HeroSection() {
           </div>
 
           {/* CTAs */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: isMobile ? "center" : "flex-start" }}>
             <Link
               to="/templates"
               style={{
@@ -309,7 +320,7 @@ export function HeroSection() {
         </div>
 
         {/* Right: animated mockup */}
-        <div style={{ flexShrink: 0, width: 420, display: "flex", justifyContent: "center" }}>
+        <div style={{ flexShrink: 0, width: isMobile ? "100%" : 420, maxWidth: 420, display: "flex", justifyContent: "center" }}>
           <LiveMockup />
         </div>
       </div>
