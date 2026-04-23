@@ -176,6 +176,9 @@ export function TemplatesPreview() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [templates, setTemplates] = useState<LandingTemplate[]>(FALLBACK_TEMPLATES);
   const [isMobile, setIsMobile] = useState(false);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState("Loading templates...");
+  const [loadError, setLoadError] = useState<string | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const templateCountLabel = `${templates.length} ${templates.length === 1 ? "layout" : "layouts"}`;
 
@@ -190,8 +193,24 @@ export function TemplatesPreview() {
     let mounted = true;
 
     const fetchTemplates = async () => {
+      const retryDelaysMs = [0, 1500, 3000, 5000];
+      let lastError: unknown = null;
+
+      for (let attempt = 0; attempt < retryDelaysMs.length; attempt += 1) {
+        if (!mounted) return;
+
+        setLoadingTemplates(true);
+        setLoadError(null);
+        setLoadingMessage(attempt === 0 ? "Loading templates..." : `Server is waking up... retrying (${attempt}/${retryDelaysMs.length - 1})`);
+
+        if (retryDelaysMs[attempt] > 0) {
+          await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]));
+        }
+
+        if (!mounted) return;
+
       try {
-        const response = await api.get("/templates");
+        const response = await api.get("/templates", { timeout: 35000 });
         const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
 
         const mapped: LandingTemplate[] = rows.map((row: any) => {
@@ -210,9 +229,17 @@ export function TemplatesPreview() {
 
         if (!mounted || mapped.length === 0) return;
         setTemplates(mapped);
+        setLoadingTemplates(false);
+        return;
       } catch {
-        // Keep fallback templates when API is unavailable.
+        lastError = true;
       }
+      }
+
+      if (!mounted) return;
+
+      setLoadingTemplates(false);
+      setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
     };
 
     void fetchTemplates();
@@ -274,6 +301,58 @@ export function TemplatesPreview() {
         </div>
       </div>
 
+      {loadError && (
+        <div style={{ maxWidth: 1200, margin: "0 auto 16px", padding: isMobile ? "0 16px" : "0 40px", color: "#fda4af", fontSize: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span>{loadError}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setLoadError(null);
+              setLoadingTemplates(true);
+              setLoadingMessage("Loading templates...");
+              void (async () => {
+                try {
+                  const response = await api.get("/templates", { timeout: 35000 });
+                  const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
+                  const mapped: LandingTemplate[] = rows.map((row: any) => {
+                    const accent = row.cssVars?.accentColor ?? "#1a1a1a";
+                    return {
+                      id: String(row.layoutId ?? "classic"),
+                      name: String(row.name ?? "Template"),
+                      tag: String(row.tag ?? "General"),
+                      category: String(row.category ?? "Professional"),
+                      accent,
+                      primary: row.cssVars?.headingColor ?? accent,
+                      secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
+                      desc: String(row.description ?? "Clean resume template."),
+                    };
+                  });
+
+                  if (mapped.length > 0) {
+                    setTemplates(mapped);
+                  }
+                } catch {
+                  setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
+                } finally {
+                  setLoadingTemplates(false);
+                }
+              })();
+            }}
+            style={{
+              padding: "8px 14px",
+              borderRadius: 10,
+              border: "1px solid #fda4af55",
+              background: "transparent",
+              color: "#fecdd3",
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            Retry Now
+          </button>
+        </div>
+      )}
+
       {/* Scrolling row */}
       <div
         ref={rowRef}
@@ -285,6 +364,12 @@ export function TemplatesPreview() {
           scrollSnapType: "x mandatory",
         }}
       >
+        {loadingTemplates && (
+          <div style={{ width: "100%", minHeight: 320, display: "grid", placeItems: "center", color: "#666", fontSize: 13 }}>
+            {loadingMessage}
+          </div>
+        )}
+
         {templates.map((t, i) => {
           const isHov = hovered === t.id;
           return (
