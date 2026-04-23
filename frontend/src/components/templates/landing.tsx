@@ -345,33 +345,17 @@ export default function TemplatesPage() {
  
   const previewTemplate = templates.find(t => t.id === previewId);
 
-  const handleUseTemplate = (templateId: string) => {
-    const token = localStorage.getItem("accessToken");
-    const destination = `/builder?template=${templateId}`;
+  const fetchTemplatesWithRetry = async () => {
+    const retryDelaysMs = [0, 1500, 3000, 5000];
+    let lastError: unknown = null;
 
-    if (!token) {
-      navigate(`/login?redirect=${encodeURIComponent(destination)}`);
-      return;
-    }
+    for (let attempt = 0; attempt < retryDelaysMs.length; attempt += 1) {
+      if (retryDelaysMs[attempt] > 0) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]));
+      }
 
-    navigate(destination);
-  };
- 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchTemplates = async () => {
       try {
-        setLoadingTemplates(true);
-        setLoadError(null);
-
-        const response = await api.get("/templates");
+        const response = await api.get("/templates", { timeout: 35000 });
         const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
 
         const mapped: TemplateMeta[] = rows.map((row: any) => {
@@ -399,19 +383,55 @@ export default function TemplatesPage() {
           };
         });
 
-        if (!mounted) return;
-
-        setTemplates(mapped);
-      } catch {
-        if (!mounted) return;
-        setLoadError("Could not load public templates from database.");
-        setTemplates([]);
-      } finally {
-        if (mounted) setLoadingTemplates(false);
+        return mapped;
+      } catch (error) {
+        lastError = error;
       }
-    };
+    }
 
-    fetchTemplates();
+    throw lastError;
+  };
+
+  const loadTemplatesData = async () => {
+    setLoadingTemplates(true);
+    setLoadError(null);
+
+    try {
+      const mapped = await fetchTemplatesWithRetry();
+      setTemplates(mapped);
+    } catch {
+      setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
+      setTemplates([]);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleUseTemplate = (templateId: string) => {
+    const token = localStorage.getItem("accessToken");
+    const destination = `/builder?template=${templateId}`;
+
+    if (!token) {
+      navigate(`/login?redirect=${encodeURIComponent(destination)}`);
+      return;
+    }
+
+    navigate(destination);
+  };
+ 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    void (async () => {
+      await loadTemplatesData();
+      if (!mounted) return;
+    })();
 
     return () => {
       mounted = false;
@@ -466,8 +486,23 @@ export default function TemplatesPage() {
  
         {/* GRID */}
         {loadError && (
-          <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 40px 24px", color: "#fda4af", fontSize: 14 }}>
-            {loadError}
+          <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 40px 24px", color: "#fda4af", fontSize: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <span>{loadError}</span>
+            <button
+              type="button"
+              onClick={() => { void loadTemplatesData(); }}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 10,
+                border: "1px solid #fda4af55",
+                background: "transparent",
+                color: "#fecdd3",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              Retry Now
+            </button>
           </div>
         )}
 
