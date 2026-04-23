@@ -337,6 +337,7 @@ export default function TemplatesPage() {
   const skeletonItems = Array.from({ length: 6 }, (_, index) => index);
   const [templates, setTemplates] = useState<TemplateMeta[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState("Loading templates...");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -350,6 +351,12 @@ export default function TemplatesPage() {
     let lastError: unknown = null;
 
     for (let attempt = 0; attempt < retryDelaysMs.length; attempt += 1) {
+      if (attempt === 0) {
+        setLoadingMessage("Loading templates...");
+      } else {
+        setLoadingMessage(`Server is waking up... retrying (${attempt}/${retryDelaysMs.length - 1})`);
+      }
+
       if (retryDelaysMs[attempt] > 0) {
         await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[attempt]));
       }
@@ -394,6 +401,7 @@ export default function TemplatesPage() {
 
   const loadTemplatesData = async () => {
     setLoadingTemplates(true);
+    setLoadingMessage("Loading templates...");
     setLoadError(null);
 
     try {
@@ -509,6 +517,9 @@ export default function TemplatesPage() {
         <div className="tp-grid">
           {loadingTemplates && (
             <>
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "#666", fontSize: 13, marginBottom: 8 }}>
+                {loadingMessage}
+              </div>
               {skeletonItems.map((item) => (
                 <div key={item} className="tp-card" aria-hidden="true">
                   <div className="tp-card-thumb">
