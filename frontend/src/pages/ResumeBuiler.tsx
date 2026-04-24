@@ -99,14 +99,10 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
     }
   }
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-
-  // Import fonts and render resume HTML
   const content = document.getElementById("resume-preview-inner");
   if (!content) return;
 
-  printWindow.document.write(`
+  const printHtml = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -147,7 +143,79 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
       <div class="pdf-page">${content.innerHTML}</div>
     </body>
     </html>
-  `);
+  `;
+
+  const printedViaFrame = await new Promise<boolean>((resolve) => {
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.right = "0";
+    frame.style.bottom = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.opacity = "0";
+    frame.style.pointerEvents = "none";
+
+    let done = false;
+    const finish = (result: boolean) => {
+      if (done) return;
+      done = true;
+      window.setTimeout(() => frame.remove(), 1000);
+      resolve(result);
+    };
+
+    const safetyTimer = window.setTimeout(() => finish(false), 6500);
+
+    frame.addEventListener("load", () => {
+      const targetWindow = frame.contentWindow;
+      if (!targetWindow) {
+        window.clearTimeout(safetyTimer);
+        finish(false);
+        return;
+      }
+
+      const attemptPrint = () => {
+        try {
+          targetWindow.focus();
+          targetWindow.print();
+          window.clearTimeout(safetyTimer);
+          finish(true);
+        } catch {
+          window.clearTimeout(safetyTimer);
+          finish(false);
+        }
+      };
+
+      const fonts = targetWindow.document?.fonts;
+      if (fonts?.ready) {
+        fonts.ready.then(() => window.setTimeout(attemptPrint, 120)).catch(() => window.setTimeout(attemptPrint, 120));
+      } else {
+        window.setTimeout(attemptPrint, 180);
+      }
+    }, { once: true });
+
+    document.body.appendChild(frame);
+
+    const frameDoc = frame.contentDocument;
+    if (frameDoc) {
+      frameDoc.open();
+      frameDoc.write(printHtml);
+      frameDoc.close();
+    } else {
+      frame.srcdoc = printHtml;
+    }
+  });
+
+  if (printedViaFrame) {
+    return;
+  }
+
+  const printWindow = window.open("", "_blank", "noopener,noreferrer");
+  if (!printWindow) {
+    window.alert("Could not open print dialog. Please allow popups for this site or disable popup-blocking extensions, then try again.");
+    return;
+  }
+
+  printWindow.document.write(printHtml);
 
   printWindow.document.close();
   printWindow.focus();

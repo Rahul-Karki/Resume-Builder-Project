@@ -1,4 +1,4 @@
-import { JSX, useEffect, useState } from "react";
+import { JSX, useEffect, useMemo, useRef, useState } from "react";
 import { ResumeDocument, ResumeStyle, SectionVisibility } from "@/types/resume-types";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { sampleData } from "@/data/sampleData";
@@ -342,11 +342,30 @@ export default function TemplatesPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get("preview"));
+  const [activePreviewId, setActivePreviewId] = useState<string | null>(() => searchParams.get("preview"));
+  const [isPreviewSwitching, setIsPreviewSwitching] = useState<boolean>(() => Boolean(searchParams.get("preview")));
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const initialPreviewParam = searchParams.get("preview");
+  const previewSwitchTimerRef = useRef<number | null>(null);
+  const previewSwitchRafRef = useRef<number | null>(null);
  
-  const previewTemplate = templates.find(t => t.id === previewId);
+  const previewTemplate = templates.find(t => t.id === activePreviewId);
+  const previewSample = useMemo(() => {
+    if (!previewTemplate) return null;
+    return buildPreviewSample(previewTemplate);
+  }, [previewTemplate]);
+
+  const clearPreviewSwitchHandles = () => {
+    if (previewSwitchRafRef.current !== null) {
+      window.cancelAnimationFrame(previewSwitchRafRef.current);
+      previewSwitchRafRef.current = null;
+    }
+    if (previewSwitchTimerRef.current !== null) {
+      window.clearTimeout(previewSwitchTimerRef.current);
+      previewSwitchTimerRef.current = null;
+    }
+  };
 
   const fetchTemplatesWithRetry = async () => {
     const retryDelaysMs = [0, 1500, 3000, 5000];
@@ -430,6 +449,12 @@ export default function TemplatesPage() {
   };
 
   const handlePreviewSelect = (templateId: string) => {
+    if (templateId === previewId) return;
+
+    clearPreviewSwitchHandles();
+    setIsPreviewSwitching(true);
+    setActivePreviewId(null);
+
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("preview", templateId);
     setSearchParams(nextParams, { replace: true });
@@ -488,6 +513,30 @@ export default function TemplatesPage() {
     nextParams.delete("preview");
     setSearchParams(nextParams, { replace: true });
   }, [loadingTemplates, previewId, searchParams, setSearchParams, templates]);
+
+  useEffect(() => {
+    clearPreviewSwitchHandles();
+
+    if (!previewId) {
+      setActivePreviewId(null);
+      setIsPreviewSwitching(false);
+      return;
+    }
+
+    setIsPreviewSwitching(true);
+    setActivePreviewId(null);
+
+    previewSwitchRafRef.current = window.requestAnimationFrame(() => {
+      setActivePreviewId(previewId);
+      previewSwitchTimerRef.current = window.setTimeout(() => {
+        setIsPreviewSwitching(false);
+      }, 140);
+    });
+
+    return () => {
+      clearPreviewSwitchHandles();
+    };
+  }, [previewId]);
  
   const categories = ["All", ...Array.from(new Set(templates.map(t => t.category)))];
   const filtered = templates.filter(t => activeCategory === "All" || t.category === activeCategory);
@@ -499,7 +548,10 @@ export default function TemplatesPage() {
         {/* NAV */}
         <nav className={`tp-nav${scrolled ? " scrolled" : ""}`}>
           <div className="tp-logo">Resume<em>Studio</em></div>
-          < Link to="/resumes" className="tp-nav-cta">My Resume</Link>
+          <div className="tp-nav-links">
+            <Link to="/templates" className="tp-nav-link active">Templates</Link>
+            <Link to="/resumes" className="tp-nav-link">My Resumes</Link>
+          </div>
         </nav>
  
         {/* HERO */}
@@ -654,12 +706,15 @@ export default function TemplatesPage() {
         </div>
  
         {/* PREVIEW MODAL */}
-        {previewId && (previewTemplate || loadingTemplates) && (
+        {previewId && (previewTemplate || loadingTemplates || isPreviewSwitching) && (
           <div
             className="tp-modal-overlay"
             onClick={e => {
               if (e.target !== e.currentTarget) return;
+              clearPreviewSwitchHandles();
               setPreviewId(null);
+              setActivePreviewId(null);
+              setIsPreviewSwitching(false);
               const nextParams = new URLSearchParams(searchParams);
               nextParams.delete("preview");
               setSearchParams(nextParams, { replace: true });
@@ -700,7 +755,10 @@ export default function TemplatesPage() {
                 <button
                   className="tp-modal-close"
                   onClick={() => {
+                    clearPreviewSwitchHandles();
                     setPreviewId(null);
+                    setActivePreviewId(null);
+                    setIsPreviewSwitching(false);
                     const nextParams = new URLSearchParams(searchParams);
                     nextParams.delete("preview");
                     setSearchParams(nextParams, { replace: true });
@@ -713,7 +771,7 @@ export default function TemplatesPage() {
  
             {/* Full resume render */}
             <div className="tp-modal-scroll">
-              {previewTemplate ? (
+              {previewTemplate && previewSample && !isPreviewSwitching ? (
                 <>
                   {/* Template info strip */}
                   <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -731,7 +789,7 @@ export default function TemplatesPage() {
                   </div>
 
                   <div className="tp-modal-paper">
-                    <ResumeRenderer resume={buildPreviewSample(previewTemplate)} />
+                    <ResumeRenderer resume={previewSample} />
                   </div>
                   <div className="tp-modal-bottom-padding" />
                 </>
