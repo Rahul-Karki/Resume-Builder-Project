@@ -341,7 +341,7 @@ export default function TemplatesPage() {
   const [loadingMessage, setLoadingMessage] = useState("Loading templates...");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState("All");
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get("preview"));
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const initialPreviewParam = searchParams.get("preview");
@@ -430,10 +430,10 @@ export default function TemplatesPage() {
   };
 
   const handlePreviewSelect = (templateId: string) => {
-    setPreviewId(templateId);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("preview", templateId);
     setSearchParams(nextParams, { replace: true });
+    setPreviewId(templateId);
   };
  
   useEffect(() => {
@@ -475,6 +475,19 @@ export default function TemplatesPage() {
       setPreviewId(initialPreviewParam);
     }
   }, [initialPreviewParam, previewId, templates]);
+
+  useEffect(() => {
+    if (!previewId || loadingTemplates || templates.length === 0) return;
+
+    const hasPreviewTemplate = templates.some((template) => template.id === previewId);
+    if (hasPreviewTemplate) return;
+
+    // Selected template was removed or unpublished; clear stale modal state and URL param.
+    setPreviewId(null);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("preview");
+    setSearchParams(nextParams, { replace: true });
+  }, [loadingTemplates, previewId, searchParams, setSearchParams, templates]);
  
   const categories = ["All", ...Array.from(new Set(templates.map(t => t.category)))];
   const filtered = templates.filter(t => activeCategory === "All" || t.category === activeCategory);
@@ -641,7 +654,7 @@ export default function TemplatesPage() {
         </div>
  
         {/* PREVIEW MODAL */}
-        {previewId && previewTemplate && (
+        {previewId && (previewTemplate || loadingTemplates) && (
           <div
             className="tp-modal-overlay"
             onClick={e => {
@@ -669,17 +682,21 @@ export default function TemplatesPage() {
                 </div>
               </div>
               <div className="tp-modal-actions">
-                <button
-                  onClick={() => {
-                    if (!previewId) return;
-                    handleUseTemplate(previewId);
-                  }}
-                  className="tp-modal-use-btn"
-                  style={{ padding: "10px 24px" }}
-                >
-                  <span>Use This Template</span>
-                  <span>→</span>
-                </button>
+                {previewTemplate ? (
+                  <button
+                    onClick={() => {
+                      if (!previewId) return;
+                      handleUseTemplate(previewId);
+                    }}
+                    className="tp-modal-use-btn"
+                    style={{ padding: "10px 24px" }}
+                  >
+                    <span>Use This Template</span>
+                    <span>→</span>
+                  </button>
+                ) : (
+                  <div className="tp-skeleton" style={{ width: 180, height: 42, borderRadius: 10 }} />
+                )}
                 <button
                   className="tp-modal-close"
                   onClick={() => {
@@ -696,25 +713,39 @@ export default function TemplatesPage() {
  
             {/* Full resume render */}
             <div className="tp-modal-scroll">
-              {/* Template info strip */}
-              <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: 4, background: previewTemplate.accent }} />
-                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, color: "#888" }}>
-                    <strong style={{ color: "#F0EFE8" }}>{previewTemplate.name}</strong> — {previewTemplate.description}
-                  </span>
-                </div>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {["ATS Friendly", "Live Preview", "Export to PDF"].map(label => (
-                    <span key={label} style={{ fontSize: 10, fontWeight: 700, color: "#C8F55A", background: "rgba(200,245,90,0.1)", border: "1px solid rgba(200,245,90,0.2)", padding: "3px 10px", borderRadius: 20 }}>✓ {label}</span>
-                  ))}
-                </div>
-              </div>
- 
-              <div className="tp-modal-paper">
-                <ResumeRenderer resume={buildPreviewSample(previewTemplate)} />
-              </div>
-              <div className="tp-modal-bottom-padding" />
+              {previewTemplate ? (
+                <>
+                  {/* Template info strip */}
+                  <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, background: previewTemplate.accent }} />
+                      <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, color: "#888" }}>
+                        <strong style={{ color: "#F0EFE8" }}>{previewTemplate.name}</strong> — {previewTemplate.description}
+                      </span>
+                    </div>
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {["ATS Friendly", "Live Preview", "Export to PDF"].map(label => (
+                        <span key={label} style={{ fontSize: 10, fontWeight: 700, color: "#C8F55A", background: "rgba(200,245,90,0.1)", border: "1px solid rgba(200,245,90,0.2)", padding: "3px 10px", borderRadius: 20 }}>✓ {label}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="tp-modal-paper">
+                    <ResumeRenderer resume={buildPreviewSample(previewTemplate)} />
+                  </div>
+                  <div className="tp-modal-bottom-padding" />
+                </>
+              ) : (
+                <>
+                  <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px" }}>
+                    <div className="tp-skeleton" style={{ width: "60%", maxWidth: 520, height: 14 }} />
+                  </div>
+                  <div className="tp-modal-paper">
+                    <div className="tp-skeleton" style={{ width: "100%", minHeight: 860 }} />
+                  </div>
+                  <div className="tp-modal-bottom-padding" />
+                </>
+              )}
             </div>
           </div>
         )}
