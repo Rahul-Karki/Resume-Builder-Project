@@ -57,6 +57,37 @@ export const getResumeExportPreset = async (resumeId: string, preset: ExportPres
   return response.data?.export as { preset: ExportPreset; options: { scale: number }; filename: string };
 };
 
+const getFilenameFromContentDisposition = (value?: string) => {
+  if (!value) return null;
+
+  const utf8Match = value.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch {
+      return utf8Match[1];
+    }
+  }
+
+  const basicMatch = value.match(/filename=\"?([^\";]+)\"?/i);
+  return basicMatch?.[1] ?? null;
+};
+
+export const exportResumePdfSafe = async (
+  resumeId: string,
+  payload: { html: string; title?: string; preset?: ExportPreset },
+) => {
+  const response = await api.post(`/resumes/${resumeId}/export-pdf-safe`, payload, {
+    responseType: "blob",
+    timeout: 60000,
+  });
+
+  return {
+    blob: response.data as Blob,
+    filename: getFilenameFromContentDisposition(response.headers?.["content-disposition"]),
+  };
+};
+
 export async function bootstrapAuthSession() {
   try {
     const response = await api.post("/refresh", {});

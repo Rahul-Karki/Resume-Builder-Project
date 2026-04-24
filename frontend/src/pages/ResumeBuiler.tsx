@@ -7,7 +7,7 @@ import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
-import { getResumeExportPreset } from "@/services/api";
+import { exportResumePdfSafe, getResumeExportPreset } from "@/services/api";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
@@ -102,6 +102,31 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
   const content = document.getElementById("resume-preview-inner");
   if (!content) return;
 
+  const resumeMarkup = content.innerHTML;
+  if (resumeId && resumeMarkup.trim().length > 0) {
+    try {
+      const safeResult = await exportResumePdfSafe(resumeId, {
+        html: resumeMarkup,
+        title: resume.title,
+        preset,
+      });
+
+      if (safeResult.blob.size > 0) {
+        const blobUrl = window.URL.createObjectURL(safeResult.blob);
+        const anchor = document.createElement("a");
+        anchor.href = blobUrl;
+        anchor.download = safeResult.filename ?? `${resume.title.replace(/\s+/g, "_")}_safe.pdf`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+        return;
+      }
+    } catch {
+      // Keep local browser export as resilient fallback.
+    }
+  }
+
   const printHtml = `
     <!DOCTYPE html>
     <html>
@@ -140,7 +165,7 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
       </style>
     </head>
     <body>
-      <div class="pdf-page">${content.innerHTML}</div>
+      <div class="pdf-page">${resumeMarkup}</div>
     </body>
     </html>
   `;
@@ -390,7 +415,9 @@ export default function ResumeBuilder() {
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <div id="resume-preview-inner" style={{ display: "none" }}>
                 {/* Hidden 1:1 clone for PDF export — same renderer, no scaling */}
-                <ResumeRenderer resume={resume} />
+                <div style={{ all: "initial", display: "block", width: "100%", height: "100%" }}>
+                  <ResumeRenderer resume={resume} />
+                </div>
               </div>
               <PreviewPanel onDownload={handleDownload} canDownload={canDownload} />
             </div>

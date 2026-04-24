@@ -114,7 +114,7 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
                 background: resume.style.backgroundColor,
               }}
             >
-              <div style={{ width: "100%", height: "100%", minHeight: "100%" }}>
+              <div style={{ all: "initial", display: "block", width: "100%", height: "100%", minHeight: "100%" }}>
                 <ResumeRenderer resume={resume} />
               </div>
             </div>

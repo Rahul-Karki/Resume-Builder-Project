@@ -3,6 +3,7 @@ import { authMiddleware } from "../middleware/authMiddleware";
 import { env } from "../config/env";
 import {
   getExportPreset,
+  exportSafePdf,
 } from "../controllers/resumeEnhancementController";
 import {
   createResume as baseCreateResume,
@@ -16,6 +17,7 @@ import { validateRequest } from "../middleware/validateRequest";
 import {
   createResumeSchema,
   exportPresetSchema,
+  safeExportPdfSchema,
   updateResumeSchema,
 } from "../validation/schemas";
 
@@ -49,5 +51,6 @@ router.put("/:id", validateRequest({ body: updateResumeSchema }), baseUpdateResu
 router.delete("/:id", baseDeleteResume);
 
 router.post("/:id/export-pdf", validateRequest({ body: exportPresetSchema }), getExportPreset);
+router.post("/:id/export-pdf-safe", validateRequest({ body: safeExportPdfSchema }), exportSafePdf);
 
 export default router;

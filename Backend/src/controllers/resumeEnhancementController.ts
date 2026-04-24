@@ -4,6 +4,7 @@ import AtsAnalysis from "../models/AtsAnalysis";
 import ResumeVersion from "../models/ResumeVersion";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
+import puppeteer, { Browser } from "puppeteer";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
@@ -13,6 +14,61 @@ const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
   "automated", "developed", "scaled", "reduced", "increased", "collaborated", "architected", "streamlined",
 ]);
+
+let safePdfBrowserPromise: Promise<Browser> | null = null;
+
+const getSafePdfBrowser = async () => {
+  if (!safePdfBrowserPromise) {
+    safePdfBrowserPromise = puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+  }
+
+  return safePdfBrowserPromise;
+};
+
+const buildSafePdfDocument = (title: string, contentHtml: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>${title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@300;400;700&family=Lora:wght@400;600&family=Outfit:wght@300;400;500;600&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 0; }
+    html, body {
+      width: 210mm;
+      height: 297mm;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    .pdf-page {
+      width: 210mm;
+      height: 297mm;
+      min-height: 297mm;
+      max-height: 297mm;
+      overflow: hidden;
+    }
+    .pdf-page > * {
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 100% !important;
+      max-height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="pdf-page">${contentHtml}</div>
+</body>
+</html>
+`;
 
 const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|latency|revenue|conversion|sla)\b/i.test(text);
 
@@ -544,6 +600,59 @@ export const getExportPreset: RequestHandler = async (req, res) => {
     markSpanError(span, error as Error, "Failed to resolve export preset");
     logger.error({ error, resumeId: req.params.id }, "Failed to resolve export preset");
     res.status(500).json({ message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const exportSafePdf: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.exportSafePdf", req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const resume = await Resume.findOne({ _id: req.params.id, userId }).select("_id title").lean();
+    if (!resume) {
+      res.status(404).json({ message: "Resume not found" });
+      return;
+    }
+
+    const rawHtml = String(req.body?.html ?? "").trim();
+    if (!rawHtml) {
+      res.status(400).json({ message: "html is required" });
+      return;
+    }
+
+    const contentHtml = rawHtml.replace(/<script[\s\S]*?<\/script>/gi, "");
+    const safeTitle = String(req.body?.title ?? resume.title ?? "resume").replace(/[^a-zA-Z0-9\s_-]/g, "").trim() || "resume";
+    const documentHtml = buildSafePdfDocument(safeTitle, contentHtml);
+
+    const browser = await getSafePdfBrowser();
+    const page = await browser.newPage();
+
+    try {
+      await page.setContent(documentHtml, { waitUntil: "networkidle0", timeout: 45000 });
+
+      const pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: { top: "0", right: "0", bottom: "0", left: "0" },
+      });
+
+      const filename = `${safeTitle.replace(/\s+/g, "_")}_safe.pdf`;
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=\"${filename}\"`);
+      res.status(200).send(pdfBuffer);
+      logger.info({ userId, resumeId: req.params.id, filename }, "Safe PDF export generated");
+      markSpanSuccess(span);
+    } finally {
+      await page.close();
+    }
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to export safe PDF");
+    logger.error({ error, resumeId: req.params.id }, "Failed to export safe PDF");
+    res.status(500).json({ message: "Safe PDF export failed" });
   } finally {
     finishControllerSpan(span);
   }

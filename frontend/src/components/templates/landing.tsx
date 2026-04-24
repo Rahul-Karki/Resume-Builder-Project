@@ -202,11 +202,11 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     .tp-root { font-family: 'Outfit', sans-serif; background: #0E0E0E; color: #F0EFE8; min-height: 100vh; }
  
     /* NAV */
-    .tp-nav { position: sticky; top: 0; z-index: 50; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s; }
+    .tp-nav { position: sticky; top: 0; z-index: 50; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: flex-start; gap: 36px; transition: all 0.3s; }
     .tp-nav.scrolled { background: rgba(14,14,14,0.95); border-bottom: 1px solid #1F1F1F; backdrop-filter: blur(12px); }
     .tp-logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: #F0EFE8; letter-spacing: -0.5px; }
     .tp-logo em { font-style: italic; color: #C8F55A; }
-    .tp-nav-links { display: flex; gap: 32px; }
+    .tp-nav-links { display: flex; align-items: center; gap: 22px; }
     .tp-nav-link { font-size: 13px; color: #888; font-weight: 400; cursor: pointer; transition: color 0.2s; }
     .tp-nav-link:hover, .tp-nav-link.active { color: #F0EFE8; }
     .tp-nav-cta { padding: 8px 20px; background: #C8F55A; color: #0E0E0E; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s; }
@@ -323,7 +323,8 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     }
 
     @media (max-width: 480px) {
-      .tp-nav { height: auto; min-height: 56px; padding: 8px 12px; }
+      .tp-nav { height: auto; min-height: 56px; padding: 8px 12px; gap: 14px; }
+      .tp-nav-links { gap: 12px; }
       .tp-nav-cta { width: 100%; text-align: center; }
       .tp-hero-h1 { letter-spacing: -1.3px; }
       .tp-card-thumb { height: 280px; }
