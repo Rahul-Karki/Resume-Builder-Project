@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { JSX } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
 
 // ─── TemplatesPreview.tsx ─────────────────────────────────────────────────────
@@ -173,6 +173,7 @@ const renderThumb = (id: string, primary: string, secondary: string) => {
 };
 
 export function TemplatesPreview() {
+  const navigate = useNavigate();
   const [hovered, setHovered] = useState<string | null>(null);
   const [templates, setTemplates] = useState<LandingTemplate[]>(FALLBACK_TEMPLATES);
   const [isMobile, setIsMobile] = useState(false);
@@ -253,6 +254,10 @@ export function TemplatesPreview() {
     const el = rowRef.current;
     if (!el) return;
     el.scrollBy({ left: dir === "right" ? 340 : -340, behavior: "smooth" });
+  };
+
+  const handlePreviewTemplate = (templateId: string) => {
+    navigate(`/templates?preview=${encodeURIComponent(templateId)}`);
   };
 
   return (
@@ -375,6 +380,7 @@ export function TemplatesPreview() {
           return (
             <div
               key={t.id}
+              onClick={() => handlePreviewTemplate(t.id)}
               onMouseEnter={() => setHovered(t.id)}
               onMouseLeave={() => setHovered(null)}
               style={{
@@ -418,7 +424,7 @@ export function TemplatesPreview() {
                     transition: "all 0.22s",
                     fontFamily: "'Outfit', sans-serif",
                   }}>
-                    Use This Template →
+                    Preview →
                   </div>
                 </div>
 

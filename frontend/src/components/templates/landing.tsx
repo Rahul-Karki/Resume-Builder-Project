@@ -2,7 +2,7 @@ import { JSX, useEffect, useState } from "react";
 import { ResumeDocument, ResumeStyle, SectionVisibility } from "@/types/resume-types";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { sampleData } from "@/data/sampleData";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
 import { TemplateMeta } from "@/data/templateMeta";
 
@@ -334,6 +334,7 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
 // ═══════════════════════════════════════════════════════════════
 export default function TemplatesPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const skeletonItems = Array.from({ length: 6 }, (_, index) => index);
   const [templates, setTemplates] = useState<TemplateMeta[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
@@ -343,6 +344,7 @@ export default function TemplatesPage() {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const initialPreviewParam = searchParams.get("preview");
  
   const previewTemplate = templates.find(t => t.id === previewId);
 
@@ -426,6 +428,13 @@ export default function TemplatesPage() {
 
     navigate(destination);
   };
+
+  const handlePreviewSelect = (templateId: string) => {
+    setPreviewId(templateId);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("preview", templateId);
+    setSearchParams(nextParams, { replace: true });
+  };
  
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -451,6 +460,21 @@ export default function TemplatesPage() {
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [previewId]);
+
+  useEffect(() => {
+    if (templates.length === 0) return;
+
+    // Keep modal selection synchronized with URL changes.
+    if (!initialPreviewParam) {
+      if (previewId) setPreviewId(null);
+      return;
+    }
+
+    const hasTemplate = templates.some((template) => template.id === initialPreviewParam);
+    if (hasTemplate && previewId !== initialPreviewParam) {
+      setPreviewId(initialPreviewParam);
+    }
+  }, [initialPreviewParam, previewId, templates]);
  
   const categories = ["All", ...Array.from(new Set(templates.map(t => t.category)))];
   const filtered = templates.filter(t => activeCategory === "All" || t.category === activeCategory);
@@ -567,7 +591,7 @@ export default function TemplatesPage() {
                   </div>
                 </div>
                 <div className="tp-card-hover-overlay">
-                  <button className="tp-card-preview-btn" onClick={() => setPreviewId(t.id)}>
+                  <button className="tp-card-preview-btn" onClick={() => handlePreviewSelect(t.id)}>
                     Preview Template →
                   </button>
                 </div>
@@ -588,7 +612,7 @@ export default function TemplatesPage() {
                     <div className="tp-card-swatch" style={{ background: t.accent }} />
                     <span className="tp-card-font">{t.font}</span>
                   </div>
-                  <button className="tp-card-use-btn" onClick={() => setPreviewId(t.id)}>
+                  <button className="tp-card-use-btn" onClick={() => handlePreviewSelect(t.id)}>
                     Preview →
                   </button>
                 </div>
@@ -618,7 +642,16 @@ export default function TemplatesPage() {
  
         {/* PREVIEW MODAL */}
         {previewId && previewTemplate && (
-          <div className="tp-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setPreviewId(null); }}>
+          <div
+            className="tp-modal-overlay"
+            onClick={e => {
+              if (e.target !== e.currentTarget) return;
+              setPreviewId(null);
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete("preview");
+              setSearchParams(nextParams, { replace: true });
+            }}
+          >
             <div className="tp-modal-topbar">
               <div className="tp-modal-info">
                 {/* Template switcher strip */}
@@ -627,7 +660,7 @@ export default function TemplatesPage() {
                     <button
                       key={t.id}
                       className={`tp-modal-nav-btn${previewId === t.id ? " active" : ""}`}
-                      onClick={() => setPreviewId(t.id)}
+                      onClick={() => handlePreviewSelect(t.id)}
                       style={{ padding: "5px 14px" }}
                     >
                       {t.name}
@@ -647,7 +680,17 @@ export default function TemplatesPage() {
                   <span>Use This Template</span>
                   <span>→</span>
                 </button>
-                <button className="tp-modal-close" onClick={() => setPreviewId(null)}>×</button>
+                <button
+                  className="tp-modal-close"
+                  onClick={() => {
+                    setPreviewId(null);
+                    const nextParams = new URLSearchParams(searchParams);
+                    nextParams.delete("preview");
+                    setSearchParams(nextParams, { replace: true });
+                  }}
+                >
+                  ×
+                </button>
               </div>
             </div>
  
