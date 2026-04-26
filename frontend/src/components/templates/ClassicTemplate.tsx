@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   formatCertification,
+  ExternalLinkIcon,
   formatDateRange,
   formatProjectTech,
   getDisplayBullets,
@@ -181,6 +182,7 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
             {project.link ? (
               <a className="classic-proj-name classic-link" href={toAbsoluteUrl(project.link)} target="_blank" rel="noreferrer" style={{ color: style.headingColor }}>
                 {project.name}
+                <ExternalLinkIcon />
               </a>
             ) : (
               <span className="classic-proj-name" style={{ color: style.headingColor }}>{project.name}</span>

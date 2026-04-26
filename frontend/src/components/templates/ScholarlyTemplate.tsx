@@ -1,5 +1,6 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
+  ExternalLinkIcon,
   formatCertification,
   formatDateRange,
   formatProjectTech,
@@ -193,6 +194,7 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
                     style={{ color: style.headingColor }}
                   >
                     {project.name}
+                    <ExternalLinkIcon />
                   </a>
                 ) : (
                   <span className="sch-proj-name" style={{ color: style.headingColor }}>{project.name}</span>

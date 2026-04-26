@@ -1,5 +1,6 @@
 import  { ResumeDocument, marginMap, spacingMap } from "../../types/resume-types"; 
 import {
+  ExternalLinkIcon,
   formatCertification,
   formatDateRange,
   formatProjectTech,
@@ -180,6 +181,7 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
                 {pr.link ? (
                   <a className="exec-link" href={toAbsoluteUrl(pr.link)} target="_blank" rel="noreferrer" style={{ fontSize: "10pt", fontWeight: 700 }}>
                     {pr.name}
+                    <ExternalLinkIcon />
                   </a>
                 ) : (
                   <strong style={{ fontSize: "10pt" }}>{pr.name}</strong>

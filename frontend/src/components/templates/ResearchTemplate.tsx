@@ -1,5 +1,6 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
+  ExternalLinkIcon,
   formatCertification,
   formatDateRange,
   formatProjectTech,
@@ -186,7 +187,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
                 <span className="res-project-name" style={{ color: style.headingColor }}>
                   <span className="res-major-bullet">●</span>
                   {project.link ? (
-                    <a className="res-link" href={toAbsoluteUrl(project.link)} target="_blank" rel="noreferrer">{project.name}</a>
+                    <a className="res-link" href={toAbsoluteUrl(project.link)} target="_blank" rel="noreferrer">{project.name}<ExternalLinkIcon /></a>
                   ) : (
                     project.name
                   )}

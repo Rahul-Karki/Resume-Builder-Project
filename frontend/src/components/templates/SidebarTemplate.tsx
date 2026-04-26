@@ -1,5 +1,5 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
-import { formatDateRange, formatProjectTech, getDisplayBullets, getExperienceParagraph, getProjectParagraph, isParagraphMode, renderTextWithLinks, toAbsoluteUrl, toMailto, toTel } from "@/components/templates/templateHelpers";
+import { ExternalLinkIcon, formatDateRange, formatProjectTech, getDisplayBullets, getExperienceParagraph, getProjectParagraph, isParagraphMode, renderTextWithLinks, toAbsoluteUrl, toMailto, toTel } from "@/components/templates/templateHelpers";
 
 export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
@@ -207,6 +207,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
                 {pr.link ? (
                   <a className="side-proj-name side-link" style={{ color: style.headingColor }} href={toAbsoluteUrl(pr.link)} target="_blank" rel="noreferrer">
                     {pr.name}
+                    <ExternalLinkIcon />
                   </a>
                 ) : (
                   <span className="side-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>

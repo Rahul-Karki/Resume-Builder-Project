@@ -119,3 +119,36 @@ export function renderTextWithLinks(text: string): React.ReactNode {
 
   return fragments;
 }
+
+export function ExternalLinkIcon() {
+  return React.createElement(
+    "span",
+    {
+      "aria-hidden": true,
+      style: {
+        display: "inline-flex",
+        alignItems: "center",
+        marginLeft: 4,
+        verticalAlign: "text-top",
+      },
+    },
+    React.createElement(
+      "svg",
+      {
+        viewBox: "0 0 24 24",
+        width: 12,
+        height: 12,
+        focusable: "false",
+        style: { display: "block" },
+      },
+      React.createElement("path", {
+        fill: "currentColor",
+        d: "M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z",
+      }),
+      React.createElement("path", {
+        fill: "currentColor",
+        d: "M5 5h6v2H7v10h10v-4h2v6H5V5z",
+      }),
+    ),
+  );
+}

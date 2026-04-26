@@ -7,7 +7,7 @@ import { ModernTemplate } from "@/components/templates/ModernTemplate";
 import { SidebarTemplate } from "@/components/templates/SidebarTemplate";
 import { ScholarlyTemplate } from "@/components/templates/ScholarlyTemplate";
 import { ResearchTemplate } from "@/components/templates/ResearchTemplate";
-import { renderTextWithLinks, toAbsoluteUrl } from "@/components/templates/templateHelpers";
+import { ExternalLinkIcon, renderTextWithLinks, toAbsoluteUrl } from "@/components/templates/templateHelpers";
 import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 interface Props {
@@ -190,7 +190,10 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
               s.projects.map((project) => (
                 <div key={project.id} style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontWeight: 700, color: style.headingColor, fontSize: style.fontSize }}>{project.name}</span>
+                    <span style={{ fontWeight: 700, color: style.headingColor, fontSize: style.fontSize, display: "inline-flex", alignItems: "center" }}>
+                      {project.name}
+                      {project.link ? <ExternalLinkIcon /> : null}
+                    </span>
                     {project.tech && <span style={{ fontSize: "9pt", color: style.mutedColor }}>· {project.tech}</span>}
                     {project.link && <a href={toAbsoluteUrl(project.link)} target="_blank" rel="noreferrer" style={{ fontSize: "9pt", color: style.accentColor }}>{project.link}</a>}
                   </div>
@@ -333,7 +336,7 @@ function ClassicTemplate({ resume }: Props) {
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <span style={{ fontWeight: 700, color: style.headingColor, fontSize: style.fontSize }}>{pr.name}</span>
               {pr.tech && <span style={{ fontSize: "9pt", color: style.mutedColor }}>· {pr.tech}</span>}
-              {pr.link && <span style={{ fontSize: "9pt", color: style.accentColor }}>{pr.link}</span>}
+              {pr.link && <span style={{ fontSize: "9pt", color: style.accentColor, display: "inline-flex", alignItems: "center" }}>{pr.link}<ExternalLinkIcon /></span>}
             </div>
             {pr.contentMode === "paragraph" ? (
               pr.description.trim() ? (

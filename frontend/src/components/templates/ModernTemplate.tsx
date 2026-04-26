@@ -1,5 +1,6 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
+  ExternalLinkIcon,
   formatCertification,
   formatDateRange,
   formatProjectTech,
@@ -185,6 +186,7 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
                 {pr.link ? (
                   <a className="mod-proj-name mod-link" style={{ color: style.headingColor }} href={toAbsoluteUrl(pr.link)} target="_blank" rel="noreferrer">
                     {pr.name}
+                    <ExternalLinkIcon />
                   </a>
                 ) : (
                   <span className="mod-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>
