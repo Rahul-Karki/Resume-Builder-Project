@@ -188,8 +188,8 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
       mutedColor: "#4a4a4a",
       borderColor: "#8d8d8d",
       backgroundColor: "#ffffff",
-      bodyFont: "Source Serif 4, serif",
-      headingFont: "Playfair Display, serif",
+      bodyFont: "EB Garamond, serif",
+      headingFont: "EB Garamond, serif",
       fontSize: "10.5pt",
       lineHeight: "1.5",
     },
@@ -248,6 +248,7 @@ export async function ensureDefaultTemplatesInBackend(): Promise<void> {
 
   const adminId = String(admin._id);
   let insertedCount = 0;
+  let updatedCount = 0;
 
   for (const definition of DEFAULT_TEMPLATES) {
     const result = await Template.updateOne(
@@ -267,7 +268,35 @@ export async function ensureDefaultTemplatesInBackend(): Promise<void> {
     insertedCount += result.upsertedCount ?? 0;
   }
 
-  if (insertedCount > 0) {
+  // Keep the two newly added academic templates in sync even when records already exist.
+  // This applies a focused migration so old documents pick up the latest visual defaults.
+  const templatesRequiringVisualSync = new Set(["scholarly", "research"]);
+  for (const definition of DEFAULT_TEMPLATES) {
+    if (!templatesRequiringVisualSync.has(definition.layoutId)) continue;
+
+    const result = await Template.updateOne(
+      { layoutId: definition.layoutId },
+      {
+        $set: {
+          name: definition.name,
+          description: definition.description,
+          category: definition.category,
+          tag: definition.tag,
+          isPremium: definition.isPremium,
+          sortOrder: definition.sortOrder,
+          status: definition.status,
+          cssVars: definition.cssVars,
+          slots: definition.slots,
+          updatedBy: adminId,
+          publishedAt: definition.status === "published" ? new Date() : null,
+        },
+      },
+    );
+
+    updatedCount += result.modifiedCount ?? 0;
+  }
+
+  if (insertedCount > 0 || updatedCount > 0) {
     await invalidateRedisCache([
       redisCacheScopes.publicTemplates,
       redisCacheScopes.adminTemplates,
@@ -279,6 +308,7 @@ export async function ensureDefaultTemplatesInBackend(): Promise<void> {
   logger.info(
     {
       insertedCount,
+      updatedCount,
       catalogSize: DEFAULT_TEMPLATES.length,
     },
     "Default template bootstrap finished",

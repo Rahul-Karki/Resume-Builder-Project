@@ -16,28 +16,27 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
   const contactItems = [p.phone, p.email, p.linkedin, p.portfolio].filter(Boolean);
 
   const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:wght@400;600&display=swap');
     .sch-wrap { font-family:'Source Sans 3',sans-serif; color:#1c1c1c; background:#fff; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .sch-wrap, .sch-wrap p, .sch-wrap span, .sch-wrap li, .sch-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
-    .sch-name { font-family:'Libre Baskerville',serif; font-size:30pt; line-height:1.08; font-weight:700; text-align:center; margin:0 0 8px; color:#121212; }
+    .sch-name { font-family:'EB Garamond',serif; font-size:34pt; line-height:1.04; font-weight:600; text-align:center; margin:0 0 8px; color:#121212; }
     .sch-contact { display:flex; justify-content:center; flex-wrap:wrap; gap:6px 0; color:#474747; font-size:9.2pt; margin-bottom:14px; }
     .sch-contact-item { display:inline-flex; align-items:center; }
     .sch-contact-item + .sch-contact-item::before { content:'|'; color:#9a9a9a; margin:0 8px; }
-    .sch-section { margin-bottom:14px; }
-    .sch-section-title { font-family:'Libre Baskerville',serif; font-size:13pt; font-weight:400; text-transform:uppercase; letter-spacing:0.9px; color:#1a1a1a; margin:0 0 4px; }
+    .sch-section { margin-bottom:12px; }
+    .sch-section-title { font-family:'EB Garamond',serif; font-size:13pt; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:#1a1a1a; margin:0 0 4px; }
     .sch-rule { border:none; border-top:1px solid #8d8d8d; margin:0 0 8px; }
-    .sch-summary { color:#2f2f2f; }
-    .sch-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:2px; }
+    .sch-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:1px; }
     .sch-left { min-width:0; }
     .sch-right { text-align:right; white-space:nowrap; color:#4c4c4c; }
-    .sch-strong { font-family:'Libre Baskerville',serif; font-weight:700; color:#181818; }
-    .sch-italic { font-style:italic; color:#404040; }
+    .sch-strong { font-family:'EB Garamond',serif; font-size:12pt; font-weight:600; color:#181818; }
+    .sch-italic { font-family:'EB Garamond',serif; font-size:11.2pt; font-style:italic; color:#3f3f3f; }
     .sch-bullets { margin:3px 0 0 14px; padding:0 0 0 9px; }
     .sch-bullets li { margin-bottom:2px; color:#2c2c2c; }
-    .sch-skills-row { margin-bottom:3px; }
+    .sch-skills-row { margin-bottom:2px; }
     .sch-skill-label { font-weight:600; margin-right:6px; color:#111; }
-    .sch-proj { margin-bottom:8px; }
-    .sch-proj-name { font-family:'Libre Baskerville',serif; font-size:10.5pt; font-weight:700; color:#161616; }
+    .sch-proj { margin-bottom:7px; }
+    .sch-proj-name { font-family:'EB Garamond',serif; font-size:11.2pt; font-weight:600; color:#161616; }
     .sch-cert { margin-bottom:2px; color:#2b2b2b; }
   `;
 
@@ -74,7 +73,7 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
             <div className="sch-section-title" style={{ fontFamily: style.headingFont, color: style.headingColor }}>Education</div>
             {style.showDividers && <hr className="sch-rule" style={{ borderTopColor: style.borderColor }} />}
             {s.education.map((entry, i) => (
-              <div key={i} style={{ marginBottom: 6 }}>
+              <div key={i} style={{ marginBottom: 4 }}>
                 <div className="sch-row">
                   <div className="sch-left">
                     <div className="sch-strong" style={{ color: style.headingColor }}>{entry.institution}</div>
@@ -92,15 +91,14 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
             <div className="sch-section-title" style={{ fontFamily: style.headingFont, color: style.headingColor }}>Experience</div>
             {style.showDividers && <hr className="sch-rule" style={{ borderTopColor: style.borderColor }} />}
             {s.experience.map((entry, i) => (
-              <div key={i} style={{ marginBottom: 9 }}>
+              <div key={i} style={{ marginBottom: 8 }}>
                 <div className="sch-row">
                   <div className="sch-left">
                     <div className="sch-strong" style={{ color: style.headingColor }}>{entry.role}</div>
-                    <div className="sch-italic">{entry.company}</div>
+                    <div className="sch-italic">{entry.company}{entry.location ? `, ${entry.location}` : ""}</div>
                   </div>
                   <div className="sch-right" style={{ color: style.mutedColor }}>
                     {formatDateRange(entry.start, entry.end, entry.current)}
-                    {entry.location ? <div className="sch-italic">{entry.location}</div> : null}
                   </div>
                 </div>
                 {isParagraphMode(entry.contentMode) ? (

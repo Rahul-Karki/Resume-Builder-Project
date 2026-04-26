@@ -18,25 +18,26 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
     @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;1,400&display=swap');
     .res-wrap { font-family:'Libre Baskerville',serif; color:#1a1a1a; background:#fff; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .res-wrap, .res-wrap p, .res-wrap span, .res-wrap li, .res-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
-    .res-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; }
-    .res-name { font-size:22pt; font-weight:700; margin:0 0 2px; color:#101010; }
+    .res-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:10px; }
+    .res-name { font-size:18pt; font-weight:700; margin:0 0 2px; color:#101010; }
     .res-web { color:#333; }
-    .res-contact { text-align:right; }
+    .res-contact { text-align:right; min-width:180px; }
     .res-contact-line { color:#2f2f2f; margin-bottom:2px; }
     .res-section { margin-bottom:14px; }
-    .res-title { font-size:13pt; font-weight:400; text-transform:uppercase; letter-spacing:0.8px; margin:0 0 4px; color:#181818; }
+    .res-title { font-size:12.5pt; font-weight:400; text-transform:uppercase; letter-spacing:0.6px; margin:0 0 4px; color:#181818; }
     .res-rule { border:none; border-top:1px solid #8d8d8d; margin:0 0 8px; }
-    .res-entry { margin-bottom:9px; }
+    .res-entry { margin-bottom:8px; }
     .res-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
     .res-left { min-width:0; }
     .res-right { text-align:right; white-space:nowrap; color:#3d3d3d; }
     .res-main { font-weight:700; color:#131313; }
-    .res-sub { font-family:'Cormorant Garamond',serif; font-size:12.5pt; font-style:italic; color:#2f2f2f; }
-    .res-bullets { margin:3px 0 0 14px; padding:0 0 0 8px; }
+    .res-sub { font-family:'Cormorant Garamond',serif; font-size:12pt; font-style:italic; color:#2f2f2f; }
+    .res-bullets { margin:3px 0 0 16px; padding:0 0 0 8px; }
     .res-bullets li { margin-bottom:2px; }
     .res-project { margin-bottom:4px; }
     .res-project-name { font-weight:700; }
     .res-cert { margin-bottom:2px; }
+    .res-major-bullet { font-size:10pt; margin-right:6px; }
   `;
 
   const firstSkillsLine = s.skills.flatMap((skillGroup) => skillGroup.items);
@@ -77,7 +78,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
               <div key={i} className="res-entry">
                 <div className="res-head">
                   <div className="res-left">
-                    <div className="res-main" style={{ color: style.headingColor }}>{entry.institution}</div>
+                    <div className="res-main" style={{ color: style.headingColor }}><span className="res-major-bullet">●</span>{entry.institution}</div>
                     <div className="res-sub">{entry.degree}{entry.field ? ` in ${entry.field}` : ""}{entry.cgpa ? `; GPA: ${entry.cgpa}` : ""}</div>
                   </div>
                   <div className="res-right" style={{ color: style.mutedColor }}>{entry.year}</div>
@@ -95,7 +96,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
               <div key={i} className="res-entry">
                 <div className="res-head">
                   <div className="res-left">
-                    <div className="res-main" style={{ color: style.headingColor }}>{entry.company}</div>
+                    <div className="res-main" style={{ color: style.headingColor }}><span className="res-major-bullet">●</span>{entry.company}</div>
                     <div className="res-sub">{entry.role}</div>
                   </div>
                   <div className="res-right" style={{ color: style.mutedColor }}>
@@ -123,7 +124,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
             {style.showDividers && <hr className="res-rule" style={{ borderTopColor: style.borderColor }} />}
             {s.projects.map((project, i) => (
               <div key={i} className="res-project">
-                <span className="res-project-name" style={{ color: style.headingColor }}>{project.name}</span>
+                <span className="res-project-name" style={{ color: style.headingColor }}><span className="res-major-bullet">●</span>{project.name}</span>
                 <span style={{ marginLeft: 6, color: style.mutedColor }}>{formatProjectTech(project)}</span>
                 {isParagraphMode(project.contentMode) ? (
                   getProjectParagraph(project) ? <div>{getProjectParagraph(project)}</div> : null
