@@ -4,7 +4,7 @@ import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { sampleData } from "@/data/sampleData";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
-import { TemplateMeta } from "@/data/templateMeta";
+import { TemplateMeta, templates as localTemplateCatalog } from "@/data/templateMeta";
 
 type SlotKey = "summary" | "experience" | "education" | "skills" | "projects" | "certifications" | "languages";
 
@@ -20,6 +20,31 @@ const SLOT_FALLBACK_SECTIONS: ResumeDocument["sections"] = {
         { id: "lang-1", language: "English", proficiency: "Native" },
         { id: "lang-2", language: "Spanish", proficiency: "Intermediate" },
       ],
+};
+
+const mergeWithLocalTemplateCatalog = (apiTemplates: TemplateMeta[]): TemplateMeta[] => {
+  const byId = new Map<string, TemplateMeta>();
+  apiTemplates.forEach((template) => byId.set(template.id, template));
+
+  localTemplateCatalog.forEach((template) => {
+    if (byId.has(template.id)) return;
+
+    byId.set(template.id, {
+      id: template.id,
+      name: template.name,
+      tag: template.tag,
+      category: template.category,
+      accent: template.accent,
+      font: template.font,
+      description: template.description,
+      isPremium: template.isPremium,
+      palette: template.palette,
+      cssVars: template.cssVars,
+      slots: template.slots,
+    });
+  });
+
+  return Array.from(byId.values());
 };
 
 const buildPreviewSample = (template: TemplateMeta): ResumeDocument => {
@@ -444,7 +469,7 @@ export default function TemplatesPage() {
           };
         });
 
-        return mapped;
+        return mergeWithLocalTemplateCatalog(mapped);
       } catch (error) {
         lastError = error;
       }

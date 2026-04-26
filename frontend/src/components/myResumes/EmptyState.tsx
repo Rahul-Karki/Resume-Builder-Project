@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { Thumb } from "./ResumeThumbnail";
 import { TemplateMeta } from "@/types/resume-types";
+import { templates as localTemplateCatalog } from "@/data/templateMeta";
 
 type PublicTemplate = {
   _id?: string;
@@ -32,6 +33,32 @@ type CardTemplate = {
 
 const THUMB_IDS = ["classic", "executive", "modern", "compact", "sidebar", "scholarly", "research"] as const;
 
+const mergePublicTemplates = (apiTemplates: PublicTemplate[]): PublicTemplate[] => {
+  const byLayoutId = new Map<string, PublicTemplate>();
+  apiTemplates.forEach((template) => byLayoutId.set(template.layoutId, template));
+
+  localTemplateCatalog.forEach((template) => {
+    if (byLayoutId.has(template.id)) return;
+
+    byLayoutId.set(template.id, {
+      layoutId: template.id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      tag: template.tag,
+      isPremium: template.isPremium,
+      cssVars: {
+        accentColor: template.accent,
+        backgroundColor: template.palette[0],
+        headingColor: template.palette[1],
+        mutedColor: template.palette[2],
+      },
+    });
+  });
+
+  return Array.from(byLayoutId.values());
+};
+
 export function EmptyState({ name, onPick }: { name: string; onPick: (id: string) => void }) {
   const [hov, setHov] = useState<string | null>(null);
   const [templates, setTemplates] = useState<PublicTemplate[]>([]);
@@ -46,11 +73,11 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
         const list = Array.isArray(response.data?.data) ? response.data.data : [];
 
         if (mounted) {
-          setTemplates(list);
+          setTemplates(mergePublicTemplates(list));
         }
       } catch {
         if (mounted) {
-          setTemplates([]);
+          setTemplates(mergePublicTemplates([]));
         }
       } finally {
         if (mounted) {

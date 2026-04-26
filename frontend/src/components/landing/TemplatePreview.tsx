@@ -222,6 +222,17 @@ const renderThumb = (id: string, primary: string, secondary: string) => {
   return renderer(primary, secondary);
 };
 
+const mergeTemplates = (apiTemplates: LandingTemplate[]): LandingTemplate[] => {
+  const byId = new Map<string, LandingTemplate>();
+  apiTemplates.forEach((template) => byId.set(template.id, template));
+  FALLBACK_TEMPLATES.forEach((template) => {
+    if (!byId.has(template.id)) {
+      byId.set(template.id, template);
+    }
+  });
+  return Array.from(byId.values());
+};
+
 export function TemplatesPreview() {
   const navigate = useNavigate();
   const [hovered, setHovered] = useState<string | null>(null);
@@ -278,8 +289,8 @@ export function TemplatesPreview() {
           };
         });
 
-        if (!mounted || mapped.length === 0) return;
-        setTemplates(mapped);
+        if (!mounted) return;
+        setTemplates(mergeTemplates(mapped));
         setLoadingTemplates(false);
         return;
       } catch {
@@ -383,9 +394,7 @@ export function TemplatesPreview() {
                     };
                   });
 
-                  if (mapped.length > 0) {
-                    setTemplates(mapped);
-                  }
+                  setTemplates(mergeTemplates(mapped));
                 } catch {
                   setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
                 } finally {

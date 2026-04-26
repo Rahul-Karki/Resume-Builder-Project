@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
+import { templates as localTemplateCatalog } from "@/data/templateMeta";
 
 type TemplateOption = {
   layoutId: string;
@@ -48,8 +49,22 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           }))
           .filter((template: TemplateOption) => template.layoutId);
 
+        const mergedByLayoutId = new Map<string, TemplateOption>();
+        mapped.forEach((template) => mergedByLayoutId.set(template.layoutId, template));
+        localTemplateCatalog.forEach((templateMeta) => {
+          if (mergedByLayoutId.has(templateMeta.id)) return;
+          mergedByLayoutId.set(templateMeta.id, {
+            layoutId: templateMeta.id,
+            name: templateMeta.name,
+            status: "published",
+            sortOrder: 999,
+          });
+        });
+
+        const merged = Array.from(mergedByLayoutId.values());
+
         if (active) {
-          setTemplates(mapped.sort((a: TemplateOption, b: TemplateOption) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+          setTemplates(merged.sort((a: TemplateOption, b: TemplateOption) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
         }
       } catch {
         if (active) {

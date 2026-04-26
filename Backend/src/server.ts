@@ -7,6 +7,7 @@ import helmet from "helmet";
 import { csrfProtection } from "./middleware/csrfProtection";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
+import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -73,6 +74,7 @@ const PORT = env.PORT;
 
 const startServer = async () => {
   await connectDB();
+  await ensureDefaultTemplatesInBackend();
   const cacheProvider = getCacheProvider();
   void warmupCacheBackend();
 
