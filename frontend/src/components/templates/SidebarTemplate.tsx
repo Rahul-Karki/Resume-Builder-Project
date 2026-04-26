@@ -1,5 +1,5 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
-import { formatDateRange, formatProjectTech, getDisplayBullets, getExperienceParagraph, getProjectParagraph, isParagraphMode, toAbsoluteUrl, toMailto, toTel } from "@/components/templates/templateHelpers";
+import { formatDateRange, formatProjectTech, getDisplayBullets, getExperienceParagraph, getProjectParagraph, isParagraphMode, renderTextWithLinks, toAbsoluteUrl, toMailto, toTel } from "@/components/templates/templateHelpers";
 
 export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
@@ -171,7 +171,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
           {p.summary && (
           <div className="side-section" style={{ marginBottom: sectionGap }}>
             <div className="side-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor }}>Profile</div>
-            <p className="side-summary">{p.summary}</p>
+            <p className="side-summary">{renderTextWithLinks(p.summary)}</p>
           </div>
           )}
           {sectionVisibility.experience && s.experience.length > 0 && (
@@ -187,11 +187,11 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
                   <span className="side-date" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
                 {isParagraphMode(e.contentMode) ? (
-                  getExperienceParagraph(e) ? <div style={{ color: "#475569", fontWeight: 300, marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                  getExperienceParagraph(e) ? <div style={{ color: "#475569", fontWeight: 300, marginTop: 4 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
                 ) : (
                   getDisplayBullets(e.bullets).length > 0 && (
                     <ul className="side-bullets">
-                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}
@@ -213,11 +213,11 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
                 )}
                 <span style={{ color: "#94A3B8", fontSize: "8.5pt", marginLeft: 6 }}>{formatProjectTech(pr)}</span>
                 {isParagraphMode(pr.contentMode) ? (
-                  getProjectParagraph(pr) ? <div style={{ color: "#475569", fontWeight: 300, marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                  getProjectParagraph(pr) ? <div style={{ color: "#475569", fontWeight: 300, marginTop: 2 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
                 ) : (
                   getDisplayBullets(pr.bullets).length > 0 && (
                     <ul className="side-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}

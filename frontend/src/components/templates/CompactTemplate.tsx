@@ -7,6 +7,7 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
   toAbsoluteUrl,
   toMailto,
   toTel,
@@ -116,7 +117,7 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
         {p.summary && (
           <div className="comp-row" style={{ marginBottom: sectionGap }}>
             <div className="comp-label">Summary</div>
-            <div className="comp-summary">{p.summary}</div>
+            <div className="comp-summary">{renderTextWithLinks(p.summary)}</div>
           </div>
         )}
  
@@ -137,11 +138,11 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
                   <span className="comp-date">{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
                 {isParagraphMode(e.contentMode) ? (
-                  getExperienceParagraph(e) ? <div style={{ color: "#444", fontWeight: 300, marginTop: 2 }}>{getExperienceParagraph(e)}</div> : null
+                  getExperienceParagraph(e) ? <div style={{ color: "#444", fontWeight: 300, marginTop: 2 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
                 ) : (
                   getDisplayBullets(e.bullets).length > 0 && (
                     <ul className="comp-bullets">
-                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}
@@ -203,11 +204,11 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
                 )}
                 <span style={{ color: "#777", marginLeft: 6 }}>{formatProjectTech(pr)}</span>
                 {isParagraphMode(pr.contentMode) ? (
-                  getProjectParagraph(pr) ? <div style={{ color: "#444", fontWeight: 300 }}>{getProjectParagraph(pr)}</div> : null
+                  getProjectParagraph(pr) ? <div style={{ color: "#444", fontWeight: 300 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
                 ) : (
                   getDisplayBullets(pr.bullets).length > 0 && (
                     <ul className="comp-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}

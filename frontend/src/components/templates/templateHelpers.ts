@@ -1,3 +1,4 @@
+import React from "react";
 import type { CertEntry, Project, WorkEntry } from "@/types/resume-types";
 
 export function formatDateRange(start: string, end: string, current: boolean): string {
@@ -68,4 +69,53 @@ export function toTel(rawPhone: string): string {
   if (value.toLowerCase().startsWith("tel:")) return value;
   const normalized = value.replace(/[^\d+]/g, "");
   return `tel:${normalized || value}`;
+}
+
+const URL_OR_EMAIL_PATTERN = /((?:https?:\/\/|www\.)[^\s]+|(?:mailto:)?[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi;
+
+export function renderTextWithLinks(text: string): React.ReactNode {
+  const value = (text ?? "").trim();
+  if (!value) return value;
+
+  const matches = Array.from(value.matchAll(URL_OR_EMAIL_PATTERN));
+  if (matches.length === 0) {
+    return value;
+  }
+
+  let cursor = 0;
+  const fragments: React.ReactNode[] = [];
+
+  matches.forEach((match, index) => {
+    const matchedText = match[0];
+    const start = match.index ?? 0;
+
+    if (start > cursor) {
+      fragments.push(value.slice(cursor, start));
+    }
+
+    const href = matchedText.includes("@") && !/^https?:\/\//i.test(matchedText) && !/^www\./i.test(matchedText)
+      ? toMailto(matchedText)
+      : toAbsoluteUrl(matchedText);
+
+    fragments.push(
+      React.createElement(
+        "a",
+        {
+          key: `${matchedText}-${index}-${start}`,
+          href,
+          target: "_blank",
+          rel: "noreferrer",
+        },
+        matchedText,
+      ),
+    );
+
+    cursor = start + matchedText.length;
+  });
+
+  if (cursor < value.length) {
+    fragments.push(value.slice(cursor));
+  }
+
+  return fragments;
 }

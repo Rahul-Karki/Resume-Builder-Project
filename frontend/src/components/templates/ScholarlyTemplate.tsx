@@ -7,6 +7,7 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
   toAbsoluteUrl,
   toMailto,
   toTel,
@@ -164,11 +165,11 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
                   </div>
                 </div>
                 {isParagraphMode(entry.contentMode) ? (
-                  getExperienceParagraph(entry) ? <div style={{ color: style.textColor, marginTop: 2 }}>{getExperienceParagraph(entry)}</div> : null
+                  getExperienceParagraph(entry) ? <div style={{ color: style.textColor, marginTop: 2 }}>{renderTextWithLinks(getExperienceParagraph(entry))}</div> : null
                 ) : (
                   getDisplayBullets(entry.bullets).length > 0 && (
                     <ul className="sch-bullets">
-                      {getDisplayBullets(entry.bullets).map((bullet, idx) => <li key={idx}>{bullet}</li>)}
+                      {getDisplayBullets(entry.bullets).map((bullet, idx) => <li key={idx}>{renderTextWithLinks(bullet)}</li>)}
                     </ul>
                   )
                 )}
@@ -199,11 +200,11 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
                 <span style={{ margin: "0 6px", color: style.mutedColor }}>|</span>
                 <span style={{ color: style.mutedColor }}>{formatProjectTech(project)}</span>
                 {isParagraphMode(project.contentMode) ? (
-                  getProjectParagraph(project) ? <div style={{ marginTop: 2 }}>{getProjectParagraph(project)}</div> : null
+                  getProjectParagraph(project) ? <div style={{ marginTop: 2 }}>{renderTextWithLinks(getProjectParagraph(project))}</div> : null
                 ) : (
                   getDisplayBullets(project.bullets).length > 0 && (
                     <ul className="sch-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(project.bullets).map((bullet, idx) => <li key={idx}>{bullet}</li>)}
+                      {getDisplayBullets(project.bullets).map((bullet, idx) => <li key={idx}>{renderTextWithLinks(bullet)}</li>)}
                     </ul>
                   )
                 )}

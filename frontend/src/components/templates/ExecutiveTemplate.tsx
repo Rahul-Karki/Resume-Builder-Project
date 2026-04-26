@@ -7,6 +7,7 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
   toAbsoluteUrl,
   toMailto,
   toTel,
@@ -130,11 +131,11 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
                   <span className="exec-date" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
                 {isParagraphMode(e.contentMode) ? (
-                  getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#444", marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                  getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#444", marginTop: 4 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
                 ) : (
                   getDisplayBullets(e.bullets).length > 0 && (
                     <ul className="exec-bullets">
-                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}
@@ -181,11 +182,11 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
                 )}
                 <span style={{ fontSize: "9pt", color: "#666", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
                 {isParagraphMode(pr.contentMode) ? (
-                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 2 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
                 ) : (
                   getDisplayBullets(pr.bullets).length > 0 && (
                     <ul className="exec-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}

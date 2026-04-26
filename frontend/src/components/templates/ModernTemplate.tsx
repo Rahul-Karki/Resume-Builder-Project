@@ -7,6 +7,7 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
   toAbsoluteUrl,
   toMailto,
   toTel,
@@ -115,7 +116,7 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         {p.summary && (
           <div className="mod-section" style={{ marginBottom: sectionGap }}>
             <div className="mod-section-title" style={{ color: style.accentColor }}>Summary</div>
-            <p className="mod-summary">{p.summary}</p>
+            <p className="mod-summary">{renderTextWithLinks(p.summary)}</p>
           </div>
         )}
  
@@ -132,11 +133,11 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
                   <div className="mod-meta" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</div>
                 </div>
                 {isParagraphMode(e.contentMode) ? (
-                  getExperienceParagraph(e) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                  getExperienceParagraph(e) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 4 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
                 ) : (
                   getDisplayBullets(e.bullets).length > 0 && (
                     <ul className="mod-bullets">
-                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}
@@ -190,11 +191,11 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
                 )}
                 <span style={{ color: "#888", fontSize: "9pt", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
                 {isParagraphMode(pr.contentMode) ? (
-                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
                 ) : (
                   getDisplayBullets(pr.bullets).length > 0 && (
                     <ul className="mod-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}

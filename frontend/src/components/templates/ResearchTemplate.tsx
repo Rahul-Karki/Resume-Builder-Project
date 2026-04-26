@@ -7,6 +7,7 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
   toAbsoluteUrl,
   toMailto,
   toTel,
@@ -163,11 +164,11 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
                   </div>
                 </div>
                 {isParagraphMode(entry.contentMode) ? (
-                  getExperienceParagraph(entry) ? <div style={{ marginTop: 3 }}>{getExperienceParagraph(entry)}</div> : null
+                  getExperienceParagraph(entry) ? <div style={{ marginTop: 3 }}>{renderTextWithLinks(getExperienceParagraph(entry))}</div> : null
                 ) : (
                   getDisplayBullets(entry.bullets).length > 0 && (
                     <ul className="res-bullets">
-                      {getDisplayBullets(entry.bullets).map((bullet, idx) => <li key={idx}>{bullet}</li>)}
+                      {getDisplayBullets(entry.bullets).map((bullet, idx) => <li key={idx}>{renderTextWithLinks(bullet)}</li>)}
                     </ul>
                   )
                 )}
@@ -192,11 +193,11 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
                 </span>
                 <span style={{ marginLeft: 6, color: style.mutedColor }}>{formatProjectTech(project)}</span>
                 {isParagraphMode(project.contentMode) ? (
-                  getProjectParagraph(project) ? <div>{getProjectParagraph(project)}</div> : null
+                  getProjectParagraph(project) ? <div>{renderTextWithLinks(getProjectParagraph(project))}</div> : null
                 ) : (
                   getDisplayBullets(project.bullets).length > 0 && (
                     <ul className="res-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(project.bullets).map((bullet, idx) => <li key={idx}>{bullet}</li>)}
+                      {getDisplayBullets(project.bullets).map((bullet, idx) => <li key={idx}>{renderTextWithLinks(bullet)}</li>)}
                     </ul>
                   )
                 )}

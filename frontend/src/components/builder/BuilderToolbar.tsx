@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { templates as localTemplateCatalog } from "@/data/templateMeta";
+import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 type TemplateOption = {
   layoutId: string;
@@ -84,8 +85,9 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
     };
   }, []);
 
-  const currentTemplateLabel = templates.find((template) => template.layoutId === resume.templateId)?.name
-    ?? resume.templateId
+  const normalizedTemplateId = normalizeResumeTemplateId(resume.templateId);
+  const currentTemplateLabel = templates.find((template) => template.layoutId === normalizedTemplateId)?.name
+    ?? normalizedTemplateId
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (character) => character.toUpperCase());
 
@@ -167,7 +169,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
             cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           }}
         >
-          {isEditingExistingResume ? "Upgrade Template" : currentTemplateLabel}
+          {isEditingExistingResume ? `Template: ${currentTemplateLabel}` : currentTemplateLabel}
           <span style={{ fontSize: 10, opacity: 0.5 }}>v</span>
         </button>
         {showTemplates && (
@@ -188,7 +190,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                     </div>
                   )}
                   {templates.map((template) => {
-                    const isCurrentTemplate = resume.templateId === template.layoutId;
+                    const isCurrentTemplate = normalizedTemplateId === template.layoutId;
                     const label = isEditingExistingResume
                       ? isCurrentTemplate
                         ? `Refresh ${template.name}`

@@ -7,6 +7,7 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
   toAbsoluteUrl,
   toMailto,
   toTel,
@@ -97,7 +98,7 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
         )}
         <hr className="classic-divider" />
         <section>
-          <p className="classic-summary">{p.summary}</p>
+          <p className="classic-summary">{renderTextWithLinks(p.summary)}</p>
         </section>
         <section>
           <div className="classic-section-title">Experience</div>
@@ -113,11 +114,11 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
                 <span className="classic-date">{formatDateRange(e.start, e.end, e.current)}</span>
               </div>
               {isParagraphMode(e.contentMode) ? (
-                getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#333", marginTop: 2 }}>{getExperienceParagraph(e)}</div> : null
+                getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#333", marginTop: 2 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
               ) : (
                 getDisplayBullets(e.bullets).length > 0 && (
                   <ul className="classic-bullets">
-                    {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                   </ul>
                 )
               )}
@@ -160,11 +161,11 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
               <span style={{ margin: "0 6px", color: "#888" }}>|</span>
               <span style={{ fontSize: "9.5pt", color: "#555" }}>{formatProjectTech(pr)}</span>
               {isParagraphMode(pr.contentMode) ? (
-                getProjectParagraph(pr) ? <div style={{ fontSize: "10pt", color: "#333", marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                getProjectParagraph(pr) ? <div style={{ fontSize: "10pt", color: "#333", marginTop: 2 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
               ) : (
                 getDisplayBullets(pr.bullets).length > 0 && (
                   <ul className="classic-bullets" style={{ marginTop: 2 }}>
-                    {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                    {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                   </ul>
                 )
               )}
