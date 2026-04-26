@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";  
+import { useEffect, useMemo, useRef, useState } from "react";  
 import { ResumeDocument } from "@/types/resume-types";
 import { TEMPLATES } from "@/utils/templateMapping";
 import { relativeTime } from "@/utils/relativeTime";
@@ -7,6 +7,9 @@ import { calculateCompletionScore } from "@/hooks/useMyResume";
 
 export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;onClose:()=>void;onEdit:(id:string)=>void}) {
   const [zoom, setZoom] = useState(0.85);
+  const [isMobile, setIsMobile] = useState(false);
+  const [fitScale, setFitScale] = useState(1);
+  const previewHostRef = useRef<HTMLDivElement | null>(null);
   const tpl=TEMPLATES.find(t=>t.id===resume.templateId);
   const displayTpl = tpl ?? TEMPLATES[0];
   const templateName = tpl?.name ?? (resume.templateId || "custom")
@@ -29,11 +32,38 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
     const h=(e:KeyboardEvent)=>{ if(e.key==="Escape") onClose(); };
     window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
   },[onClose]);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 900);
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  useEffect(() => {
+    const el = previewHostRef.current;
+    if (!el) return;
+
+    const recompute = () => {
+      const available = Math.max(0, el.clientWidth - (isMobile ? 24 : 64));
+      const next = available > 0 ? Math.min(1, available / 794) : 1;
+      setFitScale(next);
+    };
+
+    recompute();
+
+    const ro = new ResizeObserver(() => recompute());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMobile]);
+
+  const effectiveScale = useMemo(() => Math.min(zoom, fitScale), [zoom, fitScale]);
+
   return (
     <div onClick={e=>{if(e.target===e.currentTarget)onClose();}}
       style={{position:"fixed",inset:0,zIndex:150,background:"rgba(0,0,0,0.92)",display:"flex",flexDirection:"column",backdropFilter:"blur(8px)",fontFamily:"'Outfit',sans-serif"}}>
       {/* Bar */}
-      <div style={{height:60,background:"#080808",borderBottom:"1px solid #141414",display:"flex",alignItems:"center",padding:"0 24px",gap:14,flexShrink:0}}>
+      <div style={{minHeight:60,background:"#080808",borderBottom:"1px solid #141414",display:"flex",alignItems:"center",padding:isMobile?"10px 12px":"0 24px",gap:14,flexShrink:0,flexWrap:"wrap"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:8,height:8,borderRadius:"50%",background:displayTpl.accent}}/>
           <div>
@@ -41,7 +71,7 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
             <div style={{fontSize:11,color:"#A7A7A7",lineHeight:1.3}}>{templateName} · {relativeTime(updatedAt)}</div>
           </div>
         </div>
-        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
+        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",justifyContent:isMobile?"flex-start":"flex-end"}}>
           <button
             onClick={() => setZoom((z) => Math.max(0.6, Number((z - 0.1).toFixed(2))))}
             style={{width:30,height:30,borderRadius:8,background:"#1A1A1A",border:"1px solid #3A3A3A",color:"#F0EFE8",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}
@@ -66,9 +96,18 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
         </div>
       </div>
       {/* Content */}
-      <div style={{flex:1,overflow:"hidden",display:"flex"}}>
+      <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:isMobile?"column":"row"}}>
         {/* Sidebar info */}
-        <div style={{width:240,background:"#080808",borderRight:"1px solid #111",padding:"20px",overflowY:"auto",flexShrink:0}}>
+        <div style={{
+          width: isMobile ? "100%" : 240,
+          maxHeight: isMobile ? 220 : "none",
+          background:"#080808",
+          borderRight: isMobile ? "none" : "1px solid #111",
+          borderBottom: isMobile ? "1px solid #111" : "none",
+          padding: isMobile ? "14px 12px" : "20px",
+          overflowY:"auto",
+          flexShrink:0,
+        }}>
           <div style={{fontSize:10,fontWeight:700,color:"#2A2A2A",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:12}}>Resume Info</div>
           {[["Name",resume.personalInfo.name],["Title",resume.personalInfo.title],["Email",resume.personalInfo.email],["Location",resume.personalInfo.location]].filter(([,v])=>v).map(([l,v])=>(
             <div key={l} style={{marginBottom:10}}>
@@ -93,9 +132,28 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
           </div>
         </div>
         {/* Large thumb */}
-        <div style={{flex:1,overflow:"auto",background:"#050505",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"32px"}}>
-          <div style={{width:794 * zoom,height:1123 * zoom,minHeight:1123 * zoom,borderRadius:8,overflow:"hidden",boxShadow:"0 32px 80px rgba(0,0,0,0.8)",background:resume.style.backgroundColor,transition:"width 0.2s, height 0.2s"}}>
-            <div style={{width:"794px",height:"1123px",minHeight:"1123px",background:resume.style.backgroundColor,transform:`scale(${zoom})`,transformOrigin:"top left"}}>
+        <div
+          ref={previewHostRef}
+          style={{flex:1,overflow:"auto",background:"#050505",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:isMobile?"12px":"32px"}}
+        >
+          <div style={{
+            width: 794 * effectiveScale,
+            height: 1123 * effectiveScale,
+            minHeight: 1123 * effectiveScale,
+            borderRadius:8,
+            overflow:"hidden",
+            boxShadow:"0 32px 80px rgba(0,0,0,0.8)",
+            background:resume.style.backgroundColor,
+            transition:"width 0.2s, height 0.2s",
+          }}>
+            <div style={{
+              width:"794px",
+              height:"1123px",
+              minHeight:"1123px",
+              background:resume.style.backgroundColor,
+              transform:`scale(${effectiveScale})`,
+              transformOrigin:"top left",
+            }}>
               <ResumeRenderer resume={resume} />
             </div>
           </div>

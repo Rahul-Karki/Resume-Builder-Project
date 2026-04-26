@@ -15,7 +15,10 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
       borderRight: isMobile ? "none" : "1px solid #141414",
       borderBottom: isMobile ? "1px solid #141414" : "none",
       display: "flex", flexDirection: "column",
-      height: isMobile ? "auto" : "100vh", position: isMobile ? "relative" : "sticky", top: 0,
+      // Sticky + overflow-hidden parent causes jump/misalignment in this layout.
+      height: isMobile ? "auto" : "100vh",
+      position: "relative",
+      alignSelf: "stretch",
       fontFamily: "'Outfit', sans-serif",
     }}>
       {/* Logo */}
@@ -29,7 +32,16 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
       </div>
 
       {/* Nav items */}
-      <nav style={{ padding: isMobile ? "8px 8px" : "12px 10px", flex: 1, display: "flex", gap: 6, overflowX: isMobile ? "auto" : "visible", whiteSpace: isMobile ? "nowrap" : "normal", scrollbarWidth: "none" }}>
+      <nav style={{
+        padding: isMobile ? "8px 8px" : "12px 10px",
+        flex: 1,
+        display: "flex",
+        gap: 6,
+        overflowX: isMobile ? "auto" : "visible",
+        overflowY: isMobile ? "hidden" : "auto",
+        whiteSpace: isMobile ? "nowrap" : "normal",
+        scrollbarWidth: "none",
+      }}>
         {NAV_ITEMS.map(item => {
           const active = activePage === item.id;
           return (

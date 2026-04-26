@@ -130,15 +130,15 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", overflow: "hidden", background: "#080808" }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#080808", alignItems: "stretch" }}>
 
         {/* Sidebar */}
         <AdminSidebar activePage={page} onNavigate={setPage} adminName={adminName} isMobile={isMobile} />
 
         {/* Main area */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           <TopBar page={page} onLogout={handleLogout} isMobile={isMobile} />
-          <div style={{ flex: 1, overflowY: "auto" }}>
+          <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
             {page === "dashboard" && <AdminDashboard />}
             {page === "templates" && <AdminTemplates />}
           </div>

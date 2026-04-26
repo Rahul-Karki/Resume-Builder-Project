@@ -31,7 +31,8 @@ export function CTASection() {
       <div style={{
         position: "absolute", top: "50%", left: "50%",
         transform: "translate(-50%, -50%)",
-        width: 700, height: 400,
+        width: "min(700px, 92vw)",
+        height: "min(400px, 55vw)",
         background: "radial-gradient(ellipse at center, rgba(200,245,90,0.05) 0%, transparent 70%)",
         pointerEvents: "none",
       }} />
