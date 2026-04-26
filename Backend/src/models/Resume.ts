@@ -58,6 +58,7 @@ interface IPersonalInfo {
   phone: string;
   location: string;
   linkedin: string;
+  github: string;
   portfolio: string;
   summary: string;
 }
@@ -162,6 +163,7 @@ const ResumeSchema = new Schema<IResume>(
       phone: { type: String, default: "" },
       location: { type: String, default: "" },
       linkedin: { type: String, default: "" },
+      github: { type: String, default: "" },
       portfolio: { type: String, default: "" },
       summary: { type: String, default: "" },
     },

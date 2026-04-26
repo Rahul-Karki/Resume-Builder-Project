@@ -6,6 +6,7 @@ import { ModernTemplate } from "@/components/templates/ModernTemplate";
 import { SidebarTemplate } from "@/components/templates/SidebarTemplate";
 import { ScholarlyTemplate } from "@/components/templates/ScholarlyTemplate";
 import { ResearchTemplate } from "@/components/templates/ResearchTemplate";
+import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 interface Props {
   resume: ResumeDocument;
@@ -430,7 +431,7 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
     research: ResearchTemplate,
   };
 
-  const SelectedTemplate = templatesById[resume.templateId] ?? ClassicTemplateAdapter;
+  const SelectedTemplate = templatesById[normalizeResumeTemplateId(resume.templateId)] ?? ClassicTemplateAdapter;
   return (
     <div
       style={{

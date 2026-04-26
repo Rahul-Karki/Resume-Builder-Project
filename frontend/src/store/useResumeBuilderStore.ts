@@ -8,6 +8,7 @@ import {
   defaultSectionVisibility, defaultSectionOrder,
 } from "@/types/resume-types";
 import { api } from "@/services/api";
+import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 // ─── Helper: generate IDs ──────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -31,7 +32,7 @@ const hasResumeContent = (resume: ResumeDocument) => {
 
 const toResumePayload = (resume: ResumeDocument) => ({
   title: resume.title,
-  templateId: resume.templateId,
+  templateId: normalizeResumeTemplateId(resume.templateId),
   personalInfo: {
     name: resume.personalInfo.name,
     title: resume.personalInfo.title,
@@ -574,6 +575,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
 
     // ─── Init from template ───────────────────────────────────────────────────
     initFromTemplate: async (templateId) => {
+      const normalizedTemplateId = normalizeResumeTemplateId(templateId);
       const stylePresets: Record<string, Partial<typeof defaultStyle>> = {
         classic:   { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
         executive: { accentColor: "#1B2B4B", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif" },
@@ -593,13 +595,13 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         research:  { ...defaultSectionVisibility },
       } as Record<string, typeof defaultSectionVisibility>;
 
-      const baseStyle = { ...defaultStyle, ...(stylePresets[templateId] ?? {}) };
-      const baseVisibility = { ...(sectionVisibilityPresets[templateId] ?? defaultSectionVisibility) };
+      const baseStyle = { ...defaultStyle, ...(stylePresets[normalizedTemplateId] ?? {}) };
+      const baseVisibility = { ...(sectionVisibilityPresets[normalizedTemplateId] ?? defaultSectionVisibility) };
 
       try {
         const response = await api.get("/templates");
         const templates = Array.isArray(response.data?.data) ? response.data.data : [];
-        const matchedTemplate = templates.find((template: any) => template?.layoutId === templateId);
+        const matchedTemplate = templates.find((template: any) => template?.layoutId === normalizedTemplateId);
 
         if (matchedTemplate) {
           const cssVars = matchedTemplate.cssVars ?? {};
@@ -622,7 +624,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           set(() => ({
             resume: {
               ...initialResume,
-              templateId,
+              templateId: normalizedTemplateId,
               style: resolvedStyle,
               sectionVisibility: {
                 ...baseVisibility,
@@ -649,7 +651,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       set(() => ({
         resume: {
           ...initialResume,
-          templateId,
+          templateId: normalizedTemplateId,
           style: baseStyle,
           sectionVisibility: baseVisibility,
           sectionOrder: [...defaultSectionOrder],
@@ -695,6 +697,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           resume: {
             ...initialResume,
             ...preloadedResume,
+            templateId: normalizeResumeTemplateId(preloadedResume.templateId),
             personalInfo: {
               ...defaultPersonalInfo,
               ...(preloadedResume.personalInfo ?? {}),
@@ -740,6 +743,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           resume: {
             ...initialResume,
             ...loadedResume,
+            templateId: normalizeResumeTemplateId(loadedResume?.templateId),
             personalInfo: {
               ...defaultPersonalInfo,
               ...(loadedResume?.personalInfo ?? {}),

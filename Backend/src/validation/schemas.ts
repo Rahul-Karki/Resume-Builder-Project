@@ -181,6 +181,7 @@ const resumeSchema = z.object({
     phone: z.string().max(50).optional(),
     location: z.string().max(120).optional(),
     linkedin: z.string().max(2048).optional(),
+    github: z.string().max(2048).optional(),
     portfolio: z.string().max(2048).optional(),
     summary: z.string().max(2000).optional(),
   }).strict().optional(),

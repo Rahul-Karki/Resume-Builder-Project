@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { ResumeDocument, SavedResume, User } from "@/types/resume-types";
+import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 const sectionKeys = ["experience", "education", "skills", "projects", "certifications"] as const;
 
@@ -74,7 +75,7 @@ export function mapResumeDocumentToSavedResume(resume: ResumeDocument): SavedRes
   return {
     id: getResumeId(resume),
     title: resume.title || personalInfo.title || "Untitled Resume",
-    templateId: resume.templateId || "classic",
+    templateId: normalizeResumeTemplateId(resume.templateId),
     updatedAt: resume.updatedAt || resume.createdAt || new Date().toISOString(),
     createdAt: resume.createdAt || resume.updatedAt || new Date().toISOString(),
     completionScore: calculateCompletionScore(resume),

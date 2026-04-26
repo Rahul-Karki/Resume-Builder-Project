@@ -6,6 +6,7 @@ import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache } from "../middleware/redisCache";
+import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -29,6 +30,17 @@ const getUserId = (req: Request, res: Response) => {
 
 const resumeCacheScope = (userId: string) => `resumes-user:${userId}`;
 
+const normalizeResumeResponse = <T extends { templateId?: unknown; toObject?: () => Record<string, unknown> }>(resume: T) => {
+    const plainResume = typeof resume.toObject === "function"
+        ? resume.toObject()
+        : { ...resume };
+
+    return {
+        ...plainResume,
+        templateId: normalizeResumeTemplateId(plainResume.templateId),
+    };
+};
+
 const getAllResumes: RequestHandler = async (req, res) => {
     const span = startControllerSpan("resume.getAllResumes", req);
     try {
@@ -36,10 +48,11 @@ const getAllResumes: RequestHandler = async (req, res) => {
         if (!userId) return;
 
         const resumes = await Resume.find({ userId }).sort({ updatedAt: -1 });
+        const normalizedResumes = resumes.map((resume) => normalizeResumeResponse(resume));
 
-        logger.info({ userId, count: resumes.length }, "Fetched resumes");
+        logger.info({ userId, count: normalizedResumes.length }, "Fetched resumes");
         markSpanSuccess(span);
-        res.status(200).json({ resumes });
+        res.status(200).json({ resumes: normalizedResumes });
     } catch (error) {
         markSpanError(span, error as Error, "Failed to fetch resumes");
         logger.error({ error }, "Failed to fetch resumes");
@@ -64,7 +77,7 @@ const getResumeById: RequestHandler = async (req, res) => {
 
         logger.info({ userId, resumeId: req.params.id }, "Fetched resume by id");
         markSpanSuccess(span);
-        res.status(200).json({ resume });
+        res.status(200).json({ resume: normalizeResumeResponse(resume) });
     } catch (error) {
         markSpanError(span, error as Error, "Failed to fetch resume by id");
         logger.error({ error, resumeId: req.params.id }, "Failed to fetch resume by id");
@@ -80,8 +93,13 @@ const createResume: RequestHandler = async (req, res) => {
         const userId = getUserId(req, res);
         if (!userId) return;
 
-        const resume = await Resume.create({
+        const payload = {
             ...req.body,
+            templateId: normalizeResumeTemplateId(req.body?.templateId),
+        };
+
+        const resume = await Resume.create({
+            ...payload,
             userId,
         });
 
@@ -91,7 +109,7 @@ const createResume: RequestHandler = async (req, res) => {
 
         res.status(201).json({
             message: "Resume saved successfully",
-            resume,
+            resume: normalizeResumeResponse(resume),
         });
         logger.info({ userId, resumeId: resume._id.toString() }, "Resume created");
         markSpanSuccess(span);
@@ -110,9 +128,14 @@ const updateResume: RequestHandler = async (req, res) => {
         const userId = getUserId(req, res);
         if (!userId) return;
 
+        const payload = {
+            ...req.body,
+            templateId: req.body?.templateId === undefined ? undefined : normalizeResumeTemplateId(req.body.templateId),
+        };
+
         const resume = await Resume.findOneAndUpdate(
             { _id: req.params.id, userId },
-            { ...req.body, userId },
+            { ...payload, userId },
             { new: true, runValidators: true },
         );
 
@@ -127,7 +150,7 @@ const updateResume: RequestHandler = async (req, res) => {
 
         res.status(200).json({
             message: "Resume updated successfully",
-            resume,
+            resume: normalizeResumeResponse(resume),
         });
         logger.info({ userId, resumeId: req.params.id }, "Resume updated");
         markSpanSuccess(span);
