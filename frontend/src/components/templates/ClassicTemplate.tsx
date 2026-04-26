@@ -15,6 +15,11 @@ import {
 
 export function ClassicTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, style } = data;
+  const contactItems = [
+    p.email ? { label: p.email, href: toMailto(p.email) } : null,
+    p.phone ? { label: p.phone, href: toTel(p.phone) } : null,
+    p.location ? { label: p.location, href: "" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string }>;
   const socialItems = [
     p.linkedin ? { kind: "linkedin" as const, href: toAbsoluteUrl(p.linkedin), label: "LinkedIn" } : null,
     p.github ? { kind: "github" as const, href: toAbsoluteUrl(p.github), label: "GitHub" } : null,
@@ -46,11 +51,13 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
     @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap');
     .classic-wrap { font-family:'Source Sans 3',sans-serif; color:#1a1a1a; font-size:10.5pt; line-height:1.5; background:#fff; padding:48px 52px; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .classic-name { font-family:'EB Garamond',serif; font-size:28pt; font-weight:500; letter-spacing:0.5px; margin:0 0 4px; color:#111; }
-    .classic-contact { font-size:9pt; color:#444; display:flex; flex-wrap:wrap; gap:4px 16px; margin-bottom:18px; }
-    .classic-contact span::before { content:''; }
+    .classic-contact { font-size:9pt; color:#444; display:flex; flex-wrap:wrap; gap:4px 0; margin-bottom:10px; align-items:center; }
+    .classic-contact-item { display:inline-flex; align-items:center; }
+    .classic-contact-item + .classic-contact-item::before { content:'·'; color:#8a8a8a; margin:0 10px; }
     .classic-link { color:inherit; text-decoration:none; }
     .classic-link:hover { text-decoration:underline; }
-    .classic-social { display:flex; gap:10px; margin-bottom:18px; color:#444; }
+    .classic-social { display:flex; gap:10px; margin-bottom:18px; color:#444; align-items:center; }
+    .classic-social-label { font-size:8.5pt; color:#666; letter-spacing:0.4px; text-transform:uppercase; }
     .classic-social-link { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:999px; }
     .classic-social-link:hover { background:rgba(0,0,0,0.05); }
     .classic-divider { border:none; border-top:1.5px solid #1a1a1a; margin:0 0 10px; }
@@ -79,16 +86,18 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
       <style>{css}</style>
       <div className="classic-wrap">
         <h1 className="classic-name">{p.name}</h1>
-        <div className="classic-contact">
-          <span>{p.email ? <a className="classic-link" href={toMailto(p.email)} target="_blank" rel="noreferrer">{p.email}</a> : null}</span><span>·</span>
-          <span>{p.phone ? <a className="classic-link" href={toTel(p.phone)} target="_blank" rel="noreferrer">{p.phone}</a> : null}</span><span>·</span>
-          <span>{p.location}</span><span>·</span>
-          <span>{p.linkedin ? <a className="classic-link" href={toAbsoluteUrl(p.linkedin)} target="_blank" rel="noreferrer">{p.linkedin}</a> : null}</span><span>·</span>
-          <span>{p.github ? <a className="classic-link" href={toAbsoluteUrl(p.github)} target="_blank" rel="noreferrer">{p.github}</a> : null}</span><span>·</span>
-          <span>{p.portfolio ? <a className="classic-link" href={toAbsoluteUrl(p.portfolio)} target="_blank" rel="noreferrer">{p.portfolio}</a> : null}</span>
-        </div>
+        {contactItems.length > 0 && (
+          <div className="classic-contact">
+            {contactItems.map((item, i) => (
+              <span key={i} className="classic-contact-item">
+                {item.href ? <a className="classic-link" href={item.href} target="_blank" rel="noreferrer">{item.label}</a> : item.label}
+              </span>
+            ))}
+          </div>
+        )}
         {socialItems.length > 0 && (
           <div className="classic-social">
+            <span className="classic-social-label">Links</span>
             {socialItems.map((item, i) => (
               <a key={i} className="classic-social-link" href={item.href} target="_blank" rel="noreferrer" aria-label={item.label} title={item.label}>
                 <SocialIcon kind={item.kind} />
