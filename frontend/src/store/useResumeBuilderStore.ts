@@ -390,7 +390,10 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
 
     resetStyle: () =>
       set(s => ({
-        resume: { ...s.resume, style: { ...defaultStyle } },
+        resume: {
+          ...s.resume,
+          style: { ...getTemplateBaseStyle(normalizeResumeTemplateId(s.resume.templateId)) },
+        },
         ui: { ...s.ui, isDirty: true, isSaved: false },
       })),
 
@@ -402,7 +405,11 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           location: "", current: false, contentMode: "bullets", description: "", bullets: [""],
         };
         return {
-          resume: { ...s.resume, sections: { ...s.resume.sections, experience: [...s.resume.sections.experience, newEntry] } },
+          resume: {
+            ...s.resume,
+            sections: { ...s.resume.sections, experience: [...s.resume.sections.experience, newEntry] },
+            sectionVisibility: { ...s.resume.sectionVisibility, experience: true },
+          },
           ui: { ...s.ui, isDirty: true, activeSection: "experience" },
         };
       }),
@@ -483,6 +490,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             education: [...s.resume.sections.education, { id: uid(), institution: "", degree: "", field: "", year: "", cgpa: "" }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, education: true },
         },
         ui: { ...s.ui, isDirty: true, activeSection: "education" },
       })),
@@ -512,6 +520,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             skills: [...s.resume.sections.skills, { id: uid(), category: "Skills", items: [] }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, skills: true },
         },
         ui: { ...s.ui, isDirty: true, activeSection: "skills" },
       })),
@@ -541,6 +550,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             projects: [...s.resume.sections.projects, { id: uid(), name: "", contentMode: "paragraph", description: "", bullets: [""], tech: "", link: "" }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, projects: true },
         },
         ui: { ...s.ui, isDirty: true, activeSection: "projects" },
       })),
@@ -616,6 +626,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             certifications: [...s.resume.sections.certifications, { id: uid(), name: "", issuer: "", year: "" }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, certifications: true },
         },
         ui: { ...s.ui, isDirty: true },
       })),
