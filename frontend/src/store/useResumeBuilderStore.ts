@@ -185,6 +185,7 @@ interface ResumeBuilderStore {
   saveResume: () => Promise<void>;
   loadResume: (id: string, preloadedResume?: ResumeDocument) => Promise<void>;
   initFromTemplate: (templateId: string) => Promise<void>;
+  applyTemplateUpgrade: (templateId: string) => Promise<void>;
   markDirty: () => void;
 }
 
@@ -243,6 +244,126 @@ const safeLineHeight = (value: unknown, fallback: ResumeStyle["lineHeight"]): Re
     return value as ResumeStyle["lineHeight"];
   }
   return fallback;
+};
+
+const TEMPLATE_STYLE_PRESETS: Record<string, Partial<typeof defaultStyle>> = {
+  classic:   { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
+  executive: { accentColor: "#1B2B4B", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif" },
+  modern:    { accentColor: "#0F766E", bodyFont: "DM Sans, sans-serif", headingFont: "DM Sans, sans-serif" },
+  compact:   { accentColor: "#111111", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "9.5pt" },
+  sidebar:   { accentColor: "#1E293B", bodyFont: "Nunito Sans, sans-serif", headingFont: "Nunito Sans, sans-serif" },
+  scholarly: { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
+  research:  { accentColor: "#1f1f1f", bodyFont: "Source Serif 4, serif", headingFont: "Playfair Display, serif" },
+};
+
+const TEMPLATE_SECTION_VISIBILITY_PRESETS: Record<string, typeof defaultSectionVisibility> = {
+  classic:   { ...defaultSectionVisibility },
+  executive: { ...defaultSectionVisibility },
+  modern:    { ...defaultSectionVisibility },
+  compact:   { ...defaultSectionVisibility },
+  sidebar:   { ...defaultSectionVisibility },
+  scholarly: { ...defaultSectionVisibility },
+  research:  { ...defaultSectionVisibility },
+};
+
+const SECTION_KEYS: Array<keyof SectionVisibility> = [
+  "experience",
+  "education",
+  "skills",
+  "projects",
+  "certifications",
+  "languages",
+];
+
+const getTemplateBaseStyle = (templateId: string) => ({
+  ...defaultStyle,
+  ...(TEMPLATE_STYLE_PRESETS[templateId] ?? {}),
+});
+
+const getTemplateBaseVisibility = (templateId: string) => ({
+  ...(TEMPLATE_SECTION_VISIBILITY_PRESETS[templateId] ?? defaultSectionVisibility),
+});
+
+const resolveTemplateConfig = async (templateId: string) => {
+  const normalizedTemplateId = normalizeResumeTemplateId(templateId);
+  const baseStyle = getTemplateBaseStyle(normalizedTemplateId);
+  const baseVisibility = getTemplateBaseVisibility(normalizedTemplateId);
+
+  try {
+    const response = await api.get("/templates");
+    const templates = Array.isArray(response.data?.data) ? response.data.data : [];
+    const matchedTemplate = templates.find((template: any) => template?.layoutId === normalizedTemplateId);
+
+    if (!matchedTemplate) {
+      return {
+        templateId: normalizedTemplateId,
+        style: baseStyle,
+        sectionVisibility: baseVisibility,
+      };
+    }
+
+    const cssVars = matchedTemplate.cssVars ?? {};
+    const slots = matchedTemplate.slots ?? {};
+
+    const resolvedStyle: ResumeStyle = {
+      ...baseStyle,
+      accentColor: cssVars.accentColor ?? baseStyle.accentColor,
+      headingColor: cssVars.headingColor ?? baseStyle.headingColor,
+      textColor: cssVars.textColor ?? baseStyle.textColor,
+      mutedColor: cssVars.mutedColor ?? baseStyle.mutedColor,
+      borderColor: cssVars.borderColor ?? baseStyle.borderColor,
+      backgroundColor: cssVars.backgroundColor ?? baseStyle.backgroundColor,
+      bodyFont: safeFont(cssVars.bodyFont, baseStyle.bodyFont),
+      headingFont: safeFont(cssVars.headingFont, baseStyle.headingFont),
+      fontSize: safeFontSize(cssVars.fontSize, baseStyle.fontSize),
+      lineHeight: safeLineHeight(cssVars.lineHeight, baseStyle.lineHeight),
+    };
+
+    return {
+      templateId: normalizedTemplateId,
+      style: resolvedStyle,
+      sectionVisibility: {
+        ...baseVisibility,
+        experience: slots.experience ?? baseVisibility.experience,
+        education: slots.education ?? baseVisibility.education,
+        skills: slots.skills ?? baseVisibility.skills,
+        projects: slots.projects ?? baseVisibility.projects,
+        certifications: slots.certifications ?? baseVisibility.certifications,
+        languages: slots.languages ?? baseVisibility.languages,
+      },
+    };
+  } catch {
+    return {
+      templateId: normalizedTemplateId,
+      style: baseStyle,
+      sectionVisibility: baseVisibility,
+    };
+  }
+};
+
+const sectionHasContent = (resume: ResumeDocument, section: keyof SectionVisibility) => {
+  const value = resume.sections[section];
+  return Array.isArray(value) && value.length > 0;
+};
+
+const mergeTemplateVisibilityForExistingResume = (
+  resume: ResumeDocument,
+  templateVisibility: SectionVisibility,
+): SectionVisibility => {
+  const nextVisibility = { ...templateVisibility };
+
+  for (const section of SECTION_KEYS) {
+    if (resume.sectionVisibility[section]) {
+      nextVisibility[section] = true;
+      continue;
+    }
+
+    if (sectionHasContent(resume, section)) {
+      nextVisibility[section] = true;
+    }
+  }
+
+  return nextVisibility;
 };
 
 // ─── Store ─────────────────────────────────────────────────────────────────────
@@ -575,89 +696,38 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
 
     // ─── Init from template ───────────────────────────────────────────────────
     initFromTemplate: async (templateId) => {
-      const normalizedTemplateId = normalizeResumeTemplateId(templateId);
-      const stylePresets: Record<string, Partial<typeof defaultStyle>> = {
-        classic:   { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
-        executive: { accentColor: "#1B2B4B", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif" },
-        modern:    { accentColor: "#0F766E", bodyFont: "DM Sans, sans-serif", headingFont: "DM Sans, sans-serif" },
-        compact:   { accentColor: "#111111", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "9.5pt" },
-        sidebar:   { accentColor: "#1E293B", bodyFont: "Nunito Sans, sans-serif", headingFont: "Nunito Sans, sans-serif" },
-        scholarly: { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
-        research:  { accentColor: "#1f1f1f", bodyFont: "Source Serif 4, serif", headingFont: "Playfair Display, serif" },
-      };
-      const sectionVisibilityPresets = {
-        classic:   { ...defaultSectionVisibility },
-        executive: { ...defaultSectionVisibility },
-        modern:    { ...defaultSectionVisibility },
-        compact:   { ...defaultSectionVisibility },
-        sidebar:   { ...defaultSectionVisibility },
-        scholarly: { ...defaultSectionVisibility },
-        research:  { ...defaultSectionVisibility },
-      } as Record<string, typeof defaultSectionVisibility>;
-
-      const baseStyle = { ...defaultStyle, ...(stylePresets[normalizedTemplateId] ?? {}) };
-      const baseVisibility = { ...(sectionVisibilityPresets[normalizedTemplateId] ?? defaultSectionVisibility) };
-
-      try {
-        const response = await api.get("/templates");
-        const templates = Array.isArray(response.data?.data) ? response.data.data : [];
-        const matchedTemplate = templates.find((template: any) => template?.layoutId === normalizedTemplateId);
-
-        if (matchedTemplate) {
-          const cssVars = matchedTemplate.cssVars ?? {};
-          const slots = matchedTemplate.slots ?? {};
-
-          const resolvedStyle: ResumeStyle = {
-            ...baseStyle,
-            accentColor: cssVars.accentColor ?? baseStyle.accentColor,
-            headingColor: cssVars.headingColor ?? baseStyle.headingColor,
-            textColor: cssVars.textColor ?? baseStyle.textColor,
-            mutedColor: cssVars.mutedColor ?? baseStyle.mutedColor,
-            borderColor: cssVars.borderColor ?? baseStyle.borderColor,
-            backgroundColor: cssVars.backgroundColor ?? baseStyle.backgroundColor,
-            bodyFont: safeFont(cssVars.bodyFont, baseStyle.bodyFont),
-            headingFont: safeFont(cssVars.headingFont, baseStyle.headingFont),
-            fontSize: safeFontSize(cssVars.fontSize, baseStyle.fontSize),
-            lineHeight: safeLineHeight(cssVars.lineHeight, baseStyle.lineHeight),
-          };
-
-          set(() => ({
-            resume: {
-              ...initialResume,
-              templateId: normalizedTemplateId,
-              style: resolvedStyle,
-              sectionVisibility: {
-                ...baseVisibility,
-                experience: slots.experience ?? baseVisibility.experience,
-                education: slots.education ?? baseVisibility.education,
-                skills: slots.skills ?? baseVisibility.skills,
-                projects: slots.projects ?? baseVisibility.projects,
-                certifications: slots.certifications ?? baseVisibility.certifications,
-                languages: slots.languages ?? baseVisibility.languages,
-              },
-              sectionOrder: [...defaultSectionOrder],
-            },
-            ui: {
-              ...initialUI,
-            },
-          }));
-
-          return;
-        }
-      } catch {
-        // Fall back to local presets when templates API is unavailable.
-      }
+      const resolvedTemplate = await resolveTemplateConfig(templateId);
 
       set(() => ({
         resume: {
           ...initialResume,
-          templateId: normalizedTemplateId,
-          style: baseStyle,
-          sectionVisibility: baseVisibility,
+          templateId: resolvedTemplate.templateId,
+          style: resolvedTemplate.style,
+          sectionVisibility: resolvedTemplate.sectionVisibility,
           sectionOrder: [...defaultSectionOrder],
         },
         ui: {
           ...initialUI,
+        },
+      }));
+    },
+
+    applyTemplateUpgrade: async (templateId) => {
+      const resolvedTemplate = await resolveTemplateConfig(templateId);
+      const currentResume = get().resume;
+
+      set((s) => ({
+        resume: {
+          ...s.resume,
+          templateId: resolvedTemplate.templateId,
+          style: resolvedTemplate.style,
+          sectionVisibility: mergeTemplateVisibilityForExistingResume(currentResume, resolvedTemplate.sectionVisibility),
+        },
+        ui: {
+          ...s.ui,
+          isDirty: true,
+          isSaved: false,
+          saveError: null,
         },
       }));
     },
