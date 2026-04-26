@@ -30,7 +30,7 @@ type CardTemplate = {
   thumb: TemplateMeta;
 };
 
-const THUMB_IDS = ["classic", "executive", "modern", "compact", "sidebar"] as const;
+const THUMB_IDS = ["classic", "executive", "modern", "compact", "sidebar", "scholarly", "research"] as const;
 
 export function EmptyState({ name, onPick }: { name: string; onPick: (id: string) => void }) {
   const [hov, setHov] = useState<string | null>(null);

@@ -169,6 +169,38 @@ function ThumbnailSVG({ template }: { template: TemplateMeta }) {
         ))}
       </svg>
     ),
+    scholarly: (
+      <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%" }}>
+        <rect width="240" height="310" fill="#FFFFFF" />
+        <rect x="48" y="14" width="144" height="11" rx="2" fill="#1a1a1a" opacity="0.82" />
+        <rect x="32" y="29" width="176" height="2" rx="1" fill="#4a4a4a" opacity="0.36" />
+        {[42, 49, 56].map((y, i) => <rect key={y} x="20" y={y} width={[200, 184, 196][i]} height="1.8" rx="1" fill="#1a1a1a" opacity="0.12" />)}
+        {[72, 108, 146, 184, 222, 258].map((y) => (
+          <g key={y}>
+            <rect x="20" y={y} width="54" height="3.4" rx="1" fill="#1a1a1a" opacity="0.56" />
+            <rect x="20" y={y + 6} width="200" height="0.75" fill="#4a4a4a" opacity="0.28" />
+            <rect x="20" y={y + 10} width="188" height="1.8" rx="1" fill="#1a1a1a" opacity="0.13" />
+            <rect x="20" y={y + 15} width="198" height="1.8" rx="1" fill="#1a1a1a" opacity="0.10" />
+          </g>
+        ))}
+      </svg>
+    ),
+    research: (
+      <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%" }}>
+        <rect width="240" height="310" fill="#FFFFFF" />
+        <rect x="20" y="14" width="102" height="10" rx="2" fill="#1f1f1f" opacity="0.82" />
+        <rect x="20" y="28" width="120" height="2" rx="1" fill="#555" opacity="0.34" />
+        <rect x="144" y="14" width="76" height="2" rx="1" fill="#555" opacity="0.44" />
+        <rect x="144" y="20" width="76" height="2" rx="1" fill="#555" opacity="0.34" />
+        {[44, 82, 132, 182, 228, 270].map((y) => (
+          <g key={y}>
+            <rect x="20" y={y} width="58" height="3.4" rx="1" fill="#1f1f1f" opacity="0.56" />
+            <rect x="20" y={y + 6} width="200" height="0.75" fill="#555" opacity="0.25" />
+            {[0, 1, 2].map((li) => <rect key={li} x="24" y={y + 10 + li * 7} width={[188, 170, 194][li]} height="1.8" rx="1" fill="#1f1f1f" opacity="0.11" />)}
+          </g>
+        ))}
+      </svg>
+    ),
   };
   if (configs[id]) return configs[id];
 

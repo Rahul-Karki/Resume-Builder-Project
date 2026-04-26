@@ -579,6 +579,8 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         modern:    { accentColor: "#0F766E", bodyFont: "DM Sans, sans-serif", headingFont: "DM Sans, sans-serif" },
         compact:   { accentColor: "#111111", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "9.5pt" },
         sidebar:   { accentColor: "#1E293B", bodyFont: "Nunito Sans, sans-serif", headingFont: "Nunito Sans, sans-serif" },
+        scholarly: { accentColor: "#1a1a1a", bodyFont: "Source Serif 4, serif", headingFont: "Playfair Display, serif" },
+        research:  { accentColor: "#1f1f1f", bodyFont: "Source Serif 4, serif", headingFont: "Playfair Display, serif" },
       };
       const sectionVisibilityPresets = {
         classic:   { ...defaultSectionVisibility },
@@ -586,6 +588,8 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         modern:    { ...defaultSectionVisibility },
         compact:   { ...defaultSectionVisibility },
         sidebar:   { ...defaultSectionVisibility },
+        scholarly: { ...defaultSectionVisibility },
+        research:  { ...defaultSectionVisibility },
       } as Record<string, typeof defaultSectionVisibility>;
 
       const baseStyle = { ...defaultStyle, ...(stylePresets[templateId] ?? {}) };

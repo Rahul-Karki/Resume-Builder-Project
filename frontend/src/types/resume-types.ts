@@ -259,7 +259,7 @@ export const spacingMap: Record<SectionSpacing, number> = {
   loose:   32,
 };
 
-export type TemplateId = "classic" | "executive" | "modern" | "compact" | "sidebar";
+export type TemplateId = "classic" | "executive" | "modern" | "compact" | "sidebar" | "scholarly" | "research";
 
 export interface SavedResume {
   id: string; title: string; templateId: string;

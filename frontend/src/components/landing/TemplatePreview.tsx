@@ -44,6 +44,16 @@ const FALLBACK_TEMPLATES: LandingTemplate[] = [
     accent: "#1E293B", bg: "#fff", primary: "#1E293B", secondary: "#94A3B8",
     desc: "Dark sidebar with two-column structure.",
   },
+  {
+    id: "scholarly", name: "Scholarly", tag: "Academic", category: "Academic",
+    accent: "#1a1a1a", bg: "#fff", primary: "#1a1a1a", secondary: "#4a4a4a",
+    desc: "Centered academic layout with classic section rhythm.",
+  },
+  {
+    id: "research", name: "Research", tag: "Detailed", category: "Academic",
+    accent: "#1f1f1f", bg: "#fff", primary: "#1f1f1f", secondary: "#555",
+    desc: "Research-forward hierarchy for content-dense resumes.",
+  },
 ];
 
 // ─── SVG thumbnails (one per template) ────────────────────────────────────────
@@ -159,12 +169,52 @@ function SidebarThumb({ p, s }: { p: string; s: string }) {
   );
 }
 
+function ScholarlyThumb({ p, s }: { p: string; s: string }) {
+  return (
+    <>
+      <rect width="240" height="310" fill="#fff" />
+      <rect x="48" y="14" width="144" height="11" rx="2" fill={p} opacity="0.82" />
+      <rect x="32" y="29" width="176" height="2" rx="1" fill={s} opacity="0.36" />
+      {[42, 49, 56].map((y, i) => <rect key={y} x="20" y={y} width={[200, 184, 196][i]} height="1.8" rx="1" fill={p} opacity="0.12" />)}
+      {[72, 108, 146, 184, 222, 258].map((y) => (
+        <g key={y}>
+          <rect x="20" y={y} width="54" height="3.4" rx="1" fill={p} opacity="0.56" />
+          <rect x="20" y={y + 6} width="200" height="0.75" fill={s} opacity="0.28" />
+          <rect x="20" y={y + 10} width="188" height="1.8" rx="1" fill={p} opacity="0.13" />
+          <rect x="20" y={y + 15} width="198" height="1.8" rx="1" fill={p} opacity="0.10" />
+        </g>
+      ))}
+    </>
+  );
+}
+
+function ResearchThumb({ p, s }: { p: string; s: string }) {
+  return (
+    <>
+      <rect width="240" height="310" fill="#fff" />
+      <rect x="20" y="14" width="102" height="10" rx="2" fill={p} opacity="0.82" />
+      <rect x="20" y="28" width="120" height="2" rx="1" fill={s} opacity="0.34" />
+      <rect x="144" y="14" width="76" height="2" rx="1" fill={s} opacity="0.44" />
+      <rect x="144" y="20" width="76" height="2" rx="1" fill={s} opacity="0.34" />
+      {[44, 82, 132, 182, 228, 270].map((y) => (
+        <g key={y}>
+          <rect x="20" y={y} width="58" height="3.4" rx="1" fill={p} opacity="0.56" />
+          <rect x="20" y={y + 6} width="200" height="0.75" fill={s} opacity="0.25" />
+          {[0, 1, 2].map((li) => <rect key={li} x="24" y={y + 10 + li * 7} width={[188, 170, 194][li]} height="1.8" rx="1" fill={p} opacity="0.11" />)}
+        </g>
+      ))}
+    </>
+  );
+}
+
 const THUMB_MAP: Record<string, (p: string, s: string) => JSX.Element> = {
   classic:   (p, s) => <ClassicThumb   p={p} s={s} />,
   executive: (p, s) => <ExecutiveThumb p={p} s={s} />,
   modern:    (p, s) => <ModernThumb    p={p} s={s} />,
   compact:   (p, s) => <CompactThumb   p={p} s={s} />,
   sidebar:   (p, s) => <SidebarThumb   p={p} s={s} />,
+  scholarly: (p, s) => <ScholarlyThumb p={p} s={s} />,
+  research:  (p, s) => <ResearchThumb  p={p} s={s} />,
 };
 
 const renderThumb = (id: string, primary: string, secondary: string) => {

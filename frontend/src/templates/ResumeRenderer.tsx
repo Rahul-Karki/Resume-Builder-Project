@@ -4,6 +4,8 @@ import { CompactTemplate } from "@/components/templates/CompactTemplate";
 import { ExecutiveTemplate } from "@/components/templates/ExecutiveTemplate";
 import { ModernTemplate } from "@/components/templates/ModernTemplate";
 import { SidebarTemplate } from "@/components/templates/SidebarTemplate";
+import { ScholarlyTemplate } from "@/components/templates/ScholarlyTemplate";
+import { ResearchTemplate } from "@/components/templates/ResearchTemplate";
 
 interface Props {
   resume: ResumeDocument;
@@ -424,6 +426,8 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
     modern: ModernTemplate,
     compact: CompactTemplate,
     sidebar: SidebarTemplate,
+    scholarly: ScholarlyTemplate,
+    research: ResearchTemplate,
   };
 
   const SelectedTemplate = templatesById[resume.templateId] ?? ClassicTemplateAdapter;

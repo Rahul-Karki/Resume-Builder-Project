@@ -148,6 +148,7 @@ export const FONT_OPTIONS = [
 
 export const REGISTERED_LAYOUT_IDS = [
   "classic", "executive", "modern", "compact", "sidebar",
+  "scholarly", "research",
   "minimal", "timeline", "creative-v2",
 ];
 
