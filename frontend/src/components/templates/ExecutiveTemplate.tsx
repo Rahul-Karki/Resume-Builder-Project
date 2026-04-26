@@ -59,8 +59,9 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
     .exec-contact-bar { display:flex; flex-wrap:wrap; gap:6px 24px; font-size:9pt; color:#c8d8ec; }
     .exec-link { color:inherit; text-decoration:none; }
     .exec-link:hover { text-decoration:underline; }
-    .exec-social { display:flex; gap:10px; margin-top:10px; color:#c8d8ec; }
-    .exec-social-link { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:999px; }
+    .exec-meta { display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+    .exec-social { display:flex; gap:10px; color:#c8d8ec; }
+    .exec-social-link { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); }
     .exec-social-link:hover { background:rgba(255,255,255,0.10); }
     .exec-body { padding:28px 52px 40px; flex:1; }
     .exec-body, .exec-body p, .exec-body span, .exec-body li, .exec-body div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
@@ -89,29 +90,32 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
         <div className="exec-header" style={{ background: style.accentColor, padding: `36px ${pagePadding.split(" ")[1]} 28px` }}>
           <div className="exec-name" style={{ fontFamily: style.headingFont, textAlign: style.headerAlign }}>{p.name}</div>
           {p.title && <div className="exec-title-bar" style={{ color: style.mutedColor, textAlign: style.headerAlign }}>{p.title}</div>}
-          {contactItems.length > 0 && (
-            <div className="exec-contact-bar" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
-              {contactItems.map((item, i) => (
-                <span key={i}>
-                  {item.icon}{" "}
-                  {item.href ? (
-                    <a className="exec-link" href={item.href} target="_blank" rel="noreferrer">
-                      {item.label}
-                    </a>
-                  ) : (
-                    item.label
-                  )}
-                </span>
-              ))}
-
+          {(contactItems.length > 0 || socialItems.length > 0) && (
+            <div className="exec-meta" style={{ alignItems: style.headerAlign === "center" ? "center" : "flex-start" }}>
+              {contactItems.length > 0 && (
+                <div className="exec-contact-bar" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
+                  {contactItems.map((item, i) => (
+                    <span key={i}>
+                      {item.icon}{" "}
+                      {item.href ? (
+                        <a className="exec-link" href={item.href} target="_blank" rel="noreferrer">
+                          {item.label}
+                        </a>
+                      ) : (
+                        item.label
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
               {socialItems.length > 0 && (
-                <span className="exec-social" aria-label="Social links">
+                <div className="exec-social" aria-label="Social links">
                   {socialItems.map((item, i) => (
                     <a key={i} className="exec-social-link" href={item.href} target="_blank" rel="noreferrer" aria-label={item.label} title={item.label}>
                       <SocialIcon kind={item.kind} />
                     </a>
                   ))}
-                </span>
+                </div>
               )}
             </div>
           )}
