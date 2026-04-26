@@ -1,5 +1,6 @@
 import React from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
+import { ClassicTemplate as ClassicTemplateView } from "@/components/templates/ClassicTemplate";
 import { CompactTemplate } from "@/components/templates/CompactTemplate";
 import { ExecutiveTemplate } from "@/components/templates/ExecutiveTemplate";
 import { ModernTemplate } from "@/components/templates/ModernTemplate";
@@ -418,7 +419,7 @@ function ClassicTemplate({ resume }: Props) {
 
 // ─── Template Router ───────────────────────────────────────────────────────────
 const ClassicTemplateAdapter = ({ data }: { data: ResumeDocument }) => (
-  <GenericTemplate resume={data} />
+  <ClassicTemplateView data={data} />
 );
 
 export function ResumeRenderer({ resume, forExport = false }: Props) {
