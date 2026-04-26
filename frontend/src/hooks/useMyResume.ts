@@ -42,6 +42,7 @@ export function calculateCompletionScore(resume: ResumeDocument): number {
     personalInfo.phone,
     personalInfo.location,
     personalInfo.linkedin,
+    personalInfo.github,
     personalInfo.portfolio,
     personalInfo.summary,
   ].filter(Boolean).length;
@@ -51,7 +52,7 @@ export function calculateCompletionScore(resume: ResumeDocument): number {
   const totalEntries = sectionCounts.reduce((sum, count) => sum + count, 0);
 
   const score = Math.round(
-    (personalFields / 8) * 45 +
+    (personalFields / 9) * 45 +
       (filledSectionKinds / sectionKeys.length) * 35 +
       Math.min(totalEntries, 10) * 2,
   );

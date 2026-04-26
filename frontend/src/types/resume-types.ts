@@ -7,6 +7,7 @@ export interface PersonalInfo {
   phone: string;
   location: string;
   linkedin: string;
+  github: string;
   portfolio: string;
   summary: string;
 }
@@ -204,6 +205,7 @@ export const defaultPersonalInfo: PersonalInfo = {
   phone: "",
   location: "",
   linkedin: "",
+  github: "",
   portfolio: "",
   summary: "",
 };

@@ -17,6 +17,7 @@ export const sampleData: ResumeDocument = {
     phone: "+1 (415) 555-0182",
     location: "San Francisco, CA",
     linkedin: "linkedin.com/in/alexchen",
+    github: "github.com/alexchen",
     portfolio: "alexchen.dev",
     summary:
       "Senior Software Engineer with 7+ years building scalable distributed systems and leading cross-functional teams. Proven track record of reducing infrastructure costs by 40% and shipping products used by 2M+ users.",

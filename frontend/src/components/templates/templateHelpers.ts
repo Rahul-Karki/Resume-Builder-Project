@@ -43,3 +43,29 @@ export function getExperienceParagraph(entry: WorkEntry): string {
 export function getProjectParagraph(project: Project): string {
   return project.description?.trim() ?? "";
 }
+
+function hasScheme(value: string): boolean {
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value);
+}
+
+export function toAbsoluteUrl(raw: string): string {
+  const value = (raw ?? "").trim();
+  if (!value) return "";
+  if (hasScheme(value)) return value;
+  return `https://${value}`;
+}
+
+export function toMailto(rawEmail: string): string {
+  const value = (rawEmail ?? "").trim();
+  if (!value) return "";
+  if (value.toLowerCase().startsWith("mailto:")) return value;
+  return `mailto:${value}`;
+}
+
+export function toTel(rawPhone: string): string {
+  const value = (rawPhone ?? "").trim();
+  if (!value) return "";
+  if (value.toLowerCase().startsWith("tel:")) return value;
+  const normalized = value.replace(/[^\d+]/g, "");
+  return `tel:${normalized || value}`;
+}

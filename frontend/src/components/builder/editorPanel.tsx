@@ -173,9 +173,16 @@ function PersonalSection() {
           <input value={p.linkedin} onChange={e => updatePersonalInfo("linkedin", e.target.value)} placeholder="linkedin.com/in/you" style={inp} />
         </div>
         <div>
+          <span style={label}>GitHub</span>
+          <input value={(p as any).github ?? ""} onChange={e => updatePersonalInfo("github" as any, e.target.value)} placeholder="github.com/you" style={inp} />
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+        <div>
           <span style={label}>Portfolio / Website</span>
           <input value={p.portfolio} onChange={e => updatePersonalInfo("portfolio", e.target.value)} placeholder="yoursite.dev" style={inp} />
         </div>
+        <div />
       </div>
       <div>
         <span style={label}>Professional Summary</span>

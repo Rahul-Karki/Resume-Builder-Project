@@ -17,7 +17,7 @@ const hasResumeContent = (resume: ResumeDocument) => {
   const s = resume.sections;
 
   const personalFields = [
-    p.name, p.title, p.email, p.phone, p.location, p.linkedin, p.portfolio, p.summary,
+    p.name, p.title, p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio, p.summary,
   ];
 
   return personalFields.some(value => value.trim().length > 0)
@@ -39,6 +39,7 @@ const toResumePayload = (resume: ResumeDocument) => ({
     phone: resume.personalInfo.phone,
     location: resume.personalInfo.location,
     linkedin: resume.personalInfo.linkedin,
+    github: resume.personalInfo.github,
     portfolio: resume.personalInfo.portfolio,
     summary: resume.personalInfo.summary,
   },
