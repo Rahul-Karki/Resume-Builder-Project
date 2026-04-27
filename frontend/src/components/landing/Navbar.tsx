@@ -84,34 +84,48 @@ export function Navbar() {
         fontFamily: "'Outfit', sans-serif",
       }}
     >
-      {/* Logo */}
-      <Link
-        to="/"
-        style={{ textDecoration: "none", fontWeight: 800, fontSize: isCompact ? 15 : 17, letterSpacing: "-0.4px", color: "#F0EFE8", flexShrink: 0, lineHeight: 1 }}
-      >
-        Resume<span style={{ color: "#C8F55A" }}>Studio</span>
-      </Link>
+      <div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
+        {/* Logo */}
+        <Link
+          to="/"
+          style={{
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            minHeight: 36,
+            padding: "2px 0",
+            fontWeight: 800,
+            fontSize: isCompact ? 15 : 17,
+            letterSpacing: "-0.2px",
+            color: "#F0EFE8",
+            flexShrink: 0,
+            lineHeight: 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span>Resume</span>
+          <span style={{ color: "#C8F55A" }}>Studio</span>
+        </Link>
 
-      {/* Nav links */}
-      <div style={{ display: "flex", gap: isMobile ? 10 : 30, marginLeft: isMobile ? 10 : 48, overflowX: "auto", whiteSpace: "nowrap", maxWidth: isMobile ? "48%" : "none", scrollbarWidth: "none" }}>
-        {[
-          { label: "Templates", href: "/templates" },
-          { label: "My Resumes", href: "/resumes" },
-          ...(isAdmin ? [{ label: "Admin", href: "/admin" }] : []),
-        ].map(({ label, href }) => (
-          <Link
-            key={label}
-            to={href}
-            style={{ fontSize: isCompact ? 12 : 13, fontWeight: 500, color: "#555", textDecoration: "none", transition: "color 0.15s" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#555")}
-          >
-            {label}
-          </Link>
-        ))}
+        {/* Nav links */}
+        <div style={{ display: "flex", gap: isMobile ? 10 : 30, marginLeft: isMobile ? 12 : 36, overflowX: "auto", whiteSpace: "nowrap", maxWidth: isMobile ? "42%" : "none", scrollbarWidth: "none" }}>
+          {[
+            { label: "Templates", href: "/templates" },
+            { label: "My Resumes", href: "/resumes" },
+            ...(isAdmin ? [{ label: "Admin", href: "/admin" }] : []),
+          ].map(({ label, href }) => (
+            <Link
+              key={label}
+              to={href}
+              style={{ fontSize: isCompact ? 12 : 13, fontWeight: 500, color: "#555", textDecoration: "none", transition: "color 0.15s" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#555")}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
       </div>
-
-      <div style={{ flex: 1 }} />
 
       {/* Auth buttons */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>

@@ -23,8 +23,9 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
     }}>
       {/* Logo */}
       <div style={{ padding: isMobile ? "10px 12px" : "20px 20px 16px", borderBottom: "1px solid #141414" }}>
-        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: "-0.3px", color: "#F0EFE8" }}>
-          Resume<span style={{ color: "#C8F55A" }}>Studio</span>
+        <div style={{ display: "inline-flex", alignItems: "center", minHeight: 28, fontWeight: 800, fontSize: 15, letterSpacing: "-0.2px", color: "#F0EFE8", lineHeight: 1, whiteSpace: "nowrap" }}>
+          <span>Resume</span>
+          <span style={{ color: "#C8F55A" }}>Studio</span>
         </div>
         <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", marginTop: 4, textTransform: "uppercase", letterSpacing: "1.5px", display: isMobile ? "none" : "block" }}>
           Admin Panel
