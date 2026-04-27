@@ -11,6 +11,11 @@ const CANONICAL_TEMPLATE_IDS = [
   "customer-service",
   "healthcare",
   "education",
+  "chronological",
+  "functional",
+  "combination",
+  "traditional-assistant",
+  "community-impact",
 ] as const;
 
 const LEGACY_TEMPLATE_ALIASES: Record<string, (typeof CANONICAL_TEMPLATE_IDS)[number]> = {
@@ -27,6 +32,14 @@ const LEGACY_TEMPLATE_ALIASES: Record<string, (typeof CANONICAL_TEMPLATE_IDS)[nu
   "customer-support-template": "customer-service",
   "healthcare-template": "healthcare",
   "education-template": "education",
+  "chronological-template": "chronological",
+  "functional-template": "functional",
+  "combination-template": "combination",
+  "traditional-assistant-template": "traditional-assistant",
+  "administrative-assistant-template": "traditional-assistant",
+  "community-impact-template": "community-impact",
+  "volunteer-template": "community-impact",
+  "simple-volunteer-template": "community-impact",
   academic: "scholarly",
   "academic-template": "scholarly",
   "research-template-academic": "research",

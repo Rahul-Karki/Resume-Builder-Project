@@ -55,6 +55,31 @@ const FALLBACK_TEMPLATES: LandingTemplate[] = [
     accent: "#1f1f1f", bg: "#fff", primary: "#1f1f1f", secondary: "#555",
     desc: "Research-forward hierarchy for content-dense resumes.",
   },
+  {
+    id: "chronological", name: "Chronological", tag: "ATS Core", category: "Professional",
+    accent: "#1F2937", bg: "#FCFCFB", primary: "#1F2937", secondary: "#6B7280",
+    desc: "Reverse-chronological ATS format focused on career progression.",
+  },
+  {
+    id: "functional", name: "Functional", tag: "Skills-First", category: "Professional",
+    accent: "#334155", bg: "#F8FAFC", primary: "#334155", secondary: "#64748B",
+    desc: "Skills-first ATS-safe structure for pivots and return-to-work.",
+  },
+  {
+    id: "combination", name: "Combination", tag: "Hybrid", category: "Corporate",
+    accent: "#0B3C5D", bg: "#F8FAFF", primary: "#0B3C5D", secondary: "#64748B",
+    desc: "Hybrid ATS format balancing measurable outcomes and strengths.",
+  },
+  {
+    id: "traditional-assistant", name: "Traditional Assistant", tag: "Admin", category: "Professional",
+    accent: "#1E3A8A", bg: "#F8FAFF", primary: "#1E3A8A", secondary: "#64748B",
+    desc: "Administrative-assistant inspired ATS layout for office roles.",
+  },
+  {
+    id: "community-impact", name: "Community Impact", tag: "Volunteer", category: "Professional",
+    accent: "#166534", bg: "#F0FDF4", primary: "#166534", secondary: "#6B7280",
+    desc: "ATS-ready format for volunteer, NGO and public-service profiles.",
+  },
 ];
 
 // ─── SVG thumbnails (one per template) ────────────────────────────────────────

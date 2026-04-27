@@ -16,6 +16,9 @@ test("normalizeResumeTemplateId maps legacy template labels to current ids", () 
   assert.equal(normalizeResumeTemplateId("two column"), "sidebar");
   assert.equal(normalizeResumeTemplateId("customer-support-template"), "customer-service");
   assert.equal(normalizeResumeTemplateId("Healthcare Template"), "healthcare");
+  assert.equal(normalizeResumeTemplateId("Functional Template"), "functional");
+  assert.equal(normalizeResumeTemplateId("Administrative Assistant Template"), "traditional-assistant");
+  assert.equal(normalizeResumeTemplateId("Simple Volunteer Template"), "community-impact");
 });
 
 test("normalizeResumeTemplateId falls back to classic for removed unknown templates", () => {

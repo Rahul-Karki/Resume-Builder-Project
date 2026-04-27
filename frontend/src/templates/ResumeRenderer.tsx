@@ -439,6 +439,11 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
     "customer-service": ExecutiveTemplate,
     healthcare: ScholarlyTemplate,
     education: ResearchTemplate,
+    chronological: ClassicTemplateAdapter,
+    functional: CompactTemplate,
+    combination: ExecutiveTemplate,
+    "traditional-assistant": ClassicTemplateAdapter,
+    "community-impact": ResearchTemplate,
   };
 
   const SelectedTemplate = templatesById[normalizeResumeTemplateId(resume.templateId)] ?? ClassicTemplateAdapter;

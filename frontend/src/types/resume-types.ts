@@ -273,7 +273,12 @@ export type TemplateId =
   | "operations"
   | "customer-service"
   | "healthcare"
-  | "education";
+  | "education"
+  | "chronological"
+  | "functional"
+  | "combination"
+  | "traditional-assistant"
+  | "community-impact";
 
 export interface SavedResume {
   id: string; title: string; templateId: string;

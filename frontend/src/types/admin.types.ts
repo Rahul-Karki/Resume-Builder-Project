@@ -159,6 +159,8 @@ export const REGISTERED_LAYOUT_IDS = [
   "classic", "executive", "modern", "compact", "sidebar",
   "scholarly", "research", "administrative", "operations",
   "customer-service", "healthcare", "education",
+  "chronological", "functional", "combination",
+  "traditional-assistant", "community-impact",
   "minimal", "timeline", "creative-v2",
 ];
 

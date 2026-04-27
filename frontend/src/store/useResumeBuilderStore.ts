@@ -259,6 +259,11 @@ const TEMPLATE_STYLE_PRESETS: Record<string, Partial<typeof defaultStyle>> = {
   "customer-service": { accentColor: "#1D4ED8", bodyFont: "Outfit, sans-serif", headingFont: "Outfit, sans-serif", fontSize: "10pt" },
   healthcare: { accentColor: "#0F766E", bodyFont: "Source Serif 4, serif", headingFont: "Source Serif 4, serif", fontSize: "10pt" },
   education: { accentColor: "#7C2D12", bodyFont: "Lora, serif", headingFont: "Lora, serif", fontSize: "10pt", lineHeight: "1.6" },
+  chronological: { accentColor: "#1F2937", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "10pt" },
+  functional: { accentColor: "#334155", bodyFont: "Outfit, sans-serif", headingFont: "Outfit, sans-serif", fontSize: "10pt" },
+  combination: { accentColor: "#0B3C5D", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif", fontSize: "10pt" },
+  "traditional-assistant": { accentColor: "#1E3A8A", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "10pt" },
+  "community-impact": { accentColor: "#166534", bodyFont: "Lora, serif", headingFont: "Lora, serif", fontSize: "10pt", lineHeight: "1.6" },
 };
 
 const TEMPLATE_SECTION_VISIBILITY_PRESETS: Record<string, typeof defaultSectionVisibility> = {
@@ -274,6 +279,11 @@ const TEMPLATE_SECTION_VISIBILITY_PRESETS: Record<string, typeof defaultSectionV
   "customer-service": { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
   healthcare: { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
   education: { ...defaultSectionVisibility, certifications: true, languages: true },
+  chronological: { ...defaultSectionVisibility, projects: false, certifications: true },
+  functional: { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
+  combination: { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
+  "traditional-assistant": { ...defaultSectionVisibility, projects: false, certifications: true },
+  "community-impact": { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
 };
 
 const SECTION_KEYS: Array<keyof SectionVisibility> = [
