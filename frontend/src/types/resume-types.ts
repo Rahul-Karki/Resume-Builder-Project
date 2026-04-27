@@ -261,7 +261,19 @@ export const spacingMap: Record<SectionSpacing, number> = {
   loose:   32,
 };
 
-export type TemplateId = "classic" | "executive" | "modern" | "compact" | "sidebar" | "scholarly" | "research";
+export type TemplateId =
+  | "classic"
+  | "executive"
+  | "modern"
+  | "compact"
+  | "sidebar"
+  | "scholarly"
+  | "research"
+  | "administrative"
+  | "operations"
+  | "customer-service"
+  | "healthcare"
+  | "education";
 
 export interface SavedResume {
   id: string; title: string; templateId: string;
@@ -271,7 +283,7 @@ export interface SavedResume {
 }
 
 export interface TemplateMeta {
-  id: TemplateId; name: string; tag: string; category: string;
+  id: TemplateId; name: string; tag: string; category: string; audience: "tech" | "non-tech";
   description: string; isPremium: boolean; accent: string;
   palette: { bg: string; primary: string; secondary: string; sidebar?: string; };
 }

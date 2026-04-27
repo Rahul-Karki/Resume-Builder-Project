@@ -2,6 +2,7 @@
 
 export type TemplateStatus   = "draft" | "published" | "archived";
 export type TemplateCategory = "professional" | "corporate" | "technical" | "creative" | "academic";
+export type TemplateAudience = "tech" | "non-tech";
 
 export interface CssVars {
   accentColor:     string;
@@ -32,6 +33,7 @@ export interface AdminTemplate {
   name:        string;
   description: string;
   category:    TemplateCategory;
+  audience:    TemplateAudience;
   tag:         string;
   thumbnailUrl: string;
   status:      TemplateStatus;
@@ -85,6 +87,7 @@ export interface TemplateFormData {
   name:        string;
   description: string;
   category:    TemplateCategory;
+  audience:    TemplateAudience;
   tag:         string;
   isPremium:   boolean;
   sortOrder:   number;
@@ -120,6 +123,7 @@ export const DEFAULT_FORM: TemplateFormData = {
   name:        "",
   description: "",
   category:    "professional",
+  audience:    "non-tech",
   tag:         "",
   isPremium:   false,
   sortOrder:   0,
@@ -135,6 +139,11 @@ export const CATEGORY_OPTIONS: { value: TemplateCategory; label: string }[] = [
   { value: "academic",     label: "Academic"     },
 ];
 
+export const AUDIENCE_OPTIONS: { value: TemplateAudience; label: string }[] = [
+  { value: "non-tech", label: "Non-Tech" },
+  { value: "tech", label: "Tech" },
+];
+
 export const FONT_OPTIONS = [
   "EB Garamond, serif",
   "Playfair Display, serif",
@@ -148,7 +157,8 @@ export const FONT_OPTIONS = [
 
 export const REGISTERED_LAYOUT_IDS = [
   "classic", "executive", "modern", "compact", "sidebar",
-  "scholarly", "research",
+  "scholarly", "research", "administrative", "operations",
+  "customer-service", "healthcare", "education",
   "minimal", "timeline", "creative-v2",
 ];
 

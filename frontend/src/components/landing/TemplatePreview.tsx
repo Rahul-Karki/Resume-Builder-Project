@@ -13,6 +13,7 @@ type LandingTemplate = {
   tag: string;
   category: string;
   accent: string;
+  bg: string;
   primary: string;
   secondary: string;
   desc: string;

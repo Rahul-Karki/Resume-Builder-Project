@@ -6,6 +6,11 @@ const CANONICAL_TEMPLATE_IDS = [
   "sidebar",
   "scholarly",
   "research",
+  "administrative",
+  "operations",
+  "customer-service",
+  "healthcare",
+  "education",
 ] as const;
 
 const LEGACY_TEMPLATE_ALIASES: Record<string, (typeof CANONICAL_TEMPLATE_IDS)[number]> = {
@@ -16,6 +21,12 @@ const LEGACY_TEMPLATE_ALIASES: Record<string, (typeof CANONICAL_TEMPLATE_IDS)[nu
   "sidebar-template": "sidebar",
   "scholarly-template": "scholarly",
   "research-template": "research",
+  "administrative-template": "administrative",
+  "operations-template": "operations",
+  "customer-service-template": "customer-service",
+  "customer-support-template": "customer-service",
+  "healthcare-template": "healthcare",
+  "education-template": "education",
   academic: "scholarly",
   "academic-template": "scholarly",
   "research-template-academic": "research",

@@ -9,6 +9,7 @@ type TemplateOption = {
   name: string;
   status?: string;
   sortOrder?: number;
+  audience?: "tech" | "non-tech";
 };
 
 interface Props {
@@ -47,6 +48,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
             name: String(row.name ?? row.layoutId ?? "Template"),
             status: row.status,
             sortOrder: typeof row.sortOrder === "number" ? row.sortOrder : 0,
+            audience: row.audience === "tech" ? "tech" : "non-tech",
           }))
           .filter((template: TemplateOption) => template.layoutId);
 
@@ -59,6 +61,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
             name: templateMeta.name,
             status: "published",
             sortOrder: 999,
+            audience: templateMeta.audience,
           });
         });
 
@@ -90,6 +93,10 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
     ?? normalizedTemplateId
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (character) => character.toUpperCase());
+  const groupedTemplates = {
+    tech: templates.filter((template) => template.audience === "tech"),
+    "non-tech": templates.filter((template) => template.audience !== "tech"),
+  };
 
   const handleSave = async () => {
     await saveResume();
@@ -189,37 +196,46 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                       Keep your content and apply the latest template defaults.
                     </div>
                   )}
-                  {templates.map((template) => {
-                    const isCurrentTemplate = normalizedTemplateId === template.layoutId;
-                    const label = isEditingExistingResume
-                      ? isCurrentTemplate
-                        ? `Refresh ${template.name}`
-                        : `Switch to ${template.name}`
-                      : template.name;
+                  {(["non-tech", "tech"] as const).map((groupKey) => (
+                    groupedTemplates[groupKey].length > 0 ? (
+                      <div key={groupKey}>
+                        <div style={{ padding: "8px 14px", color: "#555", fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", borderTop: "1px solid #222" }}>
+                          {groupKey === "tech" ? "Tech Templates" : "Non-Tech Templates"}
+                        </div>
+                        {groupedTemplates[groupKey].map((template) => {
+                          const isCurrentTemplate = normalizedTemplateId === template.layoutId;
+                          const label = isEditingExistingResume
+                            ? isCurrentTemplate
+                              ? `Refresh ${template.name}`
+                              : `Switch to ${template.name}`
+                            : template.name;
 
-                    return (
-                      <button
-                        key={template.layoutId}
-                        onClick={() => {
-                          if (isEditingExistingResume) {
-                            void applyTemplateUpgrade(template.layoutId);
-                          } else {
-                            void initFromTemplate(template.layoutId);
-                          }
-                          setShowTemplates(false);
-                        }}
-                        style={{
-                          display: "block", width: "100%", textAlign: "left",
-                          padding: "9px 14px", background: isCurrentTemplate ? "#222" : "transparent",
-                          border: "none", color: isCurrentTemplate ? "#F0EFE8" : "#888",
-                          fontSize: 13, fontWeight: isCurrentTemplate ? 700 : 400,
-                          cursor: "pointer", fontFamily: "inherit",
-                        }}
-                      >
-                        {isCurrentTemplate ? "Current: " : ""}{label}
-                      </button>
-                    );
-                  })}
+                          return (
+                            <button
+                              key={template.layoutId}
+                              onClick={() => {
+                                if (isEditingExistingResume) {
+                                  void applyTemplateUpgrade(template.layoutId);
+                                } else {
+                                  void initFromTemplate(template.layoutId);
+                                }
+                                setShowTemplates(false);
+                              }}
+                              style={{
+                                display: "block", width: "100%", textAlign: "left",
+                                padding: "9px 14px", background: isCurrentTemplate ? "#222" : "transparent",
+                                border: "none", color: isCurrentTemplate ? "#F0EFE8" : "#888",
+                                fontSize: 13, fontWeight: isCurrentTemplate ? 700 : 400,
+                                cursor: "pointer", fontFamily: "inherit",
+                              }}
+                            >
+                              {isCurrentTemplate ? "Current: " : ""}{label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null
+                  ))}
                 </>
               ) : (
                 <div style={{ padding: "10px 14px", color: "#666", fontSize: 13 }}>No templates found.</div>

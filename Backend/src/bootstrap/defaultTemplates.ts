@@ -8,6 +8,7 @@ type DefaultTemplateDefinition = {
   name: string;
   description: string;
   category: ITemplate["category"];
+  audience: ITemplate["audience"];
   tag: string;
   isPremium: boolean;
   sortOrder: number;
@@ -22,6 +23,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
     name: "Classic",
     description: "Clean serif typography trusted by finance, law and academia.",
     category: "professional",
+    audience: "non-tech",
     tag: "Timeless",
     isPremium: false,
     sortOrder: 10,
@@ -53,6 +55,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
     name: "Executive",
     description: "Navy header with strong hierarchy for leadership roles.",
     category: "corporate",
+    audience: "non-tech",
     tag: "Corporate",
     isPremium: false,
     sortOrder: 20,
@@ -84,6 +87,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
     name: "Modern",
     description: "Teal accent rule and skill chips. Built for tech and startups.",
     category: "technical",
+    audience: "tech",
     tag: "Tech-Ready",
     isPremium: false,
     sortOrder: 30,
@@ -115,6 +119,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
     name: "Compact",
     description: "Information-dense label-column layout for senior candidates.",
     category: "professional",
+    audience: "non-tech",
     tag: "One-Page",
     isPremium: true,
     sortOrder: 40,
@@ -146,6 +151,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
     name: "Sidebar",
     description: "Dark sidebar with two-column structure. Striking and scannable.",
     category: "creative",
+    audience: "tech",
     tag: "Structured",
     isPremium: true,
     sortOrder: 50,
@@ -177,6 +183,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
     name: "Scholarly",
     description: "Centered academic layout with classic headings and balanced spacing.",
     category: "academic",
+    audience: "non-tech",
     tag: "Academic",
     isPremium: false,
     sortOrder: 60,
@@ -208,6 +215,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
     name: "Research",
     description: "Publication-style hierarchy tuned for research-heavy resumes.",
     category: "academic",
+    audience: "non-tech",
     tag: "Detailed",
     isPremium: false,
     sortOrder: 70,
@@ -223,6 +231,166 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
       headingFont: "Playfair Display, serif",
       fontSize: "10.5pt",
       lineHeight: "1.5",
+    },
+    slots: {
+      summary: true,
+      experience: true,
+      education: true,
+      skills: true,
+      projects: true,
+      certifications: true,
+      languages: true,
+    },
+  },
+  {
+    layoutId: "administrative",
+    name: "Administrative",
+    description: "Straightforward ATS-safe layout for office, coordination, and support roles.",
+    category: "professional",
+    audience: "non-tech",
+    tag: "Office",
+    isPremium: false,
+    sortOrder: 80,
+    status: "published",
+    cssVars: {
+      accentColor: "#374151",
+      headingColor: "#1F2937",
+      textColor: "#374151",
+      mutedColor: "#6B7280",
+      borderColor: "#D1D5DB",
+      backgroundColor: "#FFFFFF",
+      bodyFont: "IBM Plex Sans, sans-serif",
+      headingFont: "IBM Plex Sans, sans-serif",
+      fontSize: "10pt",
+      lineHeight: "1.5",
+    },
+    slots: {
+      summary: true,
+      experience: true,
+      education: true,
+      skills: true,
+      projects: false,
+      certifications: true,
+      languages: false,
+    },
+  },
+  {
+    layoutId: "operations",
+    name: "Operations",
+    description: "Balanced one-page template for operations, logistics, and program delivery roles.",
+    category: "corporate",
+    audience: "non-tech",
+    tag: "Process",
+    isPremium: false,
+    sortOrder: 90,
+    status: "published",
+    cssVars: {
+      accentColor: "#0F4C5C",
+      headingColor: "#0B3C49",
+      textColor: "#2F3A40",
+      mutedColor: "#52707A",
+      borderColor: "#C7D7DD",
+      backgroundColor: "#F7FBFC",
+      bodyFont: "IBM Plex Sans, sans-serif",
+      headingFont: "IBM Plex Sans, sans-serif",
+      fontSize: "10pt",
+      lineHeight: "1.5",
+    },
+    slots: {
+      summary: true,
+      experience: true,
+      education: true,
+      skills: true,
+      projects: true,
+      certifications: true,
+      languages: false,
+    },
+  },
+  {
+    layoutId: "customer-service",
+    name: "Customer Service",
+    description: "Friendly, high-clarity layout for service, support, and client-facing applications.",
+    category: "professional",
+    audience: "non-tech",
+    tag: "Service",
+    isPremium: false,
+    sortOrder: 100,
+    status: "published",
+    cssVars: {
+      accentColor: "#1D4ED8",
+      headingColor: "#1E3A8A",
+      textColor: "#334155",
+      mutedColor: "#64748B",
+      borderColor: "#CBD5E1",
+      backgroundColor: "#F8FAFC",
+      bodyFont: "Outfit, sans-serif",
+      headingFont: "Outfit, sans-serif",
+      fontSize: "10pt",
+      lineHeight: "1.5",
+    },
+    slots: {
+      summary: true,
+      experience: true,
+      education: true,
+      skills: true,
+      projects: false,
+      certifications: true,
+      languages: true,
+    },
+  },
+  {
+    layoutId: "healthcare",
+    name: "Healthcare",
+    description: "ATS-friendly resume tuned for patient care, clinic, and allied health roles.",
+    category: "professional",
+    audience: "non-tech",
+    tag: "Care",
+    isPremium: true,
+    sortOrder: 110,
+    status: "published",
+    cssVars: {
+      accentColor: "#0F766E",
+      headingColor: "#115E59",
+      textColor: "#334155",
+      mutedColor: "#5B7C78",
+      borderColor: "#B7D5D1",
+      backgroundColor: "#F5FBFA",
+      bodyFont: "Source Serif 4, serif",
+      headingFont: "Source Serif 4, serif",
+      fontSize: "10pt",
+      lineHeight: "1.5",
+    },
+    slots: {
+      summary: true,
+      experience: true,
+      education: true,
+      skills: true,
+      projects: false,
+      certifications: true,
+      languages: true,
+    },
+  },
+  {
+    layoutId: "education",
+    name: "Education",
+    description: "Clean academic-adjacent layout for teaching, counseling, and campus support roles.",
+    category: "academic",
+    audience: "non-tech",
+    tag: "Teaching",
+    isPremium: true,
+    sortOrder: 120,
+    status: "published",
+    cssVars: {
+      accentColor: "#7C2D12",
+      headingColor: "#7C2D12",
+      textColor: "#3F3F46",
+      mutedColor: "#78716C",
+      borderColor: "#D6D3D1",
+      backgroundColor: "#FFFCFA",
+      bodyFont: "Lora, serif",
+      headingFont: "Lora, serif",
+      fontSize: "10pt",
+      lineHeight: "1.6",
     },
     slots: {
       summary: true,
@@ -268,9 +436,29 @@ export async function ensureDefaultTemplatesInBackend(): Promise<void> {
     insertedCount += result.upsertedCount ?? 0;
   }
 
-  // Keep the two newly added academic templates in sync even when records already exist.
-  // This applies a focused migration so old documents pick up the latest visual defaults.
-  const templatesRequiringVisualSync = new Set(["scholarly", "research"]);
+  for (const definition of DEFAULT_TEMPLATES) {
+    await Template.updateOne(
+      { layoutId: definition.layoutId },
+      {
+        $set: {
+          audience: definition.audience,
+          updatedBy: adminId,
+        },
+      },
+    );
+  }
+
+  // Keep newly seeded catalog additions in sync even when records already exist.
+  // This applies a focused migration so canonical seeded templates retain the expected defaults.
+  const templatesRequiringVisualSync = new Set([
+    "scholarly",
+    "research",
+    "administrative",
+    "operations",
+    "customer-service",
+    "healthcare",
+    "education",
+  ]);
   for (const definition of DEFAULT_TEMPLATES) {
     if (!templatesRequiringVisualSync.has(definition.layoutId)) continue;
 
@@ -281,6 +469,7 @@ export async function ensureDefaultTemplatesInBackend(): Promise<void> {
           name: definition.name,
           description: definition.description,
           category: definition.category,
+          audience: definition.audience,
           tag: definition.tag,
           isPremium: definition.isPremium,
           sortOrder: definition.sortOrder,

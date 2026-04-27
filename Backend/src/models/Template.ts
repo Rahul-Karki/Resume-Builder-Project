@@ -30,6 +30,7 @@ export interface ITemplate extends Document {
   name: string;
   description: string;
   category: "professional" | "corporate" | "technical" | "creative" | "academic";
+  audience: "tech" | "non-tech";
   tag: string;
   thumbnailUrl: string;
   status: "draft" | "published" | "archived";
@@ -81,6 +82,11 @@ const TemplateSchema = new Schema<ITemplate>(
       type: String,
       enum: ["professional", "corporate", "technical", "creative", "academic"],
       default: "professional",
+    },
+    audience: {
+      type: String,
+      enum: ["tech", "non-tech"],
+      default: "non-tech",
     },
     tag:          { type: String, default: "General", maxlength: 30 },
     thumbnailUrl: { type: String, default: "" },

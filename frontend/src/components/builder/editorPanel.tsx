@@ -146,11 +146,11 @@ function PersonalSection() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div>
           <span style={label}>Full Name</span>
-          <input value={p.name} onChange={e => updatePersonalInfo("name", e.target.value)} placeholder="Alexandra Chen" style={inp} />
+          <input value={p.name} onChange={e => updatePersonalInfo("name", e.target.value)} placeholder="Maya Thompson" style={inp} />
         </div>
         <div>
           <span style={label}>Job Title</span>
-          <input value={p.title} onChange={e => updatePersonalInfo("title", e.target.value)} placeholder="Senior Software Engineer" style={inp} />
+          <input value={p.title} onChange={e => updatePersonalInfo("title", e.target.value)} placeholder="Operations and Client Services Manager" style={inp} />
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
@@ -167,27 +167,14 @@ function PersonalSection() {
         <span style={label}>Location</span>
         <input value={p.location} onChange={e => updatePersonalInfo("location", e.target.value)} placeholder="San Francisco, CA" style={inp} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <div>
-          <span style={label}>LinkedIn</span>
-          <input value={p.linkedin} onChange={e => updatePersonalInfo("linkedin", e.target.value)} placeholder="linkedin.com/in/you" style={inp} />
-        </div>
-        <div>
-          <span style={label}>GitHub</span>
-          <input value={(p as any).github ?? ""} onChange={e => updatePersonalInfo("github" as any, e.target.value)} placeholder="github.com/you" style={inp} />
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <div>
-          <span style={label}>Portfolio / Website</span>
-          <input value={p.portfolio} onChange={e => updatePersonalInfo("portfolio", e.target.value)} placeholder="yoursite.dev" style={inp} />
-        </div>
-        <div />
+      <div style={{ marginBottom: 10 }}>
+        <span style={label}>LinkedIn</span>
+        <input value={p.linkedin} onChange={e => updatePersonalInfo("linkedin", e.target.value)} placeholder="linkedin.com/in/you" style={inp} />
       </div>
       <div>
         <span style={label}>Professional Summary</span>
         <textarea value={p.summary} onChange={e => updatePersonalInfo("summary", e.target.value)}
-          rows={5} placeholder="Senior engineer with 7+ years building scalable systems…" style={ta}
+          rows={5} placeholder="Operations leader with 7+ years improving service quality, team coordination, and client satisfaction across fast-paced environments." style={ta}
           onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
           onBlur={e => e.currentTarget.style.borderColor = "#252525"}
         />
@@ -207,8 +194,8 @@ function ExperienceSection() {
       {experience.map((e: WorkEntry, idx: number) => (
         <EntryCard key={e.id} title={e.role || "New Role"} subtitle={e.company} onRemove={() => removeExperience(e.id)} defaultOpen={idx === experience.length - 1}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10, marginTop: 4 }}>
-            <div><span style={label}>Job Title</span><input value={e.role} onChange={v => updateExperience(e.id, "role", v.target.value)} placeholder="Senior Engineer" style={inp} /></div>
-            <div><span style={label}>Company</span><input value={e.company} onChange={v => updateExperience(e.id, "company", v.target.value)} placeholder="Stripe" style={inp} /></div>
+            <div><span style={label}>Job Title</span><input value={e.role} onChange={v => updateExperience(e.id, "role", v.target.value)} placeholder="Operations Supervisor" style={inp} /></div>
+            <div><span style={label}>Company</span><input value={e.company} onChange={v => updateExperience(e.id, "company", v.target.value)} placeholder="BrightPath Services" style={inp} /></div>
           </div>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>Location</span>
@@ -239,7 +226,7 @@ function ExperienceSection() {
                 value={e.description}
                 onChange={v => updateExperience(e.id, "description", v.target.value)}
                 rows={4}
-                placeholder="Summarize your impact in a concise paragraph..."
+                placeholder="Summarize your impact, scope of work, and service outcomes in a concise paragraph..."
                 style={ta}
               />
             </div>
@@ -252,7 +239,7 @@ function ExperienceSection() {
                   <textarea
                     value={b}
                     onChange={v => updateBullet(e.id, i, v.target.value)}
-                    placeholder="Describe a quantifiable achievement…"
+                    placeholder="Describe a measurable improvement, service outcome, or process win..."
                     rows={2}
                     style={{ ...ta, flex: 1, minHeight: 44 }}
                   />
@@ -283,11 +270,11 @@ function EducationSection() {
         <EntryCard key={e.id} title={e.institution || "New School"} subtitle={e.degree && e.field ? `${e.degree} ${e.field}` : ""} onRemove={() => removeEducation(e.id)} defaultOpen={idx === resume.sections.education.length - 1}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Institution</span>
-            <input value={e.institution} onChange={v => updateEducation(e.id, "institution", v.target.value)} placeholder="UC Berkeley" style={inp} />
+            <input value={e.institution} onChange={v => updateEducation(e.id, "institution", v.target.value)} placeholder="State University of New York" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <div><span style={label}>Degree</span><input value={e.degree} onChange={v => updateEducation(e.id, "degree", v.target.value)} placeholder="B.S." style={inp} /></div>
-            <div><span style={label}>Field of Study</span><input value={e.field} onChange={v => updateEducation(e.id, "field", v.target.value)} placeholder="Computer Science" style={inp} /></div>
+            <div><span style={label}>Degree</span><input value={e.degree} onChange={v => updateEducation(e.id, "degree", v.target.value)} placeholder="B.A." style={inp} /></div>
+            <div><span style={label}>Field of Study</span><input value={e.field} onChange={v => updateEducation(e.id, "field", v.target.value)} placeholder="Business Administration" style={inp} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div><span style={label}>Graduation Year</span><input value={e.year} onChange={v => updateEducation(e.id, "year", v.target.value)} placeholder="2020" style={inp} /></div>
@@ -332,13 +319,13 @@ function SkillsSection() {
   return (
     <div>
       <div style={{ padding: "8px 10px", background: "#161616", borderRadius: 8, marginBottom: 12, fontSize: 11, color: "#555", lineHeight: 1.5 }}>
-        Organize skills into categories. Add items separated by commas — e.g. <em style={{ color: "#888" }}>Go, TypeScript, Rust</em>
+        Organize skills into categories. Add items separated by commas — e.g. <em style={{ color: "#888" }}>Customer Service, Scheduling, Excel</em>
       </div>
       {resume.sections.skills.map((sk: SkillGroup) => (
         <EntryCard key={sk.id} title={sk.category || "Skill Category"} subtitle={`${sk.items.length} items`} onRemove={() => removeSkillGroup(sk.id)}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Category Name</span>
-            <input value={sk.category} onChange={v => updateSkillGroup(sk.id, "category", v.target.value)} placeholder="Languages / Frameworks / Tools" style={inp} />
+            <input value={sk.category} onChange={v => updateSkillGroup(sk.id, "category", v.target.value)} placeholder="Operations / Service / Software" style={inp} />
           </div>
           <div>
             <span style={label}>Skills (comma-separated)</span>
@@ -352,7 +339,7 @@ function SkillsSection() {
                   commitSkills(sk.id);
                 }
               }}
-              placeholder="Go, TypeScript, Python, Rust"
+              placeholder="CRM, Scheduling, Conflict Resolution, Excel"
               style={inp}
             />
             {/* Tag preview */}
@@ -380,11 +367,11 @@ function ProjectsSection() {
         <EntryCard key={pr.id} title={pr.name || "New Project"} subtitle={pr.tech} onRemove={() => removeProject(pr.id)} defaultOpen={idx === resume.sections.projects.length - 1}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Project Name</span>
-            <input value={pr.name} onChange={v => updateProject(pr.id, "name", v.target.value)} placeholder="OpenDistribute" style={inp} />
+            <input value={pr.name} onChange={v => updateProject(pr.id, "name", v.target.value)} placeholder="Service Recovery Playbook" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <div><span style={label}>Tech Stack</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} placeholder="Go, Redis, gRPC" style={inp} /></div>
-            <div><span style={label}>Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} placeholder="github.com/you/project" style={inp} /></div>
+            <div><span style={label}>Focus Area</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} placeholder="Process Design, Training, Reporting" style={inp} /></div>
+            <div><span style={label}>Reference Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} placeholder="organization.org/program" style={inp} /></div>
           </div>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>Description Format</span>
@@ -398,7 +385,7 @@ function ProjectsSection() {
             <div>
               <span style={label}>Description</span>
               <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)}
-                rows={3} placeholder="Open-source distributed task queue with 2.4K GitHub stars…" style={ta} />
+                rows={3} placeholder="Briefly describe the initiative, who it supported, and the outcome it improved." style={ta} />
             </div>
           ) : (
             <div>
@@ -444,10 +431,10 @@ function CertificationsSection() {
         <EntryCard key={c.id} title={c.name || "New Certification"} subtitle={c.issuer} onRemove={() => removeCertification(c.id)}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Certification Name</span>
-            <input value={c.name} onChange={v => updateCertification(c.id, "name", v.target.value)} placeholder="AWS Solutions Architect – Professional" style={inp} />
+            <input value={c.name} onChange={v => updateCertification(c.id, "name", v.target.value)} placeholder="Certified Administrative Professional" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div><span style={label}>Issuing Body</span><input value={c.issuer} onChange={v => updateCertification(c.id, "issuer", v.target.value)} placeholder="Amazon Web Services" style={inp} /></div>
+            <div><span style={label}>Issuing Body</span><input value={c.issuer} onChange={v => updateCertification(c.id, "issuer", v.target.value)} placeholder="IAAP" style={inp} /></div>
             <div><span style={label}>Year</span><input value={c.year} onChange={v => updateCertification(c.id, "year", v.target.value)} placeholder="2023" style={inp} /></div>
           </div>
         </EntryCard>

@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { useAdminTemplates } from "../hooks/useAdminTemplate";
 import { TemplateCard } from "../components/admin/TemplateCard";
 import { TemplateFormModal } from "../components/admin/TemplateFormModal";
-import { AdminTemplate, TemplateStatus, TemplateCategory } from "../types/admin.types";
+import { AdminTemplate, TemplateStatus, TemplateCategory, TemplateAudience } from "../types/admin.types";
 import { ResumeRenderer } from "../templates/ResumeRenderer";
 import { sampleData } from "../data/sampleData";
 import { ResumeDocument, ResumeStyle, SectionVisibility } from "../types/resume-types";
 
 type FilterStatus = "all" | TemplateStatus;
 type FilterCategory = "all" | TemplateCategory;
+type FilterAudience = "all" | TemplateAudience;
 
 export function AdminTemplates() {
   const {
@@ -19,6 +20,7 @@ export function AdminTemplates() {
 
   const [filterStatus,   setFilterStatus]   = useState<FilterStatus>("all");
   const [filterCategory, setFilterCategory] = useState<FilterCategory>("all");
+  const [filterAudience, setFilterAudience] = useState<FilterAudience>("all");
   const [search,         setSearch]         = useState("");
   const [modalMode,      setModalMode]      = useState<"create" | "edit" | null>(null);
   const [editTarget,     setEditTarget]     = useState<AdminTemplate | null>(null);
@@ -60,6 +62,7 @@ export function AdminTemplates() {
   const filtered = templates
     .filter(t => filterStatus   === "all" || t.status   === filterStatus)
     .filter(t => filterCategory === "all" || t.category === filterCategory)
+    .filter(t => filterAudience === "all" || t.audience === filterAudience)
     .filter(t => !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.layoutId.toLowerCase().includes(search.toLowerCase()));
 
   const counts = {
@@ -132,6 +135,12 @@ export function AdminTemplates() {
             <option key={c} value={c} style={{ textTransform: "capitalize" }}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
           ))}
         </select>
+        <select value={filterAudience} onChange={e => setFilterAudience(e.target.value as FilterAudience)}
+          style={{ padding: "6px 10px", background: "#111", border: "1px solid #1A1A1A", borderRadius: 8, color: "#666", fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+          <option value="all">All Audiences</option>
+          <option value="non-tech">Non-Tech</option>
+          <option value="tech">Tech</option>
+        </select>
 
         <span style={{ fontSize: 12, color: "#2A2A2A", marginLeft: isMobile ? 0 : "auto" }}>
           {filtered.length} result{filtered.length !== 1 ? "s" : ""}
@@ -183,7 +192,7 @@ export function AdminTemplates() {
             <div style={{ fontSize: 15, fontWeight: 600, color: "#333", marginBottom: 6 }}>
               {search ? `No templates match "${search}"` : "No templates found"}
             </div>
-            <button onClick={() => { setSearch(""); setFilterStatus("all"); setFilterCategory("all"); }}
+            <button onClick={() => { setSearch(""); setFilterStatus("all"); setFilterCategory("all"); setFilterAudience("all"); }}
               style={{ background: "none", border: "none", color: "#444", fontSize: 13, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
               Clear filters
             </button>
@@ -220,7 +229,7 @@ export function AdminTemplates() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: "#F0EFE8", letterSpacing: "-0.5px" }}>{previewTarget.name}</div>
                 <div style={{ fontSize: 12, color: "#8AA0FF", marginTop: 6, fontWeight: 500 }}>
-                  <span style={{ color: "#444" }}>layoutId: </span>{previewTarget.layoutId} · <span style={{ color: "#444" }}>Category: </span>{previewTarget.category}
+                  <span style={{ color: "#444" }}>layoutId: </span>{previewTarget.layoutId} · <span style={{ color: "#444" }}>Category: </span>{previewTarget.category} · <span style={{ color: "#444" }}>Audience: </span>{previewTarget.audience}
                 </div>
               </div>
               <button

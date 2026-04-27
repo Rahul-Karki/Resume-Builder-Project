@@ -34,6 +34,7 @@ const mergeWithLocalTemplateCatalog = (apiTemplates: TemplateMeta[]): TemplateMe
       name: template.name,
       tag: template.tag,
       category: template.category,
+      audience: template.audience,
       accent: template.accent,
       font: template.font,
       description: template.description,
@@ -398,7 +399,7 @@ export default function TemplatesPage() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Loading templates...");
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeAudience, setActiveAudience] = useState<"All" | "Tech" | "Non-Tech">("All");
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get("preview"));
   const [activePreviewId, setActivePreviewId] = useState<string | null>(() => searchParams.get("preview"));
   const [isPreviewSwitching, setIsPreviewSwitching] = useState<boolean>(() => Boolean(searchParams.get("preview")));
@@ -455,6 +456,7 @@ export default function TemplatesPage() {
             name: row.name ?? row.layoutId,
             tag: row.tag ?? "General",
             category,
+            audience: row.audience === "tech" ? "tech" : "non-tech",
             accent,
             font,
             description: row.description ?? "",
@@ -596,8 +598,11 @@ export default function TemplatesPage() {
     };
   }, [previewId]);
  
-  const categories = ["All", ...Array.from(new Set(templates.map(t => t.category)))];
-  const filtered = templates.filter(t => activeCategory === "All" || t.category === activeCategory);
+  const audienceFilters: Array<"All" | "Tech" | "Non-Tech"> = ["All", "Non-Tech", "Tech"];
+  const filtered = templates.filter((template) => {
+    if (activeAudience === "All") return true;
+    return activeAudience === "Tech" ? template.audience === "tech" : template.audience === "non-tech";
+  });
  
   return (
     <>
@@ -632,9 +637,9 @@ export default function TemplatesPage() {
  
         {/* FILTER */}
         <div className="tp-filter">
-          {categories.map(cat => (
-            <button key={cat} className={`tp-filter-btn${activeCategory === cat ? " active" : ""}`} onClick={() => setActiveCategory(cat)}>
-              {cat}
+          {audienceFilters.map(filter => (
+            <button key={filter} className={`tp-filter-btn${activeAudience === filter ? " active" : ""}`} onClick={() => setActiveAudience(filter)}>
+              {filter}
             </button>
           ))}
         </div>
@@ -733,7 +738,7 @@ export default function TemplatesPage() {
                 <div className="tp-card-footer">
                   <div className="tp-card-accent">
                     <div className="tp-card-swatch" style={{ background: t.accent }} />
-                    <span className="tp-card-font">{t.font}</span>
+                    <span className="tp-card-font">{t.font} · {t.audience === "tech" ? "Tech" : "Non-Tech"}</span>
                   </div>
                   <button className="tp-card-use-btn" onClick={() => handlePreviewSelect(t.id)}>
                     Preview →

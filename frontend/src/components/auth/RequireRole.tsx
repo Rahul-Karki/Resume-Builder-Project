@@ -1,10 +1,10 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { api } from "../../services/api";
 
 type Props = {
   allowedRoles: string[];
-  children: JSX.Element;
+  children: ReactNode;
 };
 
 type MeResponse = {

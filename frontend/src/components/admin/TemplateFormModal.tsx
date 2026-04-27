@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   AdminTemplate, TemplateFormData, DEFAULT_FORM, DEFAULT_CSS_VARS,
-  CATEGORY_OPTIONS, FONT_OPTIONS, REGISTERED_LAYOUT_IDS, CssVars, Slots,
+  CATEGORY_OPTIONS, AUDIENCE_OPTIONS, FONT_OPTIONS, REGISTERED_LAYOUT_IDS, CssVars, Slots,
 } from "../../types/admin.types";
 
 interface Props {
@@ -89,7 +89,7 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
   const [form, setForm] = useState<TemplateFormData>(
     initial
       ? { layoutId:initial.layoutId, name:initial.name, description:initial.description,
-          category:initial.category, tag:initial.tag, isPremium:initial.isPremium,
+          category:initial.category, audience:initial.audience, tag:initial.tag, isPremium:initial.isPremium,
           sortOrder:initial.sortOrder, cssVars:{...initial.cssVars}, slots:{...initial.slots} }
       : { ...DEFAULT_FORM }
   );
@@ -174,10 +174,15 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
                   rows={3} placeholder="Short description shown in the template picker…"
                   style={{ ...inp, resize: "vertical", lineHeight: 1.5 }} />
               </Field>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <Field label="Category">
                   <select value={form.category} onChange={e => set("category", e.target.value as any)} style={{ ...inp, cursor: "pointer" }}>
                     {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Audience">
+                  <select value={form.audience} onChange={e => set("audience", e.target.value as any)} style={{ ...inp, cursor: "pointer" }}>
+                    {AUDIENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </Field>
                 <Field label="Tag">

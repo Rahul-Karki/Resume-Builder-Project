@@ -9,6 +9,7 @@ export interface CreateTemplateDto {
   name:        string;
   description: string;
   category:    ITemplate["category"];
+  audience:    ITemplate["audience"];
   tag:         string;
   isPremium:   boolean;
   sortOrder:   number;
@@ -77,10 +78,11 @@ function dateRange(daysBack: number): { start: Date; end: Date } {
 export class TemplateService {
 
   // GET all templates (admin sees all statuses)
-  static async getAll(filter: { status?: string; category?: string } = {}): Promise<ITemplate[]> {
+  static async getAll(filter: { status?: string; category?: string; audience?: string } = {}): Promise<ITemplate[]> {
     const query: Record<string, string> = {};
     if (filter.status)   query.status   = filter.status;
     if (filter.category) query.category = filter.category;
+    if (filter.audience) query.audience = filter.audience;
     return Template.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
   }
 

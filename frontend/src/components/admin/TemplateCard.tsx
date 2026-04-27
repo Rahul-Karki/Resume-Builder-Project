@@ -99,6 +99,8 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
           <code style={{ fontFamily: "monospace", fontSize: 10.5, color: "#555" }}>{t.layoutId}</code>
           <span style={{ color: "#252525", margin: "0 5px" }}>·</span>
           <span style={{ textTransform: "capitalize" }}>{t.category}</span>
+          <span style={{ color: "#252525", margin: "0 5px" }}>·</span>
+          <span>{t.audience === "tech" ? "Tech" : "Non-Tech"}</span>
         </div>
         <div style={{ fontSize: 11, color: "#444", lineHeight: 1.45, marginBottom: 12, flex: 1 }}>{t.description || "No description."}</div>
 

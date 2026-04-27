@@ -10,6 +10,7 @@ type PublicTemplate = {
   name: string;
   description?: string;
   category?: string;
+  audience?: "tech" | "non-tech";
   tag?: string;
   isPremium?: boolean;
   cssVars?: {
@@ -121,6 +122,7 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
             category: template.category || "General",
             description: template.description || "Build your resume with this template.",
             isPremium: Boolean(template.isPremium),
+            audience: template.audience || "non-tech",
             accent,
             palette: {
               bg,

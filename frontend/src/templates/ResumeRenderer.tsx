@@ -86,16 +86,16 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
           </h1>
         )}
         {p.title && <div style={{ fontSize: "11pt", color: style.accentColor, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>}
-        {[p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio].filter(Boolean).length > 0 && (
+        {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", fontSize: "9pt", color: style.mutedColor, justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
-            {[p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio].filter(Boolean).map((value, index) => (
+            {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).map((value, index) => (
               <span key={index}>{value}</span>
             ))}
           </div>
         )}
       </div>
 
-      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.github || p.portfolio || p.summary || sectionOrder.some((key) => sectionVisibility[key])) && (
+      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.summary || sectionOrder.some((key) => sectionVisibility[key])) && (
         <hr style={{ border: "none", borderTop: `1.5px solid ${style.headingColor}`, marginBottom: spacingMap[style.sectionSpacing] }} />
       )}
 
@@ -394,16 +394,16 @@ function ClassicTemplate({ resume }: Props) {
           </h1>
         )}
         {p.title && <div style={{ fontSize: "11pt", color: style.accentColor, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>}
-        {[p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio].filter(Boolean).length > 0 && (
+        {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", fontSize: "9pt", color: style.mutedColor, justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
-            {[p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio].filter(Boolean).map((v, i) => (
+            {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).map((v, i) => (
               <span key={i}>{v}</span>
             ))}
           </div>
         )}
       </div>
 
-      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.github || p.portfolio || p.summary || sectionOrder.some((key) => sectionVisibility[key] && sectionMap[key])) && (
+      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.summary || sectionOrder.some((key) => sectionVisibility[key] && sectionMap[key])) && (
         <hr style={{ border: "none", borderTop: `1.5px solid ${style.headingColor}`, marginBottom: spacingMap[style.sectionSpacing] }} />
       )}
 
@@ -434,6 +434,11 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
     sidebar: SidebarTemplate,
     scholarly: ScholarlyTemplate,
     research: ResearchTemplate,
+    administrative: ClassicTemplateAdapter,
+    operations: CompactTemplate,
+    "customer-service": ExecutiveTemplate,
+    healthcare: ScholarlyTemplate,
+    education: ResearchTemplate,
   };
 
   const SelectedTemplate = templatesById[normalizeResumeTemplateId(resume.templateId)] ?? ClassicTemplateAdapter;

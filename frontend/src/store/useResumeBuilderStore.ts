@@ -254,6 +254,11 @@ const TEMPLATE_STYLE_PRESETS: Record<string, Partial<typeof defaultStyle>> = {
   sidebar:   { accentColor: "#1E293B", bodyFont: "Nunito Sans, sans-serif", headingFont: "Nunito Sans, sans-serif" },
   scholarly: { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
   research:  { accentColor: "#1f1f1f", bodyFont: "Source Serif 4, serif", headingFont: "Playfair Display, serif" },
+  administrative: { accentColor: "#374151", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "10pt" },
+  operations: { accentColor: "#0F4C5C", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "10pt" },
+  "customer-service": { accentColor: "#1D4ED8", bodyFont: "Outfit, sans-serif", headingFont: "Outfit, sans-serif", fontSize: "10pt" },
+  healthcare: { accentColor: "#0F766E", bodyFont: "Source Serif 4, serif", headingFont: "Source Serif 4, serif", fontSize: "10pt" },
+  education: { accentColor: "#7C2D12", bodyFont: "Lora, serif", headingFont: "Lora, serif", fontSize: "10pt", lineHeight: "1.6" },
 };
 
 const TEMPLATE_SECTION_VISIBILITY_PRESETS: Record<string, typeof defaultSectionVisibility> = {
@@ -264,6 +269,11 @@ const TEMPLATE_SECTION_VISIBILITY_PRESETS: Record<string, typeof defaultSectionV
   sidebar:   { ...defaultSectionVisibility },
   scholarly: { ...defaultSectionVisibility },
   research:  { ...defaultSectionVisibility },
+  administrative: { ...defaultSectionVisibility, projects: false, certifications: true },
+  operations: { ...defaultSectionVisibility, certifications: true },
+  "customer-service": { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
+  healthcare: { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
+  education: { ...defaultSectionVisibility, certifications: true, languages: true },
 };
 
 const SECTION_KEYS: Array<keyof SectionVisibility> = [

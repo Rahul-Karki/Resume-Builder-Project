@@ -33,9 +33,9 @@ const invalidateTemplateAnalyticsCaches = async () => {
 export async function listTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.listTemplates", req);
   try {
-    const { status, category } = req.query as Record<string, string>;
-    const templates = await TemplateService.getAll({ status, category });
-    logger.info({ status, category, count: templates.length }, "Templates listed");
+    const { status, category, audience } = req.query as Record<string, string>;
+    const templates = await TemplateService.getAll({ status, category, audience });
+    logger.info({ status, category, audience, count: templates.length }, "Templates listed");
     markSpanSuccess(span);
     return ok(res, templates);
   } catch (err: any) {
@@ -52,9 +52,9 @@ export async function listTemplates(req: Request, res: Response) {
 export async function listPublicTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.listPublicTemplates", req);
   try {
-    const { category } = req.query as Record<string, string>;
-    const templates = await TemplateService.getAll({ status: "published", category });
-    logger.info({ category, count: templates.length }, "Public templates listed");
+    const { category, audience } = req.query as Record<string, string>;
+    const templates = await TemplateService.getAll({ status: "published", category, audience });
+    logger.info({ category, audience, count: templates.length }, "Public templates listed");
     markSpanSuccess(span);
     return ok(res, templates);
   } catch (err: any) {
@@ -97,6 +97,7 @@ export async function createTemplate(req: Request, res: Response) {
       name:        req.body.name,
       description: req.body.description ?? "",
       category:    req.body.category    ?? "professional",
+      audience:    req.body.audience    ?? "non-tech",
       tag:         req.body.tag         ?? "General",
       isPremium:   req.body.isPremium   ?? false,
       sortOrder:   req.body.sortOrder   ?? 0,
