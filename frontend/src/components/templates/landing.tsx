@@ -489,8 +489,9 @@ export default function TemplatesPage() {
       const mapped = await fetchTemplatesWithRetry();
       setTemplates(mapped);
     } catch {
+      // If API fails completely, fall back to local templates
       setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
-      setTemplates([]);
+      setTemplates(mergeWithLocalTemplateCatalog([]));
     } finally {
       setLoadingTemplates(false);
     }
@@ -603,6 +604,54 @@ export default function TemplatesPage() {
     if (activeAudience === "All") return true;
     return activeAudience === "Tech" ? template.audience === "tech" : template.audience === "non-tech";
   });
+  const nonTechFiltered = filtered.filter((template) => template.audience !== "tech");
+  const techFiltered = filtered.filter((template) => template.audience === "tech");
+
+  const renderTemplateCards = (items: TemplateMeta[], offset = 0) => (
+    items.map((t, idx) => (
+      <div
+        key={t.id}
+        className="tp-card"
+        style={{ animationDelay: `${(offset + idx) * 60}ms` }}
+        onMouseEnter={() => setHoveredId(t.id)}
+        onMouseLeave={() => setHoveredId(null)}
+      >
+        <div className="tp-card-thumb">
+          <div className="tp-card-thumb-inner">
+            <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
+              <ThumbnailSVG template={t} />
+            </div>
+          </div>
+          <div className="tp-card-hover-overlay">
+            <button className="tp-card-preview-btn" onClick={() => handlePreviewSelect(t.id)}>
+              Preview Template →
+            </button>
+          </div>
+          {t.isPremium && (
+            <div className="tp-card-premium-badge" style={{ position: "absolute", top: 14, left: 14, background: "#F59E0B", color: "#0E0E0E", fontSize: "9.5px", fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>
+              ★ PRO
+            </div>
+          )}
+        </div>
+        <div className="tp-card-body">
+          <div className="tp-card-top">
+            <div className="tp-card-name">{t.name}</div>
+            <span className="tp-card-tag">{t.tag}</span>
+          </div>
+          <p className="tp-card-desc">{t.description}</p>
+          <div className="tp-card-footer">
+            <div className="tp-card-accent">
+              <div className="tp-card-swatch" style={{ background: t.accent }} />
+              <span className="tp-card-font">{t.font} · {t.audience === "tech" ? "Tech" : "Non-Tech"}</span>
+            </div>
+            <button className="tp-card-use-btn" onClick={() => handlePreviewSelect(t.id)}>
+              Preview →
+            </button>
+          </div>
+        </div>
+      </div>
+    ))
+  );
  
   return (
     <>
@@ -704,49 +753,23 @@ export default function TemplatesPage() {
             </div>
           )}
 
-          {filtered.map((t, idx) => (
-            <div
-              key={t.id}
-              className="tp-card"
-              style={{ animationDelay: `${idx * 60}ms` }}
-              onMouseEnter={() => setHoveredId(t.id)}
-              onMouseLeave={() => setHoveredId(null)}
-            >
-              <div className="tp-card-thumb">
-                <div className="tp-card-thumb-inner">
-                  <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
-                    <ThumbnailSVG template={t} />
-                  </div>
-                </div>
-                <div className="tp-card-hover-overlay">
-                  <button className="tp-card-preview-btn" onClick={() => handlePreviewSelect(t.id)}>
-                    Preview Template →
-                  </button>
-                </div>
-                {t.isPremium && (
-                  <div className="tp-card-premium-badge" style={{ position: "absolute", top: 14, left: 14, background: "#F59E0B", color: "#0E0E0E", fontSize: "9.5px", fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>
-                    ★ PRO
-                  </div>
-                )}
-              </div>
-              <div className="tp-card-body">
-                <div className="tp-card-top">
-                  <div className="tp-card-name">{t.name}</div>
-                  <span className="tp-card-tag">{t.tag}</span>
-                </div>
-                <p className="tp-card-desc">{t.description}</p>
-                <div className="tp-card-footer">
-                  <div className="tp-card-accent">
-                    <div className="tp-card-swatch" style={{ background: t.accent }} />
-                    <span className="tp-card-font">{t.font} · {t.audience === "tech" ? "Tech" : "Non-Tech"}</span>
-                  </div>
-                  <button className="tp-card-use-btn" onClick={() => handlePreviewSelect(t.id)}>
-                    Preview →
-                  </button>
-                </div>
+          {!loadingTemplates && activeAudience === "All" && nonTechFiltered.length > 0 && (
+            <div style={{ gridColumn: "1 / -1", marginTop: 4, marginBottom: -4 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 999, border: "1px solid #2A2A2A", background: "#141414", color: "#C8F55A", fontSize: 12, fontWeight: 700, letterSpacing: 0.4 }}>
+                Non-Tech Only
               </div>
             </div>
-          ))}
+          )}
+          {!loadingTemplates && activeAudience === "All" && renderTemplateCards(nonTechFiltered, 0)}
+
+          {!loadingTemplates && activeAudience === "All" && techFiltered.length > 0 && (
+            <div style={{ gridColumn: "1 / -1", marginTop: 20, marginBottom: -2, color: "#A3A3A3", fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
+              Tech Templates
+            </div>
+          )}
+          {!loadingTemplates && activeAudience === "All" && renderTemplateCards(techFiltered, nonTechFiltered.length)}
+
+          {!loadingTemplates && activeAudience !== "All" && renderTemplateCards(filtered, 0)}
         </div>
  
         {/* ATS INFO */}
