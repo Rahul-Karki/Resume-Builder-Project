@@ -17,6 +17,7 @@ class BrowserPool {
   }> = [];
   private config: BrowserPoolConfig;
   private initialized = false;
+  private available = true;
   private closing = false;
 
   constructor(config: Partial<BrowserPoolConfig> = {}) {
@@ -38,17 +39,23 @@ class BrowserPool {
         const browser = await puppeteer.launch(this.config.launchOptions);
         this.availableBrowsers.push(browser);
       }
+      this.available = true;
       this.initialized = true;
       logger.info({ poolSize: this.config.poolSize }, "Browser pool initialized");
     } catch (error) {
-      logger.error({ error }, "Failed to initialize browser pool");
-      throw error;
+      this.available = false;
+      this.initialized = true;
+      logger.warn({ error }, "Browser pool unavailable; browser-dependent features will be disabled");
     }
   }
 
   async acquire(): Promise<Browser> {
     if (!this.initialized) {
       await this.initialize();
+    }
+
+    if (!this.available) {
+      throw new Error("Browser pool is unavailable on this deployment");
     }
 
     // Return available browser immediately
@@ -132,7 +139,12 @@ class BrowserPool {
     this.availableBrowsers = [];
     this.activeBrowsers.clear();
     this.initialized = false;
+    this.available = true;
     logger.info("Browser pool closed");
+  }
+
+  isAvailable(): boolean {
+    return this.available;
   }
 
   getStats() {

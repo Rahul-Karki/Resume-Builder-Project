@@ -651,6 +651,11 @@ export const exportSafePdf: RequestHandler = async (req, res) => {
       }
     }
   } catch (error) {
+    if ((error as Error).message === "Browser pool is unavailable on this deployment") {
+      logger.warn({ resumeId: req.params.id }, "Safe PDF export requested without browser support");
+      res.status(503).json({ message: "Safe PDF export is unavailable on this deployment" });
+      return;
+    }
     recordPdfExportFailure((error as Error).message || "unknown_error");
     markSpanError(span, error as Error, "Failed to export safe PDF");
     logger.error({ error, resumeId: req.params.id }, "Failed to export safe PDF");
