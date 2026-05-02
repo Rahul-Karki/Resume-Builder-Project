@@ -42,6 +42,20 @@ function MiniThumb({ cssVars }: { cssVars: AdminTemplate["cssVars"] }) {
   );
 }
 
+function ThumbnailPreview({ template }: { template: AdminTemplate }) {
+  if (template.thumbnailUrl) {
+    return (
+      <img
+        src={template.thumbnailUrl}
+        alt={template.name}
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+      />
+    );
+  }
+
+  return <MiniThumb cssVars={template.cssVars} />;
+}
+
 const STATUS_CONFIG: Record<TemplateStatus, { label: string; bg: string; color: string }> = {
   published: { label: "● Live",   bg: "#0D1A12", color: "#4ADE80" },
   draft:     { label: "○ Draft",  bg: "#1A1A0D", color: "#F59E0B" },
@@ -74,7 +88,7 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
       <div style={{ height: 160, background: "#080808", overflow: "hidden", position: "relative" }}>
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 18px" }}>
           <div style={{ width: "100%", maxWidth: 110, borderRadius: 4, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.6)", transform: hov ? "scale(1.03)" : "scale(1)", transition: "transform 0.3s" }}>
-            <MiniThumb cssVars={t.cssVars} />
+            <ThumbnailPreview template={t} />
           </div>
         </div>
 
@@ -91,16 +105,20 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
       <div style={{ padding: "12px 14px 13px", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
           <div style={{ fontWeight: 700, fontSize: 13.5, color: "#F0EFE8" }}>{t.name}</div>
-          <span style={{ fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: "#1A1A1A", color: "#444", border: "1px solid #222", whiteSpace: "nowrap" }}>
-            {t.tag}
-          </span>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {(t.tags?.length ? t.tags : [t.tag]).slice(0, 3).map((tag) => (
+              <span key={tag} style={{ fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: "#1A1A1A", color: "#444", border: "1px solid #222", whiteSpace: "nowrap" }}>
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
         <div style={{ fontSize: 11, color: "#3A3A3A", marginBottom: 8 }}>
           <code style={{ fontFamily: "monospace", fontSize: 10.5, color: "#555" }}>{t.layoutId}</code>
           <span style={{ color: "#252525", margin: "0 5px" }}>·</span>
           <span style={{ textTransform: "capitalize" }}>{t.category}</span>
           <span style={{ color: "#252525", margin: "0 5px" }}>·</span>
-          <span>{t.audience === "tech" ? "Tech" : "Non-Tech"}</span>
+          <span>{t.category === "tech" ? "Tech" : "Non-Tech"}</span>
         </div>
         <div style={{ fontSize: 11, color: "#444", lineHeight: 1.45, marginBottom: 12, flex: 1 }}>{t.description || "No description."}</div>
 

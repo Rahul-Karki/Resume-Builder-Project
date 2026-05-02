@@ -446,8 +446,7 @@ export default function TemplatesPage() {
         const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
 
         const mapped: TemplateMeta[] = rows.map((row: any) => {
-          const rawCategory = String(row.category ?? "Professional");
-          const category = rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1);
+          const category = row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech";
           const accent = row.cssVars?.accentColor ?? "#1a1a1a";
           const font = String(row.cssVars?.bodyFont ?? "Outfit").split(",")[0].trim();
 
@@ -461,6 +460,7 @@ export default function TemplatesPage() {
             font,
             description: row.description ?? "",
             isPremium: Boolean(row.isPremium),
+            thumbnailUrl: row.thumbnailUrl ?? "",
             palette: [
               row.cssVars?.backgroundColor ?? "#ffffff",
               accent,
@@ -619,7 +619,11 @@ export default function TemplatesPage() {
         <div className="tp-card-thumb">
           <div className="tp-card-thumb-inner">
             <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
-              <ThumbnailSVG template={t} />
+              {t.thumbnailUrl ? (
+                <img src={t.thumbnailUrl} alt={t.name} style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+              ) : (
+                <ThumbnailSVG template={t} />
+              )}
             </div>
           </div>
           <div className="tp-card-hover-overlay">
@@ -642,7 +646,7 @@ export default function TemplatesPage() {
           <div className="tp-card-footer">
             <div className="tp-card-accent">
               <div className="tp-card-swatch" style={{ background: t.accent }} />
-              <span className="tp-card-font">{t.font} · {t.audience === "tech" ? "Tech" : "Non-Tech"}</span>
+              <span className="tp-card-font">{t.font} · {t.category === "tech" ? "Tech" : "Non-Tech"}</span>
             </div>
             <button className="tp-card-use-btn" onClick={() => handlePreviewSelect(t.id)}>
               Preview →

@@ -40,7 +40,7 @@ const googleLoginSchema = z.object({
   token: z.string().trim().min(20),
 }).strict();
 
-const templateCategorySchema = z.enum(["professional", "corporate", "technical", "creative", "academic"]);
+const templateCategorySchema = z.enum(["tech", "non-tech"]);
 const templateAudienceSchema = z.enum(["tech", "non-tech"]);
 const templateStatusSchema = z.enum(["draft", "published", "archived"]);
 
@@ -74,6 +74,7 @@ const createTemplateSchema = z.object({
   category: templateCategorySchema.optional(),
   audience: templateAudienceSchema.optional(),
   tag: z.string().trim().max(30).optional(),
+  tags: z.array(z.string().trim().min(1).max(30)).max(12).optional(),
   isPremium: z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(5000).optional(),
   cssVars: cssVarsSchema.optional(),
@@ -97,6 +98,7 @@ const templateListQuerySchema = z.object({
   status: templateStatusSchema.optional(),
   category: templateCategorySchema.optional(),
   audience: templateAudienceSchema.optional(),
+  tags: z.array(z.string().trim().min(1).max(30)).optional(),
 }).strict();
 
 const publicTemplateListQuerySchema = z.object({

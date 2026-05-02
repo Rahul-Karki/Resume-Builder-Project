@@ -1,7 +1,7 @@
 // ─── admin.types.ts ───────────────────────────────────────────────────────────
 
 export type TemplateStatus   = "draft" | "published" | "archived";
-export type TemplateCategory = "professional" | "corporate" | "technical" | "creative" | "academic";
+export type TemplateCategory = "tech" | "non-tech";
 export type TemplateAudience = "tech" | "non-tech";
 
 export interface CssVars {
@@ -35,6 +35,7 @@ export interface AdminTemplate {
   category:    TemplateCategory;
   audience:    TemplateAudience;
   tag:         string;
+  tags?:       string[];
   thumbnailUrl: string;
   status:      TemplateStatus;
   isPremium:   boolean;
@@ -89,10 +90,12 @@ export interface TemplateFormData {
   category:    TemplateCategory;
   audience:    TemplateAudience;
   tag:         string;
+  tags:        string[];
   isPremium:   boolean;
   sortOrder:   number;
   cssVars:     CssVars;
   slots:       Slots;
+  thumbnailUrl?: string;
 }
 
 export const DEFAULT_CSS_VARS: CssVars = {
@@ -122,9 +125,10 @@ export const DEFAULT_FORM: TemplateFormData = {
   layoutId:    "",
   name:        "",
   description: "",
-  category:    "professional",
+  category:    "non-tech",
   audience:    "non-tech",
   tag:         "",
+  tags:        [],
   isPremium:   false,
   sortOrder:   0,
   cssVars:     { ...DEFAULT_CSS_VARS },
@@ -132,11 +136,8 @@ export const DEFAULT_FORM: TemplateFormData = {
 };
 
 export const CATEGORY_OPTIONS: { value: TemplateCategory; label: string }[] = [
-  { value: "professional", label: "Professional" },
-  { value: "corporate",    label: "Corporate"    },
-  { value: "technical",    label: "Technical"    },
-  { value: "creative",     label: "Creative"     },
-  { value: "academic",     label: "Academic"     },
+  { value: "non-tech", label: "Non-Tech" },
+  { value: "tech", label: "Tech" },
 ];
 
 export const AUDIENCE_OPTIONS: { value: TemplateAudience; label: string }[] = [

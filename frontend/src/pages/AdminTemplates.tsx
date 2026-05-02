@@ -2,15 +2,13 @@ import { useEffect, useState } from "react";
 import { useAdminTemplates } from "../hooks/useAdminTemplate";
 import { TemplateCard } from "../components/admin/TemplateCard";
 import { TemplateFormModal } from "../components/admin/TemplateFormModal";
-import { AdminTemplate, TemplateStatus, TemplateCategory, TemplateAudience } from "../types/admin.types";
+import { AdminTemplate, TemplateStatus, TemplateCategory } from "../types/admin.types";
 import { ResumeRenderer } from "../templates/ResumeRenderer";
 import { sampleData } from "../data/sampleData";
 import { ResumeDocument, ResumeStyle, SectionVisibility } from "../types/resume-types";
 
 type FilterStatus = "all" | TemplateStatus;
 type FilterCategory = "all" | TemplateCategory;
-type FilterAudience = "all" | TemplateAudience;
-
 export function AdminTemplates() {
   const {
     templates, loading, error, toast, saving,
@@ -20,7 +18,6 @@ export function AdminTemplates() {
 
   const [filterStatus,   setFilterStatus]   = useState<FilterStatus>("all");
   const [filterCategory, setFilterCategory] = useState<FilterCategory>("all");
-  const [filterAudience, setFilterAudience] = useState<FilterAudience>("all");
   const [search,         setSearch]         = useState("");
   const [modalMode,      setModalMode]      = useState<"create" | "edit" | null>(null);
   const [editTarget,     setEditTarget]     = useState<AdminTemplate | null>(null);
@@ -62,7 +59,6 @@ export function AdminTemplates() {
   const filtered = templates
     .filter(t => filterStatus   === "all" || t.status   === filterStatus)
     .filter(t => filterCategory === "all" || t.category === filterCategory)
-    .filter(t => filterAudience === "all" || t.audience === filterAudience)
     .filter(t => !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.layoutId.toLowerCase().includes(search.toLowerCase()));
 
   const counts = {
@@ -131,13 +127,6 @@ export function AdminTemplates() {
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value as FilterCategory)}
           style={{ padding: "6px 10px", background: "#111", border: "1px solid #1A1A1A", borderRadius: 8, color: "#666", fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
           <option value="all">All Categories</option>
-          {["professional", "corporate", "technical", "creative", "academic"].map(c => (
-            <option key={c} value={c} style={{ textTransform: "capitalize" }}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-          ))}
-        </select>
-        <select value={filterAudience} onChange={e => setFilterAudience(e.target.value as FilterAudience)}
-          style={{ padding: "6px 10px", background: "#111", border: "1px solid #1A1A1A", borderRadius: 8, color: "#666", fontSize: 12, fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
-          <option value="all">All Audiences</option>
           <option value="non-tech">Non-Tech</option>
           <option value="tech">Tech</option>
         </select>
@@ -192,7 +181,7 @@ export function AdminTemplates() {
             <div style={{ fontSize: 15, fontWeight: 600, color: "#333", marginBottom: 6 }}>
               {search ? `No templates match "${search}"` : "No templates found"}
             </div>
-            <button onClick={() => { setSearch(""); setFilterStatus("all"); setFilterCategory("all"); setFilterAudience("all"); }}
+            <button onClick={() => { setSearch(""); setFilterStatus("all"); setFilterCategory("all"); }}
               style={{ background: "none", border: "none", color: "#444", fontSize: 13, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
               Clear filters
             </button>
@@ -229,7 +218,7 @@ export function AdminTemplates() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: "#F0EFE8", letterSpacing: "-0.5px" }}>{previewTarget.name}</div>
                 <div style={{ fontSize: 12, color: "#8AA0FF", marginTop: 6, fontWeight: 500 }}>
-                  <span style={{ color: "#444" }}>layoutId: </span>{previewTarget.layoutId} · <span style={{ color: "#444" }}>Category: </span>{previewTarget.category} · <span style={{ color: "#444" }}>Audience: </span>{previewTarget.audience}
+                  <span style={{ color: "#444" }}>layoutId: </span>{previewTarget.layoutId} · <span style={{ color: "#444" }}>Category: </span>{previewTarget.category} · <span style={{ color: "#444" }}>Tags: </span>{(previewTarget.tags?.length ? previewTarget.tags : [previewTarget.tag]).join(", ")}
                 </div>
               </div>
               <button
@@ -248,8 +237,10 @@ export function AdminTemplates() {
                 <div style={{ display: "grid", gap: 16 }}>
                   <InfoRow label="Status" value={previewTarget.status} />
                   <InfoRow label="Tag" value={previewTarget.tag} />
+                  <InfoRow label="Tags" value={(previewTarget.tags?.length ? previewTarget.tags : [previewTarget.tag]).join(", ")} />
                   <div style={{ borderTop: "1px solid #1A1A1A", paddingTop: 16 }} />
                   <InfoRow label="Premium" value={previewTarget.isPremium ? "✓ Yes" : "No"} isHighlight={previewTarget.isPremium} />
+                  <InfoRow label="Thumbnail" value={previewTarget.thumbnailUrl ? "Custom image" : "Generated preview"} />
                   <InfoRow label="Accent Color" value={previewTarget.cssVars.accentColor} showColor={previewTarget.cssVars.accentColor} />
                   <InfoRow label="Body Font" value={previewTarget.cssVars.bodyFont.split(",")[0]} />
                   <InfoRow label="Heading Font" value={previewTarget.cssVars.headingFont.split(",")[0]} />

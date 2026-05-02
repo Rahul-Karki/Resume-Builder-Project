@@ -89,9 +89,9 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
   const [form, setForm] = useState<TemplateFormData>(
     initial
       ? { layoutId:initial.layoutId, name:initial.name, description:initial.description,
-          category:initial.category, audience:initial.audience, tag:initial.tag, isPremium:initial.isPremium,
+          category:initial.category, audience:initial.audience, tag:initial.tag, tags:initial.tags ?? [], thumbnailUrl: initial.thumbnailUrl, isPremium:initial.isPremium,
           sortOrder:initial.sortOrder, cssVars:{...initial.cssVars}, slots:{...initial.slots} }
-      : { ...DEFAULT_FORM }
+        : { ...DEFAULT_FORM }
   );
   const [tab, setTab] = useState<"general" | "style" | "slots">("general");
 
@@ -188,6 +188,14 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
                 <Field label="Tag">
                   <input value={form.tag} onChange={e => set("tag", e.target.value)} placeholder="e.g. Tech-Ready" style={inp} />
                 </Field>
+                <Field label="Tags">
+                  <input
+                    value={form.tags?.join(", ") ?? ""}
+                    onChange={e => set("tags", e.target.value.split(",").map((item) => item.trim()).filter(Boolean))}
+                    placeholder="SDE, Designer, Marketing"
+                    style={inp}
+                  />
+                </Field>
                 <Field label="Sort Order">
                   <input
                     type="number"
@@ -200,6 +208,9 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
                   <div style={{ fontSize: 10, color: "#333", marginTop: 3 }}>Lower number shows earlier in the list.</div>
                 </Field>
               </div>
+              <Field label="Thumbnail URL">
+                <input value={form.thumbnailUrl ?? ""} onChange={e => set("thumbnailUrl", e.target.value)} placeholder="https://..." style={inp} />
+              </Field>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Toggle checked={form.isPremium} onChange={v => set("isPremium", v)} />
                 <div>

@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom"
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { AdminSidebar } from "../components/admin/AdminSidebar";
-import { AdminDashboard } from "./AdminDashboard";
-import { AdminTemplates } from "./AdminTemplates";
 import { AdminPage } from "../types/admin.types";
 import { api } from "@/services/api";
 
@@ -106,8 +104,11 @@ interface Props {
 }
 
 export default function AdminLayout({ adminName = "Admin User" }: Props) {
-  const [page, setPage] = useState<AdminPage>("dashboard");
   const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const page: AdminPage = location.pathname.includes("/admin/templates") ? "templates" : "dashboard";
 
   useEffect(() => {
     const updateViewport = () => setIsMobile(window.innerWidth < 1024);
@@ -127,20 +128,23 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
     }
   };
 
+  const handleNavigate = (nextPage: AdminPage) => {
+    navigate(nextPage === "dashboard" ? "/admin" : "/admin/templates");
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#080808", alignItems: "stretch" }}>
 
         {/* Sidebar */}
-        <AdminSidebar activePage={page} onNavigate={setPage} adminName={adminName} isMobile={isMobile} />
+        <AdminSidebar activePage={page} onNavigate={handleNavigate} adminName={adminName} isMobile={isMobile} />
 
         {/* Main area */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
           <TopBar page={page} onLogout={handleLogout} isMobile={isMobile} />
           <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-            {page === "dashboard" && <AdminDashboard />}
-            {page === "templates" && <AdminTemplates />}
+            <Outlet />
           </div>
         </div>
       </div>

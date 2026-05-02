@@ -56,11 +56,13 @@ test("createTemplateSchema accepts the new audience split", () => {
   const parsed = createTemplateSchema.parse({
     layoutId: "operations",
     name: "Operations",
-    category: "corporate",
+    category: "non-tech",
     audience: "non-tech",
+    tags: ["SDE", "Backend"],
   });
 
   assert.equal(parsed.audience, "non-tech");
+  assert.deepEqual(parsed.tags, ["SDE", "Backend"]);
 });
 
 test("publicTemplateListQuerySchema accepts audience filters", () => {

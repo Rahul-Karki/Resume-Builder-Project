@@ -11,6 +11,7 @@ export interface CreateTemplateDto {
   category:    ITemplate["category"];
   audience:    ITemplate["audience"];
   tag:         string;
+  tags?:       string[];
   isPremium:   boolean;
   sortOrder:   number;
   cssVars:     Partial<ITemplate["cssVars"]>;
@@ -76,13 +77,31 @@ function dateRange(daysBack: number): { start: Date; end: Date } {
 // ─── Template CRUD ─────────────────────────────────────────────────────────────
 
 export class TemplateService {
+  private static normalizeCategory(value?: string, fallback?: ITemplate["category"]): ITemplate["category"] | undefined {
+    if (value === "tech" || value === "non-tech") {
+      return value;
+    }
+
+    return fallback;
+  }
+
+  private static normalizeTags(tag?: string, tags?: string[]) {
+    const combined = [tag, ...(tags ?? [])]
+      .flatMap((entry) => String(entry ?? "").split(","))
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(combined)).slice(0, 12);
+  }
 
   // GET all templates (admin sees all statuses)
   static async getAll(filter: { status?: string; category?: string; audience?: string } = {}): Promise<ITemplate[]> {
     const query: Record<string, string> = {};
     if (filter.status)   query.status   = filter.status;
-    if (filter.category) query.category = filter.category;
-    if (filter.audience) query.audience = filter.audience;
+    const category = this.normalizeCategory(filter.category);
+    const audience = this.normalizeCategory(filter.audience);
+    if (category) query.category = category;
+    if (audience) query.audience = audience;
     return Template.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
   }
 
@@ -97,8 +116,12 @@ export class TemplateService {
     if (existing) {
       throw new Error(`layoutId "${dto.layoutId}" is already in use.`);
     }
+    const category = this.normalizeCategory(dto.category, dto.audience ?? "non-tech") ?? "non-tech";
     const template = new Template({
       ...dto,
+      category,
+      audience: category,
+      tags: this.normalizeTags(dto.tag, dto.tags),
       createdBy: adminId,
       updatedBy: adminId,
     });
@@ -107,9 +130,18 @@ export class TemplateService {
 
   // UPDATE (partial)
   static async update(id: string, dto: UpdateTemplateDto, adminId: string): Promise<ITemplate | null> {
+    const categorySource = dto.category ?? dto.audience;
+    const category = categorySource ? this.normalizeCategory(categorySource) : undefined;
+    const tags = dto.tag || dto.tags ? this.normalizeTags(dto.tag, dto.tags) : undefined;
     return Template.findByIdAndUpdate(
       id,
-      { ...dto, updatedBy: adminId, ...(dto.status === "published" ? { publishedAt: new Date() } : {}) },
+      {
+        ...dto,
+        ...(category ? { category, audience: category } : {}),
+        ...(tags ? { tags } : {}),
+        updatedBy: adminId,
+        ...(dto.status === "published" ? { publishedAt: new Date() } : {}),
+      },
       { new: true, runValidators: true }
     ).lean();
   }

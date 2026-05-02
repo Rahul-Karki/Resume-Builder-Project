@@ -12,6 +12,7 @@ type LandingTemplate = {
   name: string;
   tag: string;
   category: string;
+  thumbnailUrl?: string;
   accent: string;
   bg: string;
   primary: string;
@@ -21,62 +22,62 @@ type LandingTemplate = {
 
 const FALLBACK_TEMPLATES: LandingTemplate[] = [
   {
-    id: "classic", name: "Classic", tag: "Timeless", category: "Professional",
+    id: "classic", name: "Classic", tag: "Timeless", category: "non-tech",
     accent: "#1a1a1a", bg: "#FAF8F5", primary: "#1a1a1a", secondary: "#555",
     desc: "Trusted serif layout for finance, law & academia.",
   },
   {
-    id: "executive", name: "Executive", tag: "Corporate", category: "Leadership",
+    id: "executive", name: "Executive", tag: "Corporate", category: "non-tech",
     accent: "#1B2B4B", bg: "#EEF1F7", primary: "#1B2B4B", secondary: "#3A5A8A",
     desc: "Navy header with strong hierarchy for leadership roles.",
   },
   {
-    id: "modern", name: "Modern", tag: "Tech-Ready", category: "Technical",
+    id: "modern", name: "Modern", tag: "Tech-Ready", category: "tech",
     accent: "#0F766E", bg: "#F0FDFB", primary: "#0F766E", secondary: "#134E4A",
     desc: "Teal accent rule and skill chips for tech roles.",
   },
   {
-    id: "compact", name: "Compact", tag: "One-Page", category: "Senior",
+    id: "compact", name: "Compact", tag: "One-Page", category: "non-tech",
     accent: "#111111", bg: "#F8F8F8", primary: "#111", secondary: "#444",
     desc: "Dense label-column layout for senior candidates.",
   },
   {
-    id: "sidebar", name: "Sidebar", tag: "Structured", category: "Creative",
+    id: "sidebar", name: "Sidebar", tag: "Structured", category: "tech",
     accent: "#1E293B", bg: "#fff", primary: "#1E293B", secondary: "#94A3B8",
     desc: "Dark sidebar with two-column structure.",
   },
   {
-    id: "scholarly", name: "Scholarly", tag: "Academic", category: "Academic",
+    id: "scholarly", name: "Scholarly", tag: "Academic", category: "non-tech",
     accent: "#1a1a1a", bg: "#fff", primary: "#1a1a1a", secondary: "#4a4a4a",
     desc: "Centered academic layout with classic section rhythm.",
   },
   {
-    id: "research", name: "Research", tag: "Detailed", category: "Academic",
+    id: "research", name: "Research", tag: "Detailed", category: "non-tech",
     accent: "#1f1f1f", bg: "#fff", primary: "#1f1f1f", secondary: "#555",
     desc: "Research-forward hierarchy for content-dense resumes.",
   },
   {
-    id: "chronological", name: "Chronological", tag: "ATS Core", category: "Professional",
+    id: "chronological", name: "Chronological", tag: "ATS Core", category: "non-tech",
     accent: "#1F2937", bg: "#FCFCFB", primary: "#1F2937", secondary: "#6B7280",
     desc: "Reverse-chronological ATS format focused on career progression.",
   },
   {
-    id: "functional", name: "Functional", tag: "Skills-First", category: "Professional",
+    id: "functional", name: "Functional", tag: "Skills-First", category: "non-tech",
     accent: "#334155", bg: "#F8FAFC", primary: "#334155", secondary: "#64748B",
     desc: "Skills-first ATS-safe structure for pivots and return-to-work.",
   },
   {
-    id: "combination", name: "Combination", tag: "Hybrid", category: "Corporate",
+    id: "combination", name: "Combination", tag: "Hybrid", category: "non-tech",
     accent: "#0B3C5D", bg: "#F8FAFF", primary: "#0B3C5D", secondary: "#64748B",
     desc: "Hybrid ATS format balancing measurable outcomes and strengths.",
   },
   {
-    id: "traditional-assistant", name: "Traditional Assistant", tag: "Admin", category: "Professional",
+    id: "traditional-assistant", name: "Traditional Assistant", tag: "Admin", category: "non-tech",
     accent: "#1E3A8A", bg: "#F8FAFF", primary: "#1E3A8A", secondary: "#64748B",
     desc: "Administrative-assistant inspired ATS layout for office roles.",
   },
   {
-    id: "community-impact", name: "Community Impact", tag: "Volunteer", category: "Professional",
+    id: "community-impact", name: "Community Impact", tag: "Volunteer", category: "non-tech",
     accent: "#166534", bg: "#F0FDF4", primary: "#166534", secondary: "#6B7280",
     desc: "ATS-ready format for volunteer, NGO and public-service profiles.",
   },
@@ -307,7 +308,8 @@ export function TemplatesPreview() {
             id: String(row.layoutId ?? "classic"),
             name: String(row.name ?? "Template"),
             tag: String(row.tag ?? "General"),
-            category: String(row.category ?? "Professional"),
+            category: row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech",
+            thumbnailUrl: String(row.thumbnailUrl ?? ""),
             accent,
             primary: row.cssVars?.headingColor ?? accent,
             secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
@@ -412,7 +414,8 @@ export function TemplatesPreview() {
                       id: String(row.layoutId ?? "classic"),
                       name: String(row.name ?? "Template"),
                       tag: String(row.tag ?? "General"),
-                      category: String(row.category ?? "Professional"),
+                      category: row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech",
+                      thumbnailUrl: String(row.thumbnailUrl ?? ""),
                       accent,
                       primary: row.cssVars?.headingColor ?? accent,
                       secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
@@ -489,9 +492,13 @@ export function TemplatesPreview() {
                     boxShadow: "0 10px 40px rgba(0,0,0,0.7)",
                     transform: isHov ? "scale(1.04)" : "scale(1)", transition: "transform 0.3s ease",
                   }}>
-                    <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%", display: "block" }} xmlns="http://www.w3.org/2000/svg">
-                      {renderThumb(t.id, t.primary, t.secondary)}
-                    </svg>
+                    {t.thumbnailUrl ? (
+                      <img src={t.thumbnailUrl} alt={t.name} style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+                    ) : (
+                      <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%", display: "block" }} xmlns="http://www.w3.org/2000/svg">
+                        {renderThumb(t.id, t.primary, t.secondary)}
+                      </svg>
+                    )}
                   </div>
                 </div>
 

@@ -29,9 +29,10 @@ export interface ITemplate extends Document {
   layoutId: string;
   name: string;
   description: string;
-  category: "professional" | "corporate" | "technical" | "creative" | "academic";
+  category: "tech" | "non-tech";
   audience: "tech" | "non-tech";
   tag: string;
+  tags: string[];
   thumbnailUrl: string;
   status: "draft" | "published" | "archived";
   isPremium: boolean;
@@ -80,8 +81,8 @@ const TemplateSchema = new Schema<ITemplate>(
     description: { type: String, default: "", maxlength: 300 },
     category: {
       type: String,
-      enum: ["professional", "corporate", "technical", "creative", "academic"],
-      default: "professional",
+      enum: ["tech", "non-tech"],
+      default: "non-tech",
     },
     audience: {
       type: String,
@@ -89,6 +90,7 @@ const TemplateSchema = new Schema<ITemplate>(
       default: "non-tech",
     },
     tag:          { type: String, default: "General", maxlength: 30 },
+    tags:         { type: [String], default: [] },
     thumbnailUrl: { type: String, default: "" },
     status: {
       type: String,

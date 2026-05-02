@@ -28,7 +28,7 @@ const invalidateTemplateAnalyticsCaches = async () => {
 };
 
 // ─── GET /admin/templates ─────────────────────────────────────────────────────
-// Query params: ?status=published&category=technical
+// Query params: ?status=published&category=tech
 
 export async function listTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.listTemplates", req);
@@ -96,9 +96,10 @@ export async function createTemplate(req: Request, res: Response) {
       layoutId:    req.body.layoutId,
       name:        req.body.name,
       description: req.body.description ?? "",
-      category:    req.body.category    ?? "professional",
-      audience:    req.body.audience    ?? "non-tech",
+      category:    req.body.category    ?? req.body.audience ?? "non-tech",
+      audience:    req.body.audience    ?? req.body.category ?? "non-tech",
       tag:         req.body.tag         ?? "General",
+      tags:        req.body.tags        ?? (req.body.tag ? [req.body.tag] : []),
       isPremium:   req.body.isPremium   ?? false,
       sortOrder:   req.body.sortOrder   ?? 0,
       cssVars:     req.body.cssVars     ?? {},
