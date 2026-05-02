@@ -7,6 +7,7 @@ import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache } from "../middleware/redisCache";
 import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
+import { recordResumeCreated, recordResumeDeleted } from "../utils/businessMetrics";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -111,6 +112,7 @@ const createResume: RequestHandler = async (req, res) => {
             message: "Resume saved successfully",
             resume: normalizeResumeResponse(resume),
         });
+        recordResumeCreated(String(resume.templateId));
         logger.info({ userId, resumeId: resume._id.toString() }, "Resume created");
         markSpanSuccess(span);
     } catch (error) {
@@ -177,6 +179,7 @@ const deleteResume: RequestHandler = async (req, res) => {
         }
 
         logger.info({ userId, resumeId: req.params.id }, "Resume deleted");
+        recordResumeDeleted();
         markSpanSuccess(span);
         await invalidateRedisCache([resumeCacheScope(userId)]);
         res.status(200).json({ message: "Resume deleted successfully" });

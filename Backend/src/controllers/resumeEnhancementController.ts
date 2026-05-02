@@ -4,29 +4,17 @@ import AtsAnalysis from "../models/AtsAnalysis";
 import ResumeVersion from "../models/ResumeVersion";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
-import puppeteer, { Browser } from "puppeteer";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache } from "../middleware/redisCache";
+import { browserPool } from "../utils/browserPool";
+import { recordPdfExportSuccess, recordPdfExportFailure } from "../utils/businessMetrics";
 
 const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
   "automated", "developed", "scaled", "reduced", "increased", "collaborated", "architected", "streamlined",
 ]);
-
-let safePdfBrowserPromise: Promise<Browser> | null = null;
-
-const getSafePdfBrowser = async () => {
-  if (!safePdfBrowserPromise) {
-    safePdfBrowserPromise = puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-  }
-
-  return safePdfBrowserPromise;
-};
 
 const buildSafePdfDocument = (title: string, contentHtml: string) => `
 <!DOCTYPE html>
@@ -607,6 +595,7 @@ export const getExportPreset: RequestHandler = async (req, res) => {
 
 export const exportSafePdf: RequestHandler = async (req, res) => {
   const span = startControllerSpan("resumeEnhancement.exportSafePdf", req);
+  const startTime = Date.now();
   try {
     const userId = getUserId(req, res);
     if (!userId) return;
@@ -627,10 +616,12 @@ export const exportSafePdf: RequestHandler = async (req, res) => {
     const safeTitle = String(req.body?.title ?? resume.title ?? "resume").replace(/[^a-zA-Z0-9\s_-]/g, "").trim() || "resume";
     const documentHtml = buildSafePdfDocument(safeTitle, contentHtml);
 
-    const browser = await getSafePdfBrowser();
-    const page = await browser.newPage();
-
+    let browser;
+    let page;
     try {
+      browser = await browserPool.acquire();
+      page = await browser.newPage();
+
       await page.setContent(documentHtml, { waitUntil: "networkidle0", timeout: 45000 });
 
       const pdfBuffer = await page.pdf({
@@ -644,12 +635,23 @@ export const exportSafePdf: RequestHandler = async (req, res) => {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `attachment; filename=\"${filename}\"`);
       res.status(200).send(pdfBuffer);
-      logger.info({ userId, resumeId: req.params.id, filename }, "Safe PDF export generated");
+      
+      const duration = Date.now() - startTime;
+      recordPdfExportSuccess(duration, "safe");
+      logger.info({ userId, resumeId: req.params.id, filename, duration }, "Safe PDF export generated");
       markSpanSuccess(span);
     } finally {
-      await page.close();
+      if (page) {
+        await page.close().catch(() => {
+          /* ignore page close errors */
+        });
+      }
+      if (browser) {
+        browserPool.release(browser);
+      }
     }
   } catch (error) {
+    recordPdfExportFailure((error as Error).message || "unknown_error");
     markSpanError(span, error as Error, "Failed to export safe PDF");
     logger.error({ error, resumeId: req.params.id }, "Failed to export safe PDF");
     res.status(500).json({ message: "Safe PDF export failed" });

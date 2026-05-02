@@ -25,4 +25,6 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 5000
 
+ENV NODE_OPTIONS="--require ./dist/instrumentation.js"
+
 CMD ["node", "dist/server.js"]

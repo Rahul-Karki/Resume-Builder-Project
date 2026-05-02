@@ -31,7 +31,7 @@ const getAuthCookieOptions = (req: Request) => ({
 
 const getCsrfCookieOptions = (req: Request) => ({
   ...getBaseCookieOptions(req),
-  httpOnly: false,
+  httpOnly: true, // HttpOnly to prevent XSS from reading the token
 });
 
 const createCsrfToken = () => crypto.randomBytes(32).toString("hex");

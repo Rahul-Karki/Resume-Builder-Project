@@ -12,6 +12,13 @@ import { clearAuthCookies, setAuthCookies } from "../utils/authCookies";
 import { env } from "../config/env";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
+import { logLoginAttempt, logLogout, logSuspiciousActivity } from "../utils/securityLogger";
+import {
+  recordUserSignup,
+  recordLogin,
+  recordLoginFailure,
+  recordSuspiciousActivity,
+} from "../utils/businessMetrics";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
@@ -23,6 +30,7 @@ const logout = async (req: Request, res: Response) => {
   const span = startControllerSpan("auth.logout", req);
   try {
     clearAuthCookies(req, res);
+    logLogout(req);
     logger.info({ route: req.originalUrl }, "User logged out");
     markSpanSuccess(span);
     return res.status(200).json({ message: "Logged out successfully" });
@@ -75,6 +83,8 @@ const registerUser = async (req: Request, res: Response) => {
 
     const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
+    recordUserSignup({ email: user.email, provider: "local" });
+
     res.status(201).json({
       csrfToken,
       user: {
@@ -106,6 +116,8 @@ const login = async (req: Request, res: Response) => {
     // 1. Validate input
     if (!email || !password) {
       logger.warn({ route: req.originalUrl }, "Login validation failed");
+      recordSuspiciousActivity("login_missing_credentials");
+      logSuspiciousActivity(req, "Login without email or password");
       return res.status(400).json({
         message: "Email and password are required",
       });
@@ -116,6 +128,8 @@ const login = async (req: Request, res: Response) => {
 
     if (!user) {
       logger.warn({ email }, "Login failed: unknown user");
+      recordLoginFailure("user_not_found");
+      logLoginAttempt(req, email, false, "User not found");
       return res.status(401).json({
         message: "Invalid email or password",
       });
@@ -123,17 +137,20 @@ const login = async (req: Request, res: Response) => {
 
     if(!user.password) {
       logger.warn({ email }, "Login failed: password not set for account");
+      recordLoginFailure("no_password");
+      logLoginAttempt(req, email, false, "No password set");
       return res.status(400).json({
         message: "This account does not have a password. Please login using Google.",
       });
     }
-
 
     // 4. Compare password
     const isMatch = await bcrypt.compare(password, user.password!);
 
     if (!isMatch) {
       logger.warn({ email }, "Login failed: invalid password");
+      recordLoginFailure("invalid_password");
+      logLoginAttempt(req, email, false, "Invalid password");
       return res.status(401).json({
         message: "Invalid email or password",
       });
@@ -164,6 +181,8 @@ const login = async (req: Request, res: Response) => {
         role: user.role,
       },
     });
+    recordLogin({ email: user.email });
+    logLoginAttempt(req, email, true);
     logger.info({ userId: user._id.toString(), email: user.email }, "User login successful");
     markSpanSuccess(span);
 

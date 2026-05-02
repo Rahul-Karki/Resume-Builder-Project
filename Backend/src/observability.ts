@@ -45,7 +45,7 @@ const serviceVersion = env.SERVICE_VERSION;
 const environment = env.NODE_ENV;
 
 const otlpEndpoint = env.GRAFANA_OTLP_ENDPOINT || env.OTEL_EXPORTER_OTLP_ENDPOINT;
-const otlpInstanceId = env.OTLP_INSTANCE_ID || env.OPTL_INSTANCE_ID;
+const otlpInstanceId = env.OTEL_INSTANCE_ID;
 const grafanaApiToken = env.GRAFANA_API_TOKEN;
 
 const otlpAuthHeader =

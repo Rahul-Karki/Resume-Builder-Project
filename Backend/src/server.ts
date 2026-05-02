@@ -5,9 +5,13 @@ import { env } from "./config/env";
 import cors from "cors";
 import helmet from "helmet";
 import { csrfProtection } from "./middleware/csrfProtection";
+import { correlationIdMiddleware } from "./middleware/correlationId";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
+import { browserPool } from "./utils/browserPool";
+import { openAPISpec } from "./config/openapi";
+import { createAllIndexes } from "./config/indexes";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -21,6 +25,7 @@ const configuredOrigins = [
   .filter((origin): origin is string => Boolean(origin));
 
 app.use(express.json());
+app.use(correlationIdMiddleware);
 app.use(requestLogger);
 
 
@@ -56,6 +61,17 @@ if (env.ENABLE_METRICS) {
   app.get(env.METRICS_PATH, metricsHandler);
 }
 
+// OpenAPI documentation
+app.get("/api/docs", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json(openAPISpec);
+});
+
+// Redirect /api/docs-ui to Swagger UI (if available)
+// To use Swagger UI: npm install swagger-ui-express
+// Then uncomment: import swaggerUI from "swagger-ui-express";
+// app.use("/api/docs-ui", swaggerUI.serve, swaggerUI.setup(openAPISpec));
+
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
 import resumeRoutes from "./router/resume.routes";
@@ -74,7 +90,9 @@ const PORT = env.PORT;
 
 const startServer = async () => {
   await connectDB();
+  await createAllIndexes();
   await ensureDefaultTemplatesInBackend();
+  await browserPool.initialize();
   const cacheProvider = getCacheProvider();
   void warmupCacheBackend();
 
@@ -91,12 +109,39 @@ const startServer = async () => {
     );
   });
 
+  let isShuttingDown = false;
+
   const shutdown = async (signal: string) => {
+    // Prevent multiple shutdown attempts
+    if (isShuttingDown) {
+      logger.warn({ signal }, "Shutdown already in progress");
+      return;
+    }
+
+    isShuttingDown = true;
     logger.info({ signal }, "Shutting down server");
+
+    // Stop accepting new connections
     server.close(async () => {
-      await closeRedisClient();
-      process.exit(0);
+      try {
+        await browserPool.close();
+        await closeRedisClient();
+        logger.info("Shutdown completed successfully");
+        process.exit(0);
+      } catch (error) {
+        logger.error({ error }, "Error during shutdown");
+        process.exit(1);
+      }
     });
+
+    // Force shutdown after timeout (default 30s)
+    const shutdownTimeout = setTimeout(() => {
+      logger.error("Graceful shutdown timeout, forcing exit");
+      process.exit(1);
+    }, 30000);
+
+    // Clear timeout if shutdown completes
+    server.once("close", () => clearTimeout(shutdownTimeout));
   };
 
   process.once("SIGINT", () => {

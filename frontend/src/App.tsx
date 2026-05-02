@@ -10,31 +10,39 @@ import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
 import Unauthorized from "./pages/Unauthorized"
 import NotFound from "./pages/NotFound"
+import { ErrorBoundary } from "./components/ErrorBoundary"
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Home />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/reset-password" element={<ForgotPassword />} />
-        <Route path ="/templates" element={<Templates />} />
-        <Route path="/builder" element={<ResumeBuilder />} />
-        <Route path="/resumes" element={<MyResumePage />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route
-          path="/admin"
-          element={
-            <RequireRole allowedRoles={["admin"]}>
-              <AdminLayout />
-            </RequireRole>
-          }
-        >
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        // Send to error tracking service in production
+        console.error("App-level error:", error, errorInfo);
+      }}
+    >
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/reset-password" element={<ForgotPassword />} />
+          <Route path ="/templates" element={<Templates />} />
+          <Route path="/builder" element={<ResumeBuilder />} />
+          <Route path="/resumes" element={<MyResumePage />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireRole allowedRoles={["admin"]}>
+                <AdminLayout />
+              </RequireRole>
+            }
+          >
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 
