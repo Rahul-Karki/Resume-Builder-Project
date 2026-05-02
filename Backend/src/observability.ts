@@ -378,7 +378,7 @@ export const initializeObservability = () => {
     tracerProvider = new NodeTracerProvider({ resource: sharedResource });
     tracerProvider.register();
     logger.warn(
-      "OTLP tracing exporter not configured. Set GRAFANA_OTLP_ENDPOINT + OTLP_INSTANCE_ID + GRAFANA_API_TOKEN.",
+      "OTLP tracing exporter not configured. Set GRAFANA_OTLP_ENDPOINT + OTEL_INSTANCE_ID (or OTLP_INSTANCE_ID) + GRAFANA_API_TOKEN.",
     );
   }
 
