@@ -1,5 +1,6 @@
 import Template, { ITemplate } from "../models/Template";
 import User from "../models/User";
+import { UserRole } from "../enums/userRole";
 import { invalidateRedisCache, redisCacheScopes } from "../middleware/redisCache";
 import { logger } from "../observability";
 
@@ -405,7 +406,7 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
 ];
 
 export async function ensureDefaultTemplatesInBackend(): Promise<void> {
-  const admin = await User.findOne({ role: { $in: ["admin", "superadmin"] } })
+  const admin = await User.findOne({ role: { $in: [UserRole.ADMIN, UserRole.SUPERADMIN] } })
     .select("_id role")
     .lean<{ _id: unknown; role: string }>();
 
