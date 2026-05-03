@@ -42,11 +42,11 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
       <nav style={{
         padding: isMobile ? "10px 10px 12px" : "12px 10px",
         flex: 1,
-        display: isMobile ? "grid" : "flex",
-        gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : undefined,
+        display: "flex",
+        flexDirection: "column",
         gap: 8,
         overflowX: "hidden",
-        overflowY: isMobile ? "visible" : "auto",
+        overflowY: "auto",
         whiteSpace: "normal",
         scrollbarWidth: "none",
       }}>
