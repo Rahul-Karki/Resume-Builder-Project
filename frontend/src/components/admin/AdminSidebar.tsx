@@ -10,14 +10,17 @@ interface Props {
 export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = false }: Props) {
   return (
     <aside style={{
-      width: isMobile ? "100%" : 220, flexShrink: 0,
+      width: isMobile ? "100%" : 248,
+      minWidth: isMobile ? "100%" : 248,
+      flexShrink: 0,
       background: "#0A0A0A",
       borderRight: isMobile ? "none" : "1px solid #141414",
       borderBottom: isMobile ? "1px solid #141414" : "none",
       display: "flex", flexDirection: "column",
       // Sticky + overflow-hidden parent causes jump/misalignment in this layout.
       height: isMobile ? "auto" : "100vh",
-      position: "relative",
+      position: isMobile ? "relative" : "sticky",
+      top: 0,
       alignSelf: "stretch",
       fontFamily: "'Outfit', sans-serif",
     }}>
@@ -30,17 +33,21 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
         <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", marginTop: 4, textTransform: "uppercase", letterSpacing: "1.5px", display: isMobile ? "none" : "block" }}>
           Admin Panel
         </div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#666", marginTop: 6, display: isMobile ? "none" : "block" }}>
+          {adminName}
+        </div>
       </div>
 
       {/* Nav items */}
       <nav style={{
-        padding: isMobile ? "8px 8px" : "12px 10px",
+        padding: isMobile ? "10px 10px 12px" : "12px 10px",
         flex: 1,
-        display: "flex",
-        gap: 6,
-        overflowX: isMobile ? "auto" : "visible",
-        overflowY: isMobile ? "hidden" : "auto",
-        whiteSpace: isMobile ? "nowrap" : "normal",
+        display: isMobile ? "grid" : "flex",
+        gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : undefined,
+        gap: 8,
+        overflowX: "hidden",
+        overflowY: isMobile ? "visible" : "auto",
+        whiteSpace: "normal",
         scrollbarWidth: "none",
       }}>
         {NAV_ITEMS.map(item => {
@@ -50,8 +57,8 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
               key={item.id}
               onClick={() => onNavigate(item.id)}
               style={{
-                width: isMobile ? "auto" : "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: isMobile ? "11px 12px" : "9px 12px", borderRadius: 8, border: "none",
+                width: "100%", display: "flex", alignItems: "center", justifyContent: isMobile ? "center" : "flex-start", gap: 10,
+                padding: isMobile ? "12px 10px" : "10px 12px", borderRadius: 10, border: "none",
                 background: active ? "#161616" : "transparent",
                 color: active ? "#F0EFE8" : "#444",
                 fontSize: 13, fontWeight: active ? 600 : 400,
@@ -64,7 +71,7 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
               onMouseLeave={e => { if (!active) e.currentTarget.style.color = "#444"; }}
             >
               <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>{item.icon}</span>
-              {item.label}
+              <span style={{ whiteSpace: "nowrap" }}>{item.label}</span>
             </button>
           );
         })}

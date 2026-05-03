@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { renderToStaticMarkup } from "react-dom/server";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
 import { EditorPanel } from "@/components/builder/editorPanel";
@@ -91,6 +92,8 @@ function SectionsTab() {
 
 // ─── PDF Download (browser print approach) ────────────────────────────────────
 async function downloadResume(resume: ResumeDocument, preset: "web" | "standard" | "print", resumeId?: string) {
+  const resumeMarkup = renderToStaticMarkup(<ResumeRenderer resume={resume} forExport />);
+
   if (resumeId) {
     try {
       await getResumeExportPreset(resumeId, preset);
@@ -99,10 +102,6 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
     }
   }
 
-  const content = document.getElementById("resume-preview-inner");
-  if (!content) return;
-
-  const resumeMarkup = content.innerHTML;
   if (resumeId && resumeMarkup.trim().length > 0) {
     try {
       const safeResult = await exportResumePdfSafe(resumeId, {
@@ -152,8 +151,7 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
         }
         .pdf-page > * {
           width: 100% !important;
-          height: 100% !important;
-          min-height: 100% !important;
+          max-width: 100% !important;
         }
         @media print {
           html, body, .pdf-page {

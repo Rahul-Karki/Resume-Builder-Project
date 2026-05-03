@@ -23,9 +23,27 @@ export function AdminTemplates() {
   const [editTarget,     setEditTarget]     = useState<AdminTemplate | null>(null);
   const [previewTarget,   setPreviewTarget]  = useState<AdminTemplate | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+
+  const PREVIEW_PAGE_WIDTH = 794;
+  const PREVIEW_PAGE_HEIGHT = 1123;
 
   useEffect(() => {
-    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    const updateViewport = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+
+      const availableWidth = mobile ? window.innerWidth - 32 : window.innerWidth - 420;
+      const availableHeight = window.innerHeight - 260;
+      const widthScale = availableWidth / PREVIEW_PAGE_WIDTH;
+      const heightScale = availableHeight / PREVIEW_PAGE_HEIGHT;
+
+      setPreviewScale(
+        mobile
+          ? Math.min(0.92, Math.max(0.72, widthScale))
+          : Math.min(1, Math.max(0.72, Math.min(widthScale, heightScale))),
+      );
+    };
     updateViewport();
     window.addEventListener("resize", updateViewport);
     return () => window.removeEventListener("resize", updateViewport);
@@ -212,7 +230,7 @@ export function AdminTemplates() {
             overflow: "auto",
           }}
         >
-          <div style={{ width: "100%", maxWidth: 1100, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)", marginTop: isMobile ? 8 : 24 }}>
+          <div style={{ width: "100%", maxWidth: 1440, height: isMobile ? "calc(100vh - 20px)" : "calc(100vh - 48px)", background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 100px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)", marginTop: isMobile ? 0 : 8, display: "flex", flexDirection: "column" }}>
             {/* Header with gradient background */}
             <div style={{ background: "linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.02) 100%), #0D0D0D", borderBottom: "1.5px solid #1E1E1E", display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "14px 12px" : "24px 28px", position: "sticky", top: 0, zIndex: 10, gap: 12 }}>
               <div>
@@ -230,9 +248,9 @@ export function AdminTemplates() {
                 ×
               </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "320px 1fr", minHeight: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "320px minmax(0, 1fr)", minHeight: 0, flex: 1 }}>
               {/* Sidebar */}
-              <div style={{ padding: isMobile ? 14 : 28, borderRight: isMobile ? "none" : "1.5px solid #1A1A1A", borderBottom: isMobile ? "1.5px solid #1A1A1A" : "none", background: "linear-gradient(180deg, #0F0F0F 0%, #0A0A0A 100%)", maxHeight: isMobile ? "none" : "calc(100vh - 160px)", overflow: "auto" }}>
+              <div style={{ padding: isMobile ? 14 : 28, borderRight: isMobile ? "none" : "1.5px solid #1A1A1A", borderBottom: isMobile ? "1.5px solid #1A1A1A" : "none", background: "linear-gradient(180deg, #0F0F0F 0%, #0A0A0A 100%)", overflow: "auto", minHeight: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "#C8F55A", textTransform: "uppercase", letterSpacing: "1.2px", marginBottom: 20 }}>✨ Template Details</div>
                 <div style={{ display: "grid", gap: 16 }}>
                   <InfoRow label="Status" value={previewTarget.status} />
@@ -247,9 +265,11 @@ export function AdminTemplates() {
                 </div>
               </div>
               {/* Preview */}
-              <div style={{ overflow: "auto", background: "linear-gradient(135deg, #080808 0%, #050505 100%)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: isMobile ? 12 : 32, maxHeight: isMobile ? "70vh" : "calc(100vh - 160px)" }}>
-                <div style={{ width: isMobile ? "100%" : 794, maxWidth: "100%", height: isMobile ? "auto" : 1123, minHeight: isMobile ? "auto" : 1123, boxShadow: "0 40px 100px rgba(0,0,0,0.9), inset 0 0 1px rgba(200,245,90,0.1)", borderRadius: 12, overflow: "hidden", background: "#fff", flexShrink: 0, border: "1px solid rgba(200,245,90,0.05)" }}>
-                  <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
+              <div style={{ overflow: "auto", background: "linear-gradient(135deg, #080808 0%, #050505 100%)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: isMobile ? 12 : 24, minHeight: 0 }}>
+                <div style={{ width: PREVIEW_PAGE_WIDTH * previewScale, height: PREVIEW_PAGE_HEIGHT * previewScale, flexShrink: 0 }}>
+                  <div data-testid="admin-template-preview-canvas" style={{ width: PREVIEW_PAGE_WIDTH, height: PREVIEW_PAGE_HEIGHT, transform: `scale(${previewScale})`, transformOrigin: "top center", boxShadow: "0 40px 100px rgba(0,0,0,0.9), inset 0 0 1px rgba(200,245,90,0.1)", borderRadius: 12, overflow: "hidden", background: "#fff", border: "1px solid rgba(200,245,90,0.05)" }}>
+                    <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
+                  </div>
                 </div>
               </div>
             </div>
