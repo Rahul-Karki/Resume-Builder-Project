@@ -33,16 +33,30 @@ export function AdminTemplates() {
       const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
 
-      const availableWidth = mobile ? window.innerWidth - 32 : window.innerWidth - 420;
-      const availableHeight = window.innerHeight - 260;
-      const widthScale = availableWidth / PREVIEW_PAGE_WIDTH;
-      const heightScale = availableHeight / PREVIEW_PAGE_HEIGHT;
-
-      setPreviewScale(
-        mobile
-          ? Math.min(0.92, Math.max(0.72, widthScale))
-          : Math.min(1, Math.max(0.72, Math.min(widthScale, heightScale))),
-      );
+      if (mobile) {
+        // Mobile: full width - padding
+        const availableWidth = window.innerWidth - 32;
+        const availableHeight = window.innerHeight - 40;
+        const widthScale = availableWidth / PREVIEW_PAGE_WIDTH;
+        const heightScale = availableHeight / PREVIEW_PAGE_HEIGHT;
+        setPreviewScale(Math.min(0.92, Math.max(0.6, Math.min(widthScale, heightScale))));
+      } else {
+        // Desktop: modal is max 1440px, minus sidebar (320px), minus padding (48px)
+        const modalMaxWidth = 1440;
+        const sidebarWidth = 320;
+        const modalPaddingX = 48; // 24px on each side
+        const previewPaddingX = 48; // 24px on each side
+        const overlayPaddingX = 48; // 24px on each side from the overlay
+        
+        // Actual available width for preview
+        const maxAvailableWidth = Math.min(modalMaxWidth, window.innerWidth - overlayPaddingX) - sidebarWidth - previewPaddingX;
+        const availableHeight = window.innerHeight - 260; // header + padding
+        
+        const widthScale = maxAvailableWidth / PREVIEW_PAGE_WIDTH;
+        const heightScale = availableHeight / PREVIEW_PAGE_HEIGHT;
+        
+        setPreviewScale(Math.min(1, Math.max(0.6, Math.min(widthScale, heightScale))));
+      }
     };
     updateViewport();
     window.addEventListener("resize", updateViewport);
