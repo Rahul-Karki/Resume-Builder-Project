@@ -8,6 +8,8 @@ import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSp
 import { invalidateRedisCache } from "../middleware/redisCache";
 import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
 import { recordResumeCreated, recordResumeDeleted } from "../utils/businessMetrics";
+import { AuthError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -22,7 +24,7 @@ const getUserId = (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
+        sendErrorResponse(res, new AuthError("Unauthorized", { code: "AUTH_REQUIRED" }));
         return null;
     }
 
@@ -57,7 +59,7 @@ const getAllResumes: RequestHandler = async (req, res) => {
     } catch (error) {
         markSpanError(span, error as Error, "Failed to fetch resumes");
         logger.error({ error }, "Failed to fetch resumes");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -82,7 +84,7 @@ const getResumeById: RequestHandler = async (req, res) => {
     } catch (error) {
         markSpanError(span, error as Error, "Failed to fetch resume by id");
         logger.error({ error, resumeId: req.params.id }, "Failed to fetch resume by id");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -118,7 +120,7 @@ const createResume: RequestHandler = async (req, res) => {
     } catch (error) {
         markSpanError(span, error as Error, "Failed to create resume");
         logger.error({ error }, "Failed to create resume");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -159,7 +161,7 @@ const updateResume: RequestHandler = async (req, res) => {
     } catch (error) {
         markSpanError(span, error as Error, "Failed to update resume");
         logger.error({ error, resumeId: req.params.id }, "Failed to update resume");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -186,7 +188,7 @@ const deleteResume: RequestHandler = async (req, res) => {
     } catch (error) {
         markSpanError(span, error as Error, "Failed to delete resume");
         logger.error({ error, resumeId: req.params.id }, "Failed to delete resume");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }

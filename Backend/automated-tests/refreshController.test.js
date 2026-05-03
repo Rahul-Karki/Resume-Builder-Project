@@ -112,7 +112,11 @@ test("refreshAccessToken returns 401 when refresh token cookie is missing", () =
 
   refreshAccessToken(req, res);
 
-  assert.equal(res.sendStatusCode, 401);
+  assert.equal(res.statusCode, 401);
+  assert.deepEqual(res.jsonBody, {
+    message: "Authentication required",
+    errorCode: "AUTH_REQUIRED",
+  });
   assert.equal(calls.verify, 0);
   assert.equal(calls.generateAccessToken, 0);
   assert.equal(calls.setAccessTokenCookie, 0);
@@ -179,5 +183,36 @@ test("refreshAccessToken returns 403 when refresh token verification fails", () 
 
   refreshAccessToken(req, res);
 
-  assert.equal(res.sendStatusCode, 403);
+  assert.equal(res.statusCode, 403);
+  assert.deepEqual(res.jsonBody, {
+    message: "Invalid refresh token",
+    errorCode: "AUTH_REQUIRED",
+  });
+});
+
+test("issueCsrfToken issues a csrf token and cookie", () => {
+  const setCsrfCalls = [];
+
+  const { issueCsrfToken } = loadRefreshController({
+    parseCookies: () => ({}),
+    setCsrfCookie: (req, res) => {
+      setCsrfCalls.push({ req, res });
+      return "csrf-token";
+    },
+  });
+
+  const req = {
+    headers: {},
+    originalUrl: "/api/csrf",
+  };
+  const res = createRes();
+
+  issueCsrfToken(req, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.jsonBody, {
+    message: "CSRF token issued",
+    csrfToken: "csrf-token",
+  });
+  assert.equal(setCsrfCalls.length, 1);
 });

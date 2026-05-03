@@ -91,11 +91,18 @@ function SectionsTab() {
 }
 
 // ─── PDF Download (browser print approach) ────────────────────────────────────
-async function downloadResume(resume: ResumeDocument, preset: "web" | "standard" | "print", resumeId?: string) {
+async function downloadResume(
+  resume: ResumeDocument,
+  preset: "web" | "standard" | "print",
+  resumeId?: string,
+  onStatus?: (status: string) => void,
+) {
   const resumeMarkup = renderToStaticMarkup(<ResumeRenderer resume={resume} forExport />);
+  onStatus?.("Preparing export payload...");
 
   if (resumeId) {
     try {
+      onStatus?.("Resolving export preset...");
       await getResumeExportPreset(resumeId, preset);
     } catch {
       // Keep browser export available even if preset endpoint fails.
@@ -104,6 +111,7 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
 
   if (resumeId && resumeMarkup.trim().length > 0) {
     try {
+      onStatus?.("Generating secure PDF...");
       const safeResult = await exportResumePdfSafe(resumeId, {
         html: resumeMarkup,
         title: resume.title,
@@ -111,6 +119,7 @@ async function downloadResume(resume: ResumeDocument, preset: "web" | "standard"
       });
 
       if (safeResult.blob.size > 0) {
+        onStatus?.("Downloading PDF...");
         const blobUrl = window.URL.createObjectURL(safeResult.blob);
         const anchor = document.createElement("a");
         anchor.href = blobUrl;
@@ -253,6 +262,8 @@ export default function ResumeBuilder() {
   const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
   const searchParams = new URLSearchParams(window.location.search);
   const isEditingExistingResume = Boolean(searchParams.get("resume"));
   const canDownload = isEditingExistingResume
@@ -300,11 +311,17 @@ export default function ResumeBuilder() {
   }, [ui.isDirty]);
 
   const handleDownload = () => {
-    if (!canDownload) {
+    if (!canDownload || isExporting) {
       return;
     }
+    setIsExporting(true);
+    setExportStatus("Preparing export...");
     const resumeId = resume.id ?? resume._id;
-    void downloadResume(resume, ui.exportPreset, resumeId);
+    void downloadResume(resume, ui.exportPreset, resumeId, setExportStatus)
+      .finally(() => {
+        setIsExporting(false);
+        window.setTimeout(() => setExportStatus(null), 1500);
+      });
   };
 
   useEffect(() => {
@@ -325,6 +342,7 @@ export default function ResumeBuilder() {
     ::-webkit-scrollbar-thumb:hover { background: #3A3A3A; }
     input, textarea, select { box-sizing: border-box; }
     input:focus, textarea:focus, select:focus { outline: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   `;
 
   return (
@@ -336,7 +354,18 @@ export default function ResumeBuilder() {
           onDownload={handleDownload}
           canDownload={canDownload}
           isEditingExistingResume={isEditingExistingResume}
+          isExporting={isExporting}
+          exportStatus={exportStatus}
         />
+
+        {isExporting && (
+          <div style={{ position: "sticky", top: 0, zIndex: 55, background: "linear-gradient(90deg, rgba(200,245,90,0.16), rgba(200,245,90,0.05))", borderBottom: "1px solid rgba(200,245,90,0.18)", color: "#E7F7B2", padding: "10px 16px", fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid rgba(231,247,178,0.3)", borderTopColor: "#E7F7B2", animation: "spin 0.8s linear infinite" }} />
+              <span>{exportStatus ?? "Preparing export..."}</span>
+            </div>
+          </div>
+        )}
 
         {/* Error toast */}
         {ui.saveError && (
@@ -417,7 +446,7 @@ export default function ResumeBuilder() {
                   <ResumeRenderer resume={resume} />
                 </div>
               </div>
-              <PreviewPanel onDownload={handleDownload} canDownload={canDownload} />
+              <PreviewPanel onDownload={handleDownload} canDownload={canDownload} isExporting={isExporting} exportStatus={exportStatus} />
             </div>
           </div>
         </div>

@@ -63,10 +63,17 @@ export function logSecurityEvent(
  * Helper to extract security context from request
  */
 export function getSecurityContext(req: Request) {
+  const headerGetter = typeof req.get === "function"
+    ? req.get.bind(req)
+    : (name: string) => {
+        const value = req.headers?.[name.toLowerCase() as keyof typeof req.headers];
+        return Array.isArray(value) ? value[0] : (value as string | undefined);
+      };
+
   return {
     userId: (req.user?.id) || undefined,
     ip: req.ip,
-    userAgent: req.get("user-agent"),
+    userAgent: headerGetter("user-agent"),
     correlationId: req.correlationId,
   };
 }

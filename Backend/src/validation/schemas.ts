@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { sanitizePlainText } from "../utils/sanitize";
 
 const objectIdRegex = /^[a-f\d]{24}$/i;
 const layoutIdRegex = /^[a-z0-9_-]+$/;
 const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/;
+
+const plainText = (maxLength: number) => z.string().trim().max(maxLength).transform((value) => String(sanitizePlainText(value)));
 
 const emailSchema = z.email().max(254).transform((value) => value.trim().toLowerCase());
 
@@ -13,7 +16,7 @@ const objectIdParamSchema = z.object({
 }).strict();
 
 const authSignupSchema = z.object({
-  name: z.string().trim().min(1).max(120),
+  name: plainText(120).pipe(z.string().min(1).max(120)),
   email: emailSchema,
   password: z.string().regex(strongPasswordRegex, "Password must include uppercase, lowercase, special character and be at least 8 characters"),
 }).strict();
@@ -38,6 +41,16 @@ const authResetPasswordSchema = z.object({
 
 const googleLoginSchema = z.object({
   token: z.string().trim().min(20),
+}).strict();
+
+const oauthLinkSchema = z.object({
+  token: z.string().trim().min(20),
+  password: z.string().min(1),
+}).strict();
+
+const oauthUnlinkSchema = z.object({
+  provider: z.enum(["google", "local"]),
+  password: z.string().min(1),
 }).strict();
 
 const templateCategorySchema = z.enum(["tech", "non-tech"]);
@@ -69,12 +82,12 @@ const slotsSchema = z.object({
 
 const createTemplateSchema = z.object({
   layoutId: z.string().regex(layoutIdRegex, "layoutId must contain lowercase letters, numbers, hyphen or underscore").max(80),
-  name: z.string().trim().min(1).max(60),
-  description: z.string().trim().max(300).optional(),
+  name: plainText(60).pipe(z.string().min(1).max(60)),
+  description: plainText(300).optional(),
   category: templateCategorySchema.optional(),
   audience: templateAudienceSchema.optional(),
-  tag: z.string().trim().max(30).optional(),
-  tags: z.array(z.string().trim().min(1).max(30)).max(12).optional(),
+  tag: plainText(30).optional(),
+  tags: z.array(plainText(30).pipe(z.string().min(1).max(30))).max(12).optional(),
   isPremium: z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(5000).optional(),
   cssVars: cssVarsSchema.optional(),
@@ -128,52 +141,52 @@ const safeExportPdfSchema = z.object({
 
 const resumeEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
-  company: z.string().max(160).optional(),
-  role: z.string().max(160).optional(),
-  start: z.string().max(50).optional(),
-  end: z.string().max(50).optional(),
-  location: z.string().max(120).optional(),
+  company: plainText(160).optional(),
+  role: plainText(160).optional(),
+  start: plainText(50).optional(),
+  end: plainText(50).optional(),
+  location: plainText(120).optional(),
   current: z.boolean().optional(),
   contentMode: z.enum(["bullets", "paragraph"]).optional(),
-  description: z.string().max(1200).optional(),
-  bullets: z.array(z.string().max(300)).optional(),
+  description: plainText(1200).optional(),
+  bullets: z.array(plainText(300)).optional(),
 }).strict();
 
 const educationEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
-  institution: z.string().max(180).optional(),
-  degree: z.string().max(160).optional(),
-  field: z.string().max(160).optional(),
-  year: z.string().max(20).optional(),
-  cgpa: z.string().max(20).optional(),
+  institution: plainText(180).optional(),
+  degree: plainText(160).optional(),
+  field: plainText(160).optional(),
+  year: plainText(20).optional(),
+  cgpa: plainText(20).optional(),
 }).strict();
 
 const skillEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
-  category: z.string().max(120).optional(),
-  items: z.array(z.string().max(100)).optional(),
+  category: plainText(120).optional(),
+  items: z.array(plainText(100)).optional(),
 }).strict();
 
 const projectEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
-  name: z.string().max(180).optional(),
+  name: plainText(180).optional(),
   contentMode: z.enum(["bullets", "paragraph"]).optional(),
-  description: z.string().max(500).optional(),
-  bullets: z.array(z.string().max(300)).optional(),
-  tech: z.string().max(240).optional(),
+  description: plainText(500).optional(),
+  bullets: z.array(plainText(300)).optional(),
+  tech: plainText(240).optional(),
   link: z.string().max(2048).optional(),
 }).strict();
 
 const certificationEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
-  name: z.string().max(180).optional(),
-  issuer: z.string().max(180).optional(),
-  year: z.string().max(20).optional(),
+  name: plainText(180).optional(),
+  issuer: plainText(180).optional(),
+  year: plainText(20).optional(),
 }).strict();
 
 const languageEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
-  language: z.string().max(80).optional(),
+  language: plainText(80).optional(),
   proficiency: z.enum(["Native", "Fluent", "Advanced", "Intermediate", "Basic"]).optional(),
 }).strict();
 
@@ -181,15 +194,15 @@ const resumeSchema = z.object({
   title: z.string().trim().min(1).max(160),
   templateId: z.string().trim().min(1).max(120),
   personalInfo: z.object({
-    name: z.string().max(120).optional(),
-    title: z.string().max(120).optional(),
+    name: plainText(120).optional(),
+    title: plainText(120).optional(),
     email: z.string().max(254).optional(),
-    phone: z.string().max(50).optional(),
-    location: z.string().max(120).optional(),
+    phone: plainText(50).optional(),
+    location: plainText(120).optional(),
     linkedin: z.string().max(2048).optional(),
     github: z.string().max(2048).optional(),
     portfolio: z.string().max(2048).optional(),
-    summary: z.string().max(2000).optional(),
+    summary: plainText(2000).optional(),
   }).strict().optional(),
   sections: z.object({
     experience: z.array(resumeEntrySchema).optional(),
@@ -206,8 +219,8 @@ const resumeSchema = z.object({
     mutedColor: z.string().max(30).optional(),
     borderColor: z.string().max(30).optional(),
     backgroundColor: z.string().max(30).optional(),
-    bodyFont: z.string().max(120).optional(),
-    headingFont: z.string().max(120).optional(),
+    bodyFont: plainText(120).optional(),
+    headingFont: plainText(120).optional(),
     fontSize: z.enum(["9pt", "9.5pt", "10pt", "10.5pt", "11pt", "11.5pt"]).optional(),
     lineHeight: z.enum(["1.3", "1.4", "1.5", "1.6", "1.7"]).optional(),
     pageMargin: z.enum(["tight", "normal", "relaxed", "spacious"]).optional(),
@@ -241,6 +254,8 @@ export {
   emptyObjectSchema,
   exportPresetSchema,
   googleLoginSchema,
+  oauthLinkSchema,
+  oauthUnlinkSchema,
   objectIdParamSchema,
   publicTemplateListQuerySchema,
   reorderTemplatesSchema,

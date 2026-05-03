@@ -83,7 +83,7 @@ test("csrfProtection blocks unsafe requests with missing or mismatched tokens", 
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 403);
-  assert.deepEqual(res.jsonBody, { message: "CSRF validation failed" });
+  assert.deepEqual(res.jsonBody, { message: "CSRF validation failed", errorCode: "CSRF_VALIDATION_FAILED" });
 });
 
 test("csrfProtection allows matching CSRF tokens", () => {

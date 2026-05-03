@@ -17,6 +17,7 @@ import { validateRequest } from "../middleware/validateRequest";
 import {
   createResumeSchema,
   exportPresetSchema,
+  objectIdParamSchema,
   safeExportPdfSchema,
   updateResumeSchema,
 } from "../validation/schemas";
@@ -39,6 +40,7 @@ router.get(
 );
 router.get(
   "/:id",
+  validateRequest({ params: objectIdParamSchema }),
   createRedisCacheMiddleware({
     scope: resumeUserScope,
     metricsScope: "resumes-user",
@@ -47,10 +49,10 @@ router.get(
   baseGetResumeById,
 );
 router.post("/", validateRequest({ body: createResumeSchema }), baseCreateResume);
-router.put("/:id", validateRequest({ body: updateResumeSchema }), baseUpdateResume);
-router.delete("/:id", baseDeleteResume);
+router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }), baseUpdateResume);
+router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
 
-router.post("/:id/export-pdf", validateRequest({ body: exportPresetSchema }), getExportPreset);
-router.post("/:id/export-pdf-safe", validateRequest({ body: safeExportPdfSchema }), exportSafePdf);
+router.post("/:id/export-pdf", validateRequest({ params: objectIdParamSchema, body: exportPresetSchema }), getExportPreset);
+router.post("/:id/export-pdf-safe", validateRequest({ params: objectIdParamSchema, body: safeExportPdfSchema }), exportSafePdf);
 
 export default router;

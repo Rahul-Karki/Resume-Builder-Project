@@ -69,7 +69,7 @@ test("authMiddleware returns 401 when no access token cookie is present", () => 
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(res.jsonBody, { message: "Unauthorized: No token provided" });
+  assert.deepEqual(res.jsonBody, { message: "Unauthorized: No token provided", errorCode: "AUTH_REQUIRED" });
 });
 
 test("authMiddleware attaches the current user when the token is valid", async () => {
@@ -135,7 +135,7 @@ test("authMiddleware returns 401 when the user cannot be found", async () => {
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(res.jsonBody, { message: "Unauthorized: User not found" });
+  assert.deepEqual(res.jsonBody, { message: "Unauthorized: User not found", errorCode: "AUTH_REQUIRED" });
 });
 
 test("authMiddleware returns 401 when token verification fails", () => {
@@ -159,5 +159,5 @@ test("authMiddleware returns 401 when token verification fails", () => {
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(res.jsonBody, { message: "Unauthorized: Invalid token" });
+  assert.deepEqual(res.jsonBody, { message: "Unauthorized: Invalid token", errorCode: "AUTH_REQUIRED" });
 });

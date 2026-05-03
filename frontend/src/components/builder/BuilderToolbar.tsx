@@ -16,9 +16,11 @@ interface Props {
   onDownload: () => void;
   canDownload: boolean;
   isEditingExistingResume?: boolean;
+  isExporting?: boolean;
+  exportStatus?: string | null;
 }
 
-export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResume = false }: Props) {
+export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResume = false, isExporting = false, exportStatus = null }: Props) {
   const { resume, ui, saveResume, initFromTemplate, applyTemplateUpgrade, setTitle } = useResumeBuilderStore();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(resume.title);
@@ -251,19 +253,19 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
 
       <button
         onClick={onDownload}
-        disabled={!canDownload}
-        title={canDownload ? "Download as PDF" : "Save resume first to enable download"}
+        disabled={!canDownload || isExporting}
+        title={isExporting ? (exportStatus ?? "Preparing PDF export") : canDownload ? "Download as PDF" : "Save resume first to enable download"}
         style={{
           background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 7,
           color: canDownload ? "#C8C7C0" : "#555", fontSize: 13, fontWeight: 600, padding: isMobile ? "10px 14px" : "7px 14px",
-          cursor: canDownload ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
+          cursor: canDownload && !isExporting ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           flexShrink: 0,
           width: isMobile ? "calc(50% - 5px)" : "auto",
           justifyContent: "center",
-          opacity: canDownload ? 1 : 0.7,
+          opacity: canDownload && !isExporting ? 1 : 0.7,
         }}
       >
-        Download PDF
+        {isExporting ? "Exporting..." : "Download PDF"}
       </button>
 
       <button

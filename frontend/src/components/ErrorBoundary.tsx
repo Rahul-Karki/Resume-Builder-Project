@@ -1,4 +1,5 @@
 import React, { ReactNode, Component, ErrorInfo } from "react";
+import { reportClientError } from "../lib/errorTracking";
 
 interface Props {
   children: ReactNode;
@@ -45,6 +46,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
+
+    reportClientError(error, "react-boundary");
 
     // Also log to console in development
     console.error("Error caught by boundary:", error);
@@ -132,7 +135,13 @@ export class ErrorBoundary extends Component<Props, State> {
           )}
 
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              this.setState({
+                hasError: false,
+                error: null,
+                errorInfo: null,
+              });
+            }}
             style={{
               marginTop: "20px",
               padding: "10px 20px",
@@ -145,7 +154,7 @@ export class ErrorBoundary extends Component<Props, State> {
               fontWeight: 600,
             }}
           >
-            Refresh Page
+            Retry
           </button>
         </div>
       );

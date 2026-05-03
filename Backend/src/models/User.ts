@@ -10,7 +10,7 @@ export interface IUser extends Document {
   passwordResetAt: Date;
   avatar: string;
   googleId?: string;
-  authProvider:string[]; 
+  authProvider: string[];
 }
 
 const UserSchema: Schema = new Schema<IUser>(
@@ -29,7 +29,7 @@ const UserSchema: Schema = new Schema<IUser>(
     password: {
       type: String,
       required: function (this: any) {
-        return this.authProvider === "local"; // 👈 key fix
+        return Array.isArray(this.authProvider) && this.authProvider.includes("local");
       },
       select: false,
     },

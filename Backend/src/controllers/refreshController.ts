@@ -6,6 +6,7 @@ import { setAccessTokenCookie, setCsrfCookie } from "../utils/authCookies";
 import { env } from "../config/env";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 const refreshAccessToken = (req: Request, res: Response) => {
   const span = startControllerSpan("refresh.refreshAccessToken", req);
@@ -16,7 +17,7 @@ const refreshAccessToken = (req: Request, res: Response) => {
     logger.warn({ route: req.originalUrl }, "Refresh token missing");
     markSpanError(span, new Error("Refresh token missing"), "Refresh token missing");
     finishControllerSpan(span);
-    return res.sendStatus(401);
+    return res.status(401).json({ message: "Authentication required", errorCode: "AUTH_REQUIRED" });
   }
 
   try {
@@ -31,10 +32,26 @@ const refreshAccessToken = (req: Request, res: Response) => {
   } catch (error) {
     markSpanError(span, error as Error, "Refresh token verification failed");
     logger.error({ error }, "Failed to refresh access token");
-    return res.sendStatus(403);
+    return sendErrorResponse(res, error, { statusCode: 403, code: "AUTH_REQUIRED", message: "Invalid refresh token" });
   } finally {
     finishControllerSpan(span);
   }
 };
 
-export { refreshAccessToken };
+const issueCsrfToken = (req: Request, res: Response) => {
+  const span = startControllerSpan("refresh.issueCsrfToken", req);
+
+  try {
+    const csrfToken = setCsrfCookie(req, res);
+    markSpanSuccess(span);
+    return res.status(200).json({ message: "CSRF token issued", csrfToken });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to issue CSRF token");
+    logger.error({ error }, "Failed to issue CSRF token");
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export { issueCsrfToken, refreshAccessToken };

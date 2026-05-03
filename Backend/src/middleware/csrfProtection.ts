@@ -6,6 +6,7 @@ import { logCsrfFailure } from "../utils/securityLogger";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const CSRF_EXEMPT_PATHS = new Set([
   "/api/refresh",
+  "/api/csrf",
   "/api/auth/signup",
   "/api/auth/login",
   "/api/auth/google-login",
@@ -38,7 +39,10 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
 
   if (!csrfCookie || !csrfHeader || !secureCompare(csrfCookie, csrfHeader)) {
     logCsrfFailure(req);
-    return res.status(403).json({ message: "CSRF validation failed" });
+    return res.status(403).json({
+      message: "CSRF validation failed",
+      errorCode: "CSRF_VALIDATION_FAILED",
+    });
   }
 
   return next();

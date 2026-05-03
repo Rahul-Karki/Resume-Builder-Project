@@ -28,6 +28,7 @@ import {
 } from "../validation/schemas";
 import { createRedisCacheMiddleware } from "../middleware/redisCache";
 import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
+import { adminAuditMiddleware } from "../middleware/adminAudit";
 
 const router = Router();
 
@@ -62,19 +63,22 @@ const adminTemplateMutationLimiter = createRedisRateLimitMiddleware({
 
 // ─── All /admin routes require adminGuard ─────────────────────────────────────
 
+router.use("/analytics", ...adminGuard, adminAuditMiddleware("analytics"));
+router.use("/templates", ...adminGuard, adminAuditMiddleware("templates"));
+
 // Dashboard analytics
-router.get("/analytics/dashboard", adminGuard, adminCache("admin-dashboard"), getDashboardStats);
-router.get("/analytics/templates", adminGuard, adminCache("admin-analytics"), getAnalytics);
+router.get("/analytics/dashboard", adminCache("admin-dashboard"), getDashboardStats);
+router.get("/analytics/templates", adminCache("admin-analytics"), getAnalytics);
 
 // Template CRUD
-router.get("/templates", adminGuard, validateRequest({ query: templateListQuerySchema }), adminCache("admin-templates"), listTemplates);
-router.get("/templates/:id", adminGuard, adminCache("admin-templates-item"), getTemplate);
-router.post("/templates", validateRequest({ body: createTemplateSchema }), adminGuard, adminTemplateMutationLimiter, createTemplate);
-router.put("/templates/reorder", validateRequest({ body: reorderTemplatesSchema }), adminGuard, adminTemplateMutationLimiter, reorderTemplates);   // before :id route
-router.put("/templates/:id", validateRequest({ body: updateTemplateSchema }), adminGuard, adminTemplateMutationLimiter, updateTemplate);
-router.patch("/templates/:id/status", validateRequest({ body: setTemplateStatusSchema }), adminGuard, adminTemplateMutationLimiter, setTemplateStatus);
-router.patch("/templates/:id/premium", adminGuard, adminTemplateMutationLimiter, togglePremium);
-router.delete("/templates/:id", adminGuard, adminTemplateMutationLimiter, deleteTemplate);
+router.get("/templates", validateRequest({ query: templateListQuerySchema }), adminCache("admin-templates"), listTemplates);
+router.get("/templates/:id", validateRequest({ params: objectIdParamSchema }), adminCache("admin-templates-item"), getTemplate);
+router.post("/templates", validateRequest({ body: createTemplateSchema }), adminTemplateMutationLimiter, createTemplate);
+router.put("/templates/reorder", validateRequest({ body: reorderTemplatesSchema }), adminTemplateMutationLimiter, reorderTemplates);   // before :id route
+router.put("/templates/:id", validateRequest({ params: objectIdParamSchema, body: updateTemplateSchema }), adminTemplateMutationLimiter, updateTemplate);
+router.patch("/templates/:id/status", validateRequest({ params: objectIdParamSchema, body: setTemplateStatusSchema }), adminTemplateMutationLimiter, setTemplateStatus);
+router.patch("/templates/:id/premium", validateRequest({ params: objectIdParamSchema }), adminTemplateMutationLimiter, togglePremium);
+router.delete("/templates/:id", validateRequest({ params: objectIdParamSchema }), adminTemplateMutationLimiter, deleteTemplate);
 
 // ─── Public route: record template usage (called from resume builder) ─────────
 // Uses authenticate (not adminGuard) — any logged-in user can record usage

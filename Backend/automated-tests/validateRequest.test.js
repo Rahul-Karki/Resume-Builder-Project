@@ -61,6 +61,33 @@ test("validateRequest returns 400 with formatted errors for invalid body", () =>
   assert.equal(nextCalled, false);
   assert.equal(res.data.statusCode, 400);
   assert.equal(res.data.body.message, "Invalid request payload");
+  assert.equal(res.data.body.errorCode, "VALIDATION_ERROR");
   assert.equal(Array.isArray(res.data.body.errors), true);
   assert.equal(res.data.body.errors[0].path, "email");
+});
+
+test("validateRequest parses params and query schemas", () => {
+  const middleware = validateRequest({
+    params: z.object({
+      id: z.string().regex(/^[a-f\d]{24}$/i),
+    }),
+    query: z.object({
+      page: z.coerce.number().int().min(1),
+    }),
+  });
+
+  const req = {
+    params: { id: "507f1f77bcf86cd799439011" },
+    query: { page: "2" },
+  };
+  const res = createRes();
+  let nextCalled = false;
+
+  middleware(req, res, () => {
+    nextCalled = true;
+  });
+
+  assert.equal(nextCalled, true);
+  assert.equal(res.data.statusCode, 200);
+  assert.equal(req.query.page, 2);
 });

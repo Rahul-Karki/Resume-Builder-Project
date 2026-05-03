@@ -18,7 +18,6 @@ function App() {
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
-        // Send to error tracking service in production
         console.error("App-level error:", error, errorInfo);
       }}
     >

@@ -6,6 +6,8 @@ import cors from "cors";
 import helmet from "helmet";
 import { csrfProtection } from "./middleware/csrfProtection";
 import { correlationIdMiddleware } from "./middleware/correlationId";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+import { requestTimeoutMiddleware } from "./middleware/requestTimeout";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
@@ -27,7 +29,6 @@ const configuredOrigins = [
 app.use(express.json());
 app.use(correlationIdMiddleware);
 app.use(requestLogger);
-
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
@@ -54,6 +55,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "same-site" },
 }));
 app.use(cors(corsOptions));
+app.use(requestTimeoutMiddleware);
 app.use(csrfProtection);
 app.use(metricsMiddleware);
 
@@ -85,6 +87,8 @@ app.use("/api/resumes", resumeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/health", healthRoutes);
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const PORT = env.PORT;
 
@@ -94,7 +98,9 @@ const startServer = async () => {
   await ensureDefaultTemplatesInBackend();
   await browserPool.initialize();
   const cacheProvider = getCacheProvider();
-  void warmupCacheBackend();
+  void warmupCacheBackend().catch((error) => {
+    logger.error({ error }, "Cache warmup failed");
+  });
 
   const server = app.listen(PORT, () => {
     logger.info(
@@ -153,5 +159,16 @@ const startServer = async () => {
   });
 };
 
-void startServer();
+process.on("unhandledRejection", (reason) => {
+  logger.error({ reason }, "Unhandled promise rejection");
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error({ error }, "Uncaught exception");
+});
+
+void startServer().catch((error) => {
+  logger.error({ error }, "Server startup failed");
+  process.exit(1);
+});
 

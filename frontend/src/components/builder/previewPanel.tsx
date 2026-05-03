@@ -6,9 +6,11 @@ import type { PreviewScale, ResumeDocument } from "../../types/resume-types";
 interface Props {
   onDownload: () => void;
   canDownload: boolean;
+  isExporting?: boolean;
+  exportStatus?: string | null;
 }
 
-export function PreviewPanel({ onDownload, canDownload }: Props) {
+export function PreviewPanel({ onDownload, canDownload, isExporting = false, exportStatus = null }: Props) {
   const { resume, ui, setPreviewScale } = useResumeBuilderStore();
   const scale = ui.previewScale;
   const previewRef = useRef<HTMLDivElement>(null);
@@ -136,19 +138,25 @@ export function PreviewPanel({ onDownload, canDownload }: Props) {
         display: "flex", alignItems: "center", padding: "0 16px", gap: 10,
         fontFamily: "'Outfit', sans-serif", flexShrink: 0,
       }}>
+        {isExporting && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#C8F55A", fontSize: 12, fontWeight: 600 }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid rgba(200,245,90,0.3)", borderTopColor: "#C8F55A", animation: "spin 0.8s linear infinite" }} />
+            <span>{exportStatus ?? "Preparing export..."}</span>
+          </div>
+        )}
         <div style={{ flex: 1 }} />
         <button
           onClick={onDownload}
-          disabled={!canDownload}
-          title={canDownload ? "Download as PDF" : "Save resume first to enable download"}
+          disabled={!canDownload || isExporting}
+          title={isExporting ? (exportStatus ?? "Preparing PDF export") : canDownload ? "Download as PDF" : "Save resume first to enable download"}
           style={{
             background: "none", border: "1px solid #2A2A2A", borderRadius: 6,
             color: canDownload ? "#888" : "#444", fontSize: 12, fontWeight: 600, padding: "5px 12px",
-            cursor: canDownload ? "pointer" : "not-allowed", fontFamily: "inherit",
-            opacity: canDownload ? 1 : 0.65,
+            cursor: canDownload && !isExporting ? "pointer" : "not-allowed", fontFamily: "inherit",
+            opacity: canDownload && !isExporting ? 1 : 0.65,
           }}
         >
-          ↓ Download PDF
+          {isExporting ? "Exporting..." : "↓ Download PDF"}
         </button>
       </div>
     </div>

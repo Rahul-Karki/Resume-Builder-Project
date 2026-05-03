@@ -11,6 +11,8 @@ import { invalidateRedisCache } from "../middleware/redisCache";
 import { browserPool } from "../utils/browserPool";
 import { recordPdfExportSuccess, recordPdfExportFailure } from "../utils/businessMetrics";
 import { buildSafePdfDocument } from "../utils/pdfDocument";
+import { AuthError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
@@ -25,7 +27,7 @@ const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
 
   if (!userId) {
-    res.status(401).json({ message: "Unauthorized" });
+    sendErrorResponse(res, new AuthError("Unauthorized", { code: "AUTH_REQUIRED" }));
     return null;
   }
 
@@ -224,7 +226,7 @@ export const analyzeAts: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to analyze ATS score");
     logger.error({ error, resumeId: req.params.id }, "Failed to analyze ATS score");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -280,7 +282,7 @@ export const applyAtsSuggestion: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to apply ATS suggestion");
     logger.error({ error, resumeId: req.params.id }, "Failed to apply ATS suggestion");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -309,7 +311,7 @@ export const listResumeVersions: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to list resume versions");
     logger.error({ error, resumeId: req.params.id }, "Failed to list resume versions");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -374,7 +376,7 @@ export const compareResumeVersions: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to compare resume versions");
     logger.error({ error, resumeId: req.params.id }, "Failed to compare resume versions");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -428,7 +430,7 @@ export const restoreResumeVersion: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to restore resume version");
     logger.error({ error, resumeId: req.params.id }, "Failed to restore resume version");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -492,7 +494,7 @@ export const createRoleTailoredVariant: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to create role-tailored variant");
     logger.error({ error, resumeId: req.params.id }, "Failed to create role-tailored variant");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -612,13 +614,13 @@ export const exportSafePdf: RequestHandler = async (req, res) => {
   } catch (error) {
     if ((error as Error).message === "Browser pool is unavailable on this deployment") {
       logger.warn({ resumeId: req.params.id }, "Safe PDF export requested without browser support");
-      res.status(503).json({ message: "Safe PDF export is unavailable on this deployment" });
+      sendErrorResponse(res, error, { statusCode: 503, code: "SERVICE_UNAVAILABLE", message: "Safe PDF export is unavailable on this deployment" });
       return;
     }
     recordPdfExportFailure((error as Error).message || "unknown_error");
     markSpanError(span, error as Error, "Failed to export safe PDF");
     logger.error({ error, resumeId: req.params.id }, "Failed to export safe PDF");
-    res.status(500).json({ message: "Safe PDF export failed" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Safe PDF export failed" });
   } finally {
     finishControllerSpan(span);
   }
