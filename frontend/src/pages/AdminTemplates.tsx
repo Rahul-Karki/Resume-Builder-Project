@@ -280,7 +280,7 @@ export function AdminTemplates() {
               </div>
               {/* Preview */}
               <div style={{ overflow: "auto", background: "linear-gradient(135deg, #080808 0%, #050505 100%)", display: "flex", justifyContent: "center", alignItems: "flex-start", padding: isMobile ? 12 : 24, minHeight: 0 }}>
-                <div style={{ width: PREVIEW_PAGE_WIDTH * previewScale, height: "auto", flexShrink: 0, paddingTop: 12 }}>
+                <div style={{ width: PREVIEW_PAGE_WIDTH * previewScale, height: PREVIEW_PAGE_HEIGHT * previewScale, flexShrink: 0, paddingTop: 12, boxSizing: "border-box" }}>
                   <div data-testid="admin-template-preview-canvas" style={{ width: PREVIEW_PAGE_WIDTH, height: PREVIEW_PAGE_HEIGHT, transform: `scale(${previewScale})`, transformOrigin: "top center", boxShadow: "0 40px 100px rgba(0,0,0,0.9), inset 0 0 1px rgba(200,245,90,0.1)", borderRadius: 12, overflow: "hidden", background: "#fff", border: "1px solid rgba(200,245,90,0.05)" }}>
                     <ResumeRenderer resume={buildPreviewResume(previewTarget)} />
                   </div>
