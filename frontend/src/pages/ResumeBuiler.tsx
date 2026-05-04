@@ -8,7 +8,7 @@ import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
-import { exportResumePdfSafe, getResumeExportPreset } from "@/services/api";
+import { getResumeExportPreset } from "@/services/api";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
@@ -106,32 +106,6 @@ async function downloadResume(
       await getResumeExportPreset(resumeId, preset);
     } catch {
       // Keep browser export available even if preset endpoint fails.
-    }
-  }
-
-  if (resumeId && resumeMarkup.trim().length > 0) {
-    try {
-      onStatus?.("Generating secure PDF...");
-      const safeResult = await exportResumePdfSafe(resumeId, {
-        html: resumeMarkup,
-        title: resume.title,
-        preset,
-      });
-
-      if (safeResult.blob.size > 0) {
-        onStatus?.("Downloading PDF...");
-        const blobUrl = window.URL.createObjectURL(safeResult.blob);
-        const anchor = document.createElement("a");
-        anchor.href = blobUrl;
-        anchor.download = safeResult.filename ?? `${resume.title.replace(/\s+/g, "_")}_safe.pdf`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
-        return;
-      }
-    } catch {
-      // Keep local browser export as resilient fallback.
     }
   }
 

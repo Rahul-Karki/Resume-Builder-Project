@@ -1,10 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { env } from "../config/env";
-import {
-  getExportPreset,
-  exportSafePdf,
-} from "../controllers/resumeEnhancementController";
+import { getExportPreset } from "../controllers/resumeEnhancementController";
 import {
   createResume as baseCreateResume,
   deleteResume as baseDeleteResume,
@@ -19,7 +16,6 @@ import {
   createResumeSchema,
   exportPresetSchema,
   objectIdParamSchema,
-  safeExportPdfSchema,
   updateResumeSchema,
 } from "../validation/schemas";
 
@@ -68,6 +64,5 @@ router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateRe
 router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
 
 router.post("/:id/export-pdf", validateRequest({ params: objectIdParamSchema, body: exportPresetSchema }), resumeExportLimiter, getExportPreset);
-router.post("/:id/export-pdf-safe", validateRequest({ params: objectIdParamSchema, body: safeExportPdfSchema }), resumeExportLimiter, exportSafePdf);
 
 export default router;

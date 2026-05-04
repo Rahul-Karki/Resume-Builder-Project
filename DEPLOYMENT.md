@@ -199,7 +199,6 @@ REDIS_RATE_LIMIT_MAX=100             # Base limit (adjusted per endpoint)
 | POST /api/resumes | 10 | 15 min | Resume creation |
 | PUT /api/resumes/:id | 10 | 15 min | Resume updates |
 | POST /api/resumes/:id/export-pdf | 5 | 15 min | PDF export |
-| POST /api/resumes/:id/export-pdf-safe | 5 | 15 min | Safe PDF export |
 
 ### Rate Limiting Key
 

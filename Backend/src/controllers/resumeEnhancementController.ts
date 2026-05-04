@@ -8,9 +8,6 @@ import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache } from "../middleware/redisCache";
-import { browserPool } from "../utils/browserPool";
-import { recordPdfExportSuccess, recordPdfExportFailure } from "../utils/businessMetrics";
-import { buildSafePdfDocument } from "../utils/pdfDocument";
 import { AuthError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 
@@ -549,81 +546,6 @@ export const getExportPreset: RequestHandler = async (req, res) => {
     markSpanError(span, error as Error, "Failed to resolve export preset");
     logger.error({ error, resumeId: req.params.id }, "Failed to resolve export preset");
     res.status(500).json({ message: "Server error" });
-  } finally {
-    finishControllerSpan(span);
-  }
-};
-
-export const exportSafePdf: RequestHandler = async (req, res) => {
-  const span = startControllerSpan("resumeEnhancement.exportSafePdf", req);
-  const startTime = Date.now();
-  try {
-    const userId = getUserId(req, res);
-    if (!userId) return;
-
-    const resume = await Resume.findOne({ _id: req.params.id, userId }).select("_id title").lean();
-    if (!resume) {
-      res.status(404).json({ message: "Resume not found" });
-      return;
-    }
-
-    const rawHtml = String(req.body?.html ?? "").trim();
-    if (!rawHtml) {
-      res.status(400).json({ message: "html is required" });
-      return;
-    }
-
-    const contentHtml = rawHtml.replace(/<script[\s\S]*?<\/script>/gi, "");
-    const safeTitle = String(req.body?.title ?? resume.title ?? "resume").replace(/[^a-zA-Z0-9\s_-]/g, "").trim() || "resume";
-    const documentHtml = buildSafePdfDocument(safeTitle, contentHtml);
-
-    let browser;
-    let page;
-    try {
-      browser = await browserPool.acquire();
-      page = await browser.newPage();
-
-      await page.setContent(documentHtml, { waitUntil: "networkidle0", timeout: 45000 });
-
-      const pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        preferCSSPageSize: true,
-        margin: { top: "0", right: "0", bottom: "0", left: "0" },
-      });
-
-      const filename = `${safeTitle.replace(/\s+/g, "_")}_safe.pdf`;
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename=\"${filename}\"`);
-      res.status(200).send(pdfBuffer);
-      
-      const duration = Date.now() - startTime;
-      recordPdfExportSuccess(duration, "safe");
-      logger.info({ userId, resumeId: req.params.id, filename, duration, sizeBytes: pdfBuffer.length }, "Safe PDF export generated");
-      markSpanSuccess(span);
-    } finally {
-      if (page) {
-        await page.close().catch(() => {
-          /* ignore page close errors */
-        });
-      }
-      if (browser) {
-        browserPool.release(browser);
-      }
-    }
-  } catch (error) {
-    const errorMessage = (error as Error)?.message || "unknown_error";
-    
-    if (errorMessage === "Browser pool is unavailable on this deployment") {
-      logger.warn({ resumeId: req.params.id }, "Safe PDF export requested but browser pool is unavailable");
-      sendErrorResponse(res, error, { statusCode: 503, code: "SERVICE_UNAVAILABLE", message: "Safe PDF export is temporarily unavailable" });
-      return;
-    }
-
-    recordPdfExportFailure(errorMessage);
-    markSpanError(span, error as Error, "Failed to export safe PDF");
-    logger.error({ error, errorMessage, resumeId: req.params.id }, "Failed to export safe PDF");
-    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Safe PDF export failed" });
   } finally {
     finishControllerSpan(span);
   }

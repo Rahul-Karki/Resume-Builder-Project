@@ -5,7 +5,6 @@ import { flushBackendSentry, initializeBackendSentry } from "./config/sentry";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
-import { browserPool } from "./utils/browserPool";
 import { createAllIndexes } from "./config/indexes";
 import app from "./app";
 initializeBackendSentry();
@@ -16,7 +15,6 @@ const startServer = async () => {
   await connectDB();
   await createAllIndexes();
   await ensureDefaultTemplatesInBackend();
-  await browserPool.initialize();
   const cacheProvider = getCacheProvider();
   void warmupCacheBackend().catch((error) => {
     logger.error({ error }, "Cache warmup failed");
@@ -50,7 +48,6 @@ const startServer = async () => {
     // Stop accepting new connections
     server.close(async () => {
       try {
-        await browserPool.close();
         await closeRedisClient();
         logger.info("Shutdown completed successfully");
         process.exit(0);

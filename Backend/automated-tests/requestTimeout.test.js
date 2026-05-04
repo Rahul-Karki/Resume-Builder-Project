@@ -60,8 +60,8 @@ test("requestTimeoutMiddleware sends a timeout response when the timer fires", (
 
   const req = {
     baseUrl: "/api/resumes",
-    path: "/123/export-pdf-safe",
-    originalUrl: "/api/resumes/123/export-pdf-safe",
+    path: "/123/export-pdf",
+    originalUrl: "/api/resumes/123/export-pdf",
   };
   const res = createRes();
   let nextCalled = false;

@@ -75,7 +75,7 @@ class BrowserPool {
       this.initialized = true;
       logger.error(
         { error, message: (error as Error)?.message },
-        "Browser pool initialization failed; safe PDF export will be unavailable"
+        "Browser pool initialization failed; PDF export will be unavailable"
       );
     }
   }

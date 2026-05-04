@@ -4,7 +4,7 @@ import { sendErrorResponse } from "../utils/errorResponse";
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const PDF_REQUEST_TIMEOUT_MS = 120_000;
-const PDF_TIMEOUT_PATH_MATCHERS = ["/export-pdf", "/export-pdf-safe"];
+const PDF_TIMEOUT_PATH_MATCHERS = ["/export-pdf"];
 
 export const resolveRequestTimeoutMs = (req: Request) => {
   const path = `${req.baseUrl ?? ""}${req.path ?? req.originalUrl ?? ""}`;

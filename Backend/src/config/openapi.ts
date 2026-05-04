@@ -373,49 +373,6 @@ export const openAPISpec = {
         },
       },
     },
-    "/resumes/{id}/export-pdf-safe": {
-      post: {
-        summary: "Export resume as PDF (server-rendered)",
-        tags: ["Resumes"],
-        security: [{ cookieAuth: [] }],
-        parameters: [
-          {
-            name: "id",
-            in: "path",
-            required: true,
-            schema: { type: "string" },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  html: { type: "string", description: "HTML content to render" },
-                  title: { type: "string" },
-                  preset: { type: "string", enum: ["web", "standard", "print"] },
-                },
-                required: ["html"],
-              },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: "PDF file",
-            content: {
-              "application/pdf": {},
-            },
-          },
-          400: { description: "Invalid input" },
-          404: { description: "Resume not found" },
-          401: { description: "Not authenticated" },
-          503: { description: "PDF export temporarily unavailable" },
-        },
-      },
-    },
     "/templates": {
       get: {
         summary: "List all available templates",

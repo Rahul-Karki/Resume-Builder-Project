@@ -133,12 +133,6 @@ const exportPresetSchema = z.object({
   preset: z.enum(["web", "standard", "print"]).optional(),
 }).strict();
 
-const safeExportPdfSchema = z.object({
-  html: z.string().min(200).max(600000),
-  title: z.string().trim().min(1).max(160).optional(),
-  preset: z.enum(["web", "standard", "print"]).optional(),
-}).strict();
-
 const resumeEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
   company: plainText(160).optional(),
@@ -259,7 +253,6 @@ export {
   objectIdParamSchema,
   publicTemplateListQuerySchema,
   reorderTemplatesSchema,
-  safeExportPdfSchema,
   setTemplateStatusSchema,
   templateListQuerySchema,
   updateResumeSchema,
