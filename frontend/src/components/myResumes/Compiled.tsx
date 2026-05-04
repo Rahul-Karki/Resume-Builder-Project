@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Logo } from "@/components/Logo";
 import { api } from "@/services/api";
 import { ResumeDocument, SavedResume, SortOption } from "@/types/resume-types";
 import {
@@ -118,7 +119,7 @@ export default function Compiled() {
         <div style={{minHeight:"100vh",background:"#080808",color:"#F0EFE8",fontFamily:"'Outfit',sans-serif"}}>
  
         <nav style={{minHeight:58,background:"#0A0A0A",borderBottom:"1px solid #111",display:"flex",alignItems:"center",padding:isMobile ? "8px 12px" : "0 28px",gap:isMobile ? 10 : 24,position:"sticky",top:0,zIndex:40,flexWrap:isMobile ? "wrap" : "nowrap"}}>
-          <div style={{fontWeight:800,fontSize:16,letterSpacing:"-0.3px"}}>Resume<span style={{color:"#C8F55A"}}>Studio</span></div>
+          <Logo isCompact={isMobile} />
           <Link
             to="/templates"
             style={{fontSize:13,fontWeight:500,color:"#666",textDecoration:"none",transition:"color 0.15s"}}

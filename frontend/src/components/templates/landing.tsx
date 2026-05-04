@@ -3,6 +3,7 @@ import { ResumeDocument, ResumeStyle, SectionVisibility } from "@/types/resume-t
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { sampleData } from "@/data/sampleData";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Logo } from "@/components/Logo";
 import { api } from "@/services/api";
 import { TemplateMeta, templates as localTemplateCatalog } from "@/data/templateMeta";
 
@@ -663,7 +664,7 @@ export default function TemplatesPage() {
       <div className="tp-root">
         {/* NAV */}
         <nav className={`tp-nav${scrolled ? " scrolled" : ""}`}>
-          <div className="tp-logo">Resume<em>Studio</em></div>
+          <div className="tp-logo"><Logo /></div>
           <div className="tp-nav-links">
             <Link to="/templates" className="tp-nav-link active">Templates</Link>
             <Link to="/resumes" className="tp-nav-link">My Resumes</Link>
