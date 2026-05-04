@@ -7,6 +7,8 @@
     "build": "tsc",
     "start": "node -r ./dist/instrumentation.js dist/server.js",
     "test": "npm run build && node --test automated-tests/**/*.test.js",
+    "test:integration": "npm run build && node --test automated-tests/integration/**/*.test.js",
+    "test:ci": "npm run build && npm run test",
     "test:automated": "npm run test",
     "test:manual": "echo \"Run one or more manual test scripts from ./manual-tests\"",
     "test:rate-limit": "node src/test.js",
@@ -34,6 +36,7 @@
     "@opentelemetry/sdk-trace-base": "^2.6.1",
     "@opentelemetry/sdk-trace-node": "^2.6.1",
     "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@sentry/node": "^10.22.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -60,11 +63,14 @@
     "@types/express-session": "^1.18.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
+    "@types/supertest": "^6.0.3",
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/react": "^19.2.14",
     "nodemon": "^3.1.14",
+    "mongodb-memory-server": "^10.2.3",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "supertest": "^7.1.4",
     "typescript": "^5.9.3"
   }
 }

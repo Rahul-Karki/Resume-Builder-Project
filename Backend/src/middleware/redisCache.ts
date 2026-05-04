@@ -2,7 +2,7 @@ import crypto from "crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { appMetrics, logger } from "../observability";
 import { cacheGet, cacheSet, deleteByPattern, getCacheProvider } from "../utils/redis";
-import { CACHE_SCOPE_NAMES, buildCacheScope } from "../constants/cacheScopes";
+import { CACHE_SCOPE_NAMES, buildCacheScope } from "../config/cacheScopes";
 
 const CACHE_NAMESPACE = "resume-builder:cache";
 

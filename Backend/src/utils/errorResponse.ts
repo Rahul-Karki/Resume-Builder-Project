@@ -2,17 +2,25 @@ import type { Response } from "express";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { AppError, AuthError, NotFoundError, ValidationError } from "../errors/AppError";
+import { captureBackendException } from "../config/sentry";
 
 type ErrorFallback = {
   statusCode?: number;
   code?: string;
   message?: string;
+  traceId?: string;
 };
 
 export type ApiErrorResponse = {
   message: string;
-  errorCode: string;
-  details?: unknown;
+  code: string;
+  traceId: string;
+  errors?: unknown;
+};
+
+const getTraceId = (res?: Response, fallbackTraceId?: string) => {
+  const request = res?.req as { traceId?: string; correlationId?: string } | undefined;
+  return request?.traceId ?? request?.correlationId ?? fallbackTraceId ?? "unknown-trace-id";
 };
 
 const isDuplicateKeyError = (error: unknown): error is { code: number; keyValue?: Record<string, unknown> } => {
@@ -58,23 +66,31 @@ export const toAppError = (error: unknown, fallback: ErrorFallback = {}): AppErr
 
 export const buildErrorResponse = (error: unknown, fallback: ErrorFallback = {}): { statusCode: number; body: ApiErrorResponse } => {
   const appError = toAppError(error, fallback);
+  const traceId = fallback.traceId ?? "unknown-trace-id";
 
   return {
     statusCode: appError.statusCode,
     body: {
       message: appError.expose ? appError.message : (fallback.message ?? "Server error"),
-      errorCode: appError.code,
+      code: appError.code,
+      traceId,
       ...(appError.code === "VALIDATION_ERROR" && appError.details !== undefined
         ? { errors: appError.details }
-        : appError.details !== undefined
-          ? { details: appError.details }
-          : {}),
+        : {}),
     },
   };
 };
 
 export const sendErrorResponse = (res: Response, error: unknown, fallback: ErrorFallback = {}) => {
-  const { statusCode, body } = buildErrorResponse(error, fallback);
+  const { statusCode, body } = buildErrorResponse(error, {
+    ...fallback,
+    traceId: getTraceId(res, fallback.traceId),
+  });
+
+  if (statusCode >= 500) {
+    captureBackendException(error, res.req as never);
+  }
+
   return res.status(statusCode).json(body);
 };
 

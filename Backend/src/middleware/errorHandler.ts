@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { captureBackendException } from "../config/sentry";
 import { logger } from "../observability";
 import { buildErrorResponse, toAppError } from "../utils/errorResponse";
 
@@ -16,13 +17,21 @@ export const errorHandler = (error: unknown, req: Request, res: Response, next: 
     return;
   }
 
-  const { statusCode, body } = buildErrorResponse(error, { message: "Server error" });
+  const { statusCode, body } = buildErrorResponse(error, { message: "Server error", traceId: req.traceId });
   const appError = toAppError(error, { message: "Server error" });
 
+  if (statusCode >= 500) {
+    captureBackendException(error, req);
+  }
+
   const logPayload = {
+    traceId: req.traceId,
     correlationId: req.correlationId,
     method: req.method,
     path: req.originalUrl,
+    params: req.params,
+    query: req.query,
+    userId: req.user?.id,
     error: {
       name: appError.name,
       message: appError.message,

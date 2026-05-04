@@ -275,8 +275,7 @@ export const warmupCacheBackend = async (): Promise<boolean> => {
   const provider = getCacheProvider();
 
   if (provider === "redis") {
-    const client = await getRedisClient();
-    return Boolean(client);
+    return checkRedisHealth();
   }
 
   if (provider === "upstash") {
@@ -285,6 +284,38 @@ export const warmupCacheBackend = async (): Promise<boolean> => {
       return true;
     } catch (error) {
       logger.warn({ error }, "Upstash warmup ping failed");
+      return false;
+    }
+  }
+
+  return false;
+};
+
+export const checkRedisHealth = async (): Promise<boolean> => {
+  const provider = getCacheProvider();
+
+  if (provider === "redis") {
+    const client = await getRedisClient();
+
+    if (!client) {
+      return false;
+    }
+
+    try {
+      await client.ping();
+      return true;
+    } catch (error) {
+      logger.warn({ error }, "Redis health ping failed");
+      return false;
+    }
+  }
+
+  if (provider === "upstash") {
+    try {
+      await upstashCall("ping");
+      return true;
+    } catch (error) {
+      logger.warn({ error }, "Upstash health ping failed");
       return false;
     }
   }

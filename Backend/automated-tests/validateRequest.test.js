@@ -61,7 +61,8 @@ test("validateRequest returns 400 with formatted errors for invalid body", () =>
   assert.equal(nextCalled, false);
   assert.equal(res.data.statusCode, 400);
   assert.equal(res.data.body.message, "Invalid request payload");
-  assert.equal(res.data.body.errorCode, "VALIDATION_ERROR");
+  assert.equal(res.data.body.code, "VALIDATION_ERROR");
+  assert.equal(typeof res.data.body.traceId, "string");
   assert.equal(Array.isArray(res.data.body.errors), true);
   assert.equal(res.data.body.errors[0].path, "email");
 });
@@ -89,5 +90,5 @@ test("validateRequest parses params and query schemas", () => {
 
   assert.equal(nextCalled, true);
   assert.equal(res.data.statusCode, 200);
-  assert.equal(req.query.page, 2);
+  assert.equal(req.validated.query.page, 2);
 });

@@ -4,7 +4,13 @@ import { Request, Response, NextFunction } from "express";
 declare global {
   namespace Express {
     interface Request {
+      traceId: string;
       correlationId: string;
+      validated?: {
+        body?: unknown;
+        params?: unknown;
+        query?: unknown;
+      };
     }
   }
 }
@@ -20,17 +26,18 @@ export const correlationIdMiddleware = (
   next: NextFunction
 ): void => {
   // Check for existing trace ID (W3C traceparent or X-Trace-ID)
-  let correlationId =
+  const traceId =
     extractTraceId(req.header("traceparent")) ||
     req.header("x-trace-id") ||
     req.header("x-correlation-id") ||
     randomUUID();
 
-  req.correlationId = correlationId;
+  req.traceId = traceId;
+  req.correlationId = traceId;
 
   // Add to response headers for client to track
-  res.setHeader("X-Correlation-ID", correlationId);
-  res.setHeader("X-Trace-ID", correlationId);
+  res.setHeader("X-Correlation-ID", traceId);
+  res.setHeader("X-Trace-ID", traceId);
 
   next();
 };
@@ -56,6 +63,7 @@ function extractTraceId(traceparent?: string): string | null {
  * Usage: logger.info({ ...logContext(req) }, "message")
  */
 export const logContext = (req: Request) => ({
+  traceId: req.traceId,
   correlationId: req.correlationId,
   method: req.method,
   path: req.path,

@@ -77,10 +77,9 @@ test("requestTimeoutMiddleware sends a timeout response when the timer fires", (
   capturedCallback();
 
   assert.equal(res.statusCode, 503);
-  assert.deepEqual(res.body, {
-    message: "Request timed out",
-    errorCode: "REQUEST_TIMEOUT",
-  });
+  assert.equal(res.body.message, "Request timed out");
+  assert.equal(res.body.code, "REQUEST_TIMEOUT");
+  assert.equal(typeof res.body.traceId, "string");
 
   global.setTimeout = originalSetTimeout;
 });

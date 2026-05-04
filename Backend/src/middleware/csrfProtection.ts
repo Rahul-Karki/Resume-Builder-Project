@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextFunction, Request, Response } from "express";
 import { parseCookies } from "../utils/cookieParser";
 import { logCsrfFailure } from "../utils/securityLogger";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const CSRF_EXEMPT_PATHS = new Set([
@@ -39,9 +40,10 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
 
   if (!csrfCookie || !csrfHeader || !secureCompare(csrfCookie, csrfHeader)) {
     logCsrfFailure(req);
-    return res.status(403).json({
+    return sendErrorResponse(res, new Error("CSRF validation failed"), {
+      statusCode: 403,
+      code: "CSRF_VALIDATION_FAILED",
       message: "CSRF validation failed",
-      errorCode: "CSRF_VALIDATION_FAILED",
     });
   }
 

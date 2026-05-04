@@ -113,10 +113,9 @@ test("refreshAccessToken returns 401 when refresh token cookie is missing", () =
   refreshAccessToken(req, res);
 
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(res.jsonBody, {
-    message: "Authentication required",
-    errorCode: "AUTH_REQUIRED",
-  });
+  assert.equal(res.jsonBody.message, "Authentication required");
+  assert.equal(res.jsonBody.code, "AUTH_REQUIRED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
   assert.equal(calls.verify, 0);
   assert.equal(calls.generateAccessToken, 0);
   assert.equal(calls.setAccessTokenCookie, 0);
@@ -184,10 +183,9 @@ test("refreshAccessToken returns 403 when refresh token verification fails", () 
   refreshAccessToken(req, res);
 
   assert.equal(res.statusCode, 403);
-  assert.deepEqual(res.jsonBody, {
-    message: "Invalid refresh token",
-    errorCode: "AUTH_REQUIRED",
-  });
+  assert.equal(res.jsonBody.message, "Invalid refresh token");
+  assert.equal(res.jsonBody.code, "AUTH_REQUIRED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
 });
 
 test("issueCsrfToken issues a csrf token and cookie", () => {

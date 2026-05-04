@@ -17,7 +17,11 @@ const refreshAccessToken = (req: Request, res: Response) => {
     logger.warn({ route: req.originalUrl }, "Refresh token missing");
     markSpanError(span, new Error("Refresh token missing"), "Refresh token missing");
     finishControllerSpan(span);
-    return res.status(401).json({ message: "Authentication required", errorCode: "AUTH_REQUIRED" });
+    return sendErrorResponse(res, new Error("Authentication required"), {
+      statusCode: 401,
+      code: "AUTH_REQUIRED",
+      message: "Authentication required",
+    });
   }
 
   try {

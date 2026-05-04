@@ -13,6 +13,7 @@ import {
   updateResume as baseUpdateResume,
 } from "../controllers/resumeController";
 import { createRedisCacheMiddleware } from "../middleware/redisCache";
+import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
 import { validateRequest } from "../middleware/validateRequest";
 import {
   createResumeSchema,
@@ -26,6 +27,20 @@ const router = express.Router();
 
 const resumeReadCacheTtlSeconds = Math.min(env.REDIS_CACHE_TTL_SECONDS, 60);
 const resumeUserScope = (req: express.Request) => `resumes-user:${req.user?.id ?? "anonymous"}`;
+const resumeMutationLimiter = createRedisRateLimitMiddleware({
+  scope: "resume-mutations",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(10, Math.floor(env.REDIS_RATE_LIMIT_MAX / 3)),
+  keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+  message: "Too many resume changes. Please try again later.",
+});
+const resumeExportLimiter = createRedisRateLimitMiddleware({
+  scope: "resume-pdf-exports",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(5, Math.floor(env.REDIS_RATE_LIMIT_MAX / 6)),
+  keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+  message: "Too many PDF export requests. Please try again later.",
+});
 
 router.use(authMiddleware);
 
@@ -48,11 +63,11 @@ router.get(
   }),
   baseGetResumeById,
 );
-router.post("/", validateRequest({ body: createResumeSchema }), baseCreateResume);
-router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }), baseUpdateResume);
+router.post("/", validateRequest({ body: createResumeSchema }), resumeMutationLimiter, baseCreateResume);
+router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }), resumeMutationLimiter, baseUpdateResume);
 router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
 
-router.post("/:id/export-pdf", validateRequest({ params: objectIdParamSchema, body: exportPresetSchema }), getExportPreset);
-router.post("/:id/export-pdf-safe", validateRequest({ params: objectIdParamSchema, body: safeExportPdfSchema }), exportSafePdf);
+router.post("/:id/export-pdf", validateRequest({ params: objectIdParamSchema, body: exportPresetSchema }), resumeExportLimiter, getExportPreset);
+router.post("/:id/export-pdf-safe", validateRequest({ params: objectIdParamSchema, body: safeExportPdfSchema }), resumeExportLimiter, exportSafePdf);
 
 export default router;

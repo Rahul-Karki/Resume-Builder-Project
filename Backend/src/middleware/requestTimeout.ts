@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { logger } from "../observability";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const PDF_REQUEST_TIMEOUT_MS = 120_000;
@@ -20,9 +21,10 @@ export const requestTimeoutMiddleware = (req: Request, res: Response, next: Next
     }
 
     logger.warn({ path: req.originalUrl, timeoutMs }, "Request timed out");
-    res.status(503).json({
+    sendErrorResponse(res, new Error("Request timed out"), {
+      statusCode: 503,
+      code: "REQUEST_TIMEOUT",
       message: "Request timed out",
-      errorCode: "REQUEST_TIMEOUT",
     });
   }, timeoutMs);
 

@@ -1,5 +1,6 @@
 import React, { ReactNode, Component, ErrorInfo } from "react";
 import { reportClientError } from "../lib/errorTracking";
+import { captureClientException } from "../lib/sentry";
 
 interface Props {
   children: ReactNode;
@@ -47,6 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
+    captureClientException(error, { componentStack: errorInfo.componentStack });
     reportClientError(error, "react-boundary");
 
     // Also log to console in development

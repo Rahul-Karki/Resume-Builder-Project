@@ -19,7 +19,8 @@ test("buildErrorResponse maps validation errors to a structured payload", () => 
 
   assert.equal(response.statusCode, 400);
   assert.equal(response.body.message, "Invalid request payload");
-  assert.equal(response.body.errorCode, "VALIDATION_ERROR");
+  assert.equal(response.body.code, "VALIDATION_ERROR");
+  assert.equal(typeof response.body.traceId, "string");
   assert.deepEqual(response.body.errors, [
     { path: "email", message: "Invalid email" },
   ]);
@@ -30,7 +31,7 @@ test("buildErrorResponse maps not found errors to 404", () => {
 
   assert.equal(response.statusCode, 404);
   assert.equal(response.body.message, "Resume not found");
-  assert.equal(response.body.errorCode, "NOT_FOUND");
+  assert.equal(response.body.code, "NOT_FOUND");
 });
 
 test("buildErrorResponse maps auth errors with explicit codes", () => {
@@ -40,5 +41,5 @@ test("buildErrorResponse maps auth errors with explicit codes", () => {
 
   assert.equal(response.statusCode, 403);
   assert.equal(response.body.message, "Forbidden");
-  assert.equal(response.body.errorCode, "FORBIDDEN");
+  assert.equal(response.body.code, "FORBIDDEN");
 });
