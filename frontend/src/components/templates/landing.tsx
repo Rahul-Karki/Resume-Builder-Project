@@ -52,6 +52,12 @@ const mergeWithLocalTemplateCatalog = (apiTemplates: TemplateMeta[]): TemplateMe
 const buildPreviewSample = (template: TemplateMeta): ResumeDocument => {
   const stylePatch = template.cssVars ?? {};
   const slotsPatch = template.slots ?? {};
+  const socialPatch = template.category === "tech"
+    ? {
+        github: "https://github.com/maya-thompson",
+        portfolio: "https://maya-thompson.dev",
+      }
+    : {};
 
   const slotState: Record<SlotKey, boolean> = {
     summary: slotsPatch.summary ?? true,
@@ -68,6 +74,7 @@ const buildPreviewSample = (template: TemplateMeta): ResumeDocument => {
     templateId: template.id,
     personalInfo: {
       ...sampleData.personalInfo,
+      ...socialPatch,
       summary: slotState.summary ? sampleData.personalInfo.summary : "",
     },
     sections: {
@@ -605,8 +612,32 @@ export default function TemplatesPage() {
     if (activeAudience === "All") return true;
     return activeAudience === "Tech" ? template.audience === "tech" : template.audience === "non-tech";
   });
-  const nonTechFiltered = filtered.filter((template) => template.audience !== "tech");
-  const techFiltered = filtered.filter((template) => template.audience === "tech");
+  const categoryOrder: TemplateMeta["category"][] = ["non-tech", "tech"];
+  const categorySections = useMemo(() => {
+    const grouped = new Map<TemplateMeta["category"], TemplateMeta[]>();
+
+    filtered.forEach((template) => {
+      const items = grouped.get(template.category) ?? [];
+      items.push(template);
+      grouped.set(template.category, items);
+    });
+
+    return Array.from(grouped.entries())
+      .sort(([leftCategory], [rightCategory]) => {
+        const leftIndex = categoryOrder.indexOf(leftCategory);
+        const rightIndex = categoryOrder.indexOf(rightCategory);
+
+        if (leftIndex === -1 && rightIndex === -1) return leftCategory.localeCompare(rightCategory);
+        if (leftIndex === -1) return 1;
+        if (rightIndex === -1) return -1;
+        return leftIndex - rightIndex;
+      })
+      .map(([category, items]) => ({
+        category,
+        label: category === "tech" ? "Tech Templates" : "Non-Tech Templates",
+        items,
+      }));
+  }, [filtered]);
 
   const renderTemplateCards = (items: TemplateMeta[], offset = 0) => (
     items.map((t, idx) => (
@@ -758,21 +789,16 @@ export default function TemplatesPage() {
             </div>
           )}
 
-          {!loadingTemplates && activeAudience === "All" && nonTechFiltered.length > 0 && (
-            <div style={{ gridColumn: "1 / -1", marginTop: 4, marginBottom: -4 }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 999, border: "1px solid #2A2A2A", background: "#141414", color: "#C8F55A", fontSize: 12, fontWeight: 700, letterSpacing: 0.4 }}>
-                Non-Tech Only
+          {!loadingTemplates && activeAudience === "All" && categorySections.map((section, sectionIndex) => (
+            <div key={section.category} style={{ gridColumn: "1 / -1" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 999, border: "1px solid #2A2A2A", background: "#141414", color: section.category === "tech" ? "#7DD3FC" : "#C8F55A", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, marginTop: sectionIndex === 0 ? 4 : 20, marginBottom: -4 }}>
+                {section.label}
+              </div>
+              <div className="tp-grid" style={{ padding: 0, marginTop: 14 }}>
+                {renderTemplateCards(section.items, 0)}
               </div>
             </div>
-          )}
-          {!loadingTemplates && activeAudience === "All" && renderTemplateCards(nonTechFiltered, 0)}
-
-          {!loadingTemplates && activeAudience === "All" && techFiltered.length > 0 && (
-            <div style={{ gridColumn: "1 / -1", marginTop: 20, marginBottom: -2, color: "#A3A3A3", fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>
-              Tech Templates
-            </div>
-          )}
-          {!loadingTemplates && activeAudience === "All" && renderTemplateCards(techFiltered, nonTechFiltered.length)}
+          ))}
 
           {!loadingTemplates && activeAudience !== "All" && renderTemplateCards(filtered, 0)}
         </div>
