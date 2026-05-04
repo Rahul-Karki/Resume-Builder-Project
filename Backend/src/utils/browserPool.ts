@@ -35,17 +35,48 @@ class BrowserPool {
     if (this.initialized) return;
 
     try {
+      // Sanitize launch args for Windows compatibility
+      const args = this.config.launchOptions.args ?? [];
+      const sanitizedArgs = args.filter(arg => {
+        // Remove Linux-specific args on Windows
+        return !["--no-sandbox", "--disable-setuid-sandbox"].includes(arg);
+      });
+
+      const launchConfig = {
+        ...this.config.launchOptions,
+        args: sanitizedArgs,
+      };
+
       for (let i = 0; i < this.config.poolSize; i++) {
-        const browser = await puppeteer.launch(this.config.launchOptions);
-        this.availableBrowsers.push(browser);
+        try {
+          const browser = await puppeteer.launch(launchConfig);
+          this.availableBrowsers.push(browser);
+        } catch (browserError) {
+          logger.warn(
+            { error: browserError, attempt: i + 1, poolSize: this.config.poolSize },
+            `Failed to launch browser instance ${i + 1}/${this.config.poolSize}`
+          );
+          // Continue trying to launch other instances
+          if (i === this.config.poolSize - 1) {
+            // All instances failed
+            throw browserError;
+          }
+        }
       }
+
       this.available = true;
       this.initialized = true;
-      logger.info({ poolSize: this.config.poolSize }, "Browser pool initialized");
+      logger.info(
+        { poolSize: this.config.poolSize, availableBrowsers: this.availableBrowsers.length },
+        "Browser pool initialized"
+      );
     } catch (error) {
       this.available = false;
       this.initialized = true;
-      logger.warn({ error }, "Browser pool unavailable; browser-dependent features will be disabled");
+      logger.error(
+        { error, message: (error as Error)?.message },
+        "Browser pool initialization failed; safe PDF export will be unavailable"
+      );
     }
   }
 

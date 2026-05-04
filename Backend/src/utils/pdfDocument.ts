@@ -11,7 +11,6 @@ export const buildSafePdfDocument = (title: string, contentHtml: string) => `
     @page { size: A4; margin: 0; }
     html, body {
       width: 210mm;
-      height: 297mm;
       margin: 0;
       padding: 0;
       background: #ffffff;
@@ -19,21 +18,18 @@ export const buildSafePdfDocument = (title: string, contentHtml: string) => `
       -webkit-print-color-adjust: exact;
     }
     *, *::before, *::after { box-sizing: border-box; }
-    .pdf-page {
+    .pdf-content {
       width: 210mm;
-      height: 297mm;
-      min-height: 297mm;
-      max-height: 297mm;
-      overflow: hidden;
+      overflow: visible;
     }
-    .pdf-page > * {
+    .pdf-content > * {
       width: 100% !important;
       max-width: 100% !important;
     }
   </style>
 </head>
 <body>
-  <div class="pdf-page">${contentHtml}</div>
+  <div class="pdf-content">${contentHtml}</div>
 </body>
 </html>
 `;

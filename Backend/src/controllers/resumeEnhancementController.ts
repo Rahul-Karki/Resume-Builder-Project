@@ -599,7 +599,7 @@ export const exportSafePdf: RequestHandler = async (req, res) => {
       
       const duration = Date.now() - startTime;
       recordPdfExportSuccess(duration, "safe");
-      logger.info({ userId, resumeId: req.params.id, filename, duration }, "Safe PDF export generated");
+      logger.info({ userId, resumeId: req.params.id, filename, duration, sizeBytes: pdfBuffer.length }, "Safe PDF export generated");
       markSpanSuccess(span);
     } finally {
       if (page) {
@@ -612,14 +612,17 @@ export const exportSafePdf: RequestHandler = async (req, res) => {
       }
     }
   } catch (error) {
-    if ((error as Error).message === "Browser pool is unavailable on this deployment") {
-      logger.warn({ resumeId: req.params.id }, "Safe PDF export requested without browser support");
-      sendErrorResponse(res, error, { statusCode: 503, code: "SERVICE_UNAVAILABLE", message: "Safe PDF export is unavailable on this deployment" });
+    const errorMessage = (error as Error)?.message || "unknown_error";
+    
+    if (errorMessage === "Browser pool is unavailable on this deployment") {
+      logger.warn({ resumeId: req.params.id }, "Safe PDF export requested but browser pool is unavailable");
+      sendErrorResponse(res, error, { statusCode: 503, code: "SERVICE_UNAVAILABLE", message: "Safe PDF export is temporarily unavailable" });
       return;
     }
-    recordPdfExportFailure((error as Error).message || "unknown_error");
+
+    recordPdfExportFailure(errorMessage);
     markSpanError(span, error as Error, "Failed to export safe PDF");
-    logger.error({ error, resumeId: req.params.id }, "Failed to export safe PDF");
+    logger.error({ error, errorMessage, resumeId: req.params.id }, "Failed to export safe PDF");
     sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Safe PDF export failed" });
   } finally {
     finishControllerSpan(span);
