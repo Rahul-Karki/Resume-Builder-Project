@@ -13,7 +13,7 @@ import { CombinationTemplate } from "@/components/templates/CombinationTemplate"
 import { TraditionalAssistantTemplate } from "@/components/templates/TraditionalAssistantTemplate";
 import { CommunityImpactTemplate } from "@/components/templates/CommunityImpactTemplate";
 import { ExternalLinkIcon, renderTextWithLinks, toAbsoluteUrl } from "@/components/templates/templateHelpers";
-import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
+import { isTechResumeTemplate, normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 interface Props {
   resume: ResumeDocument;
@@ -258,6 +258,21 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
   );
 }
 
+function getRenderableResume(resume: ResumeDocument): ResumeDocument {
+  if (resume.templateCategory === "tech" || isTechResumeTemplate(resume.templateId)) {
+    return resume;
+  }
+
+  return {
+    ...resume,
+    personalInfo: {
+      ...resume.personalInfo,
+      github: "",
+      portfolio: "",
+    },
+  };
+}
+
 // ─── Classic Template ──────────────────────────────────────────────────────────
 function ClassicTemplate({ resume }: Props) {
   const { personalInfo: p, sections: s, style, sectionOrder, sectionVisibility } = resume;
@@ -431,6 +446,7 @@ const ClassicTemplateAdapter = ({ data }: { data: ResumeDocument }) => (
 );
 
 export function ResumeRenderer({ resume, forExport = false }: Props) {
+  const renderableResume = getRenderableResume(resume);
   const templatesById: Record<string, React.ComponentType<{ data: ResumeDocument }>> = {
     classic: ClassicTemplateAdapter,
     executive: ExecutiveTemplate,
@@ -446,7 +462,7 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
     "community-impact": CommunityImpactTemplate,
   };
 
-  const SelectedTemplate = templatesById[normalizeResumeTemplateId(resume.templateId)] ?? ClassicTemplateAdapter;
+  const SelectedTemplate = templatesById[normalizeResumeTemplateId(renderableResume.templateId)] ?? ClassicTemplateAdapter;
   return (
     <div
       style={{
@@ -458,7 +474,7 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
         overflow: forExport ? "hidden" : "visible",
       }}
     >
-      <SelectedTemplate data={resume} />
+      <SelectedTemplate data={renderableResume} />
     </div>
   );
 }

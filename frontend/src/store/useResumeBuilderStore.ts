@@ -34,6 +34,7 @@ const hasResumeContent = (resume: ResumeDocument) => {
 const toResumePayload = (resume: ResumeDocument) => ({
   title: resume.title,
   templateId: normalizeResumeTemplateId(resume.templateId),
+  templateCategory: resume.templateCategory,
   personalInfo: {
     name: resume.personalInfo.name,
     title: resume.personalInfo.title,
