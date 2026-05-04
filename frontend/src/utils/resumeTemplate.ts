@@ -1,3 +1,5 @@
+import { templates as templateCatalog } from "@/data/templateMeta";
+
 const CANONICAL_TEMPLATE_IDS = [
   "classic",
   "executive",
@@ -65,4 +67,9 @@ export const normalizeResumeTemplateId = (templateId: unknown): string => {
   }
 
   return LEGACY_TEMPLATE_ALIASES[slugifiedTemplateId] ?? "classic";
+};
+
+export const isTechResumeTemplate = (templateId: unknown): boolean => {
+  const normalizedTemplateId = normalizeResumeTemplateId(templateId);
+  return templateCatalog.some((template) => template.id === normalizedTemplateId && template.category === "tech");
 };

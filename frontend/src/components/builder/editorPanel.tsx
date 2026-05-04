@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry } from "@/types/resume-types";
+import { isTechResumeTemplate } from "@/utils/resumeTemplate";
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
@@ -141,6 +142,7 @@ function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
 function PersonalSection() {
   const { resume, updatePersonalInfo } = useResumeBuilderStore();
   const p = resume.personalInfo;
+  const showTechLinks = isTechResumeTemplate(resume.templateId);
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
@@ -171,6 +173,18 @@ function PersonalSection() {
         <span style={label}>LinkedIn</span>
         <input value={p.linkedin} onChange={e => updatePersonalInfo("linkedin", e.target.value)} placeholder="linkedin.com/in/you" style={inp} />
       </div>
+      {showTechLinks && (
+        <>
+          <div style={{ marginBottom: 10 }}>
+            <span style={label}>GitHub</span>
+            <input value={p.github} onChange={e => updatePersonalInfo("github", e.target.value)} placeholder="github.com/your-handle" style={inp} />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <span style={label}>Portfolio Website</span>
+            <input value={p.portfolio} onChange={e => updatePersonalInfo("portfolio", e.target.value)} placeholder="yourportfolio.com" style={inp} />
+          </div>
+        </>
+      )}
       <div>
         <span style={label}>Professional Summary</span>
         <textarea value={p.summary} onChange={e => updatePersonalInfo("summary", e.target.value)}
