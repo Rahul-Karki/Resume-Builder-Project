@@ -89,7 +89,7 @@ export function Navbar() {
         {/* Logo */}
         <Logo isCompact={isCompact} />
 
-        {/* Nav links */
+        {/* Nav links */}
         <div style={{ display: "flex", gap: isMobile ? 10 : 30, marginLeft: isMobile ? 12 : 36, overflowX: "auto", whiteSpace: "nowrap", maxWidth: isMobile ? "42%" : "none", scrollbarWidth: "none" }}>
           {[
             { label: "Templates", href: "/templates" },
