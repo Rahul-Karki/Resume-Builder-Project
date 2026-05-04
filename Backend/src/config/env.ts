@@ -19,11 +19,11 @@ const baseEnvSchema = z.object({
   FRONTEND_URLS: z.string().optional().default(""),
   JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
   JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
-  JWT_SECRET: z.string().optional(),
   RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
   RESEND_FROM: z.string().email("RESEND_FROM must be a valid email").optional(),
   EMAIL_FROM: z.string().email("EMAIL_FROM must be a valid email").optional(),
   GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

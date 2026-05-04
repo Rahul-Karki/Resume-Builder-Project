@@ -21,6 +21,7 @@ import {
   recordLoginFailure,
   recordSuspiciousActivity,
 } from "../utils/businessMetrics";
+import { sendSuccess, sendCreated, sendBadRequest, sendUnauthorized, sendServerError } from "../utils/apiResponse";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
@@ -39,11 +40,11 @@ const logout = async (req: Request, res: Response) => {
     logLogout(req);
     logger.info({ route: req.originalUrl }, "User logged out");
     markSpanSuccess(span);
-    return res.status(200).json({ message: "Logged out successfully" });
+    return sendSuccess(res, { message: "Logged out successfully" });
   } catch (error) {
     markSpanError(span, error as Error, "Logout failed");
     logger.error({ error }, "Logout failed");
-    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+    return sendServerError(res, "Logout failed", "SERVER_ERROR");
   } finally {
     finishControllerSpan(span);
   }
@@ -56,18 +57,14 @@ const registerUser = async (req: Request, res: Response) => {
 
     if (!name || !password || !email) {
       logger.warn({ route: req.originalUrl }, "Register validation failed");
-      return res.status(400).json({
-        message: "Enter all mandatory fields",
-      });
+      return sendBadRequest(res, "Enter all mandatory fields");
     }
 
     const check = await User.findOne({ email });
 
     if (check) {
       logger.warn({ email }, "Register rejected because user exists");
-      return res.status(400).json({
-        message: "User already exists",
-      });
+      return sendBadRequest(res, "User already exists");
     }
 
     const saltRounds = 10;
@@ -91,23 +88,22 @@ const registerUser = async (req: Request, res: Response) => {
 
     recordUserSignup({ email: user.email, provider: "local" });
 
-    res.status(201).json({
-      csrfToken,
+    logger.info({ userId: user._id.toString(), email: user.email }, "User registered");
+    markSpanSuccess(span);
+    
+    return sendCreated(res, {
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
       }
-    });
-    // response is send to frontend
-    logger.info({ userId: user._id.toString(), email: user.email }, "User registered");
-    markSpanSuccess(span);
+    }, csrfToken);
 
   } catch (error) {
     markSpanError(span, error as Error, "User registration failed");
     logger.error({ error }, "User registration failed");
-    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+    return sendServerError(res, "Registration failed", "SERVER_ERROR");
   } finally {
     finishControllerSpan(span);
   }
@@ -122,9 +118,7 @@ const login = async (req: Request, res: Response) => {
       logger.warn({ route: req.originalUrl }, "Login validation failed");
       recordSuspiciousActivity("login_missing_credentials");
       logSuspiciousActivity(req, "Login without email or password");
-      return res.status(400).json({
-        message: "Email and password are required",
-      });
+      return sendBadRequest(res, "Email and password are required");
     }
 
     // 2. Find user
@@ -134,18 +128,14 @@ const login = async (req: Request, res: Response) => {
       logger.warn({ email }, "Login failed: unknown user");
       recordLoginFailure("user_not_found");
       logLoginAttempt(req, email, false, "User not found");
-      return res.status(401).json({
-        message: "Invalid email or password",
-      });
+      return sendUnauthorized(res, "Invalid email or password");
     }
 
     if(!user.password) {
       logger.warn({ email }, "Login failed: password not set for account");
       recordLoginFailure("no_password");
       logLoginAttempt(req, email, false, "No password set");
-      return res.status(400).json({
-        message: "This account does not have a password. Please login using Google.",
-      });
+      return sendBadRequest(res, "This account does not have a password. Please login using Google.");
     }
 
     // 4. Compare password
@@ -155,9 +145,7 @@ const login = async (req: Request, res: Response) => {
       logger.warn({ email }, "Login failed: invalid password");
       recordLoginFailure("invalid_password");
       logLoginAttempt(req, email, false, "Invalid password");
-      return res.status(401).json({
-        message: "Invalid email or password",
-      });
+      return sendUnauthorized(res, "Invalid email or password");
     }
 
     // 5. Ensure local is in authProvider
@@ -175,25 +163,25 @@ const login = async (req: Request, res: Response) => {
 
     const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
+    recordLogin({ email: user.email });
+    logLoginAttempt(req, email, true);
+    logger.info({ userId: user._id.toString(), email: user.email }, "User login successful");
+    markSpanSuccess(span);
+
     // 7. Send response
-    res.status(200).json({
-      csrfToken,
+    return sendSuccess(res, {
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
       },
-    });
-    recordLogin({ email: user.email });
-    logLoginAttempt(req, email, true);
-    logger.info({ userId: user._id.toString(), email: user.email }, "User login successful");
-    markSpanSuccess(span);
+    }, 200, csrfToken);
 
   } catch (error) {
     markSpanError(span, error as Error, "Login failed");
     logger.error({ error }, "Login failed");
-    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+    return sendServerError(res, "Login failed", "SERVER_ERROR");
   } finally {
     finishControllerSpan(span);
   }

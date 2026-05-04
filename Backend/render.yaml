@@ -8,31 +8,53 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGO_URI
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: JWT_REFRESH_SECRET
-        sync: false
       - key: PORT
         value: 5000
-      - key: CORS_ORIGIN
+      - key: MONGO_URI
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: FRONTEND_URLS
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: SERVICE_NAME
+        value: resume-builder-backend
+      - key: SERVICE_VERSION
+        value: 1.0.0
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        value: production
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: 0.1
+      - key: ENABLE_METRICS
+        value: "true"
+      - key: METRICS_PATH
+        value: /metrics
       - key: REDIS_URL
         sync: false
       - key: UPSTASH_REDIS_REST_URL
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
-      - key: EMAIL_USER
-        sync: false
-      - key: EMAIL_PASS
-        sync: false
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: GOOGLE_CALLBACK_URL
-        sync: false
+      - key: REDIS_CONNECT_TIMEOUT_MS
+        value: 5000
+      - key: REDIS_CACHE_TTL_SECONDS
+        value: 300
+      - key: REDIS_RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: REDIS_RATE_LIMIT_MAX
+        value: 100

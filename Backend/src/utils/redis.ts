@@ -29,21 +29,30 @@ const upstashCall = async (
   const endpoint = `${upstashBaseUrl}/${command}${suffix}`;
   const isWrite = new Set(["set", "del", "expire", "incr"]);
 
-  const response = await fetch(endpoint, {
-    method: isWrite.has(command) ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-  });
+  const controller = new AbortController();
+  const timeoutMs = env.REDIS_CONNECT_TIMEOUT_MS || 5000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    const responseText = await response.text().catch(() => "");
-    throw new Error(`Upstash ${command.toUpperCase()} failed (${response.status}): ${responseText}`);
+  try {
+    const response = await fetch(endpoint, {
+      method: isWrite.has(command) ? "POST" : "GET",
+      headers: {
+        Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text().catch(() => "");
+      throw new Error(`Upstash ${command.toUpperCase()} failed (${response.status}): ${responseText}`);
+    }
+
+    const payload = (await response.json()) as { result?: unknown };
+    return payload.result ?? null;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const payload = (await response.json()) as { result?: unknown };
-  return payload.result ?? null;
 };
 
 export const getCacheProvider = (): CacheProvider => {

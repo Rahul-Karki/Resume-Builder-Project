@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { captureBackendException } from "../config/sentry";
 import { logger } from "../observability";
 import { buildErrorResponse, toAppError } from "../utils/errorResponse";
+import { redactRequestData } from "../utils/redactSensitive";
 
 export const notFoundHandler = (req: Request, _res: Response, next: NextFunction) => {
   next(toAppError(new Error(`Route not found: ${req.method} ${req.originalUrl}`), {
@@ -24,13 +25,15 @@ export const errorHandler = (error: unknown, req: Request, res: Response, next: 
     captureBackendException(error, req);
   }
 
+  const { params, query } = redactRequestData(req.params, req.query);
+
   const logPayload = {
     traceId: req.traceId,
     correlationId: req.correlationId,
     method: req.method,
     path: req.originalUrl,
-    params: req.params,
-    query: req.query,
+    params,
+    query,
     userId: req.user?.id,
     error: {
       name: appError.name,
