@@ -223,12 +223,12 @@ export function PortfolioIcon({ width = 14, height = 14 }: { width?: number; hei
 
 export function getSocialIconComponent(
   url: string,
-  options?: { width?: number; height?: number }
+  options?: { width?: number; height?: number; kind?: "linkedin" | "github" | "portfolio" }
 ): React.ReactNode {
-  if (isLinkedInUrl(url)) {
+  if (options?.kind === "linkedin" || (!options?.kind && isLinkedInUrl(url))) {
     return LinkedInIcon(options);
   }
-  if (isGitHubUrl(url)) {
+  if (options?.kind === "github" || (!options?.kind && isGitHubUrl(url))) {
     return GitHubIcon(options);
   }
   return PortfolioIcon(options);

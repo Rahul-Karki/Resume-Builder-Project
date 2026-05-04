@@ -30,10 +30,10 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
   ].filter(Boolean) as Array<{ label: string; href: string }>;
 
   const socialItems = [
-    p.linkedin ? { href: toAbsoluteUrl(p.linkedin), label: "LinkedIn" } : null,
-    p.github ? { href: toAbsoluteUrl(p.github), label: "GitHub" } : null,
-    p.portfolio ? { href: toAbsoluteUrl(p.portfolio), label: "Website" } : null,
-  ].filter(Boolean) as Array<{ href: string; label: string }>;
+    p.linkedin ? { href: toAbsoluteUrl(p.linkedin), label: "LinkedIn", kind: "linkedin" as const } : null,
+    p.github ? { href: toAbsoluteUrl(p.github), label: "GitHub", kind: "github" as const } : null,
+    p.portfolio ? { href: toAbsoluteUrl(p.portfolio), label: "Website", kind: "portfolio" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; kind: "linkedin" | "github" | "portfolio" }>;
 
   const css = `
     .classic-wrap { width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
@@ -272,7 +272,7 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
                       title={item.label}
                       style={{ color: style.accentColor, border: `1px solid ${style.borderColor}`, background: style.backgroundColor }}
                     >
-                      {getSocialIconComponent(item.href, { width: 14, height: 14 })}
+                      {getSocialIconComponent(item.href, { width: 14, height: 14, kind: item.kind })}
                     </a>
                   ))}
                 </div>

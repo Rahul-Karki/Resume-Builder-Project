@@ -26,10 +26,10 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
   ].filter(Boolean) as Array<{ label: string; href: string }>;
 
   const socialItems = [
-    p.linkedin ? { href: toAbsoluteUrl(p.linkedin), label: "LinkedIn" } : null,
-    p.github ? { href: toAbsoluteUrl(p.github), label: "GitHub" } : null,
-    p.portfolio ? { href: toAbsoluteUrl(p.portfolio), label: "Website" } : null,
-  ].filter(Boolean) as Array<{ href: string; label: string }>;
+    p.linkedin ? { href: toAbsoluteUrl(p.linkedin), label: "LinkedIn", kind: "linkedin" as const } : null,
+    p.github ? { href: toAbsoluteUrl(p.github), label: "GitHub", kind: "github" as const } : null,
+    p.portfolio ? { href: toAbsoluteUrl(p.portfolio), label: "Website", kind: "portfolio" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; kind: "linkedin" | "github" | "portfolio" }>;
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&display=swap');
@@ -88,7 +88,7 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
             <div className="comp-social" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
               {socialItems.map((item, i) => (
                 <a key={i} className="comp-social-link" href={item.href} target="_blank" rel="noreferrer" aria-label={item.label} title={item.label}>
-                  {getSocialIconComponent(item.href, { width: 14, height: 14 })}
+                  {getSocialIconComponent(item.href, { width: 14, height: 14, kind: item.kind })}
                 </a>
               ))}
             </div>
