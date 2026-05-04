@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/services/api";
+import { Logo } from "../Logo";
 
 // ─── Navbar.tsx ───────────────────────────────────────────────────────────────
 // Sticky nav: transparent → solid on scroll
@@ -86,28 +87,9 @@ export function Navbar() {
     >
       <div style={{ display: "flex", alignItems: "center", minWidth: 0, flex: 1 }}>
         {/* Logo */}
-        <Link
-          to="/"
-          style={{
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            minHeight: 36,
-            padding: "2px 0",
-            fontWeight: 800,
-            fontSize: isCompact ? 15 : 17,
-            letterSpacing: "-0.2px",
-            color: "#F0EFE8",
-            flexShrink: 0,
-            lineHeight: 1,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <span>Resume</span>
-          <span style={{ color: "#C8F55A" }}>Studio</span>
-        </Link>
+        <Logo isCompact={isCompact} />
 
-        {/* Nav links */}
+        {/* Nav links */
         <div style={{ display: "flex", gap: isMobile ? 10 : 30, marginLeft: isMobile ? 12 : 36, overflowX: "auto", whiteSpace: "nowrap", maxWidth: isMobile ? "42%" : "none", scrollbarWidth: "none" }}>
           {[
             { label: "Templates", href: "/templates" },
