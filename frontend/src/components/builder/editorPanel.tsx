@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry } from "@/types/resume-types";
-import { isTechResumeTemplate } from "@/utils/resumeTemplate";
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
@@ -142,7 +141,7 @@ function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
 function PersonalSection() {
   const { resume, updatePersonalInfo } = useResumeBuilderStore();
   const p = resume.personalInfo;
-  const showTechLinks = isTechResumeTemplate(resume.templateId);
+  const showTechLinks = resume.templateCategory === "tech";
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>

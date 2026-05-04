@@ -132,6 +132,7 @@ export interface ResumeDocument {
   targetRole?: string;
   title: string;
   templateId: string;
+  templateCategory?: "tech" | "non-tech";
   personalInfo: PersonalInfo;
   sections: ResumeSections;
   style: ResumeStyle;

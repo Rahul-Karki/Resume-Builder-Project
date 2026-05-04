@@ -9,6 +9,7 @@ import {
 } from "@/types/resume-types";
 import { api } from "@/services/api";
 import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
+import { templates as localTemplateCatalog } from "@/data/templateMeta";
 
 // ─── Helper: generate IDs ──────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -276,6 +277,15 @@ const TEMPLATE_SECTION_VISIBILITY_PRESETS: Record<string, typeof defaultSectionV
   "community-impact": { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
 };
 
+const resolveTemplateCategory = (templateId: string, apiCategory?: string) => {
+  if (apiCategory === "tech" || apiCategory === "non-tech") {
+    return apiCategory;
+  }
+
+  const localTemplate = localTemplateCatalog.find((template) => template.id === templateId);
+  return localTemplate?.category ?? "non-tech";
+};
+
 const SECTION_KEYS: Array<keyof SectionVisibility> = [
   "experience",
   "education",
@@ -307,6 +317,7 @@ const resolveTemplateConfig = async (templateId: string) => {
     if (!matchedTemplate) {
       return {
         templateId: normalizedTemplateId,
+        templateCategory: resolveTemplateCategory(normalizedTemplateId),
         style: baseStyle,
         sectionVisibility: baseVisibility,
       };
@@ -331,6 +342,7 @@ const resolveTemplateConfig = async (templateId: string) => {
 
     return {
       templateId: normalizedTemplateId,
+      templateCategory: resolveTemplateCategory(normalizedTemplateId, matchedTemplate.category),
       style: resolvedStyle,
       sectionVisibility: {
         ...baseVisibility,
@@ -345,6 +357,7 @@ const resolveTemplateConfig = async (templateId: string) => {
   } catch {
     return {
       templateId: normalizedTemplateId,
+      templateCategory: resolveTemplateCategory(normalizedTemplateId),
       style: baseStyle,
       sectionVisibility: baseVisibility,
     };
@@ -723,6 +736,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         resume: {
           ...initialResume,
           templateId: resolvedTemplate.templateId,
+          templateCategory: resolvedTemplate.templateCategory,
           style: resolvedTemplate.style,
           sectionVisibility: resolvedTemplate.sectionVisibility,
           sectionOrder: [...defaultSectionOrder],
@@ -741,6 +755,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         resume: {
           ...s.resume,
           templateId: resolvedTemplate.templateId,
+          templateCategory: resolvedTemplate.templateCategory,
           style: resolvedTemplate.style,
           sectionVisibility: mergeTemplateVisibilityForExistingResume(currentResume, resolvedTemplate.sectionVisibility),
         },
@@ -789,6 +804,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...initialResume,
             ...preloadedResume,
             templateId: normalizeResumeTemplateId(preloadedResume.templateId),
+            templateCategory: resolveTemplateCategory(normalizeResumeTemplateId(preloadedResume.templateId), preloadedResume.templateCategory),
             personalInfo: {
               ...defaultPersonalInfo,
               ...(preloadedResume.personalInfo ?? {}),
@@ -835,6 +851,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...initialResume,
             ...loadedResume,
             templateId: normalizeResumeTemplateId(loadedResume?.templateId),
+            templateCategory: resolveTemplateCategory(normalizeResumeTemplateId(loadedResume?.templateId), loadedResume?.templateCategory),
             personalInfo: {
               ...defaultPersonalInfo,
               ...(loadedResume?.personalInfo ?? {}),
