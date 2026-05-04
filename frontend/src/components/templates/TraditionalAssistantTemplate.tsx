@@ -1,6 +1,7 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   formatCertification,
+  ExternalLinkIcon,
   formatDateRange,
   getDisplayBullets,
   getExperienceParagraph,
@@ -10,6 +11,7 @@ import {
   toAbsoluteUrl,
   toMailto,
   toTel,
+  getSocialIconComponent,
 } from "./templateHelpers";
 
 export function TraditionalAssistantTemplate({ data }: { data: ResumeDocument }) {
@@ -18,11 +20,13 @@ export function TraditionalAssistantTemplate({ data }: { data: ResumeDocument })
   const sectionGap = spacingMap[style.sectionSpacing];
 
   const contacts = [
-    p.email ? { label: p.email, href: toMailto(p.email) } : null,
-    p.phone ? { label: p.phone, href: toTel(p.phone) } : null,
-    p.location ? { label: p.location, href: "" } : null,
-    p.linkedin ? { label: "LinkedIn", href: toAbsoluteUrl(p.linkedin) } : null,
-  ].filter(Boolean) as Array<{ label: string; href: string }>;
+    p.email ? { label: p.email, href: toMailto(p.email), isLink: true, showIcon: false } : null,
+    p.phone ? { label: p.phone, href: toTel(p.phone), isLink: true, showIcon: false } : null,
+    p.location ? { label: p.location, href: "", isLink: false, showIcon: false } : null,
+    p.linkedin ? { label: "LinkedIn", href: toAbsoluteUrl(p.linkedin), isLink: true, showIcon: true } : null,
+    p.github ? { label: "GitHub", href: toAbsoluteUrl(p.github), isLink: true, showIcon: true } : null,
+    p.portfolio ? { label: "Website", href: toAbsoluteUrl(p.portfolio), isLink: true, showIcon: true } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string; isLink: boolean; showIcon: boolean }>;
 
   const css = `
     .tas-wrap { width: 100%; min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
@@ -76,8 +80,15 @@ export function TraditionalAssistantTemplate({ data }: { data: ResumeDocument })
           {contacts.length > 0 ? (
             <div className="tas-contact" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
               {contacts.map((item, index) => (
-                <span className="tas-contact-item" key={`${item.label}-${index}`}>
-                  {item.href ? <a className="tas-link" href={item.href} target="_blank" rel="noreferrer">{item.label}</a> : item.label}
+                <span className="tas-contact-item" key={`${item.label}-${index}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  {item.isLink ? (
+                    <a className="tas-link" href={item.href} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {item.showIcon && <span style={{ display: 'inline-flex', alignItems: 'center', color: style.accentColor }}>{getSocialIconComponent(item.href, { width: 12, height: 12 })}</span>}
+                      {!item.showIcon && item.label}
+                    </a>
+                  ) : (
+                    item.label
+                  )}
                 </span>
               ))}
             </div>
