@@ -18,6 +18,19 @@ const getBullmqConnection = () => {
     throw new Error("BULLMQ_REDIS_URL or REDIS_URL must be configured for resume downloads");
   }
 
+  if (redisUrl === "/") {
+    throw new Error("Invalid BullMQ Redis URL: '/' is not a valid Redis connection string. Set BULLMQ_REDIS_URL or REDIS_URL to a real Redis URL like redis://host:6379/0");
+  }
+
+  try {
+    const parsed = new URL(redisUrl);
+    if (!parsed.protocol.startsWith("redis")) {
+      throw new Error("Redis URL must use redis://, rediss://, or a supported Redis endpoint");
+    }
+  } catch (error) {
+    throw new Error(`Invalid BullMQ Redis URL: ${redisUrl}. ${(error as Error).message}`);
+  }
+
   return {
     url: redisUrl,
     connectTimeout: env.REDIS_CONNECT_TIMEOUT_MS,
