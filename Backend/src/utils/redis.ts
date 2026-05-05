@@ -11,7 +11,20 @@ let lastRedisFailureAt = 0;
 
 const REDIS_RETRY_COOLDOWN_MS = 30_000;
 
-const hasRedisConfiguration = Boolean(env.REDIS_URL);
+const isNativeRedisUrl = (value: string) => {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "redis:" || parsed.protocol === "rediss:";
+  } catch {
+    return false;
+  }
+};
+
+const hasRedisConfiguration = isNativeRedisUrl(env.REDIS_URL);
 const hasUpstashConfiguration = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
 
 const upstashBaseUrl = env.UPSTASH_REDIS_REST_URL.replace(/\/+$/, "");
