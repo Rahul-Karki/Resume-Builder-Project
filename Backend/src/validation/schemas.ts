@@ -234,6 +234,19 @@ const resumeSchema = z.object({
   }).strict().optional(),
 }).strict();
 
+const downloadResumeSchema = z.object({
+  resumeId: z.string().regex(objectIdRegex, "Invalid resumeId").optional(),
+  resume: resumeSchema.optional(),
+  preset: z.enum(["web", "standard", "print"]).optional(),
+}).strict().refine((data) => Boolean(data.resumeId) || Boolean(data.resume), {
+  message: "Either resumeId or resume must be provided",
+  path: ["resumeId"],
+});
+
+const jobStatusParamSchema = z.object({
+  id: z.string().min(1).max(200),
+}).strict();
+
 const createResumeSchema = resumeSchema;
 const updateResumeSchema = resumeSchema.partial().strict();
 
@@ -245,16 +258,19 @@ export {
   authSignupSchema,
   createResumeSchema,
   createTemplateSchema,
+  downloadResumeSchema,
   emptyObjectSchema,
   exportPresetSchema,
   googleLoginSchema,
   oauthLinkSchema,
   oauthUnlinkSchema,
+  jobStatusParamSchema,
   objectIdParamSchema,
   publicTemplateListQuerySchema,
   reorderTemplatesSchema,
   setTemplateStatusSchema,
   templateListQuerySchema,
+  resumeSchema,
   updateResumeSchema,
   updateTemplateSchema,
   usageSchema,

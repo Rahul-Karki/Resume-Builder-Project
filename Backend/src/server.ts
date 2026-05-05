@@ -4,6 +4,7 @@ import { env } from "./config/env";
 import { flushBackendSentry, initializeBackendSentry } from "./config/sentry";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
+import { closeResumeQueue } from "./queue/resumeQueue";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
 import { createAllIndexes } from "./config/indexes";
 import app from "./app";
@@ -49,6 +50,7 @@ const startServer = async () => {
     server.close(async () => {
       try {
         await closeRedisClient();
+        await closeResumeQueue();
         logger.info("Shutdown completed successfully");
         process.exit(0);
       } catch (error) {

@@ -35,12 +35,19 @@ const baseEnvSchema = z.object({
   ENABLE_METRICS: booleanFromEnv.default(true),
   METRICS_PATH: z.string().default("/metrics"),
   REDIS_URL: z.string().optional().default(""),
+  BULLMQ_REDIS_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(""),
   REDIS_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(5000),
   REDIS_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).default(300),
   REDIS_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(900000),
   REDIS_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(100),
+  RESUME_DOWNLOAD_QUEUE_PREFIX: z.string().min(1).default("resume-builder"),
+  RESUME_DOWNLOAD_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(2),
+  RESUME_DOWNLOAD_JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
+  RESUME_DOWNLOAD_BACKOFF_DELAY_MS: z.coerce.number().int().min(1000).default(5000),
+  RESUME_DOWNLOAD_STORAGE_DIR: z.string().optional().default(""),
+  RESUME_DOWNLOAD_PUBLIC_BASE_URL: z.string().optional().default(""),
   GRAFANA_OTLP_ENDPOINT: z.string().url().optional(),
   OTEL_INSTANCE_ID: z.string().optional().default(""),
   OTLP_INSTANCE_ID: z.string().optional().default(""),
@@ -103,6 +110,18 @@ const envSchema = baseEnvSchema
       }
     }
 
+    if (value.BULLMQ_REDIS_URL) {
+      try {
+        new URL(value.BULLMQ_REDIS_URL);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["BULLMQ_REDIS_URL"],
+          message: "BULLMQ_REDIS_URL must be a valid Redis connection URL",
+        });
+      }
+    }
+
     if (value.UPSTASH_REDIS_REST_URL) {
       try {
         new URL(value.UPSTASH_REDIS_REST_URL);
@@ -144,6 +163,7 @@ const envSchema = baseEnvSchema
     SENTRY_DSN: value.SENTRY_DSN.trim(),
     SENTRY_ENVIRONMENT: value.SENTRY_ENVIRONMENT.trim(),
     REDIS_URL: value.REDIS_URL.trim(),
+    BULLMQ_REDIS_URL: value.BULLMQ_REDIS_URL.trim(),
     UPSTASH_REDIS_REST_URL: value.UPSTASH_REDIS_REST_URL.trim(),
     UPSTASH_REDIS_REST_TOKEN: value.UPSTASH_REDIS_REST_TOKEN.trim(),
   }));

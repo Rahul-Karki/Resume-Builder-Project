@@ -1,6 +1,11 @@
 import express from "express";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { env } from "../config/env";
+import {
+  downloadResume,
+  downloadResumeResult,
+  getResumeDownloadJobStatus,
+} from "../controllers/resumeDownloadController";
 import { getExportPreset } from "../controllers/resumeEnhancementController";
 import {
   createResume as baseCreateResume,
@@ -15,6 +20,8 @@ import { validateRequest } from "../middleware/validateRequest";
 import {
   createResumeSchema,
   exportPresetSchema,
+  downloadResumeSchema,
+  jobStatusParamSchema,
   objectIdParamSchema,
   updateResumeSchema,
 } from "../validation/schemas";
@@ -39,6 +46,10 @@ const resumeExportLimiter = createRedisRateLimitMiddleware({
 });
 
 router.use(authMiddleware);
+
+router.post("/download-resume", validateRequest({ body: downloadResumeSchema }), resumeExportLimiter, downloadResume);
+router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
+router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
 
 router.get(
   "/",
