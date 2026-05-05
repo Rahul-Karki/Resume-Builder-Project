@@ -54,7 +54,8 @@ const processJob = async (job: Job<ResumeDownloadJobData>) => {
     await updateJobRecord(job.id!, {
       status: "completed",
       resultUrl: artifact.resultUrl,
-      resultPath: artifact.filePath,
+      fileName: artifact.fileName,
+      fileData: artifact.pdfBuffer,
       attemptsMade: attemptNumber,
       completedAt: new Date(),
       durationMs: Date.now() - startedAt,

@@ -1,8 +1,5 @@
 import crypto from "crypto";
-import fs from "fs/promises";
-import path from "path";
 import { browserPool } from "../utils/browserPool";
-import { env } from "../config/env";
 
 type ResumeSnapshot = Record<string, unknown> & {
   title?: unknown;
@@ -14,7 +11,7 @@ type ResumeSnapshot = Record<string, unknown> & {
 
 export type ResumeDownloadArtifact = {
   fileName: string;
-  filePath: string;
+  pdfBuffer: Buffer;
   resultUrl: string;
   mimeType: "application/pdf";
 };
@@ -223,25 +220,15 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
   `;
 };
 
-const resolveStorageDir = () => env.RESUME_DOWNLOAD_STORAGE_DIR || path.join(process.cwd(), "storage", "resume-downloads");
-
-const buildDownloadBaseUrl = () => env.RESUME_DOWNLOAD_PUBLIC_BASE_URL.replace(/\/$/, "");
-
 export const resolveResumeDownloadUrl = (jobId: string, fileName: string) => {
-  const baseUrl = buildDownloadBaseUrl();
-
-  if (baseUrl) {
-    return `${baseUrl}/${encodeURIComponent(fileName)}`;
-  }
-
   return `/api/resumes/download-result/${encodeURIComponent(jobId)}`;
 };
 
 export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: string, jobId: string): Promise<ResumeDownloadArtifact> => {
   const browser = await browserPool.acquire();
   const fileName = `${jobId}.pdf`;
-  const filePath = path.join(resolveStorageDir(), fileName);
   const html = buildResumeHtml(resume, preset);
+  let pdfBuffer: Buffer | null = null;
 
   try {
     const page = await browser.newPage();
@@ -251,7 +238,7 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
       await page.setContent(html, { waitUntil: "networkidle0" });
       await page.emulateMediaType("screen");
 
-      const pdfBuffer = await page.pdf({
+      const generatedBuffer = await page.pdf({
         format: "A4",
         printBackground: true,
         preferCSSPageSize: true,
@@ -263,8 +250,7 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
         },
       });
 
-      await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.writeFile(filePath, pdfBuffer);
+      pdfBuffer = Buffer.isBuffer(generatedBuffer) ? generatedBuffer : Buffer.from(generatedBuffer);
     } finally {
       await page.close().catch(() => undefined);
     }
@@ -272,9 +258,13 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
     browserPool.release(browser);
   }
 
+  if (!pdfBuffer) {
+    throw new Error("Failed to generate resume PDF buffer");
+  }
+
   return {
     fileName,
-    filePath,
+    pdfBuffer,
     resultUrl: resolveResumeDownloadUrl(jobId, fileName),
     mimeType: "application/pdf",
   };

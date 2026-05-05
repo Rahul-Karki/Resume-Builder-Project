@@ -362,6 +362,28 @@ OTEL_TRACES_SAMPLER_ARG=0.1
 
 ---
 
+## Background Workers
+
+Resume PDF generation runs through BullMQ, so production needs a separate worker process in addition to the API server.
+
+### Render Deployment
+
+1. Deploy the API as the `web` service using `npm start`.
+2. Deploy the queue processor as a separate `worker` service using `npm run worker:resume-download`.
+3. Give both services the same MongoDB, Redis, auth, and Sentry environment variables.
+4. Set `BULLMQ_REDIS_URL` if you want the queue to use a dedicated Redis instance instead of the shared cache/rate-limit Redis.
+5. No shared filesystem is required for the download path. The worker stores the generated PDF bytes in MongoDB and the API streams them back from the job record.
+
+### Production Verification
+
+1. Call `POST /api/resumes/download-resume` against the production API.
+2. Confirm the response is `202 Accepted` and includes a `jobId`.
+3. Watch the worker logs for `Resume download job started` and `Resume download job completed`.
+4. Poll `GET /api/resumes/job-status/:id` until the job becomes `completed` or `failed`.
+5. Download the PDF from the returned `downloadUrl` once the job is complete.
+
+---
+
 ## Deployment Checklist
 
 ### Pre-Deployment

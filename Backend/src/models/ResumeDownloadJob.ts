@@ -8,6 +8,8 @@ export interface IResumeDownloadJob extends Document {
   resumeId?: mongoose.Types.ObjectId;
   preset: "web" | "standard" | "print";
   status: ResumeDownloadJobStatus;
+  fileName?: string;
+  fileData?: Buffer;
   resultUrl?: string;
   resultPath?: string;
   attemptsMade: number;
@@ -29,6 +31,8 @@ const ResumeDownloadJobSchema = new Schema<IResumeDownloadJob>(
     resumeId: { type: Schema.Types.ObjectId, ref: "Resume", default: undefined, index: true },
     preset: { type: String, enum: ["web", "standard", "print"], required: true, default: "standard" },
     status: { type: String, enum: ["pending", "completed", "failed"], required: true, default: "pending" },
+    fileName: { type: String, default: "" },
+    fileData: { type: Buffer, default: undefined },
     resultUrl: { type: String, default: "" },
     resultPath: { type: String, default: "" },
     attemptsMade: { type: Number, default: 0 },

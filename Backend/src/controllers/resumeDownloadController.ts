@@ -60,6 +60,30 @@ const resolveResumeSnapshot = async (userId: string, body: ResumeDownloadBody) =
   });
 };
 
+const toBuffer = (value: unknown) => {
+  if (Buffer.isBuffer(value)) {
+    return value;
+  }
+
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value);
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as { data?: unknown; buffer?: unknown };
+
+    if (Array.isArray(record.data)) {
+      return Buffer.from(record.data as number[]);
+    }
+
+    if (record.buffer instanceof ArrayBuffer) {
+      return Buffer.from(record.buffer);
+    }
+  }
+
+  return null;
+};
+
 export const downloadResume: RequestHandler = async (req, res) => {
   const span = startControllerSpan("resumeDownload.downloadResume", req);
   let jobId = "";
@@ -110,6 +134,8 @@ export const downloadResume: RequestHandler = async (req, res) => {
         queuedAt: new Date(),
         attemptsMade: 0,
         totalAttempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
+        fileName: "",
+        fileData: undefined,
         resultUrl: "",
         resultPath: "",
         lastError: "",
@@ -202,7 +228,21 @@ export const downloadResumeResult: RequestHandler = async (req, res) => {
 
     const job = await ResumeDownloadJob.findOne({ jobId: req.params.id, userId }).lean();
 
-    if (!job || job.status !== "completed" || !job.resultPath) {
+    if (!job || job.status !== "completed") {
+      throw new NotFoundError("Downloaded resume not ready");
+    }
+
+    const buffer = toBuffer((job as { fileData?: unknown }).fileData);
+
+    if (buffer) {
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="${(job as { fileName?: string }).fileName || `${job.jobId}.pdf`}"`);
+      res.status(200).send(buffer);
+      markSpanSuccess(span);
+      return;
+    }
+
+    if (!job.resultPath) {
       throw new NotFoundError("Downloaded resume not ready");
     }
 
