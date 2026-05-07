@@ -5,6 +5,7 @@ import {
   downloadResume,
   downloadResumeResult,
   getResumeDownloadJobStatus,
+  getResumeQueueMetrics,
 } from "../controllers/resumeDownloadController";
 import { getExportPreset } from "../controllers/resumeEnhancementController";
 import {
@@ -48,6 +49,7 @@ const resumeExportLimiter = createRedisRateLimitMiddleware({
 router.use(authMiddleware);
 
 router.post("/download-resume", validateRequest({ body: downloadResumeSchema }), resumeExportLimiter, downloadResume);
+router.get("/queue-metrics", getResumeQueueMetrics);
 router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
 router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
 

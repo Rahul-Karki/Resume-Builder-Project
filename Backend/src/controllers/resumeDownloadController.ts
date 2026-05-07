@@ -3,7 +3,7 @@ import path from "path";
 import type { Request, RequestHandler, Response } from "express";
 import Resume from "../models/Resume";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
-import { enqueueResumeDownloadJob } from "../queue/resumeQueue";
+import { enqueueResumeDownloadJob, getResumeQueue } from "../queue/resumeQueue";
 import { env } from "../config/env";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { logger } from "../observability";
@@ -257,6 +257,36 @@ export const downloadResumeResult: RequestHandler = async (req, res) => {
     markSpanError(span, error as Error, "Failed to download resume result");
     logger.error({ error, jobId: req.params.id }, "Failed to download resume result");
     sendErrorResponse(res, error, { statusCode: 404, code: "NOT_FOUND", message: "Downloaded resume not found" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const getResumeQueueMetrics: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeDownload.getResumeQueueMetrics", req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const queue = getResumeQueue();
+    const queueCounts = await queue.getJobCounts();
+
+    const agg = await ResumeDownloadJob.aggregate([
+      { $match: { userId } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]).exec();
+
+    const dbCounts: Record<string, number> = {};
+    for (const row of agg) {
+      dbCounts[row._id] = row.count;
+    }
+
+    markSpanSuccess(span);
+    res.status(200).json({ queueCounts, dbCounts });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to fetch queue metrics");
+    logger.error({ error }, "Failed to fetch resume queue metrics");
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
