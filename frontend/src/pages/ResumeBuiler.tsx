@@ -1,6 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { renderToStaticMarkup } from "react-dom/server";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
 import { EditorPanel } from "@/components/builder/editorPanel";
@@ -8,7 +7,7 @@ import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
-import { getResumeExportPreset } from "@/services/api";
+import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
@@ -90,145 +89,88 @@ function SectionsTab() {
   );
 }
 
-// ─── PDF Download (browser print approach) ────────────────────────────────────
+const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 2000;
+const RESUME_DOWNLOAD_MAX_POLLS = 120;
+
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const sanitizeFileName = (value: string) => value.replace(/[<>:"/\\|?*\x00-\x1F]/g, "-").replace(/\s+/g, " ").trim() || "resume";
+
+const buildDownloadFileName = (resume: ResumeDocument, preset: string) => `${sanitizeFileName(resume.title || "resume")}-${preset}.pdf`;
+
+const triggerBlobDownload = async (downloadUrl: string, fileName: string) => {
+  const response = await api.get(downloadUrl, { responseType: "blob" });
+  const blob = response.data instanceof Blob
+    ? response.data
+    : new Blob([response.data], { type: response.headers["content-type"] || "application/pdf" });
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+
+  window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+};
+
+const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
+  for (let attempt = 1; attempt <= RESUME_DOWNLOAD_MAX_POLLS; attempt += 1) {
+    const status = await getResumeDownloadJobStatus(jobId);
+
+    if (status.status === "completed") {
+      return status;
+    }
+
+    if (status.status === "failed") {
+      throw new Error(status.lastError || "Resume download failed");
+    }
+
+    onStatus?.(`Generating PDF... (${attempt}/${RESUME_DOWNLOAD_MAX_POLLS})`);
+    await sleep(RESUME_DOWNLOAD_POLL_INTERVAL_MS);
+  }
+
+  throw new Error("Resume download is taking longer than expected. Please try again later.");
+};
+
 async function downloadResume(
   resume: ResumeDocument,
   preset: "web" | "standard" | "print",
   resumeId?: string,
   onStatus?: (status: string) => void,
 ) {
-  const resumeMarkup = renderToStaticMarkup(<ResumeRenderer resume={resume} forExport />);
-  onStatus?.("Preparing export payload...");
+  onStatus?.("Queuing PDF export...");
 
-  if (resumeId) {
-    try {
-      onStatus?.("Resolving export preset...");
-      await getResumeExportPreset(resumeId, preset);
-    } catch {
-      // Keep browser export available even if preset endpoint fails.
-    }
+  const queueResponse = await queueResumeDownload(
+    resumeId
+      ? { resumeId, preset }
+      : { resume, preset },
+  );
+
+  const fileName = buildDownloadFileName(resume, preset);
+  const initialDownloadUrl = queueResponse.resultUrl || queueResponse.downloadUrl;
+
+  if (queueResponse.status === "failed") {
+    throw new Error(queueResponse.message || "Resume download failed");
   }
 
-  const printHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>${resume.title} (${preset})</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@300;400;700&family=Lora:wght@400;600&family=Outfit:wght@300;400;500;600&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet">
-      <style>
-        @page { size: A4; margin: 0; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width: 210mm; height: 297mm; }
-        body {
-          overflow: hidden;
-          print-color-adjust: exact;
-          -webkit-print-color-adjust: exact;
-        }
-        .pdf-page {
-          width: 210mm;
-          height: 297mm;
-          min-height: 297mm;
-          overflow: hidden;
-        }
-        .pdf-page > * {
-          width: 100% !important;
-          max-width: 100% !important;
-        }
-        @media print {
-          html, body, .pdf-page {
-            width: 210mm;
-            height: 297mm;
-            min-height: 297mm;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="pdf-page">${resumeMarkup}</div>
-    </body>
-    </html>
-  `;
-
-  const printedViaFrame = await new Promise<boolean>((resolve) => {
-    const frame = document.createElement("iframe");
-    frame.style.position = "fixed";
-    frame.style.right = "0";
-    frame.style.bottom = "0";
-    frame.style.width = "0";
-    frame.style.height = "0";
-    frame.style.opacity = "0";
-    frame.style.pointerEvents = "none";
-
-    let done = false;
-    const finish = (result: boolean) => {
-      if (done) return;
-      done = true;
-      window.setTimeout(() => frame.remove(), 1000);
-      resolve(result);
-    };
-
-    const safetyTimer = window.setTimeout(() => finish(false), 6500);
-
-    frame.addEventListener("load", () => {
-      const targetWindow = frame.contentWindow;
-      if (!targetWindow) {
-        window.clearTimeout(safetyTimer);
-        finish(false);
-        return;
-      }
-
-      const attemptPrint = () => {
-        try {
-          targetWindow.focus();
-          targetWindow.print();
-          window.clearTimeout(safetyTimer);
-          finish(true);
-        } catch {
-          window.clearTimeout(safetyTimer);
-          finish(false);
-        }
-      };
-
-      const fonts = targetWindow.document?.fonts;
-      if (fonts?.ready) {
-        fonts.ready.then(() => window.setTimeout(attemptPrint, 120)).catch(() => window.setTimeout(attemptPrint, 120));
-      } else {
-        window.setTimeout(attemptPrint, 180);
-      }
-    }, { once: true });
-
-    document.body.appendChild(frame);
-
-    const frameDoc = frame.contentDocument;
-    if (frameDoc) {
-      frameDoc.open();
-      frameDoc.write(printHtml);
-      frameDoc.close();
-    } else {
-      frame.srcdoc = printHtml;
-    }
-  });
-
-  if (printedViaFrame) {
+  if (queueResponse.status === "completed" && initialDownloadUrl) {
+    onStatus?.("Downloading PDF...");
+    await triggerBlobDownload(initialDownloadUrl, fileName);
     return;
   }
 
-  const printWindow = window.open("", "_blank", "noopener,noreferrer");
-  if (!printWindow) {
-    window.alert("Could not open print dialog. Please allow popups for this site or disable popup-blocking extensions, then try again.");
-    return;
+  onStatus?.("Generating PDF...");
+  const completedJob = await waitForResumeDownload(queueResponse.jobId, onStatus);
+  const downloadUrl = completedJob.resultUrl || initialDownloadUrl;
+
+  if (!downloadUrl) {
+    throw new Error("Resume download finished without a download URL.");
   }
 
-  printWindow.document.write(printHtml);
-
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 800);
+  onStatus?.("Downloading PDF...");
+  await triggerBlobDownload(downloadUrl, fileName);
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────

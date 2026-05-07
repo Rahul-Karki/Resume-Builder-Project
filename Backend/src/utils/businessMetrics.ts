@@ -116,6 +116,13 @@ export const pdfExportFailureCounter = meter.createCounter(
 );
 
 /**
+ * Counter for PDF export retries (non-final failures)
+ */
+export const pdfExportRetryCounter = meter.createCounter("pdf_exports_retries_total", {
+  description: "Total PDF export retry attempts (non-final failures)",
+});
+
+/**
  * Histogram for PDF export duration (milliseconds)
  */
 export const pdfExportDurationHistogram = meter.createHistogram(
@@ -266,6 +273,13 @@ export function recordPdfExportSuccess(durationMs: number, preset: string) {
  */
 export function recordPdfExportFailure(reason: string) {
   pdfExportFailureCounter.add(1, { reason });
+}
+
+/**
+ * Record a retry attempt (job failed but will be retried)
+ */
+export function recordPdfExportRetry(reason?: string) {
+  pdfExportRetryCounter.add(1, reason ? { reason } : {});
 }
 
 /**

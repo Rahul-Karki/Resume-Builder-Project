@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ExportPreset } from "@/types/resume-types";
+import { ExportPreset, ResumeDocument } from "@/types/resume-types";
 
 type RetriableConfig = {
   _retry?: boolean;
@@ -68,9 +68,48 @@ export const api = axios.create({
   timeout: 15000,
 });
 
+export type ResumeDownloadRequest = {
+  resumeId?: string;
+  resume?: ResumeDocument;
+  preset: ExportPreset;
+};
+
+export type ResumeDownloadQueueResponse = {
+  message: string;
+  jobId: string;
+  statusUrl: string;
+  downloadUrl: string;
+  resultUrl?: string | null;
+  status?: "pending" | "completed" | "failed";
+};
+
+export type ResumeDownloadJobStatusResponse = {
+  jobId: string;
+  status: "pending" | "completed" | "failed";
+  resultUrl: string | null;
+  attemptsMade: number;
+  totalAttempts: number;
+  lastError: string | null;
+  queuedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  durationMs: number | null;
+};
+
 export const getResumeExportPreset = async (resumeId: string, preset: ExportPreset) => {
   const response = await api.post(`/resumes/${resumeId}/export-pdf`, { preset });
   return response.data?.export as { preset: ExportPreset; options: { scale: number }; filename: string };
+};
+
+export const queueResumeDownload = async (payload: ResumeDownloadRequest) => {
+  const response = await api.post("/resumes/download-resume", payload);
+  return response.data as ResumeDownloadQueueResponse;
+};
+
+export const getResumeDownloadJobStatus = async (jobId: string) => {
+  const response = await api.get(`/resumes/job-status/${encodeURIComponent(jobId)}`);
+  return response.data as ResumeDownloadJobStatusResponse;
 };
 
 export async function bootstrapAuthSession() {

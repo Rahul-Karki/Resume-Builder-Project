@@ -4,7 +4,7 @@ import connectDB from "../config/db";
 import { initializeBackendSentry, captureBackendException, flushBackendSentry } from "../config/sentry";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
 import { logger, tracer } from "../observability";
-import { recordPdfExportFailure, recordPdfExportSuccess, updatePdfExportQueue } from "../utils/businessMetrics";
+import { recordPdfExportFailure, recordPdfExportSuccess, updatePdfExportQueue, recordPdfExportRetry } from "../utils/businessMetrics";
 import { generateResumePdfArtifact } from "../services/resumeDownloadService";
 import type { ResumeDownloadJobData } from "../queue/resumeQueue";
 import { SpanStatusCode } from "@opentelemetry/api";
@@ -90,7 +90,12 @@ const processJob = async (job: Job<ResumeDownloadJobData>) => {
       durationMs: Date.now() - startedAt,
     });
 
-    recordPdfExportFailure(errorMessage);
+    if (!finalFailure) {
+      // Job will be retried by BullMQ; record a retry metric
+      recordPdfExportRetry(errorMessage);
+    } else {
+      recordPdfExportFailure(errorMessage);
+    }
     logger.error({ error, jobId: job.id, attemptNumber, finalFailure }, "Resume download job failed");
     captureBackendException(error, undefined);
     trace.recordException(error instanceof Error ? error : new Error(errorMessage));

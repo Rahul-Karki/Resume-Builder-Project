@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { Queue, type JobsOptions } from "bullmq";
 import { env } from "../config/env";
+import { logger } from "../observability";
 
 export type ResumeDownloadPreset = "web" | "standard" | "print";
 
@@ -105,6 +106,8 @@ export const closeResumeQueue = async () => {
 export const enqueueResumeDownloadJob = async (data: ResumeDownloadJobData) => {
   const queue = getResumeQueue();
   const jobId = createResumeDownloadJobId(data);
+
+  logger.info({ jobId, userId: data.userId, preset: data.preset }, "Enqueuing resume download job");
 
   return queue.add("generate-resume-pdf", data, {
     jobId,
