@@ -214,7 +214,7 @@ export const analyzeAts: RequestHandler = async (req, res) => {
         userId,
         ...analysis,
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
     );
 
     logger.info({ userId, resumeId: req.params.id }, "ATS analysis generated");
@@ -261,7 +261,7 @@ export const applyAtsSuggestion: RequestHandler = async (req, res) => {
     const updated = await Resume.findOneAndUpdate(
       { _id: req.params.id, userId },
       mutable,
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
 
     if (!updated) {
@@ -407,7 +407,7 @@ export const restoreResumeVersion: RequestHandler = async (req, res) => {
     const restored = await Resume.findOneAndUpdate(
       { _id: req.params.id, userId },
       snapshot,
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
 
     if (!restored) {

@@ -107,9 +107,43 @@ export const getResumeQueue = () => {
         },
       } satisfies JobsOptions,
     });
+
+    // Add error handlers to the queue connection
+    resumeQueueInstance.on("error", (error) => {
+      logger.error({ error, queueName: resumeDownloadQueueName }, "Resume queue connection error");
+    });
   }
 
   return resumeQueueInstance;
+};
+
+export const ensureResumeQueueReady = async () => {
+  const queue = getResumeQueue();
+  try {
+    await queue.client.ping();
+    const runtimeInfo = getResumeQueueRuntimeInfo();
+    logger.info(
+      {
+        queueName: resumeDownloadQueueName,
+        ...runtimeInfo,
+      },
+      "Resume queue Redis connection verified",
+    );
+  } catch (error) {
+    const runtimeInfo = getResumeQueueRuntimeInfo();
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(
+      {
+        error: errorMessage,
+        queueName: resumeDownloadQueueName,
+        ...runtimeInfo,
+      },
+      "Failed to verify resume queue Redis connection",
+    );
+    throw new Error(
+      `Resume download queue unavailable: ${errorMessage}. Ensure BULLMQ_REDIS_URL or REDIS_URL is properly configured.`,
+    );
+  }
 };
 
 export const closeResumeQueue = async () => {
@@ -127,34 +161,54 @@ export const enqueueResumeDownloadJob = async (data: ResumeDownloadJobData) => {
 
   logger.info({ jobId, userId: data.userId, preset: data.preset }, "Enqueuing resume download job");
 
-  return queue.add("generate-resume-pdf", data, {
-    jobId,
-    attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
-    backoff: {
-      type: "exponential",
-      delay: env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS,
-    },
-    removeOnComplete: {
-      age: 60 * 60 * 24,
-      count: 2000,
-    },
-    removeOnFail: {
-      age: 60 * 60 * 24 * 7,
-      count: 5000,
-    },
-  });
+  try {
+    const job = await queue.add("generate-resume-pdf", data, {
+      jobId,
+      attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
+      backoff: {
+        type: "exponential",
+        delay: env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS,
+      },
+      removeOnComplete: {
+        age: 60 * 60 * 24,
+        count: 2000,
+      },
+      removeOnFail: {
+        age: 60 * 60 * 24 * 7,
+        count: 5000,
+      },
+    });
+
+    logger.info({ jobId, userId: data.userId, jobStatus: job.id }, "Resume download job successfully enqueued");
+    return job;
+  } catch (error) {
+    logger.error(
+      { jobId, userId: data.userId, error: error instanceof Error ? error.message : String(error) },
+      "Failed to enqueue resume download job",
+    );
+    throw error;
+  }
 };
 
 export const requeueResumeDownloadJob = async (data: ResumeDownloadJobData) => {
   const queue = getResumeQueue();
   const jobId = createResumeDownloadJobId(data);
-  const existingQueueJob = await queue.getJob(jobId);
 
-  if (existingQueueJob) {
-    const state = await existingQueueJob.getState().catch(() => "unknown");
-    logger.info({ jobId, state }, "Removing existing BullMQ job before requeue");
-    await existingQueueJob.remove();
+  try {
+    const existingQueueJob = await queue.getJob(jobId);
+
+    if (existingQueueJob) {
+      const state = await existingQueueJob.getState().catch(() => "unknown");
+      logger.info({ jobId, state }, "Removing existing BullMQ job before requeue");
+      await existingQueueJob.remove();
+    }
+
+    return enqueueResumeDownloadJob(data);
+  } catch (error) {
+    logger.error(
+      { jobId, userId: data.userId, error: error instanceof Error ? error.message : String(error) },
+      "Failed to requeue resume download job",
+    );
+    throw error;
   }
-
-  return enqueueResumeDownloadJob(data);
 };

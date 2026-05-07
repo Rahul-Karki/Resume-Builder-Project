@@ -105,7 +105,7 @@ const writeHeartbeat = async (status: "starting" | "ready" | "closing" | "error"
         ...details,
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   ).catch((error) => {
     logger.warn({ error, workerId, status }, "Failed to write resume worker heartbeat");
   });

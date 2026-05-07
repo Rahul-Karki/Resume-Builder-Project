@@ -194,7 +194,7 @@ export const downloadResume: RequestHandler = async (req, res) => {
         resultPath: "",
         lastError: "",
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
     );
 
     await enqueueResumeDownloadJob({
@@ -229,8 +229,13 @@ export const downloadResume: RequestHandler = async (req, res) => {
       ).catch(() => undefined);
     }
 
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
     markSpanError(span, error as Error, "Failed to queue resume download");
-    logger.error({ error, resumeId: req.body?.resumeId }, "Failed to queue resume download");
+    logger.error(
+      { error, errorMessage, errorStack, resumeId: req.body?.resumeId, jobId, userId: req.user?.id },
+      "Failed to queue resume download",
+    );
     sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);

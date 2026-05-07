@@ -56,7 +56,7 @@ TemplateUsageSchema.statics.recordUse = async function (
   await this.findOneAndUpdate(
     { templateId, date: bucket },
     { $inc: inc, $setOnInsert: { layoutId } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 };
 
