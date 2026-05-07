@@ -68,6 +68,8 @@ services:
         value: 5
       - key: RESUME_DOWNLOAD_BACKOFF_DELAY_MS
         value: 5000
+      - key: RESUME_DOWNLOAD_STALE_PENDING_MS
+        value: 900000
   - type: worker
     name: resume-builder-backend-worker
     runtime: node
@@ -135,3 +137,5 @@ services:
         value: 5
       - key: RESUME_DOWNLOAD_BACKOFF_DELAY_MS
         value: 5000
+      - key: RESUME_DOWNLOAD_STALE_PENDING_MS
+        value: 900000

@@ -3,7 +3,7 @@ import path from "path";
 import type { Request, RequestHandler, Response } from "express";
 import Resume from "../models/Resume";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
-import { enqueueResumeDownloadJob, getResumeQueue } from "../queue/resumeQueue";
+import { enqueueResumeDownloadJob, getResumeQueue, requeueResumeDownloadJob } from "../queue/resumeQueue";
 import { env } from "../config/env";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { logger } from "../observability";
@@ -21,6 +21,7 @@ type ResumeDownloadBody = {
 };
 
 const allowedPresets = new Set(["web", "standard", "print"]);
+const stalePendingJobMs = env.RESUME_DOWNLOAD_STALE_PENDING_MS;
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -103,6 +104,59 @@ export const downloadResume: RequestHandler = async (req, res) => {
     const existingJob = await ResumeDownloadJob.findOne({ jobId, userId }).lean();
 
     if (existingJob) {
+      const existingQueuedAt = existingJob.queuedAt ? new Date(existingJob.queuedAt).getTime() : Date.now();
+      const pendingIsStale = existingJob.status === "pending" && Date.now() - existingQueuedAt > stalePendingJobMs;
+
+      if (existingJob.status === "failed" || pendingIsStale) {
+        await ResumeDownloadJob.updateOne(
+          { jobId, userId },
+          {
+            $set: {
+              status: "pending",
+              queuedAt: new Date(),
+              attemptsMade: 0,
+              totalAttempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
+              fileName: "",
+              resultUrl: "",
+              resultPath: "",
+              lastError: "",
+            },
+            $unset: {
+              startedAt: "",
+              completedAt: "",
+              failedAt: "",
+              fileData: "",
+              durationMs: "",
+            },
+          },
+        );
+
+        await requeueResumeDownloadJob({
+          userId,
+          preset,
+          resumeId: snapshot.resumeId,
+          resume: snapshot.resume,
+          requestId: req.traceId ?? req.correlationId,
+        });
+
+        updatePdfExportQueue(1);
+        logger.info(
+          { userId, jobId, previousStatus: existingJob.status, pendingIsStale },
+          "Resume download job requeued",
+        );
+        markSpanSuccess(span);
+        res.status(202).json({
+          message: existingJob.status === "failed"
+            ? "Resume download requeued after previous failure"
+            : "Resume download requeued after stale pending job",
+          jobId,
+          statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
+          downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,
+          status: "pending",
+        });
+        return;
+      }
+
       const resultUrl = existingJob.resultUrl || resolveResumeDownloadUrl(existingJob.jobId, createResumeDownloadFileName(existingJob.jobId));
       const responseStatus = existingJob.status === "pending" ? 202 : 200;
 
@@ -111,9 +165,7 @@ export const downloadResume: RequestHandler = async (req, res) => {
       res.status(responseStatus).json({
         message: existingJob.status === "completed"
           ? "Resume download already completed"
-          : existingJob.status === "failed"
-            ? "Resume download previously failed"
-            : "Resume download already queued",
+          : "Resume download already queued",
         jobId: existingJob.jobId,
         statusUrl: `/api/resumes/job-status/${encodeURIComponent(existingJob.jobId)}`,
         downloadUrl: `/api/resumes/download-result/${encodeURIComponent(existingJob.jobId)}`,

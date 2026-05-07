@@ -1,45 +1,21 @@
-import { Worker, type Job } from "bullmq";
+import crypto from "crypto";
+import { QueueEvents, Worker, type Job } from "bullmq";
 import { env } from "../config/env";
 import connectDB from "../config/db";
 import { initializeBackendSentry, captureBackendException, flushBackendSentry } from "../config/sentry";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
+import WorkerHeartbeat from "../models/WorkerHeartbeat";
 import { logger, tracer } from "../observability";
 import { recordPdfExportFailure, recordPdfExportSuccess, updatePdfExportQueue, recordPdfExportRetry } from "../utils/businessMetrics";
 import { generateResumePdfArtifact } from "../services/resumeDownloadService";
 import type { ResumeDownloadJobData } from "../queue/resumeQueue";
+import { getBullmqConnection, getResumeQueueRuntimeInfo, resumeDownloadQueueName } from "../queue/resumeQueue";
 import { SpanStatusCode } from "@opentelemetry/api";
 
 initializeBackendSentry();
 
-const getBullmqConnection = () => {
-  const redisUrl = env.BULLMQ_REDIS_URL || env.REDIS_URL;
-
-  if (!redisUrl) {
-    throw new Error("BULLMQ_REDIS_URL or REDIS_URL must be configured for resume downloads");
-  }
-
-  if (redisUrl === "/") {
-    throw new Error("Invalid BullMQ Redis URL: '/' is not a valid Redis connection string. Set BULLMQ_REDIS_URL or REDIS_URL to a real Redis URL like redis://host:6379/0");
-  }
-
-  try {
-    const parsed = new URL(redisUrl);
-    if (!parsed.protocol.startsWith("redis")) {
-      throw new Error("Redis URL must use redis://, rediss://, or a supported Redis endpoint");
-    }
-  } catch (error) {
-    throw new Error(`Invalid BullMQ Redis URL: ${redisUrl}. ${(error as Error).message}`);
-  }
-
-  return {
-    url: redisUrl,
-    connectTimeout: env.REDIS_CONNECT_TIMEOUT_MS,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    lazyConnect: true,
-    connectionName: `${env.SERVICE_NAME}-resume-download-worker`,
-  };
-};
+const workerId = `${env.SERVICE_NAME}-${crypto.randomUUID()}`;
+const heartbeatIntervalMs = 30_000;
 
 const updateJobRecord = async (jobId: string, updates: Record<string, unknown>) => {
   await ResumeDownloadJob.updateOne({ jobId }, { $set: updates }).catch((error) => {
@@ -111,13 +87,52 @@ const processJob = async (job: Job<ResumeDownloadJobData>) => {
   }
 };
 
+const writeHeartbeat = async (status: "starting" | "ready" | "closing" | "error", details: Record<string, unknown> = {}) => {
+  const runtimeInfo = getResumeQueueRuntimeInfo();
+
+  await WorkerHeartbeat.findOneAndUpdate(
+    { workerId },
+    {
+      workerId,
+      serviceName: env.SERVICE_NAME,
+      queueName: runtimeInfo.queueName,
+      queuePrefix: runtimeInfo.queuePrefix,
+      status,
+      lastSeenAt: new Date(),
+      details: {
+        ...runtimeInfo,
+        concurrency: env.RESUME_DOWNLOAD_WORKER_CONCURRENCY,
+        ...details,
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  ).catch((error) => {
+    logger.warn({ error, workerId, status }, "Failed to write resume worker heartbeat");
+  });
+};
+
 const start = async () => {
   await connectDB();
+  await writeHeartbeat("starting");
 
-  const worker = new Worker<ResumeDownloadJobData>("resumeQueue", processJob, {
+  const queueEvents = new QueueEvents(resumeDownloadQueueName, {
+    connection: getBullmqConnection(),
+    prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
+  });
+
+  const worker = new Worker<ResumeDownloadJobData>(resumeDownloadQueueName, processJob, {
     connection: getBullmqConnection(),
     prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
     concurrency: env.RESUME_DOWNLOAD_WORKER_CONCURRENCY,
+  });
+
+  const heartbeatTimer = setInterval(() => {
+    void writeHeartbeat("ready", worker.isRunning() ? { running: true } : { running: false });
+  }, heartbeatIntervalMs);
+
+  worker.on("ready", () => {
+    void writeHeartbeat("ready", { running: true });
+    logger.info(getResumeQueueRuntimeInfo(), "Resume download worker connected to BullMQ");
   });
 
   worker.on("completed", (job) => {
@@ -126,13 +141,38 @@ const start = async () => {
   });
 
   worker.on("failed", (job, error) => {
+    void writeHeartbeat("error", { lastError: error.message, jobId: job?.id });
     if (job) {
       logger.warn({ jobId: job.id, attemptsMade: job.attemptsMade, error }, "Resume download worker observed failed job");
     }
   });
 
+  worker.on("error", (error) => {
+    void writeHeartbeat("error", { lastError: error.message });
+    logger.error({ error }, "Resume download worker error");
+  });
+
+  worker.on("stalled", (jobId) => {
+    logger.warn({ jobId }, "Resume download job stalled");
+  });
+
+  queueEvents.on("waiting", ({ jobId }) => {
+    logger.info({ jobId }, "Resume download job waiting");
+  });
+
+  queueEvents.on("active", ({ jobId, prev }) => {
+    logger.info({ jobId, prev }, "Resume download job active");
+  });
+
+  queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
+    logger.warn({ jobId, failedReason, prev }, "Resume download queue event failed");
+  });
+
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "Shutting down resume download worker");
+    clearInterval(heartbeatTimer);
+    await writeHeartbeat("closing", { signal });
+    await queueEvents.close();
     await worker.close();
     await flushBackendSentry();
     process.exit(0);
@@ -146,7 +186,7 @@ const start = async () => {
     void shutdown("SIGTERM");
   });
 
-  logger.info({ concurrency: env.RESUME_DOWNLOAD_WORKER_CONCURRENCY }, "Resume download worker started");
+  logger.info({ workerId, concurrency: env.RESUME_DOWNLOAD_WORKER_CONCURRENCY, ...getResumeQueueRuntimeInfo() }, "Resume download worker started");
 };
 
 void start().catch((error) => {

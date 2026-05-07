@@ -13,11 +13,11 @@ export type ResumeDownloadJobData = {
   requestId?: string;
 };
 
-const queueName = "resumeQueue";
+export const resumeDownloadQueueName = "resumeQueue";
 
 let resumeQueueInstance: Queue<ResumeDownloadJobData> | null = null;
 
-const getBullmqConnection = () => {
+export const getBullmqConnection = () => {
   const redisUrl = env.BULLMQ_REDIS_URL || env.REDIS_URL;
 
   if (!redisUrl) {
@@ -47,6 +47,19 @@ const getBullmqConnection = () => {
   };
 };
 
+export const getResumeQueueRuntimeInfo = () => {
+  const redisUrl = env.BULLMQ_REDIS_URL || env.REDIS_URL;
+  const parsed = redisUrl ? new URL(redisUrl) : null;
+
+  return {
+    queueName: resumeDownloadQueueName,
+    queuePrefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
+    redisProtocol: parsed?.protocol.replace(":", "") || "not-configured",
+    redisHost: parsed?.host || "not-configured",
+    serviceName: env.SERVICE_NAME,
+  };
+};
+
 const stableStringify = (value: unknown): string => {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
@@ -63,14 +76,19 @@ const stableStringify = (value: unknown): string => {
   return `{${entries.join(",")}}`;
 };
 
+const resumeDownloadJobIdentity = (data: Record<string, unknown>) => {
+  const { requestId: _requestId, ...stableData } = data;
+  return stableData;
+};
+
 export const createResumeDownloadJobId = (data: Record<string, unknown>) => {
-  const digest = crypto.createHash("sha256").update(stableStringify(data)).digest("hex");
+  const digest = crypto.createHash("sha256").update(stableStringify(resumeDownloadJobIdentity(data))).digest("hex");
   return `resume-download:${digest}`;
 };
 
 export const getResumeQueue = () => {
   if (!resumeQueueInstance) {
-    resumeQueueInstance = new Queue<ResumeDownloadJobData>(queueName, {
+    resumeQueueInstance = new Queue<ResumeDownloadJobData>(resumeDownloadQueueName, {
       connection: getBullmqConnection(),
       prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
       defaultJobOptions: {
@@ -125,4 +143,18 @@ export const enqueueResumeDownloadJob = async (data: ResumeDownloadJobData) => {
       count: 5000,
     },
   });
+};
+
+export const requeueResumeDownloadJob = async (data: ResumeDownloadJobData) => {
+  const queue = getResumeQueue();
+  const jobId = createResumeDownloadJobId(data);
+  const existingQueueJob = await queue.getJob(jobId);
+
+  if (existingQueueJob) {
+    const state = await existingQueueJob.getState().catch(() => "unknown");
+    logger.info({ jobId, state }, "Removing existing BullMQ job before requeue");
+    await existingQueueJob.remove();
+  }
+
+  return enqueueResumeDownloadJob(data);
 };

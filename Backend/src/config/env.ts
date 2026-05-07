@@ -46,6 +46,7 @@ const baseEnvSchema = z.object({
   RESUME_DOWNLOAD_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(2),
   RESUME_DOWNLOAD_JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
   RESUME_DOWNLOAD_BACKOFF_DELAY_MS: z.coerce.number().int().min(1000).default(5000),
+  RESUME_DOWNLOAD_STALE_PENDING_MS: z.coerce.number().int().min(60000).default(900000),
   RESUME_DOWNLOAD_STORAGE_DIR: z.string().optional().default(""),
   RESUME_DOWNLOAD_PUBLIC_BASE_URL: z.string().optional().default(""),
   GRAFANA_OTLP_ENDPOINT: z.string().url().optional(),

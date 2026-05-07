@@ -35,12 +35,12 @@ class BrowserPool {
     if (this.initialized) return;
 
     try {
-      // Sanitize launch args for Windows compatibility
+      // Sanitize launch args only on Windows. Linux containers often need these
+      // flags when Chromium runs as root in Railway/Render-style deployments.
       const args = this.config.launchOptions.args ?? [];
-      const sanitizedArgs = args.filter(arg => {
-        // Remove Linux-specific args on Windows
-        return !["--no-sandbox", "--disable-setuid-sandbox"].includes(arg);
-      });
+      const sanitizedArgs = process.platform === "win32"
+        ? args.filter(arg => !["--no-sandbox", "--disable-setuid-sandbox"].includes(arg))
+        : args;
 
       const launchConfig = {
         ...this.config.launchOptions,

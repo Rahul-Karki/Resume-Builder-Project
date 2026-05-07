@@ -180,6 +180,7 @@ export default function ResumeBuilder() {
   const [isMobile, setIsMobile] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const searchParams = new URLSearchParams(window.location.search);
   const isEditingExistingResume = Boolean(searchParams.get("resume"));
   const canDownload = isEditingExistingResume
@@ -231,9 +232,15 @@ export default function ResumeBuilder() {
       return;
     }
     setIsExporting(true);
+    setExportError(null);
     setExportStatus("Preparing export...");
     const resumeId = resume.id ?? resume._id;
     void downloadResume(resume, ui.exportPreset, resumeId, setExportStatus)
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : "Resume download failed. Please try again.";
+        setExportError(message);
+        setExportStatus(message);
+      })
       .finally(() => {
         setIsExporting(false);
         window.setTimeout(() => setExportStatus(null), 1500);
@@ -280,6 +287,16 @@ export default function ResumeBuilder() {
               <span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid rgba(231,247,178,0.3)", borderTopColor: "#E7F7B2", animation: "spin 0.8s linear infinite" }} />
               <span>{exportStatus ?? "Preparing export..."}</span>
             </div>
+          </div>
+        )}
+
+        {exportError && (
+          <div style={{
+            position: "fixed", top: 64, right: isMobile ? 12 : 20, left: isMobile ? 12 : "auto", background: "#7F1D1D", color: "#FCA5A5",
+            padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+            fontFamily: "'Outfit', sans-serif", zIndex: 101, border: "1px solid #991B1B",
+          }}>
+            {exportError}
           </div>
         )}
 
