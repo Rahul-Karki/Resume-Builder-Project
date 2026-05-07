@@ -83,7 +83,7 @@ const resumeDownloadJobIdentity = (data: Record<string, unknown>) => {
 
 export const createResumeDownloadJobId = (data: Record<string, unknown>) => {
   const digest = crypto.createHash("sha256").update(stableStringify(resumeDownloadJobIdentity(data))).digest("hex");
-  return `resume-download:${digest}`;
+  return `resume-download-${digest}`;
 };
 
 export const getResumeQueue = () => {
