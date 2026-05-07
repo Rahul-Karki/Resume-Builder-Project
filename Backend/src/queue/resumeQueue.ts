@@ -120,11 +120,10 @@ export const getResumeQueue = () => {
 export const ensureResumeQueueReady = async () => {
   const queue = getResumeQueue();
   try {
-    await queue.client.ping();
+    await queue.waitUntilReady();
     const runtimeInfo = getResumeQueueRuntimeInfo();
     logger.info(
       {
-        queueName: resumeDownloadQueueName,
         ...runtimeInfo,
       },
       "Resume queue Redis connection verified",
@@ -135,7 +134,6 @@ export const ensureResumeQueueReady = async () => {
     logger.error(
       {
         error: errorMessage,
-        queueName: resumeDownloadQueueName,
         ...runtimeInfo,
       },
       "Failed to verify resume queue Redis connection",
