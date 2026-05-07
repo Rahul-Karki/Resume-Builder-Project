@@ -119,6 +119,8 @@ export const downloadResume: RequestHandler = async (req, res) => {
         downloadUrl: `/api/resumes/download-result/${encodeURIComponent(existingJob.jobId)}`,
         resultUrl: existingJob.status === "completed" ? resultUrl : null,
         status: existingJob.status,
+        lastError: existingJob.lastError || null,
+        failedAt: existingJob.failedAt || null,
       });
       return;
     }
