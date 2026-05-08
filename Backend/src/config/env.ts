@@ -49,6 +49,7 @@ const baseEnvSchema = z.object({
   RESUME_DOWNLOAD_STALE_PENDING_MS: z.coerce.number().int().min(60000).default(900000),
   RESUME_DOWNLOAD_STORAGE_DIR: z.string().optional().default(""),
   RESUME_DOWNLOAD_PUBLIC_BASE_URL: z.string().optional().default(""),
+  PUPPETEER_EXECUTABLE_PATH: z.string().optional().default(""),
   GRAFANA_OTLP_ENDPOINT: z.string().url().optional(),
   OTEL_INSTANCE_ID: z.string().optional().default(""),
   OTLP_INSTANCE_ID: z.string().optional().default(""),
@@ -167,6 +168,7 @@ const envSchema = baseEnvSchema
     BULLMQ_REDIS_URL: value.BULLMQ_REDIS_URL.trim(),
     UPSTASH_REDIS_REST_URL: value.UPSTASH_REDIS_REST_URL.trim(),
     UPSTASH_REDIS_REST_TOKEN: value.UPSTASH_REDIS_REST_TOKEN.trim(),
+    PUPPETEER_EXECUTABLE_PATH: value.PUPPETEER_EXECUTABLE_PATH.trim(),
   }));
 
 const parsed = envSchema.safeParse(process.env);
