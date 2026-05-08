@@ -12,7 +12,7 @@ import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
 import { updatePdfExportQueue } from "../utils/businessMetrics";
 import { AppError, AuthError, NotFoundError } from "../errors/AppError";
 import { createResumeDownloadJobId } from "../queue/resumeQueue";
-import { createResumeDownloadFileName, resolveResumeDownloadUrl } from "../services/resumeDownloadService";
+import { createResumeDownloadFileName, generateResumePdfArtifact, resolveResumeDownloadUrl } from "../services/resumeDownloadService";
 
 type ResumeDownloadBody = {
   resumeId?: string;
@@ -85,6 +85,83 @@ const toBuffer = (value: unknown) => {
   return null;
 };
 
+const getResumeDownloadWorkerCount = async () => {
+  try {
+    return await getResumeQueue().getWorkersCount();
+  } catch (error) {
+    logger.warn({ error }, "Unable to determine resume download worker count");
+    return null;
+  }
+};
+
+const completeResumeDownloadInline = async (
+  jobId: string,
+  userId: string,
+  resume: Record<string, unknown>,
+  preset: "web" | "standard" | "print",
+) => {
+  const startedAt = Date.now();
+
+  await ResumeDownloadJob.updateOne(
+    { jobId, userId },
+    {
+      $set: {
+        status: "pending",
+        startedAt: new Date(startedAt),
+        attemptsMade: 1,
+        totalAttempts: 1,
+        lastError: "",
+      },
+      $unset: {
+        failedAt: "",
+      },
+    },
+  );
+
+  try {
+    const artifact = await generateResumePdfArtifact(resume, preset, jobId);
+
+    await ResumeDownloadJob.updateOne(
+      { jobId, userId },
+      {
+        $set: {
+          status: "completed",
+          resultUrl: artifact.resultUrl,
+          fileName: artifact.fileName,
+          fileData: artifact.pdfBuffer,
+          attemptsMade: 1,
+          totalAttempts: 1,
+          completedAt: new Date(),
+          durationMs: Date.now() - startedAt,
+          lastError: "",
+        },
+        $unset: {
+          failedAt: "",
+        },
+      },
+    );
+
+    logger.info({ userId, jobId, durationMs: Date.now() - startedAt }, "Resume download completed inline");
+    return artifact;
+  } catch (error) {
+    await ResumeDownloadJob.updateOne(
+      { jobId, userId },
+      {
+        $set: {
+          status: "failed",
+          failedAt: new Date(),
+          attemptsMade: 1,
+          totalAttempts: 1,
+          durationMs: Date.now() - startedAt,
+          lastError: error instanceof Error ? error.message : String(error),
+        },
+      },
+    );
+
+    throw error;
+  }
+};
+
 export const downloadResume: RequestHandler = async (req, res) => {
   const span = startControllerSpan("resumeDownload.downloadResume", req);
   let jobId = "";
@@ -106,6 +183,25 @@ export const downloadResume: RequestHandler = async (req, res) => {
     if (existingJob) {
       const existingQueuedAt = existingJob.queuedAt ? new Date(existingJob.queuedAt).getTime() : Date.now();
       const pendingIsStale = existingJob.status === "pending" && Date.now() - existingQueuedAt > stalePendingJobMs;
+
+      if (existingJob.status === "pending" && !pendingIsStale) {
+        const workerCount = await getResumeDownloadWorkerCount();
+
+        if (workerCount === 0) {
+          logger.warn({ userId, jobId }, "No resume download workers available; completing existing pending job inline");
+          const artifact = await completeResumeDownloadInline(jobId, userId, snapshot.resume, preset);
+          markSpanSuccess(span);
+          res.status(200).json({
+            message: "Resume download completed",
+            jobId,
+            statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
+            downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,
+            resultUrl: artifact.resultUrl,
+            status: "completed",
+          });
+          return;
+        }
+      }
 
       if (existingJob.status === "failed" || pendingIsStale) {
         await ResumeDownloadJob.updateOne(
@@ -131,13 +227,45 @@ export const downloadResume: RequestHandler = async (req, res) => {
           },
         );
 
-        await requeueResumeDownloadJob({
-          userId,
-          preset,
-          resumeId: snapshot.resumeId,
-          resume: snapshot.resume,
-          requestId: req.traceId ?? req.correlationId,
-        });
+        const workerCount = await getResumeDownloadWorkerCount();
+
+        if (workerCount === 0) {
+          logger.warn({ userId, jobId }, "No resume download workers available; completing requeued job inline");
+          const artifact = await completeResumeDownloadInline(jobId, userId, snapshot.resume, preset);
+          markSpanSuccess(span);
+          res.status(200).json({
+            message: "Resume download completed",
+            jobId,
+            statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
+            downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,
+            resultUrl: artifact.resultUrl,
+            status: "completed",
+          });
+          return;
+        }
+
+        try {
+          await requeueResumeDownloadJob({
+            userId,
+            preset,
+            resumeId: snapshot.resumeId,
+            resume: snapshot.resume,
+            requestId: req.traceId ?? req.correlationId,
+          });
+        } catch (error) {
+          logger.warn({ error, userId, jobId }, "Resume download requeue failed; completing job inline");
+          const artifact = await completeResumeDownloadInline(jobId, userId, snapshot.resume, preset);
+          markSpanSuccess(span);
+          res.status(200).json({
+            message: "Resume download completed",
+            jobId,
+            statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
+            downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,
+            resultUrl: artifact.resultUrl,
+            status: "completed",
+          });
+          return;
+        }
 
         updatePdfExportQueue(1);
         logger.info(
@@ -197,13 +325,45 @@ export const downloadResume: RequestHandler = async (req, res) => {
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
     );
 
-    await enqueueResumeDownloadJob({
-      userId,
-      preset,
-      resumeId: snapshot.resumeId,
-      resume: snapshot.resume,
-      requestId: req.traceId ?? req.correlationId,
-    });
+    const workerCount = await getResumeDownloadWorkerCount();
+
+    if (workerCount === 0) {
+      logger.warn({ userId, jobId }, "No resume download workers available; completing new job inline");
+      const artifact = await completeResumeDownloadInline(jobId, userId, snapshot.resume, preset);
+      markSpanSuccess(span);
+      res.status(200).json({
+        message: "Resume download completed",
+        jobId,
+        statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
+        downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,
+        resultUrl: artifact.resultUrl,
+        status: "completed",
+      });
+      return;
+    }
+
+    try {
+      await enqueueResumeDownloadJob({
+        userId,
+        preset,
+        resumeId: snapshot.resumeId,
+        resume: snapshot.resume,
+        requestId: req.traceId ?? req.correlationId,
+      });
+    } catch (error) {
+      logger.warn({ error, userId, jobId }, "Resume download enqueue failed; completing job inline");
+      const artifact = await completeResumeDownloadInline(jobId, userId, snapshot.resume, preset);
+      markSpanSuccess(span);
+      res.status(200).json({
+        message: "Resume download completed",
+        jobId,
+        statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
+        downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,
+        resultUrl: artifact.resultUrl,
+        status: "completed",
+      });
+      return;
+    }
 
     updatePdfExportQueue(1);
 

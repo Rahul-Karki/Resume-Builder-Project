@@ -98,8 +98,16 @@ const sanitizeFileName = (value: string) => value.replace(/[<>:"/\\|?*\x00-\x1F]
 
 const buildDownloadFileName = (resume: ResumeDocument, preset: string) => `${sanitizeFileName(resume.title || "resume")}-${preset}.pdf`;
 
+const normalizeDownloadUrl = (downloadUrl: string) => {
+  if (/^https?:\/\//i.test(downloadUrl)) {
+    return downloadUrl;
+  }
+
+  return downloadUrl.replace(/^\/api(?=\/)/, "");
+};
+
 const triggerBlobDownload = async (downloadUrl: string, fileName: string) => {
-  const response = await api.get(downloadUrl, { responseType: "blob" });
+  const response = await api.get(normalizeDownloadUrl(downloadUrl), { responseType: "blob" });
   const blob = response.data instanceof Blob
     ? response.data
     : new Blob([response.data], { type: response.headers["content-type"] || "application/pdf" });

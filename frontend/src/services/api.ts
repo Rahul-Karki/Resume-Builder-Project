@@ -103,7 +103,7 @@ export const getResumeExportPreset = async (resumeId: string, preset: ExportPres
 };
 
 export const queueResumeDownload = async (payload: ResumeDownloadRequest) => {
-  const response = await api.post("/resumes/download-resume", payload);
+  const response = await api.post("/resumes/download-resume", payload, { timeout: 120000 });
   return response.data as ResumeDownloadQueueResponse;
 };
 

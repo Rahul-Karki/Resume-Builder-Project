@@ -23,6 +23,23 @@ services:
       retries: 3
       start_period: 10s
 
+  worker:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: backend-worker2
+    restart: unless-stopped
+    command: npm run worker:resume-download
+    env_file:
+      - ./Backend/.env
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+    depends_on:
+      - mongo
+      - redis
+
   frontend:
     build:
       context: ./frontend

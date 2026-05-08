@@ -41,9 +41,11 @@ function createRes() {
 
 test("resolveRequestTimeoutMs extends PDF export routes", () => {
   const pdfReq = { baseUrl: "/api/resumes", path: "/123/export-pdf", originalUrl: "/api/resumes/123/export-pdf" };
+  const downloadReq = { baseUrl: "/api/resumes", path: "/download-resume", originalUrl: "/api/resumes/download-resume" };
   const regularReq = { baseUrl: "/api/templates", path: "/", originalUrl: "/api/templates" };
 
   assert.equal(resolveRequestTimeoutMs(pdfReq), 120000);
+  assert.equal(resolveRequestTimeoutMs(downloadReq), 120000);
   assert.equal(resolveRequestTimeoutMs(regularReq), 30000);
 });
 
