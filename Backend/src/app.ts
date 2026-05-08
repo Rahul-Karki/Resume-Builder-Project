@@ -75,6 +75,7 @@ export const createApp = () => {
   app.use("/api/resumes", resumeRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/templates", templateRoutes);
+  app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);
   app.use(notFoundHandler);
   app.use(errorHandler);
