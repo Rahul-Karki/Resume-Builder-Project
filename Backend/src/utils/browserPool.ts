@@ -1,4 +1,5 @@
 import puppeteer, { Browser, LaunchOptions } from "puppeteer";
+import { env } from "../config/env";
 import { logger } from "../observability";
 
 interface BrowserPoolConfig {
@@ -42,10 +43,15 @@ class BrowserPool {
         ? args.filter(arg => !["--no-sandbox", "--disable-setuid-sandbox"].includes(arg))
         : args;
 
-      const launchConfig = {
+      const launchConfig: LaunchOptions & { executablePath?: string } = {
         ...this.config.launchOptions,
         args: sanitizedArgs,
       };
+
+      // If the deployment provides an explicit browser executable path, prefer it.
+      if (env.PUPPETEER_EXECUTABLE_PATH && env.PUPPETEER_EXECUTABLE_PATH.trim().length > 0) {
+        launchConfig.executablePath = env.PUPPETEER_EXECUTABLE_PATH;
+      }
 
       for (let i = 0; i < this.config.poolSize; i++) {
         try {

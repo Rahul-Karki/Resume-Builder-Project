@@ -396,6 +396,59 @@ Resume PDF generation runs through BullMQ, so production needs a separate worker
 - [ ] Frontend URLs configured for CORS
 - [ ] SSL certificates installed (if not using reverse proxy)
 
+### Manual (non-Docker) production deployment
+
+If you deployed manually (for example on a VPS, bare-metal server, or a platform where you manage the OS), follow these steps to enable resume PDF exports and run the worker process.
+
+1) Install Chromium (Debian/Ubuntu example):
+
+```bash
+sudo apt update
+sudo apt install -y chromium
+```
+
+2) Verify the browser path and set the `PUPPETEER_EXECUTABLE_PATH` environment variable for your backend and worker processes:
+
+```bash
+which chromium || which chromium-browser || which google-chrome-stable
+# Example result: /usr/bin/chromium
+
+# Export for current shell (or add to systemd/pm2 env)
+export PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+```
+
+3) Start the worker process (choose one):
+
+- Using `systemd` (place the provided template at `/etc/systemd/system/resume-worker.service` and adjust `WorkingDirectory`):
+
+```bash
+sudo cp Backend/deploy/resume-worker.service /etc/systemd/system/resume-worker.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now resume-worker.service
+sudo journalctl -u resume-worker.service -f
+```
+
+- Using `pm2`:
+
+```bash
+cd /var/www/resume-builder-backend
+npm ci --production
+pm2 start Backend/ecosystem.config.js
+pm2 save
+pm2 logs resume-worker
+```
+
+4) Verify health and queue metrics:
+
+```bash
+curl -v https://your-backend.example.com/api/health
+curl -v https://your-backend.example.com/api/resumes/queue-metrics
+```
+
+5) Trigger a resume download from the frontend and watch the backend/worker logs. Successful flow logs include `Resume download job completed` and the frontend should receive a PDF blob.
+
+If you want, I can generate a tailored `systemd` unit file populated with your actual `WorkingDirectory` and user, or create a small startup script. Tell me which service manager you use (`systemd` or `pm2`) and the app directory on your server.
+
 ### Backend
 
 - [ ] Run `npm run build` successfully compiles
