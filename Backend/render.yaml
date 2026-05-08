@@ -3,7 +3,7 @@ services:
     name: resume-builder-backend
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx puppeteer browsers install chrome && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -74,7 +74,7 @@ services:
     name: resume-builder-backend-worker
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx puppeteer browsers install chrome && npm run build
     startCommand: npm run worker:resume-download
     envVars:
       - key: NODE_ENV
