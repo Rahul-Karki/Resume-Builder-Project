@@ -128,6 +128,37 @@ const buildCertificationsSection = (entries: unknown) => buildSimpleListSection(
   </div>
 `);
 
+// Ensure font family is properly formatted
+const formatFontFamily = (font: string): string => {
+  const trimmed = font.trim();
+  // If it doesn't start with a quote or generic family, wrap it
+  if (!trimmed.startsWith('"') && !trimmed.startsWith("'") && !["serif", "sans-serif", "monospace", "cursive", "fantasy"].includes(trimmed.split(",")[0].trim())) {
+    return `"${trimmed}"`;
+  }
+  return trimmed;
+};
+
+// Map page margins (matching frontend marginMap)
+const getPageMargin = (pageMargin: string): string => {
+  const marginMap: Record<string, string> = {
+    tight: "28px 32px",
+    normal: "40px 48px",
+    relaxed: "52px 60px",
+    spacious: "64px 72px",
+  };
+  return marginMap[pageMargin] || marginMap.normal;
+};
+
+// Map section spacing (matching frontend spacingMap)
+const getSectionSpacing = (spacing: string): number => {
+  const spacingMap: Record<string, number> = {
+    compact: 12,
+    normal: 20,
+    loose: 32,
+  };
+  return spacingMap[spacing] || spacingMap.normal;
+};
+
 const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
   const title = normalizeText(resume.title) || "Resume";
   const personalInfo = (resume.personalInfo ?? {}) as Record<string, unknown>;
@@ -138,8 +169,25 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
   const summary = normalizeText(personalInfo.summary);
 
   const style = (resume.style ?? {}) as Record<string, unknown>;
-  const accentColor = normalizeText(style.accentColor) || "#1f3a5f";
-  const backgroundColor = normalizeText(style.backgroundColor) || "#f7f8fb";
+  
+  // Extract ALL style properties with defaults matching frontend
+  const accentColor = normalizeText(style.accentColor) || "#1a1a1a";
+  const headingColor = normalizeText(style.headingColor) || "#111111";
+  const textColor = normalizeText(style.textColor) || "#333333";
+  const mutedColor = normalizeText(style.mutedColor) || "#666666";
+  const borderColor = normalizeText(style.borderColor) || "#cccccc";
+  const backgroundColor = normalizeText(style.backgroundColor) || "#ffffff";
+  const bodyFont = formatFontFamily(normalizeText(style.bodyFont) || "EB Garamond, serif");
+  const headingFont = formatFontFamily(normalizeText(style.headingFont) || "EB Garamond, serif");
+  const fontSize = normalizeText(style.fontSize) || "10.5pt";
+  const lineHeight = normalizeText(style.lineHeight) || "1.5";
+  const pageMargin = getPageMargin(normalizeText(style.pageMargin) || "normal");
+  const sectionSpacing = getSectionSpacing(normalizeText(style.sectionSpacing) || "normal");
+  const showDividers = style.showDividers !== false; // Default true
+  const bulletStyle = normalizeText(style.bulletStyle) || "•";
+  const headerAlign = normalizeText(style.headerAlign) || "left";
+
+  const [paddingV, paddingH] = pageMargin.split(" ");
 
   return `
     <!doctype html>
@@ -147,51 +195,87 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
       <head>
         <meta charset="utf-8" />
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Playfair+Display:wght@400;600&family=Lora:wght@400;600&family=DM+Sans:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=Nunito+Sans:wght@400;600&family=Outfit:wght@400;600&family=Source+Serif+4:wght@400;600&display=swap');
+          
           @page { size: A4; margin: 14mm; }
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            color: #1f2937;
+            font-family: ${bodyFont};
+            font-size: ${fontSize};
+            line-height: ${lineHeight};
+            color: ${textColor};
             background: ${backgroundColor};
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
           .page {
             background: #fff;
-            border-radius: 18px;
-            padding: 28px;
+            padding: ${paddingV} ${paddingH};
             min-height: 100vh;
           }
-          .hero {
-            border-bottom: 3px solid ${accentColor};
-            padding-bottom: 18px;
-            margin-bottom: 20px;
-          }
           h1, h2, h3, p { margin: 0; }
-          h1 { font-size: 28px; letter-spacing: -0.02em; }
-          h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.12em; color: ${accentColor}; margin-bottom: 10px; }
-          h3 { font-size: 14px; margin-bottom: 4px; }
-          .headline { margin-top: 8px; color: #4b5563; font-size: 14px; }
-          .meta { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; font-size: 12px; color: #4b5563; }
-          .section { margin-top: 18px; }
-          .item { margin-bottom: 14px; }
+          h1 { 
+            font-family: ${headingFont}; 
+            font-size: 28pt; 
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: ${headingColor};
+            text-align: ${headerAlign};
+          }
+          h2 { 
+            font-family: ${headingFont}; 
+            font-size: 13pt; 
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: ${accentColor}; 
+            margin-bottom: 10px;
+            ${showDividers ? `border-bottom: 1px solid ${borderColor}; padding-bottom: 6px;` : ""}
+          }
+          h3 { 
+            font-family: ${headingFont}; 
+            font-size: 10.5pt; 
+            font-weight: 600;
+            color: ${headingColor};
+            margin-bottom: 4px; 
+          }
+          p { margin: 4px 0; }
+          .headline { 
+            margin-top: 8px; 
+            color: ${mutedColor}; 
+            font-size: 10pt;
+            text-align: ${headerAlign};
+          }
+          .meta { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px 16px; 
+            margin-top: 12px; 
+            font-size: 9pt; 
+            color: ${mutedColor};
+            justify-content: ${headerAlign === "center" ? "center" : "flex-start"};
+          }
+          .section { margin-top: ${sectionSpacing}px; }
+          .item { margin-bottom: 12px; }
           .item-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
-          .muted { color: #6b7280; font-size: 12px; }
+          .muted { color: ${mutedColor}; font-size: 9pt; }
           .align-right { text-align: right; }
-          .pill { display: inline-block; background: #eef2ff; color: #1e3a8a; padding: 4px 8px; border-radius: 999px; font-size: 11px; margin: 0 6px 6px 0; }
-          ul { margin: 8px 0 0 18px; padding: 0; }
-          li { margin: 0 0 6px 0; }
+          .bullet::before { content: "${bulletStyle} "; }
+          ul { margin: 8px 0 0 18px; padding: 0; list-style: none; }
+          li { margin-bottom: 3px; font-size: ${fontSize}; display: flex; align-items: flex-start; gap: 8px; }
+          li::before { content: "${bulletStyle}"; }
+          .pill { display: inline-block; background: ${accentColor}20; color: ${accentColor}; padding: 4px 8px; border-radius: 999px; font-size: 9pt; margin: 0 6px 6px 0; }
           .two-col { display: grid; grid-template-columns: 2.1fr 1fr; gap: 18px; }
           @media print {
             body { background: #fff; }
-            .page { border-radius: 0; padding: 0; }
+            .page { border-radius: 0; }
           }
         </style>
       </head>
       <body>
         <div class="page">
-          <div class="hero">
+          <div style="margin-bottom: ${sectionSpacing}px;">
             <h1>${escapeHtml(fullName)}</h1>
             ${headline ? `<div class="headline">${escapeHtml(headline)}</div>` : ""}
             <div class="meta">
