@@ -99,11 +99,18 @@ const sanitizeFileName = (value: string) => value.replace(/[<>:"/\\|?*\x00-\x1F]
 const buildDownloadFileName = (resume: ResumeDocument, preset: string) => `${sanitizeFileName(resume.title || "resume")}-${preset}.pdf`;
 
 const normalizeDownloadUrl = (downloadUrl: string) => {
+  // If already absolute URL, use as-is
   if (/^https?:\/\//i.test(downloadUrl)) {
     return downloadUrl;
   }
 
-  return downloadUrl.replace(/^\/api(?=\/)/, "");
+  // If relative path starting with /api, prepend backend domain
+  if (downloadUrl.startsWith("/api/")) {
+    const backendBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    return `${backendBase}${downloadUrl}`;
+  }
+
+  return downloadUrl;
 };
 
 const openPdfInNewTab = (downloadUrl: string) => {
