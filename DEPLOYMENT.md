@@ -42,6 +42,31 @@ FRONTEND_URLS=https://your-frontend-domain.com,https://www.your-frontend-domain.
 #### Database & Redis
 See [Database & Redis Configuration](#database--redis-configuration) section below.
 
+### Worker Configuration
+
+The worker service lives in `worker/` and reuses the same MongoDB and BullMQ Redis endpoints as the backend.
+
+```bash
+cd worker
+npm install
+npm run build
+```
+
+Local worker settings to review:
+
+```env
+NODE_ENV=production
+MONGO_URI=mongodb://mongo:27017/resume_builder
+BULLMQ_REDIS_URL=redis://redis:6379/0
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+SERVICE_NAME=resume-builder-worker
+```
+
+Deployment target:
+- Render: backend API
+- Render: frontend SPA
+- Railway: worker service
+
 ### Frontend Configuration
 
 Copy `.env.example` to `.env.local` and configure:
@@ -153,6 +178,8 @@ Unlike simple readiness probes, the health endpoint performs actual operations:
 - **Redis**: 
   - **Native Redis**: Runs `PING` command
   - **Upstash (REST)**: Sends HTTP request to verify REST API connectivity
+
+The worker uses the same Redis endpoint but keeps its own MongoDB heartbeat and job processing loop. If the worker is down, queued PDF and ATS jobs will stay pending until Railway brings the service back.
 
 ### Monitoring Integration
 

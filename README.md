@@ -4,10 +4,11 @@ A full-stack resume builder platform with authentication, resume editing, templa
 
 ## Whole Project Overview
 
-Resume Builder SaaS is a two-application system:
+Resume Builder SaaS is now a three-service system:
 
 1. A frontend SPA (React + Vite) deployed on Vercel for user and admin interfaces.
 2. A backend API (Express + TypeScript) deployed on Render for business logic, auth, and data APIs.
+3. A worker service (BullMQ + Puppeteer + MongoDB) deployed on Railway for PDF generation and ATS analysis.
 
 Core platform responsibilities:
 
@@ -17,6 +18,7 @@ Core platform responsibilities:
 4. ATS analysis and suggestion-apply flows.
 5. Distributed caching and rate limiting for performance and abuse control.
 6. Observability (logs, metrics, tracing) and security middleware.
+7. Background job processing for resume exports and ATS analysis.
 
 ## Architecture Diagram
 
@@ -141,6 +143,19 @@ npm run dev
 
 ```bash
 cd frontend
+npm install
+npm run dev
+```
+
+### Worker
+
+1. Open terminal in worker.
+2. Install dependencies.
+3. Configure MongoDB, Redis, and Puppeteer environment variables.
+4. Start the job processor.
+
+```bash
+cd worker
 npm install
 npm run dev
 ```

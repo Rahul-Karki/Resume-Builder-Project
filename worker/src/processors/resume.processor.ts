@@ -1,5 +1,9 @@
-import crypto from "crypto";
-import { browserPool } from "../utils/browserPool";
+import type { Job } from "bullmq";
+import { createResumeDownloadFileName, resolveResumeDownloadUrl, type ResumeDownloadJobData } from "../../../shared/src/bullmq";
+import { env } from "../config/env";
+import { launchPuppeteerBrowser } from "../config/puppeteer";
+import { logger } from "../observability";
+import ResumeDownloadJob from "../models/ResumeDownloadJob";
 
 type ResumeSnapshot = Record<string, unknown> & {
   title?: unknown;
@@ -24,7 +28,6 @@ const escapeHtml = (value: unknown) => String(value ?? "")
   .replace(/'/g, "&#39;");
 
 const asArray = (value: unknown) => (Array.isArray(value) ? value : []);
-
 const normalizeText = (value: unknown) => String(value ?? "").trim();
 
 const bulletItems = (items: unknown) => asArray(items)
@@ -220,13 +223,9 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
   `;
 };
 
-export const resolveResumeDownloadUrl = (jobId: string, fileName: string) => {
-  return `/api/resumes/download-result/${encodeURIComponent(jobId)}`;
-};
-
 export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: string, jobId: string): Promise<ResumeDownloadArtifact> => {
-  const browser = await browserPool.acquire();
-  const fileName = `${jobId}.pdf`;
+  const browser = await launchPuppeteerBrowser();
+  const fileName = createResumeDownloadFileName(jobId);
   const html = buildResumeHtml(resume, preset);
   let pdfBuffer: Buffer | null = null;
 
@@ -255,7 +254,9 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
       await page.close().catch(() => undefined);
     }
   } finally {
-    browserPool.release(browser);
+    await browser.close().catch((error) => {
+      logger.warn({ error }, "Failed to close Puppeteer browser after PDF generation");
+    });
   }
 
   if (!pdfBuffer) {
@@ -265,11 +266,63 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
   return {
     fileName,
     pdfBuffer,
-    resultUrl: resolveResumeDownloadUrl(jobId, fileName),
+    resultUrl: resolveResumeDownloadUrl(jobId),
     mimeType: "application/pdf",
   };
 };
 
-export const createResumeDownloadFileName = (jobId: string) => `${jobId}.pdf`;
+export const processResumeDownloadJob = async (job: Job<ResumeDownloadJobData>) => {
+  const startedAt = Date.now();
 
-export const hashResumePayload = (resume: ResumeSnapshot) => crypto.createHash("sha256").update(JSON.stringify(resume)).digest("hex");
+  await ResumeDownloadJob.updateOne(
+    { jobId: String(job.id) },
+    {
+      $set: {
+        status: "pending",
+        startedAt: new Date(),
+        attemptsMade: job.attemptsMade,
+        totalAttempts: job.opts.attempts ?? env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
+      },
+    },
+    { upsert: true },
+  );
+
+  try {
+    const artifact = await generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id));
+
+    await ResumeDownloadJob.updateOne(
+      { jobId: String(job.id) },
+      {
+        $set: {
+          status: "completed",
+          resultUrl: artifact.resultUrl,
+          fileName: artifact.fileName,
+          fileData: artifact.pdfBuffer,
+          attemptsMade: job.attemptsMade + 1,
+          completedAt: new Date(),
+          durationMs: Date.now() - startedAt,
+          lastError: "",
+        },
+      },
+    );
+
+    logger.info({ jobId: job.id, durationMs: Date.now() - startedAt }, "Resume download job completed");
+    return { resultUrl: artifact.resultUrl };
+  } catch (error) {
+    await ResumeDownloadJob.updateOne(
+      { jobId: String(job.id) },
+      {
+        $set: {
+          status: "failed",
+          failedAt: new Date(),
+          attemptsMade: job.attemptsMade + 1,
+          lastError: error instanceof Error ? error.message : String(error),
+          durationMs: Date.now() - startedAt,
+        },
+      },
+    );
+
+    logger.error({ error, jobId: job.id }, "Resume download job failed");
+    throw error;
+  }
+};

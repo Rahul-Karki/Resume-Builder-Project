@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node -r ./dist/instrumentation.js dist/server.js",
-    "worker:resume-download": "node -r ./dist/instrumentation.js dist/workers/resumeDownloadWorker.js",
+    "start": "node -r ./dist/Backend/src/instrumentation.js dist/Backend/src/server.js",
     "test": "npm run build && node --test automated-tests/**/*.test.js",
     "test:integration": "npm run build && node --test automated-tests/integration/**/*.test.js",
     "test:ci": "npm run build && npm run test",

@@ -1,116 +1,50 @@
-import crypto from "crypto";
 import { Queue, type JobsOptions } from "bullmq";
 import { env } from "../config/env";
 import { logger } from "../observability";
+import {
+  createBullmqConnection,
+  createBullmqJobId,
+  createBullmqQueueOptions,
+  getBullmqRuntimeInfo,
+  RESUME_DOWNLOAD_QUEUE_NAME,
+  resolveBullmqRedisUrl,
+  type ResumeDownloadJobData,
+} from "../../../shared/src/bullmq";
 
-export type ResumeDownloadPreset = "web" | "standard" | "print";
-
-export type ResumeDownloadJobData = {
-  userId: string;
-  preset: ResumeDownloadPreset;
-  resumeId?: string;
-  resume: Record<string, unknown>;
-  requestId?: string;
-};
-
-export const resumeDownloadQueueName = "resumeQueue";
+export { RESUME_DOWNLOAD_QUEUE_NAME as resumeDownloadQueueName } from "../../../shared/src/bullmq";
 
 let resumeQueueInstance: Queue<ResumeDownloadJobData> | null = null;
 
 export const getBullmqConnection = () => {
-  const redisUrl = env.BULLMQ_REDIS_URL || env.REDIS_URL;
+  const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
 
-  if (!redisUrl) {
-    throw new Error("BULLMQ_REDIS_URL or REDIS_URL must be configured for resume downloads");
-  }
-
-  if (redisUrl === "/") {
-    throw new Error("Invalid BullMQ Redis URL: '/' is not a valid Redis connection string. Set BULLMQ_REDIS_URL or REDIS_URL to a real Redis URL like redis://host:6379/0");
-  }
-
-  try {
-    const parsed = new URL(redisUrl);
-    if (!parsed.protocol.startsWith("redis")) {
-      throw new Error("Redis URL must use redis://, rediss://, or a supported Redis endpoint");
-    }
-  } catch (error) {
-    throw new Error(`Invalid BullMQ Redis URL: ${redisUrl}. ${(error as Error).message}`);
-  }
-
-  return {
-    url: redisUrl,
-    connectTimeout: env.REDIS_CONNECT_TIMEOUT_MS,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-    lazyConnect: true,
-    connectionName: `${env.SERVICE_NAME}-resume-downloads`,
-  };
+  return createBullmqConnection({
+    redisUrl,
+    connectTimeoutMs: env.REDIS_CONNECT_TIMEOUT_MS,
+    serviceName: `${env.SERVICE_NAME}-resume-downloads`,
+  });
 };
 
 export const getResumeQueueRuntimeInfo = () => {
-  const redisUrl = env.BULLMQ_REDIS_URL || env.REDIS_URL;
-  const parsed = redisUrl ? new URL(redisUrl) : null;
+  const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
 
-  return {
-    queueName: resumeDownloadQueueName,
-    queuePrefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
-    redisProtocol: parsed?.protocol.replace(":", "") || "not-configured",
-    redisHost: parsed?.host || "not-configured",
-    serviceName: env.SERVICE_NAME,
-  };
-};
-
-const stableStringify = (value: unknown): string => {
-  if (value === null || typeof value !== "object") {
-    return JSON.stringify(value);
-  }
-
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
-  }
-
-  const entries = Object.entries(value as Record<string, unknown>)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`);
-
-  return `{${entries.join(",")}}`;
-};
-
-const resumeDownloadJobIdentity = (data: Record<string, unknown>) => {
-  const { requestId: _requestId, ...stableData } = data;
-  return stableData;
+  return getBullmqRuntimeInfo(RESUME_DOWNLOAD_QUEUE_NAME, env.RESUME_DOWNLOAD_QUEUE_PREFIX, redisUrl, env.SERVICE_NAME);
 };
 
 export const createResumeDownloadJobId = (data: Record<string, unknown>) => {
-  const digest = crypto.createHash("sha256").update(stableStringify(resumeDownloadJobIdentity(data))).digest("hex");
-  return `resume-download-${digest}`;
+  return createBullmqJobId("resume-download", data);
 };
 
 export const getResumeQueue = () => {
   if (!resumeQueueInstance) {
-    resumeQueueInstance = new Queue<ResumeDownloadJobData>(resumeDownloadQueueName, {
+    resumeQueueInstance = new Queue<ResumeDownloadJobData>(RESUME_DOWNLOAD_QUEUE_NAME, {
       connection: getBullmqConnection(),
       prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
-      defaultJobOptions: {
-        attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
-        backoff: {
-          type: "exponential",
-          delay: env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS,
-        },
-        removeOnComplete: {
-          age: 60 * 60 * 24,
-          count: 2000,
-        },
-        removeOnFail: {
-          age: 60 * 60 * 24 * 7,
-          count: 5000,
-        },
-      } satisfies JobsOptions,
+      defaultJobOptions: createBullmqQueueOptions(env.RESUME_DOWNLOAD_JOB_ATTEMPTS, env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS) satisfies JobsOptions,
     });
 
-    // Add error handlers to the queue connection
     resumeQueueInstance.on("error", (error) => {
-      logger.error({ error, queueName: resumeDownloadQueueName }, "Resume queue connection error");
+      logger.error({ error, queueName: RESUME_DOWNLOAD_QUEUE_NAME }, "Resume queue connection error");
     });
   }
 
@@ -162,19 +96,7 @@ export const enqueueResumeDownloadJob = async (data: ResumeDownloadJobData) => {
   try {
     const job = await queue.add("generate-resume-pdf", data, {
       jobId,
-      attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
-      backoff: {
-        type: "exponential",
-        delay: env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS,
-      },
-      removeOnComplete: {
-        age: 60 * 60 * 24,
-        count: 2000,
-      },
-      removeOnFail: {
-        age: 60 * 60 * 24 * 7,
-        count: 5000,
-      },
+      ...createBullmqQueueOptions(env.RESUME_DOWNLOAD_JOB_ATTEMPTS, env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS),
     });
 
     logger.info({ jobId, userId: data.userId, jobStatus: job.id }, "Resume download job successfully enqueued");

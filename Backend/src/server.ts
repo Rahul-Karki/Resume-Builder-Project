@@ -4,6 +4,7 @@ import { env } from "./config/env";
 import { flushBackendSentry, initializeBackendSentry } from "./config/sentry";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
+import { closeAtsQueue, ensureAtsQueueReady } from "./queue/atsQueue";
 import { closeResumeQueue, ensureResumeQueueReady } from "./queue/resumeQueue";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
 import { createAllIndexes } from "./config/indexes";
@@ -22,6 +23,9 @@ const startServer = async () => {
   });
   void ensureResumeQueueReady().catch((error) => {
     logger.error({ error }, "Resume queue connection failed during startup");
+  });
+  void ensureAtsQueueReady().catch((error) => {
+    logger.error({ error }, "ATS queue connection failed during startup");
   });
 
   const server = app.listen(PORT, () => {
@@ -54,6 +58,7 @@ const startServer = async () => {
       try {
         await closeRedisClient();
         await closeResumeQueue();
+        await closeAtsQueue();
         logger.info("Shutdown completed successfully");
         process.exit(0);
       } catch (error) {
