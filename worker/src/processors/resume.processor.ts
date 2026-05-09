@@ -290,7 +290,28 @@ export const processResumeDownloadJob = async (job: Job<ResumeDownloadJobData>) 
   try {
     const artifact = await generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id));
 
-    await ResumeDownloadJob.updateOne(
+    const pdfSizeBytes = artifact.pdfBuffer.length;
+    const pdfSizeMb = pdfSizeBytes / (1024 * 1024);
+    const maxDocumentSizeBytes = 16 * 1024 * 1024; // MongoDB default 16MB limit
+
+    logger.debug({
+      jobId: job.id,
+      pdfBufferSize: pdfSizeBytes,
+      pdfSizeMb: pdfSizeMb.toFixed(2),
+      pdfBufferType: typeof artifact.pdfBuffer,
+      isBuffer: Buffer.isBuffer(artifact.pdfBuffer),
+    }, "Generated PDF artifact");
+
+    if (pdfSizeBytes > maxDocumentSizeBytes) {
+      logger.warn({
+        jobId: job.id,
+        pdfSizeBytes,
+        maxSize: maxDocumentSizeBytes,
+        note: "PDF exceeds MongoDB 16MB document limit - consider using GridFS",
+      }, "PDF file size exceeds limit");
+    }
+
+    const updateResult = await ResumeDownloadJob.updateOne(
       { jobId: String(job.id) },
       {
         $set: {
@@ -306,7 +327,23 @@ export const processResumeDownloadJob = async (job: Job<ResumeDownloadJobData>) 
       },
     );
 
-    logger.info({ jobId: job.id, durationMs: Date.now() - startedAt }, "Resume download job completed");
+    logger.info({
+      jobId: job.id,
+      durationMs: Date.now() - startedAt,
+      fileSize: pdfSizeBytes,
+      fileSizeMb: pdfSizeMb.toFixed(2),
+      mongoUpdateResult: { modifiedCount: updateResult.modifiedCount, matchedCount: updateResult.matchedCount },
+    }, "Resume download job completed");
+
+    // Verify the data was saved correctly
+    const savedJob = await ResumeDownloadJob.findOne({ jobId: String(job.id) }).lean();
+    if (!savedJob?.fileData) {
+      logger.error({ jobId: job.id }, "File data was not saved to database after update");
+    } else {
+      const savedSize = Buffer.isBuffer(savedJob.fileData) ? savedJob.fileData.length : 0;
+      logger.debug({ jobId: job.id, savedFileSize: savedSize }, "Verified file data was saved");
+    }
+
     return { resultUrl: artifact.resultUrl };
   } catch (error) {
     await ResumeDownloadJob.updateOne(

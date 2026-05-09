@@ -67,15 +67,34 @@ const toBuffer = (value: unknown) => {
     return Buffer.from(value);
   }
 
-  if (value && typeof value === "object") {
-    const record = value as { data?: unknown; buffer?: unknown };
+  if (value instanceof ArrayBuffer) {
+    return Buffer.from(value);
+  }
 
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+
+    // Handle MongoDB Binary BSON type: { type: 0, data: [...] }
     if (Array.isArray(record.data)) {
       return Buffer.from(record.data as number[]);
     }
 
+    // Handle nested buffer objects
     if (record.buffer instanceof ArrayBuffer) {
       return Buffer.from(record.buffer);
+    }
+
+    if (Buffer.isBuffer(record.buffer)) {
+      return record.buffer;
+    }
+
+    // Handle string base64 encoding
+    if (typeof record.data === "string") {
+      try {
+        return Buffer.from(record.data, "base64");
+      } catch {
+        // Ignore conversion errors
+      }
     }
   }
 
@@ -304,21 +323,40 @@ export const downloadResumeResult: RequestHandler = async (req, res) => {
 
     const job = await ResumeDownloadJob.findOne({ jobId: req.params.id, userId }).lean();
 
-    if (!job || job.status !== "completed") {
+    if (!job) {
+      logger.warn({ jobId: req.params.id, userId }, "Resume download job not found in database");
       throw new NotFoundError("Downloaded resume not ready");
     }
 
-    const buffer = toBuffer((job as { fileData?: unknown }).fileData);
-
-    if (buffer) {
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="${(job as { fileName?: string }).fileName || createResumeDownloadFileName(job.jobId)}"`);
-      res.status(200).send(buffer);
-      markSpanSuccess(span);
-      return;
+    if (job.status !== "completed") {
+      logger.warn({ jobId: req.params.id, userId, status: job.status }, "Resume download job not completed");
+      throw new NotFoundError("Downloaded resume not ready");
     }
 
-    throw new NotFoundError("Downloaded resume not ready");
+    const rawFileData = (job as { fileData?: unknown }).fileData;
+    logger.debug({
+      jobId: req.params.id,
+      fileDataType: typeof rawFileData,
+      isBuffer: Buffer.isBuffer(rawFileData),
+      fileDataKeys: rawFileData && typeof rawFileData === "object" ? Object.keys(rawFileData as Record<string, unknown>) : null,
+    }, "File data details");
+
+    const buffer = toBuffer(rawFileData);
+
+    if (!buffer) {
+      logger.error({
+        jobId: req.params.id,
+        userId,
+        fileDataType: typeof rawFileData,
+        fileDataValue: rawFileData ? JSON.stringify(rawFileData).slice(0, 200) : "null",
+      }, "Failed to convert fileData to buffer");
+      throw new NotFoundError("Downloaded resume not ready");
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${(job as { fileName?: string }).fileName || createResumeDownloadFileName(job.jobId)}"`);
+    res.status(200).send(buffer);
+    markSpanSuccess(span);
   } catch (error) {
     markSpanError(span, error as Error, "Failed to download resume result");
     logger.error({ error, jobId: req.params.id }, "Failed to download resume result");
