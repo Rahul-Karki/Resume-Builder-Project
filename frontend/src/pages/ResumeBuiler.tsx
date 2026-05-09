@@ -108,10 +108,11 @@ const normalizeDownloadUrl = (downloadUrl: string) => {
 
 const openPdfInNewTab = (downloadUrl: string) => {
   const url = normalizeDownloadUrl(downloadUrl);
-  // Prefer inline preview in a new tab. Backend will respect `inline=1` query param.
-  const sep = url.includes("?") ? "&" : "?";
-  const previewUrl = `${url}${sep}inline=1`;
-  window.open(previewUrl, "_blank");
+  // Open PDF directly in browser's native viewer
+  // Browser detects Content-Type: application/pdf and activates native PDF viewer
+  // User gets zoom, print, and native save/download controls
+  // Backend serves with Content-Disposition: inline for browser preview
+  window.open(url, "_blank");
 };
 
 const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
@@ -147,7 +148,6 @@ async function downloadResume(
       : { resume, preset },
   );
 
-  const fileName = buildDownloadFileName(resume, preset);
   const initialDownloadUrl = queueResponse.resultUrl || queueResponse.downloadUrl;
 
   if (queueResponse.status === "failed") {
@@ -155,7 +155,7 @@ async function downloadResume(
   }
 
   if (queueResponse.status === "completed" && initialDownloadUrl) {
-    onStatus?.("Opening PDF preview...");
+    onStatus?.("Opening PDF...");
     openPdfInNewTab(initialDownloadUrl);
     return;
   }
@@ -168,7 +168,7 @@ async function downloadResume(
     throw new Error("Resume download finished without a download URL.");
   }
 
-  onStatus?.("Opening PDF preview...");
+  onStatus?.("Opening PDF...");
   openPdfInNewTab(downloadUrl);
 }
 

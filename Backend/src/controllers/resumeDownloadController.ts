@@ -354,9 +354,12 @@ export const downloadResumeResult: RequestHandler = async (req, res) => {
     }
 
     res.setHeader("Content-Type", "application/pdf");
-    const inline = String(req.query.inline ?? "").toLowerCase() === "1" || String(req.query.inline ?? "").toLowerCase() === "true";
-    const dispositionType = inline ? "inline" : "attachment";
-    res.setHeader("Content-Disposition", `${dispositionType}; filename="${(job as { fileName?: string }).fileName || createResumeDownloadFileName(job.jobId)}"`);
+    // Always use "inline" for PDF files so browser's native PDF viewer activates
+    // User controls save location via browser's native PDF viewer
+    // (clicking "Save" button in PDF viewer opens save dialog)
+    const fileName = (job as { fileName?: string }).fileName || createResumeDownloadFileName(job.jobId);
+    res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+    res.setHeader("Cache-Control", "private, max-age=86400");
     res.status(200).send(buffer);
     markSpanSuccess(span);
   } catch (error) {
