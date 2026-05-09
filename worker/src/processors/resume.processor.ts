@@ -128,13 +128,30 @@ const buildCertificationsSection = (entries: unknown) => buildSimpleListSection(
   </div>
 `);
 
+// Map frontend fonts to system fonts that Puppeteer can render
+const mapToSystemFont = (font: string): string => {
+  const fontName = font.toLowerCase();
+  
+  // Map fancy fonts to system equivalents available in headless environments
+  if (fontName.includes("garamond") || fontName.includes("playfair") || fontName.includes("lora")) {
+    return '"Georgia", "Times New Roman", serif'; // Serif fallback
+  }
+  if (fontName.includes("dm sans") || fontName.includes("plex") || fontName.includes("nunito") || fontName.includes("outfit")) {
+    return '"Segoe UI", "-apple-system", "BlinkMacSystemFont", "Helvetica Neue", sans-serif'; // Modern sans-serif
+  }
+  if (fontName.includes("source")) {
+    return '"Monaco", "Courier New", monospace'; // Monospace
+  }
+  
+  // Try to keep the original font but add comprehensive fallbacks
+  return `${font}, "Arial", "Helvetica", sans-serif`;
+};
+
 // Ensure font family is properly formatted
 const formatFontFamily = (font: string): string => {
-  const trimmed = font.trim();
-  // If it doesn't start with a quote or generic family, wrap it
-  if (!trimmed.startsWith('"') && !trimmed.startsWith("'") && !["serif", "sans-serif", "monospace", "cursive", "fantasy"].includes(trimmed.split(",")[0].trim())) {
-    return `"${trimmed}"`;
-  }
+  const mapped = mapToSystemFont(font);
+  const trimmed = mapped.trim();
+  // Fonts are already properly formatted from mapToSystemFont
   return trimmed;
 };
 
@@ -195,8 +212,6 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
       <head>
         <meta charset="utf-8" />
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Playfair+Display:wght@400;600&family=Lora:wght@400;600&family=DM+Sans:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=Nunito+Sans:wght@400;600&family=Outfit:wght@400;600&family=Source+Serif+4:wght@400;600&display=swap');
-          
           @page { size: A4; margin: 14mm; }
           * { box-sizing: border-box; }
           body {
@@ -317,9 +332,31 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
     const page = await browser.newPage();
 
     try {
-      await page.setViewport({ width: 1280, height: 1800, deviceScaleFactor: 1 });
-      await page.setContent(html, { waitUntil: "networkidle0" });
-      await page.emulateMediaType("screen");
+      await page.setViewport({ width: 1280, height: 1800, deviceScaleFactor: 2 });
+      
+      // Set media type BEFORE content for proper print styling
+      await page.emulateMediaType("print");
+      
+      // Set content and wait for network to be idle (fonts and resources loading)
+      await page.setContent(html, { 
+        waitUntil: "networkidle2",
+        timeout: 30000 
+      });
+
+      // Wait for fonts to load (Google Fonts or system fonts)
+      await page.waitForFunction(
+        () => {
+          const computedStyle = window.getComputedStyle(document.body);
+          return computedStyle.fontFamily && computedStyle.fontFamily !== 'sans-serif';
+        },
+        { timeout: 5000 }
+      ).catch(() => {
+        // Font loading timeout - continue anyway with fallback fonts
+        logger.debug({ jobId }, "Font loading timeout, continuing with fallback fonts");
+      });
+
+      // Small delay to ensure CSS is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const generatedBuffer = await page.pdf({
         format: "A4",
