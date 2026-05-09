@@ -37,11 +37,27 @@ export const sendSuccess = <T = unknown>(
   statusCode = 200,
   csrfToken?: string,
 ): Response => {
-  const payload: ApiSuccessResponse<T> = { ok: true, data };
+  // Maintain backward-compatible top-level fields for common response shapes
+  // If `data` is a plain object, spread its properties to the top-level while
+  // still including the structured `data` field. This preserves existing
+  // client expectations (e.g., `body.user`, `body.csrfToken`) while moving
+  // towards a consistent envelope `{ ok, data }`.
+  const payload: any = { ok: true, data };
+
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    try {
+      // shallow copy enumerable own properties
+      Object.assign(payload, data as Record<string, unknown>);
+    } catch {
+      // ignore on failures and fall back to envelope only
+    }
+  }
+
   if (csrfToken) {
     payload.csrfToken = csrfToken;
   }
-  return res.status(statusCode).json(payload);
+
+  return res.status(statusCode).json(payload as ApiSuccessResponse<T>);
 };
 
 /**

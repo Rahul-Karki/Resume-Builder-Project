@@ -18,7 +18,7 @@ const refreshAccessToken = (req: Request, res: Response) => {
     logger.warn({ route: req.originalUrl }, "Refresh token missing");
     markSpanError(span, new Error("Refresh token missing"), "Refresh token missing");
     finishControllerSpan(span);
-    return sendUnauthorized(res, "Authentication required", "AUTH_REQUIRED");
+    return sendErrorResponse(res, new Error("Authentication required"), { statusCode: 401, code: "AUTH_REQUIRED" });
   }
 
   try {
@@ -29,11 +29,12 @@ const refreshAccessToken = (req: Request, res: Response) => {
     const csrfToken = setCsrfCookie(req, res);
     logger.info({ userId: decoded.userId }, "Access token refreshed");
     markSpanSuccess(span);
-    return sendSuccess(res, { message: "Token refreshed" }, 200, csrfToken);
+    // Return legacy shape expected by clients/tests: `{ message, csrfToken }`
+    return res.status(200).json({ message: "Token refreshed", csrfToken });
   } catch (error) {
     markSpanError(span, error as Error, "Refresh token verification failed");
     logger.error({ error }, "Failed to refresh access token");
-    return sendUnauthorized(res, "Invalid refresh token", "AUTH_REQUIRED");
+    return sendErrorResponse(res, new Error("Invalid refresh token"), { statusCode: 403, code: "AUTH_REQUIRED" });
   } finally {
     finishControllerSpan(span);
   }
@@ -45,7 +46,7 @@ const issueCsrfToken = (req: Request, res: Response) => {
   try {
     const csrfToken = setCsrfCookie(req, res);
     markSpanSuccess(span);
-    return sendSuccess(res, { message: "CSRF token issued" }, 200, csrfToken);
+    return res.status(200).json({ message: "CSRF token issued", csrfToken });
   } catch (error) {
     markSpanError(span, error as Error, "Failed to issue CSRF token");
     logger.error({ error }, "Failed to issue CSRF token");

@@ -354,13 +354,55 @@ export const downloadResumeResult: RequestHandler = async (req, res) => {
     }
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${(job as { fileName?: string }).fileName || createResumeDownloadFileName(job.jobId)}"`);
+    const inline = String(req.query.inline ?? "").toLowerCase() === "1" || String(req.query.inline ?? "").toLowerCase() === "true";
+    const dispositionType = inline ? "inline" : "attachment";
+    res.setHeader("Content-Disposition", `${dispositionType}; filename="${(job as { fileName?: string }).fileName || createResumeDownloadFileName(job.jobId)}"`);
     res.status(200).send(buffer);
     markSpanSuccess(span);
   } catch (error) {
     markSpanError(span, error as Error, "Failed to download resume result");
     logger.error({ error, jobId: req.params.id }, "Failed to download resume result");
     sendErrorResponse(res, error, { statusCode: 404, code: "NOT_FOUND", message: "Downloaded resume not found" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const getResumePreviewData: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeDownload.getResumePreviewData", req);
+  try {
+    const previewToken = String(req.query.previewToken ?? "");
+
+    // If previewToken provided we allow unauthenticated access (token must match job.previewToken).
+    if (previewToken) {
+      const job = await ResumeDownloadJob.findOne({ jobId: req.params.id }).lean();
+      if (!job || String((job as any).previewToken ?? "") !== previewToken) {
+        throw new NotFoundError("Preview data not found");
+      }
+
+      const resumeSnapshot = (job as any).resume || null;
+      markSpanSuccess(span);
+      res.status(200).json({ resume: resumeSnapshot });
+      return;
+    }
+
+    // otherwise require authentication and ownership
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const job = await ResumeDownloadJob.findOne({ jobId: req.params.id, userId }).lean();
+    if (!job) {
+      throw new NotFoundError("Preview data not found");
+    }
+
+    const resumeSnapshot = (job as any).resume || null;
+
+    markSpanSuccess(span);
+    res.status(200).json({ resume: resumeSnapshot });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to fetch resume preview data");
+    logger.error({ error, jobId: req.params.id }, "Failed to fetch resume preview data");
+    sendErrorResponse(res, error, { statusCode: 404, code: "NOT_FOUND", message: "Preview data not found" });
   } finally {
     finishControllerSpan(span);
   }

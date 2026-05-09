@@ -4,6 +4,7 @@ import { env } from "../config/env";
 import {
   downloadResume,
   downloadResumeResult,
+  getResumePreviewData,
   getResumeDownloadJobStatus,
   getResumeQueueMetrics,
 } from "../controllers/resumeDownloadController";
@@ -28,6 +29,10 @@ import {
 } from "../validation/schemas";
 
 const router = express.Router();
+
+// Preview-data endpoint is intentionally mounted before auth middleware so that
+// the worker (Puppeteer) can access preview pages using a short-lived previewToken.
+router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }), getResumePreviewData);
 
 const resumeReadCacheTtlSeconds = Math.min(env.REDIS_CACHE_TTL_SECONDS, 60);
 const resumeUserScope = (req: express.Request) => `resumes-user:${req.user?.id ?? "anonymous"}`;

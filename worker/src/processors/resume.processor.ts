@@ -1,6 +1,7 @@
 import type { Job } from "bullmq";
 import { createResumeDownloadFileName, resolveResumeDownloadUrl, type ResumeDownloadJobData } from "../../../shared/src/bullmq";
 import { env } from "../config/env";
+import crypto from "crypto";
 import { launchPuppeteerBrowser } from "../config/puppeteer";
 import { logger } from "../observability";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
@@ -322,7 +323,7 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
   `;
 };
 
-export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: string, jobId: string): Promise<ResumeDownloadArtifact> => {
+export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: string, jobId: string, previewToken?: string): Promise<ResumeDownloadArtifact> => {
   const browser = await launchPuppeteerBrowser();
   const fileName = createResumeDownloadFileName(jobId);
   const html = buildResumeHtml(resume, preset);
@@ -334,40 +335,35 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
     try {
       await page.setViewport({ width: 1280, height: 1800, deviceScaleFactor: 2 });
       
-      // Set media type BEFORE content for proper print styling
-      await page.emulateMediaType("print");
-      
-      // Set content and wait for network to be idle (fonts and resources loading)
-      await page.setContent(html, { 
-        waitUntil: "networkidle2",
-        timeout: 30000 
-      });
+      // Prefer visiting the frontend preview route so compiled Tailwind, custom CSS and fonts load correctly.
+      const frontendBase = (env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+      const tokenParam = previewToken ? `${previewToken}` : "";
+      const previewUrl = tokenParam
+        ? `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}?previewToken=${encodeURIComponent(tokenParam)}`
+        : `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}`;
 
-      // Wait for fonts to load (Google Fonts or system fonts)
-      await page.waitForFunction(
-        () => {
-          const computedStyle = window.getComputedStyle(document.body);
-          return computedStyle.fontFamily && computedStyle.fontFamily !== 'sans-serif';
-        },
-        { timeout: 5000 }
-      ).catch(() => {
-        // Font loading timeout - continue anyway with fallback fonts
-        logger.debug({ jobId }, "Font loading timeout, continuing with fallback fonts");
-      });
+      // Use screen media so styles match on-screen rendering
+      await page.emulateMediaType("screen");
 
-      // Small delay to ensure CSS is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await page.goto(previewUrl, { waitUntil: "networkidle0", timeout: 60000 });
+
+      // Ensure the preview DOM root is present and fonts/resources are ready
+      await page.waitForSelector("#resume-export-root", { timeout: 10000 }).catch(() => undefined);
+
+      // Wait for document.fonts.ready to resolve (ensures fonts are loaded)
+      try {
+        await page.evaluateHandle("document.fonts.ready");
+      } catch (err) {
+        logger.debug({ jobId, err }, "document.fonts.ready timed out or failed, continuing");
+      }
+
+      // Extra small pause to let any late-loaded CSS finish
+      await new Promise((r) => setTimeout(r, 200));
 
       const generatedBuffer = await page.pdf({
         format: "A4",
         printBackground: true,
         preferCSSPageSize: true,
-        margin: {
-          top: "12mm",
-          right: "12mm",
-          bottom: "12mm",
-          left: "12mm",
-        },
       });
 
       pdfBuffer = Buffer.isBuffer(generatedBuffer) ? generatedBuffer : Buffer.from(generatedBuffer);
@@ -409,7 +405,11 @@ export const processResumeDownloadJob = async (job: Job<ResumeDownloadJobData>) 
   );
 
   try {
-    const artifact = await generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id));
+    // Ensure there is a short-lived preview token available for the frontend preview route.
+    const previewToken = crypto.randomBytes(12).toString("hex");
+    await ResumeDownloadJob.updateOne({ jobId: String(job.id) }, { $set: { previewToken } });
+
+    const artifact = await generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id), previewToken);
 
     const pdfSizeBytes = artifact.pdfBuffer.length;
     const pdfSizeMb = pdfSizeBytes / (1024 * 1024);

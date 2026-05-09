@@ -5,6 +5,7 @@ import ForgotPassword from "./pages/ResetPassword"
 import Home from "./pages/Home"
 import Templates from "./pages/Templates"
 import ResumeBuilder from "./pages/ResumeBuiler"
+import ResumePreviewPage from "./pages/ResumePreviewPage"
 import MyResumePage from "./pages/MyResumePage"
 import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
@@ -29,6 +30,7 @@ function App() {
           <Route path="/reset-password" element={<ForgotPassword />} />
           <Route path ="/templates" element={<Templates />} />
           <Route path="/builder" element={<ResumeBuilder />} />
+          <Route path="/resume/preview/:id" element={<ResumePreviewPage />} />
           <Route path="/resumes" element={<MyResumePage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route

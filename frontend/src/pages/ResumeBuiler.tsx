@@ -106,21 +106,12 @@ const normalizeDownloadUrl = (downloadUrl: string) => {
   return downloadUrl.replace(/^\/api(?=\/)/, "");
 };
 
-const triggerBlobDownload = async (downloadUrl: string, fileName: string) => {
-  const response = await api.get(normalizeDownloadUrl(downloadUrl), { responseType: "blob" });
-  const blob = response.data instanceof Blob
-    ? response.data
-    : new Blob([response.data], { type: response.headers["content-type"] || "application/pdf" });
-  const objectUrl = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-
-  anchor.href = objectUrl;
-  anchor.download = fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-
-  window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+const openPdfInNewTab = (downloadUrl: string) => {
+  const url = normalizeDownloadUrl(downloadUrl);
+  // Prefer inline preview in a new tab. Backend will respect `inline=1` query param.
+  const sep = url.includes("?") ? "&" : "?";
+  const previewUrl = `${url}${sep}inline=1`;
+  window.open(previewUrl, "_blank");
 };
 
 const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
@@ -164,8 +155,8 @@ async function downloadResume(
   }
 
   if (queueResponse.status === "completed" && initialDownloadUrl) {
-    onStatus?.("Downloading PDF...");
-    await triggerBlobDownload(initialDownloadUrl, fileName);
+    onStatus?.("Opening PDF preview...");
+    openPdfInNewTab(initialDownloadUrl);
     return;
   }
 
@@ -177,8 +168,8 @@ async function downloadResume(
     throw new Error("Resume download finished without a download URL.");
   }
 
-  onStatus?.("Downloading PDF...");
-  await triggerBlobDownload(downloadUrl, fileName);
+  onStatus?.("Opening PDF preview...");
+  openPdfInNewTab(downloadUrl);
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
