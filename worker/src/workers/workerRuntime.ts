@@ -19,6 +19,11 @@ export type ManagedWorker = {
 
 const heartbeatIntervalMs = 30_000;
 
+const isUpstashMaxRequestsError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /max requests limit exceeded/i.test(message);
+};
+
 export const createWorkerId = (serviceName: string) => `${serviceName}-${crypto.randomUUID()}`;
 
 const writeHeartbeat = async (
@@ -60,10 +65,15 @@ export const startManagedWorker = async <T>({
   const workerId = createWorkerId(env.SERVICE_NAME);
   await writeHeartbeat(workerId, "starting", queueName, { concurrency, workerLabel });
 
-  const queueEvents = new QueueEvents(queueName, {
-    connection: getBullmqConnection(),
-    prefix: queuePrefix,
-  });
+  let queueEventsClosed = false;
+  let redisLimitTriggered = false;
+
+  const queueEvents = env.ENABLE_BULLMQ_QUEUE_EVENTS
+    ? new QueueEvents(queueName, {
+      connection: getBullmqConnection(),
+      prefix: queuePrefix,
+    })
+    : null;
 
   const worker = new Worker<T>(queueName, processJob, {
     connection: getBullmqConnection(),
@@ -98,29 +108,53 @@ export const startManagedWorker = async <T>({
   worker.on("error", (error) => {
     void writeHeartbeat(workerId, "error", queueName, { concurrency, workerLabel, lastError: error.message });
     logger.error({ error, workerLabel, queueName }, "Worker error");
+
+    if (isUpstashMaxRequestsError(error) && !redisLimitTriggered) {
+      redisLimitTriggered = true;
+      logger.error(
+        { workerLabel, queueName },
+        "Upstash max Redis request limit reached; pausing worker to prevent retry storm"
+      );
+
+      void worker.pause(true).catch((pauseError) => {
+        logger.warn({ pauseError, workerLabel, queueName }, "Failed to pause worker after Upstash limit error");
+      });
+
+      if (queueEvents && !queueEventsClosed) {
+        queueEventsClosed = true;
+        void queueEvents.close().catch((closeError) => {
+          logger.warn({ closeError, workerLabel, queueName }, "Failed to close QueueEvents after Upstash limit error");
+        });
+      }
+    }
   });
 
   worker.on("stalled", (jobId) => {
     logger.warn({ workerLabel, queueName, jobId }, "Worker observed stalled job");
   });
 
-  queueEvents.on("waiting", ({ jobId }) => {
-    logger.info({ workerLabel, queueName, jobId }, "Queue event waiting");
-  });
+  if (queueEvents) {
+    queueEvents.on("waiting", ({ jobId }) => {
+      logger.info({ workerLabel, queueName, jobId }, "Queue event waiting");
+    });
 
-  queueEvents.on("active", ({ jobId, prev }) => {
-    logger.info({ workerLabel, queueName, jobId, prev }, "Queue event active");
-  });
+    queueEvents.on("active", ({ jobId, prev }) => {
+      logger.info({ workerLabel, queueName, jobId, prev }, "Queue event active");
+    });
 
-  queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
-    logger.warn({ workerLabel, queueName, jobId, failedReason, prev }, "Queue event failed");
-  });
+    queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
+      logger.warn({ workerLabel, queueName, jobId, failedReason, prev }, "Queue event failed");
+    });
+  }
 
   const shutdown = async (signal: string) => {
     logger.info({ workerLabel, queueName, signal }, "Shutting down worker");
     clearInterval(heartbeatTimer);
     await writeHeartbeat(workerId, "closing", queueName, { concurrency, workerLabel, signal });
-    await queueEvents.close();
+    if (queueEvents && !queueEventsClosed) {
+      queueEventsClosed = true;
+      await queueEvents.close();
+    }
     await worker.close();
   };
 

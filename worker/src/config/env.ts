@@ -36,6 +36,7 @@ const envSchema = z.object({
   SERVICE_NAME: z.string().min(1).default("resume-builder-worker"),
   SERVICE_VERSION: z.string().min(1).default("1.0.0"),
   ENABLE_WORKER_HEARTBEAT: booleanFromEnv.default(true),
+  ENABLE_BULLMQ_QUEUE_EVENTS: booleanFromEnv.default(false),
 });
 
 const parsed = envSchema.safeParse(process.env);
