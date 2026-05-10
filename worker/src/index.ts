@@ -39,3 +39,12 @@ void start().catch((error) => {
   logger.error({ error }, "Worker service failed to start");
   process.exit(1);
 });
+
+process.on("unhandledRejection", (reason) => {
+  logger.error({ reason }, "Worker unhandled promise rejection");
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error({ error }, "Worker uncaught exception");
+  process.exit(1);
+});

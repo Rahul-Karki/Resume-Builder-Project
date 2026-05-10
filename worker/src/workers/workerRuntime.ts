@@ -10,6 +10,7 @@ export type StartWorkerOptions<T> = {
   queueName: string;
   queuePrefix: string;
   concurrency: number;
+  limiter?: { max: number; duration: number };
   processJob: (job: Job<T>) => Promise<unknown>;
 };
 
@@ -60,6 +61,7 @@ export const startManagedWorker = async <T>({
   queueName,
   queuePrefix,
   concurrency,
+  limiter,
   processJob,
 }: StartWorkerOptions<T>): Promise<ManagedWorker> => {
   const workerId = createWorkerId(env.SERVICE_NAME);
@@ -79,6 +81,7 @@ export const startManagedWorker = async <T>({
     connection: getBullmqConnection(),
     prefix: queuePrefix,
     concurrency,
+    limiter: limiter || { max: 10, duration: 1000 }, // Default safe limit: 10 jobs per second
     stalledInterval: 300_000,
     maxStalledCount: 1,
     lockDuration: 300_000,
