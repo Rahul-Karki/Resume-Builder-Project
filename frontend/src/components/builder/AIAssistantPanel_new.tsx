@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { improveResumeText, checkResumeGrammar, enhanceResumeBullet } from "@/services/api";
 import type { AiRewriteResult, AiGrammarResult, AiTone, FocusedEditorField } from "@/types/resume-types";
-import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, PenTool, ChevronDown, Wand2, Lightbulb } from "lucide-react";
+import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, PenTool, ChevronDown, Wand2, X, Lightbulb } from "lucide-react";
 
 const TONES: { id: AiTone; label: string; icon: React.ReactNode; description: string }[] = [
   { id: "professional", label: "Professional", icon: <Briefcase size={12} />, description: "Polished and formal" },
@@ -646,4 +646,3 @@ export function AIAssistantPanel() {
     </div>
   );
 }
-
