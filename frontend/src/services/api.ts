@@ -6,6 +6,10 @@ import type {
   AiTone,
   AtsAnalysisReport,
 } from "../../../shared/src/ai";
+import { logger } from "@/utils/logger";
+import { performanceMonitor } from "@/utils/performance";
+import { errorTracker } from "@/utils/errorTracking";
+import { aiCreditsManager } from "@/utils/aiCredits";
 
 type RetriableConfig = {
   _retry?: boolean;
@@ -139,18 +143,96 @@ export const getResumeDownloadJobStatus = async (jobId: string) => {
 };
 
 export const improveResumeText = async (payload: AiSectionRequest) => {
-  const response = await api.post("/ai/improve-text", payload, { timeout: 20000 });
-  return response.data as AiRewriteResult;
+  const operation = 'improve-text';
+  const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
+  
+  if (!aiCreditsManager.canAfford(operation, payload.text.length)) {
+    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
+    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
+    throw error;
+  }
+
+  try {
+    logger.info('Starting AI text improvement', { operation, textLength: payload.text.length, estimatedCredits });
+    
+    const response = await performanceMonitor.measureApiCall(
+      'improveResumeText',
+      () => api.post("/ai/improve-text", payload, { timeout: 20000 }),
+      { operation, textLength: payload.text.length }
+    );
+    
+    await aiCreditsManager.recordUsage(operation, payload.text.length, { textLength: payload.text.length, section: payload.section });
+    logger.logApiRequest('POST', '/ai/improve-text', response.status, undefined);
+    
+    return response.data as AiRewriteResult;
+  } catch (error) {
+    await aiCreditsManager.recordFailedUsage(operation, estimatedCredits, error as Error);
+    errorTracker.trackError('AI text improvement failed', error, { operation, payload });
+    logger.error('AI text improvement failed', { operation, error: (error as Error).message });
+    throw error;
+  }
 };
 
 export const checkResumeGrammar = async (payload: AiSectionRequest) => {
-  const response = await api.post("/ai/check-grammar", payload, { timeout: 20000 });
-  return response.data as AiGrammarResult;
+  const operation = 'check-grammar';
+  const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
+  
+  if (!aiCreditsManager.canAfford(operation, payload.text.length)) {
+    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
+    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
+    throw error;
+  }
+
+  try {
+    logger.info('Starting AI grammar check', { operation, textLength: payload.text.length, estimatedCredits });
+    
+    const response = await performanceMonitor.measureApiCall(
+      'checkResumeGrammar',
+      () => api.post("/ai/check-grammar", payload, { timeout: 20000 }),
+      { operation, textLength: payload.text.length }
+    );
+    
+    await aiCreditsManager.recordUsage(operation, payload.text.length, { textLength: payload.text.length, section: payload.section });
+    logger.logApiRequest('POST', '/ai/check-grammar', response.status, undefined);
+    
+    return response.data as AiGrammarResult;
+  } catch (error) {
+    await aiCreditsManager.recordFailedUsage(operation, estimatedCredits, error as Error);
+    errorTracker.trackError('AI grammar check failed', error, { operation, payload });
+    logger.error('AI grammar check failed', { operation, error: (error as Error).message });
+    throw error;
+  }
 };
 
 export const enhanceResumeBullet = async (payload: AiSectionRequest) => {
-  const response = await api.post("/ai/enhance-bullet", payload, { timeout: 20000 });
-  return response.data as AiRewriteResult;
+  const operation = 'enhance-bullet';
+  const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
+  
+  if (!aiCreditsManager.canAfford(operation, payload.text.length)) {
+    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
+    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
+    throw error;
+  }
+
+  try {
+    logger.info('Starting AI bullet enhancement', { operation, textLength: payload.text.length, estimatedCredits });
+    
+    const response = await performanceMonitor.measureApiCall(
+      'enhanceResumeBullet',
+      () => api.post("/ai/enhance-bullet", payload, { timeout: 20000 }),
+      { operation, textLength: payload.text.length }
+    );
+    
+    await aiCreditsManager.recordUsage(operation, payload.text.length, { textLength: payload.text.length, section: payload.section });
+    logger.logApiRequest('POST', '/ai/enhance-bullet', response.status, undefined);
+    
+    return response.data as AiRewriteResult;
+  } catch (error) {
+    await aiCreditsManager.recordFailedUsage(operation, estimatedCredits, error as Error);
+    errorTracker.trackError('AI bullet enhancement failed', error, { operation, payload });
+    logger.error('AI bullet enhancement failed', { operation, error: (error as Error).message });
+    throw error;
+  }
 };
 
 export const queueAtsAnalysis = async (resumeId: string, payload: {
@@ -160,8 +242,34 @@ export const queueAtsAnalysis = async (resumeId: string, payload: {
   tone?: AiTone;
   reportType?: "resume-analysis" | "job-description-match";
 }) => {
-  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/analyze-ats`, payload, { timeout: 60000 });
-  return response.data as AtsAnalysisQueueResponse;
+  const operation = 'ats-analysis';
+  const estimatedCredits = aiCreditsManager.estimateCredits(operation);
+  
+  if (!aiCreditsManager.canAfford(operation)) {
+    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
+    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
+    throw error;
+  }
+
+  try {
+    logger.info('Starting ATS analysis', { operation, resumeId, reportType: payload.reportType, estimatedCredits });
+    
+    const response = await performanceMonitor.measureApiCall(
+      'queueAtsAnalysis',
+      () => api.post(`/resumes/${encodeURIComponent(resumeId)}/analyze-ats`, payload, { timeout: 60000 }),
+      { operation, resumeId, reportType: payload.reportType }
+    );
+    
+    await aiCreditsManager.recordUsage(operation, 0, { resumeId, reportType: payload.reportType });
+    logger.logApiRequest('POST', `/resumes/${resumeId}/analyze-ats`, response.status, undefined);
+    
+    return response.data as AtsAnalysisQueueResponse;
+  } catch (error) {
+    await aiCreditsManager.recordFailedUsage(operation, estimatedCredits, error as Error);
+    errorTracker.trackError('ATS analysis queue failed', error, { operation, resumeId, payload });
+    logger.error('ATS analysis queue failed', { operation, error: (error as Error).message });
+    throw error;
+  }
 };
 
 export const getAtsAnalysis = async (resumeId: string, jobId: string) => {

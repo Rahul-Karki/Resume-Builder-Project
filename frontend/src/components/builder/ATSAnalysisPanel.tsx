@@ -273,22 +273,46 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
   useEffect(() => {
     if (!queuedJobId || !resumeId) return undefined;
     let active = true;
+    let pollCount = 0;
+    const maxPolls = 150; // Maximum 5 minutes of polling (150 * 2 seconds)
+    
     const interval = window.setInterval(async () => {
+      if (!active || pollCount >= maxPolls) {
+        window.clearInterval(interval);
+        if (pollCount >= maxPolls) {
+          setIsRunning(false);
+          setQueuedJobId(null);
+          analyzeLock.current = false;
+          setError("Analysis timed out. Please try again.");
+        }
+        return;
+      }
+      
+      pollCount++;
       try {
         const response = await getAtsAnalysis(resumeId, queuedJobId);
         if (!active) return;
         setAnalysis(response.analysis);
         setLastUpdatedAt(response.analysis.analyzedAt ?? null);
         if (response.analysis.status === "completed" || response.analysis.status === "failed") {
-          setIsRunning(false); setQueuedJobId(null); analyzeLock.current = false; window.clearInterval(interval);
+          setIsRunning(false); 
+          setQueuedJobId(null); 
+          analyzeLock.current = false; 
+          window.clearInterval(interval);
         }
       } catch (pollError) {
         if (!active) return;
         setError(pollError instanceof Error ? pollError.message : "ATS analysis polling failed");
-        setIsRunning(false); setQueuedJobId(null); analyzeLock.current = false; window.clearInterval(interval);
+        setIsRunning(false); 
+        setQueuedJobId(null); 
+        analyzeLock.current = false; 
+        window.clearInterval(interval);
       }
     }, 2000);
-    return () => { active = false; window.clearInterval(interval); };
+    return () => { 
+      active = false; 
+      window.clearInterval(interval); 
+    };
   }, [queuedJobId, resumeId]);
 
   const handleAnalyze = async () => {
