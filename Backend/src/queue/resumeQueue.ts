@@ -2,7 +2,6 @@ import { Queue, type JobsOptions } from "bullmq";
 import { env } from "../config/env";
 import { logger } from "../observability";
 import {
-  createBullmqConnection,
   createBullmqJobId,
   createBullmqQueueOptions,
   getBullmqRuntimeInfo,
@@ -10,20 +9,11 @@ import {
   resolveBullmqRedisUrl,
   type ResumeDownloadJobData,
 } from "../../../shared/src/bullmq";
+import { getSharedBullmqConnection } from "./sharedConnection";
 
 export { RESUME_DOWNLOAD_QUEUE_NAME as resumeDownloadQueueName } from "../../../shared/src/bullmq";
 
 let resumeQueueInstance: Queue<ResumeDownloadJobData> | null = null;
-
-export const getBullmqConnection = () => {
-  const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
-
-  return createBullmqConnection({
-    redisUrl,
-    connectTimeoutMs: env.REDIS_CONNECT_TIMEOUT_MS,
-    serviceName: `${env.SERVICE_NAME}-resume-downloads`,
-  });
-};
 
 export const getResumeQueueRuntimeInfo = () => {
   const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
@@ -38,7 +28,7 @@ export const createResumeDownloadJobId = (data: Record<string, unknown>) => {
 export const getResumeQueue = () => {
   if (!resumeQueueInstance) {
     resumeQueueInstance = new Queue<ResumeDownloadJobData>(RESUME_DOWNLOAD_QUEUE_NAME, {
-      connection: getBullmqConnection(),
+      connection: getSharedBullmqConnection(),
       prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
       defaultJobOptions: createBullmqQueueOptions(env.RESUME_DOWNLOAD_JOB_ATTEMPTS, env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS) satisfies JobsOptions,
     });

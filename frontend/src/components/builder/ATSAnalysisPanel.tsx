@@ -274,7 +274,8 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
     if (!queuedJobId || !resumeId) return undefined;
     let active = true;
     let pollCount = 0;
-    const maxPolls = 150; // Maximum 5 minutes of polling (150 * 2 seconds)
+    const pollIntervalMs = 5000;
+    const maxPolls = 60; // Maximum 5 minutes of polling (60 * 5 seconds)
     
     const interval = window.setInterval(async () => {
       if (!active || pollCount >= maxPolls) {
@@ -308,7 +309,7 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
         analyzeLock.current = false; 
         window.clearInterval(interval);
       }
-    }, 2000);
+    }, pollIntervalMs);
     return () => { 
       active = false; 
       window.clearInterval(interval); 

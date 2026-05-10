@@ -7,6 +7,10 @@ import WorkerHeartbeat from "../models/WorkerHeartbeat";
 import { getResumeQueue, getResumeQueueRuntimeInfo } from "../queue/resumeQueue";
 
 const router = express.Router();
+const QUEUE_COUNTS_CACHE_TTL_MS = 10_000;
+
+let cachedQueueCounts: Record<string, number> | null = null;
+let cachedQueueCountsAt = 0;
 
 const checkMongoHealth = async () => {
   if (mongoose.connection.readyState !== 1) {
@@ -51,9 +55,21 @@ const sendResumeDownloadHealthResponse = async (_req: express.Request, res: expr
   const heartbeatCutoff = new Date(Date.now() - heartbeatFreshMs);
 
   try {
+    const queueCountsPromise = (async () => {
+      const now = Date.now();
+      if (cachedQueueCounts && now - cachedQueueCountsAt < QUEUE_COUNTS_CACHE_TTL_MS) {
+        return cachedQueueCounts;
+      }
+
+      const counts = await getResumeQueue().getJobCounts("waiting", "active", "delayed", "failed", "completed", "paused");
+      cachedQueueCounts = counts;
+      cachedQueueCountsAt = now;
+      return counts;
+    })();
+
     const [mongoHealthy, queueCounts, dbCounts, latestHeartbeat] = await Promise.all([
       checkMongoHealth(),
-      getResumeQueue().getJobCounts("waiting", "active", "delayed", "failed", "completed", "paused"),
+      queueCountsPromise,
       ResumeDownloadJob.aggregate([
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]).exec(),

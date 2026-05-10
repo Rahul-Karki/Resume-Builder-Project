@@ -19,6 +19,10 @@ type ResumeDownloadBody = {
 
 const allowedPresets = new Set(["web", "standard", "print"]);
 const stalePendingJobMs = env.RESUME_DOWNLOAD_STALE_PENDING_MS;
+const QUEUE_COUNTS_CACHE_TTL_MS = 10_000;
+
+let cachedQueueCounts: Record<string, number> | null = null;
+let cachedQueueCountsAt = 0;
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -428,7 +432,14 @@ export const getResumeQueueMetrics: RequestHandler = async (req, res) => {
     if (!userId) return;
 
     const queue = getResumeQueue();
-    const queueCounts = await queue.getJobCounts();
+    const now = Date.now();
+    const queueCounts = cachedQueueCounts && now - cachedQueueCountsAt < QUEUE_COUNTS_CACHE_TTL_MS
+      ? cachedQueueCounts
+      : await queue.getJobCounts().then((counts) => {
+          cachedQueueCounts = counts;
+          cachedQueueCountsAt = now;
+          return counts;
+        });
 
     const agg = await ResumeDownloadJob.aggregate([
       { $match: { userId } },

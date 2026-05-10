@@ -3,27 +3,17 @@ import { env } from "../config/env";
 import { logger } from "../observability";
 import {
   ATS_ANALYSIS_QUEUE_NAME,
-  createBullmqConnection,
   createBullmqJobId,
   createBullmqQueueOptions,
   getBullmqRuntimeInfo,
   resolveBullmqRedisUrl,
   type AtsAnalysisJobData,
 } from "../../../shared/src/bullmq";
+import { getSharedBullmqConnection } from "./sharedConnection";
 
 export type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
 
 let atsQueueInstance: Queue<AtsAnalysisJobData> | null = null;
-
-const getAtsBullmqConnection = () => {
-  const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
-
-  return createBullmqConnection({
-    redisUrl,
-    connectTimeoutMs: env.REDIS_CONNECT_TIMEOUT_MS,
-    serviceName: `${env.SERVICE_NAME}-ats-analysis`,
-  });
-};
 
 export const createAtsAnalysisJobId = (data: Record<string, unknown>) => createBullmqJobId("ats-analysis", data);
 
@@ -35,7 +25,7 @@ export const getAtsQueueRuntimeInfo = () => {
 export const getAtsQueue = () => {
   if (!atsQueueInstance) {
     atsQueueInstance = new Queue<AtsAnalysisJobData>(ATS_ANALYSIS_QUEUE_NAME, {
-      connection: getAtsBullmqConnection(),
+      connection: getSharedBullmqConnection(),
       prefix: env.ATS_ANALYSIS_QUEUE_PREFIX,
       defaultJobOptions: createBullmqQueueOptions(env.ATS_ANALYSIS_JOB_ATTEMPTS, env.ATS_ANALYSIS_BACKOFF_DELAY_MS) satisfies JobsOptions,
     });

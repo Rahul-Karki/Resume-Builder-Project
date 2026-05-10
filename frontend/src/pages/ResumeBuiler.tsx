@@ -184,8 +184,8 @@ function SectionsTab() {
   );
 }
 
-const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 2000;
-const RESUME_DOWNLOAD_MAX_POLLS = 120;
+const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 5000;
+const RESUME_DOWNLOAD_MAX_POLLS = 60;
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 

@@ -79,10 +79,10 @@ export const startManagedWorker = async <T>({
     connection: getBullmqConnection(),
     prefix: queuePrefix,
     concurrency,
-    stalledInterval: 120_000,
+    stalledInterval: 300_000,
     maxStalledCount: 1,
-    lockDuration: 120_000,
-    drainDelay: 10,
+    lockDuration: 300_000,
+    drainDelay: 5,
   });
 
   const heartbeatTimer = setInterval(() => {
