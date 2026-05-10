@@ -285,13 +285,64 @@ const callGemini = async (systemPrompt: string, userPrompt: string) => withTimeo
   return json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
 });
 
+type AiProviderName = "openai" | "gemini";
+
+const getProviderOrder = (preferredProvider?: AiProviderName): AiProviderName[] => {
+  const configuredProviders: AiProviderName[] = [];
+
+  if (env.GEMINI_API_KEY) {
+    configuredProviders.push("gemini");
+  }
+
+  if (env.OPENAI_API_KEY) {
+    configuredProviders.push("openai");
+  }
+
+  if (preferredProvider) {
+    return [preferredProvider, ...configuredProviders.filter((provider) => provider !== preferredProvider)];
+  }
+
+  if (env.AI_PROVIDER === "openai") {
+    return env.OPENAI_API_KEY ? ["openai", ...configuredProviders.filter((provider) => provider !== "openai")] : configuredProviders;
+  }
+
+  if (env.AI_PROVIDER === "gemini") {
+    return env.GEMINI_API_KEY ? ["gemini", ...configuredProviders.filter((provider) => provider !== "gemini")] : configuredProviders;
+  }
+
+  return configuredProviders;
+};
+
+const callProvider = async (provider: AiProviderName, systemPrompt: string, userPrompt: string) => {
+  const raw = provider === "openai"
+    ? await callOpenAI(systemPrompt, userPrompt)
+    : await callGemini(systemPrompt, userPrompt);
+
+  const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+  const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+
+  const tokenCount = provider === "openai"
+    ? countOpenAITokens(systemPrompt, userPrompt, cleaned)
+    : countGeminiTokens(systemPrompt, userPrompt, cleaned);
+
+  const model = provider === "openai" ? env.OPENAI_MODEL : env.GEMINI_MODEL;
+
+  return {
+    parsed,
+    tokenCount,
+    model,
+  };
+};
+
 const runStructuredAi = async <T extends Record<string, unknown>>(
   systemPrompt: string,
   userPrompt: string,
   fallback: T,
-  provider?: "openai" | "gemini"
+  provider?: AiProviderName
 ): Promise<StructuredAiResult<T>> => {
-  if (!providerIsConfigured()) {
+  const providerOrder = getProviderOrder(provider);
+
+  if (providerOrder.length === 0) {
     return {
       ...fallback,
       _tokens: { input: 0, output: 0 },
@@ -301,52 +352,37 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
     };
   }
 
-  const selectedProvider = provider || (
-    env.AI_PROVIDER === "openai"
-      ? "openai"
-      : env.AI_PROVIDER === "gemini"
-        ? "gemini"
-        : env.GEMINI_API_KEY
-          ? "gemini"
-          : "openai"
-  );
+  let lastError: unknown;
 
-  try {
-    const raw = selectedProvider === "openai"
-      ? await callOpenAI(systemPrompt, userPrompt)
-      : await callGemini(systemPrompt, userPrompt);
+  for (const selectedProvider of providerOrder) {
+    try {
+      const { parsed, tokenCount, model } = await callProvider(selectedProvider, systemPrompt, userPrompt);
 
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-    const parsed = JSON.parse(cleaned) as T;
+      return {
+        ...parsed as T,
+        _tokens: { input: tokenCount.input, output: tokenCount.output },
+        _provider: selectedProvider,
+        _model: model,
+        _fallback: false,
+      };
+    } catch (error) {
+      lastError = error;
+      logger.warn({ error, provider: selectedProvider }, "AI provider request failed; trying next provider if available");
+    }
+  }
 
-    // Count tokens for logging
-    const tokenCount = selectedProvider === "openai"
-      ? countOpenAITokens(systemPrompt, userPrompt, cleaned)
-      : countGeminiTokens(systemPrompt, userPrompt, cleaned);
+  const fallbackProvider: AiProviderName = providerOrder[providerOrder.length - 1] ?? (provider || "gemini") as AiProviderName;
+  const tokenCount = fallbackProvider === "openai"
+    ? countOpenAITokens(systemPrompt, userPrompt, "")
+    : countGeminiTokens(systemPrompt, userPrompt, "");
 
-    const model = selectedProvider === "openai" ? env.OPENAI_MODEL : env.GEMINI_MODEL;
-
-    return {
-      ...parsed,
-      _tokens: { input: tokenCount.input, output: tokenCount.output },
-      _provider: selectedProvider,
-      _model: model,
-      _fallback: false,
-    };
-  } catch (error) {
-    // Count tokens for fallback too
-    const tokenCount = (provider || env.AI_PROVIDER) === "openai"
-      ? countOpenAITokens(systemPrompt, userPrompt, "")
-      : countGeminiTokens(systemPrompt, userPrompt, "");
-
-    logger.warn({ error, provider: selectedProvider }, "AI provider request failed; falling back to deterministic suggestions");
-    return {
-      ...fallback,
-      _tokens: { input: tokenCount.input, output: tokenCount.output },
-      _provider: selectedProvider,
-      _model: "unknown",
-      _fallback: true,
-    };
+  logger.warn({ error: lastError, provider: fallbackProvider }, "All AI providers failed; falling back to deterministic suggestions");
+  return {
+    ...fallback,
+    _tokens: { input: tokenCount.input, output: tokenCount.output },
+    _provider: fallbackProvider,
+    _model: "unknown",
+    _fallback: true,
   }
 };
 
