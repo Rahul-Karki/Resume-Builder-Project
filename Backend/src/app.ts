@@ -16,6 +16,8 @@ import aiRoutes from "./router/ai.routes";
 import adminRoutes from "./router/admin.routes";
 import templateRoutes from "./router/template.routes";
 import healthRoutes from "./router/health.routes";
+import { adminGuard } from "./middleware/adminAuthMiddleware";
+import { setupBullBoard } from "./observability/bullBoard";
 
 export const createApp = () => {
   const app = express();
@@ -76,6 +78,7 @@ export const createApp = () => {
   app.use("/api/ai", aiRoutes);
   app.use("/api/resumes", resumeRoutes);
   app.use("/api/admin", adminRoutes);
+  app.use("/admin/queues", adminGuard, setupBullBoard());
   app.use("/api/templates", templateRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);

@@ -17,7 +17,7 @@ export type ManagedWorker = {
   shutdown: (signal: string) => Promise<void>;
 };
 
-const heartbeatIntervalMs = 30_000;
+const heartbeatIntervalMs = 60_000;
 
 const isUpstashMaxRequestsError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error ?? "");
@@ -79,6 +79,10 @@ export const startManagedWorker = async <T>({
     connection: getBullmqConnection(),
     prefix: queuePrefix,
     concurrency,
+    stalledInterval: 120_000,
+    maxStalledCount: 1,
+    lockDuration: 120_000,
+    drainDelay: 10,
   });
 
   const heartbeatTimer = setInterval(() => {

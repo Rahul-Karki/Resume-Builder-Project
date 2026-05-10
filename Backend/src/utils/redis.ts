@@ -1,6 +1,8 @@
 import { createClient } from "redis";
 import { env } from "../config/env";
 import { logger } from "../observability";
+import { memoryCache } from "./memoryCache";
+import { memoryRateLimiter } from "./memoryRateLimit";
 
 type RedisClient = ReturnType<typeof createClient>;
 type CacheProvider = "redis" | "upstash" | "none";
@@ -161,7 +163,10 @@ export const cacheGet = async (key: string): Promise<string | null> => {
   const provider = getCacheProvider();
 
   if (provider === "redis") {
-    return withRedis((client) => client.get(key));
+    const result = await withRedis((client) => client.get(key));
+    if (result !== null) return result;
+    // Fall through to in-memory
+    return memoryCache.get(key);
   }
 
   if (provider === "upstash") {
@@ -174,16 +179,20 @@ export const cacheGet = async (key: string): Promise<string | null> => {
 
       return value == null ? null : JSON.stringify(value);
     } catch (error) {
-      logger.warn({ error }, "Upstash read failed");
-      return null;
+      logger.warn({ error }, "Upstash read failed; falling back to in-memory cache");
+      return memoryCache.get(key);
     }
   }
 
-  return null;
+  // No Redis configured — use in-memory cache
+  return memoryCache.get(key);
 };
 
 export const cacheSet = async (key: string, value: string, ttlSeconds: number): Promise<boolean> => {
   const provider = getCacheProvider();
+
+  // Always write to in-memory cache regardless of provider
+  memoryCache.set(key, value, ttlSeconds);
 
   if (provider === "redis") {
     const result = await withRedis(async (client) => {
@@ -199,12 +208,12 @@ export const cacheSet = async (key: string, value: string, ttlSeconds: number): 
       await upstashCall("set", [key, value, "EX", ttlSeconds]);
       return true;
     } catch (error) {
-      logger.warn({ error }, "Upstash write failed");
-      return false;
+      logger.warn({ error }, "Upstash write failed; cached in-memory only");
+      return true; // Still cached in memory
     }
   }
 
-  return false;
+  return true; // Cached in memory
 };
 
 export const consumeRateLimit = async (
@@ -214,7 +223,7 @@ export const consumeRateLimit = async (
   const provider = getCacheProvider();
 
   if (provider === "redis") {
-    return withRedis(async (client) => {
+    const result = await withRedis(async (client) => {
       const count = await client.incr(key);
 
       if (count === 1) {
@@ -224,6 +233,13 @@ export const consumeRateLimit = async (
       const ttlSeconds = await client.ttl(key);
       return { count, ttlSeconds };
     });
+
+    // Fall back to in-memory if Redis is down
+    if (!result) {
+      return memoryRateLimiter.consume(key, windowSeconds * 1000);
+    }
+
+    return result;
   }
 
   if (provider === "upstash") {
@@ -239,12 +255,13 @@ export const consumeRateLimit = async (
       const ttlSeconds = Number(ttlRaw);
       return { count, ttlSeconds };
     } catch (error) {
-      logger.warn({ error }, "Upstash rate-limit operation failed");
-      return null;
+      logger.warn({ error }, "Upstash rate-limit failed; using in-memory fallback");
+      return memoryRateLimiter.consume(key, windowSeconds * 1000);
     }
   }
 
-  return null;
+  // No Redis — use in-memory rate limiter
+  return memoryRateLimiter.consume(key, windowSeconds * 1000);
 };
 
 export const deleteByPattern = async (pattern: string): Promise<number> => {

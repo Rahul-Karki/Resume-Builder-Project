@@ -92,7 +92,7 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
-            (errorData as Record<string, unknown>)?.message || `HTTP ${response.status}`
+            String((errorData as Record<string, unknown>)?.message || `HTTP ${response.status}`)
           );
         }
 

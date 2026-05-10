@@ -38,13 +38,6 @@ export const createRedisCacheMiddleware = ({ scope, metricsScope, ttlSeconds, ke
 
     const provider = getCacheProvider();
 
-    if (provider === "none") {
-      appMetrics.cacheMisses.add(1, { scope: scopeForMetrics });
-      markMiss("cache-backend-unavailable");
-      next();
-      return;
-    }
-
     let cached: string | null = null;
     try {
       cached = await cacheGet(cacheKey);

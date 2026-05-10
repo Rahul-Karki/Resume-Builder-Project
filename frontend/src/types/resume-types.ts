@@ -144,7 +144,7 @@ export interface ResumeDocument {
 
 // ─── Builder UI State ──────────────────────────────────────────────────────────
 
-export type EditorTab = "content" | "style" | "sections";
+export type EditorTab = "content" | "style" | "sections" | "ai";
 export type ActiveSection =
   | "personal"
   | "experience"

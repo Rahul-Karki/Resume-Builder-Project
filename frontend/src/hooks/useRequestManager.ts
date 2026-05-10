@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { v4 as uuidv4 } from "uuid";
+
 
 /**
  * Manages in-flight AI requests with deduplication and cancellation.
@@ -51,7 +51,7 @@ export const useRequestManager = () => {
         previous.controller.abort();
       }
 
-      const requestId = uuidv4();
+      const requestId = crypto.randomUUID();
       const controller = new AbortController();
       const request: ManagedRequest = {
         requestId,

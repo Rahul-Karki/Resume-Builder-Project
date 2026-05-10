@@ -1,4 +1,4 @@
-import { Queue, QueueEvents, type JobsOptions } from "bullmq";
+import { Queue, type JobsOptions } from "bullmq";
 import { env } from "../config/env";
 import { logger } from "../observability";
 import {
@@ -14,7 +14,6 @@ import {
 export type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
 
 let atsQueueInstance: Queue<AtsAnalysisJobData> | null = null;
-let atsQueueEventsInstance: QueueEvents | null = null;
 
 const getAtsBullmqConnection = () => {
   const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
@@ -49,40 +48,18 @@ export const getAtsQueue = () => {
   return atsQueueInstance;
 };
 
-export const getAtsQueueEvents = () => {
-  if (!atsQueueEventsInstance) {
-    atsQueueEventsInstance = new QueueEvents(ATS_ANALYSIS_QUEUE_NAME, {
-      connection: getAtsBullmqConnection(),
-      prefix: env.ATS_ANALYSIS_QUEUE_PREFIX,
-    });
-
-    atsQueueEventsInstance.on("error", (error: Error) => {
-      logger.error({ error, queueName: ATS_ANALYSIS_QUEUE_NAME }, "ATS queue events connection error");
-    });
-  }
-
-  return atsQueueEventsInstance;
-};
-
 export const ensureAtsQueueReady = async () => {
   const queue = getAtsQueue();
-  const queueEvents = getAtsQueueEvents();
 
-  await Promise.all([queue.waitUntilReady(), queueEvents.waitUntilReady()]);
+  await queue.waitUntilReady();
   logger.info({ ...getAtsQueueRuntimeInfo() }, "ATS queue Redis connection verified");
 };
 
 export const closeAtsQueue = async () => {
-  const queue = atsQueueInstance;
-  const queueEvents = atsQueueEventsInstance;
-
-  atsQueueInstance = null;
-  atsQueueEventsInstance = null;
-
-  await Promise.all([
-    queue ? queue.close() : Promise.resolve(),
-    queueEvents ? queueEvents.close() : Promise.resolve(),
-  ]);
+  if (atsQueueInstance) {
+    await atsQueueInstance.close();
+    atsQueueInstance = null;
+  }
 };
 
 export const enqueueAtsAnalysisJob = async (data: AtsAnalysisJobData) => {

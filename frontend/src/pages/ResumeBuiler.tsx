@@ -6,6 +6,7 @@ import { EditorPanel } from "@/components/builder/editorPanel";
 import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
 import { ATSAnalysisPanel } from "@/components/builder/ATSAnalysisPanel";
+import { AIAssistantPanel } from "@/components/builder/AIAssistantPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
@@ -15,6 +16,7 @@ const TABS: { id: EditorTab; label: string; icon: string; description: string }[
   { id: "content",  label: "Content",  icon: "◉", description: "Fill in your resume information" },
   { id: "style",    label: "Style",    icon: "◈", description: "Customize colors, fonts & layout" },
   { id: "sections", label: "Sections", icon: "◧", description: "Show/hide and reorder sections" },
+  { id: "ai",       label: "AI",       icon: "✨", description: "Get AI-powered suggestions" },
 ];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────
@@ -353,7 +355,14 @@ export default function ResumeBuilder() {
 
             {/* Panel content */}
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              {ui.activeTab === "content"  && <EditorPanel />}
+              {ui.activeTab === "content"  && (
+                <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+                  <AIAssistantPanel />
+                  <div style={{ flex: 1, overflow: "auto" }}>
+                    <EditorPanel />
+                  </div>
+                </div>
+              )}
               {ui.activeTab === "style"   && <StylePanel />}
               {ui.activeTab === "sections" && (
                 <div style={{ overflowY: "auto", flex: 1 }}>

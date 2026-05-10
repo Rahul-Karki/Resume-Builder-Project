@@ -28,19 +28,20 @@ const sendHealthResponse = async (_req: express.Request, res: express.Response) 
     checkRedisHealth(),
   ]);
 
-  const overallHealthy = mongoHealthy && redisHealthy;
+  // Mongo is the only hard dependency. Redis has in-memory fallbacks.
+  const status = !mongoHealthy ? "unhealthy" : !redisHealthy ? "degraded" : "ok";
 
-  if (!overallHealthy) {
+  if (!redisHealthy) {
     logger.warn(
       { mongoHealthy, redisHealthy },
-      "Health check reported an unhealthy dependency",
+      "Health check: Redis unavailable — using in-memory fallbacks",
     );
   }
 
-  res.status(overallHealthy ? 200 : 503).json({
-    status: overallHealthy ? "ok" : "degraded",
+  res.status(mongoHealthy ? 200 : 503).json({
+    status,
     mongo: mongoHealthy ? "up" : "down",
-    redis: redisHealthy ? "up" : "down",
+    redis: redisHealthy ? "up" : "down (in-memory fallback active)",
   });
 };
 

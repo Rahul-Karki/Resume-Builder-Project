@@ -1,4 +1,5 @@
 import { Request, RequestHandler, Response } from "express";
+import crypto from "crypto";
 import { checkGrammar, enhanceBullet, improveText } from "../services/aiService";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { logger } from "../observability";
@@ -7,6 +8,19 @@ import { AuthError } from "../errors/AppError";
 import type { AiTone } from "../../../shared/src/ai";
 import { calculateAICost } from "../utils/tokenCounter";
 import { trackAiRequest, trackValidationError } from "../observability/aiMetrics";
+import { MemoryLRUCache } from "../utils/memoryCache";
+
+/**
+ * In-memory AI response cache. Prevents redundant API calls for identical text inputs.
+ * TTL: 5 minutes, max 100 entries. Keyed by SHA-256 of (text + section + tone).
+ */
+const aiResponseCache = new MemoryLRUCache(100);
+const AI_CACHE_TTL_SECONDS = 300;
+
+const createAiCacheKey = (type: string, text: string, section: string, tone: string, context?: string): string => {
+  const raw = `${type}:${text}:${section}:${tone}:${context ?? ""}`;
+  return `ai:${type}:${crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16)}`;
+};
 
 const getUserId = (req: Request) => req.user?.id;
 
@@ -49,13 +63,23 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
     const userId = requireAuth(req, res);
     if (!userId) return;
 
-    const result = await improveText({
-      text: String(req.body?.text ?? ""),
-      section: String(req.body?.section ?? "summary"),
-      tone: getTone(req.body?.tone),
-      context: typeof req.body?.context === "string" ? req.body.context : undefined,
-      targetRole: typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined,
-    });
+    const text = String(req.body?.text ?? "");
+    const section = String(req.body?.section ?? "summary");
+    const tone = getTone(req.body?.tone);
+    const context = typeof req.body?.context === "string" ? req.body.context : undefined;
+    const targetRole = typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined;
+
+    // Check in-memory cache first
+    const cacheKey = createAiCacheKey("improve", text, section, tone, context);
+    const cached = aiResponseCache.get(cacheKey);
+    if (cached) {
+      logger.debug({ requestId, userId, cacheKey }, "AI improve-text cache hit");
+      markSpanSuccess(span);
+      res.status(200).json(JSON.parse(cached));
+      return;
+    }
+
+    const result = await improveText({ text, section, tone, context, targetRole });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -97,6 +121,8 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
     markSpanSuccess(span);
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
+    // Cache the response for future identical requests
+    try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
     res.status(200).json(responseData);
   } catch (error) {
     const latencyMs = Date.now() - startTime;
@@ -129,11 +155,21 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
     const userId = requireAuth(req, res);
     if (!userId) return;
 
-    const result = await checkGrammar({
-      text: String(req.body?.text ?? ""),
-      section: String(req.body?.section ?? "summary"),
-      context: typeof req.body?.context === "string" ? req.body.context : undefined,
-    });
+    const text = String(req.body?.text ?? "");
+    const section = String(req.body?.section ?? "summary");
+    const context = typeof req.body?.context === "string" ? req.body.context : undefined;
+
+    // Check in-memory cache first
+    const cacheKey = createAiCacheKey("grammar", text, section, "default", context);
+    const cached = aiResponseCache.get(cacheKey);
+    if (cached) {
+      logger.debug({ requestId, userId, cacheKey }, "AI check-grammar cache hit");
+      markSpanSuccess(span);
+      res.status(200).json(JSON.parse(cached));
+      return;
+    }
+
+    const result = await checkGrammar({ text, section, context });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -176,6 +212,8 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
     markSpanSuccess(span);
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
+    // Cache the response for future identical requests
+    try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
     res.status(200).json(responseData);
   } catch (error) {
     const latencyMs = Date.now() - startTime;
@@ -208,13 +246,23 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
     const userId = requireAuth(req, res);
     if (!userId) return;
 
-    const result = await enhanceBullet({
-      text: String(req.body?.text ?? ""),
-      section: String(req.body?.section ?? "experience"),
-      tone: getTone(req.body?.tone),
-      context: typeof req.body?.context === "string" ? req.body.context : undefined,
-      targetRole: typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined,
-    });
+    const text = String(req.body?.text ?? "");
+    const section = String(req.body?.section ?? "experience");
+    const tone = getTone(req.body?.tone);
+    const context = typeof req.body?.context === "string" ? req.body.context : undefined;
+    const targetRole = typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined;
+
+    // Check in-memory cache first
+    const cacheKey = createAiCacheKey("bullet", text, section, tone, context);
+    const cached = aiResponseCache.get(cacheKey);
+    if (cached) {
+      logger.debug({ requestId, userId, cacheKey }, "AI enhance-bullet cache hit");
+      markSpanSuccess(span);
+      res.status(200).json(JSON.parse(cached));
+      return;
+    }
+
+    const result = await enhanceBullet({ text, section, tone, context, targetRole });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -256,6 +304,8 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
     markSpanSuccess(span);
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
+    // Cache the response for future identical requests
+    try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
     res.status(200).json(responseData);
   } catch (error) {
     const latencyMs = Date.now() - startTime;

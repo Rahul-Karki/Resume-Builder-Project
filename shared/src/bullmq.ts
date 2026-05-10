@@ -90,18 +90,18 @@ export const createBullmqConnection = ({ redisUrl, serviceName, connectTimeoutMs
 });
 
 export const createBullmqQueueOptions = (attempts: number, backoffDelayMs: number): BullmqJobOptions => ({
-  attempts,
+  attempts: Math.min(attempts, 2),
   backoff: {
     type: "exponential",
     delay: backoffDelayMs,
   },
   removeOnComplete: {
-    age: 60 * 60 * 24,
-    count: 2000,
+    age: 60 * 60,
+    count: 20,
   },
   removeOnFail: {
-    age: 60 * 60 * 24 * 7,
-    count: 5000,
+    age: 60 * 60 * 24,
+    count: 50,
   },
 });
 

@@ -272,7 +272,17 @@ export const downloadResume: RequestHandler = async (req, res) => {
       { error, errorMessage, errorStack, resumeId: req.body?.resumeId, jobId, userId: req.user?.id },
       "Failed to queue resume download",
     );
-    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+    const isRedisError = error instanceof Error && (
+      /max requests limit exceeded/i.test(error.message) ||
+      /redis/i.test(error.message) ||
+      /econnrefused/i.test(error.message) ||
+      /closed/i.test(error.message)
+    );
+    const statusCode = isRedisError ? 503 : 500;
+    const code = isRedisError ? "SERVICE_UNAVAILABLE" : "SERVER_ERROR";
+    const message = isRedisError ? "PDF generation is temporarily unavailable due to high load. Please try again later." : "Server error";
+
+    sendErrorResponse(res, error, { statusCode, code, message });
   } finally {
     finishControllerSpan(span);
   }
