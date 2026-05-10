@@ -36,6 +36,10 @@ const getRequestId = (req: Request): string => {
   return String(req.headers["x-request-id"] || req.headers["x-correlation-id"] || "");
 };
 
+const getCostProvider = (provider: string | undefined): "openai" | "gemini" => {
+  return provider === "openai" ? "openai" : "gemini";
+};
+
 export const improveTextHandler: RequestHandler = async (req, res) => {
   const requestId = getRequestId(req);
   const span = startControllerSpan("ai.improveText", req);
@@ -56,7 +60,7 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
       { input: result._tokens?.input || 0, output: result._tokens?.output || 0 },
-      result._provider || "gemini",
+      getCostProvider(result._provider),
       result._model || "unknown"
     );
 
@@ -134,7 +138,7 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
       { input: result._tokens?.input || 0, output: result._tokens?.output || 0 },
-      result._provider || "gemini",
+      getCostProvider(result._provider),
       result._model || "unknown"
     );
 
@@ -215,7 +219,7 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
       { input: result._tokens?.input || 0, output: result._tokens?.output || 0 },
-      result._provider || "gemini",
+      getCostProvider(result._provider),
       result._model || "unknown"
     );
 

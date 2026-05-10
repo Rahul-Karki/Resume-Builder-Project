@@ -6,10 +6,9 @@
 import { logger } from "../observability";
 import {
   trackWorkerCrash,
-  updateQueueDepth,
   updateStalledJobs,
   trackQueueJob,
-} from "../observability/aiMetrics";
+} from "./aiMetrics.js";
 
 export interface WorkerHealthContext {
   queue: string;
@@ -67,14 +66,11 @@ export const trackJobCompletion = (
   trackQueueJob(queue, jobType, status, durationMs, retries);
 
   const logLevel = status === "success" ? "info" : "warn";
-  logger.log(logLevel, {
-    queue,
-    jobType,
-    status,
-    durationMs,
-    retries,
-    failureReason,
-  });
+  if (logLevel === "info") {
+    logger.info({ queue, jobType, status, durationMs, retries, failureReason }, "Job completed");
+  } else {
+    logger.warn({ queue, jobType, status, durationMs, retries, failureReason }, "Job completed with warnings");
+  }
 };
 
 /**

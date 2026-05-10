@@ -35,6 +35,15 @@ type AtsPromptContext = {
   reportType?: AtsAnalysisReport["reportType"];
 };
 
+export type StructuredAiMetadata = {
+  _tokens?: { input: number; output: number };
+  _provider?: "openai" | "gemini" | "none" | "unknown";
+  _model?: string;
+  _fallback?: boolean;
+};
+
+export type StructuredAiResult<T extends Record<string, unknown>> = T & StructuredAiMetadata;
+
 const ACTION_VERBS = [
   "built",
   "designed",
@@ -281,7 +290,7 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
   userPrompt: string,
   fallback: T,
   provider?: "openai" | "gemini"
-): Promise<T & { _tokens?: { input: number; output: number }; _provider?: string; _model?: string; _fallback?: boolean }> => {
+): Promise<StructuredAiResult<T>> => {
   if (!providerIsConfigured()) {
     return {
       ...fallback,
@@ -341,7 +350,7 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
   }
 };
 
-export const improveText = async (context: AiPromptContext): Promise<AiRewriteResult> => {
+export const improveText = async (context: AiPromptContext): Promise<StructuredAiResult<AiRewriteResult>> => {
   const fallback = buildRewriteFallback(context);
   const userPrompt = JSON.stringify({
     task: "Improve a resume section without changing meaning or auto-applying edits.",
@@ -360,7 +369,7 @@ export const improveText = async (context: AiPromptContext): Promise<AiRewriteRe
   );
 };
 
-export const checkGrammar = async (context: AiPromptContext): Promise<AiGrammarResult> => {
+export const checkGrammar = async (context: AiPromptContext): Promise<StructuredAiResult<AiGrammarResult>> => {
   const fallback = buildGrammarFallback(context.text);
   const userPrompt = JSON.stringify({
     task: "Check grammar and spelling in this resume section. Return JSON only.",
@@ -377,7 +386,7 @@ export const checkGrammar = async (context: AiPromptContext): Promise<AiGrammarR
   );
 };
 
-export const enhanceBullet = async (context: AiPromptContext): Promise<AiRewriteResult> => {
+export const enhanceBullet = async (context: AiPromptContext): Promise<StructuredAiResult<AiRewriteResult>> => {
   const fallback = buildBulletFallback(context);
   const userPrompt = JSON.stringify({
     task: "Rewrite a resume bullet to be stronger, concise, and ATS-friendly.",
