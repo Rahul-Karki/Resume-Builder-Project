@@ -220,6 +220,38 @@ const lokiStream = {
   },
 };
 
+const redactCommandArgs = (record: Record<string, unknown>) => {
+  const command = record.command;
+
+  if (command && typeof command === "object") {
+    const commandRecord = { ...(command as Record<string, unknown>) };
+    if (Array.isArray(commandRecord.args)) {
+      commandRecord.args = `[redacted:${commandRecord.args.length}]`;
+    }
+    record.command = commandRecord;
+  }
+
+  return record;
+};
+
+const sanitizeErrorForLogs = (value: unknown) => {
+  if (value instanceof Error) {
+    const errorRecord: Record<string, unknown> = {
+      type: value.name,
+      message: value.message,
+      stack: value.stack,
+      ...(value as unknown as Record<string, unknown>),
+    };
+    return redactCommandArgs(errorRecord);
+  }
+
+  if (value && typeof value === "object") {
+    return redactCommandArgs({ ...(value as Record<string, unknown>) });
+  }
+
+  return value;
+};
+
 const loggerOptions: LoggerOptions = {
   level: env.LOG_LEVEL,
   base: {
@@ -241,6 +273,10 @@ const loggerOptions: LoggerOptions = {
         severity: label.toUpperCase(),
       };
     },
+  },
+  serializers: {
+    error: sanitizeErrorForLogs,
+    err: sanitizeErrorForLogs,
   },
 };
 
