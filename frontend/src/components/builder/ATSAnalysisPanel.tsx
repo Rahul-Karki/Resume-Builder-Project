@@ -29,7 +29,6 @@ const css = `
   
   .ats-btn-analyze { display: flex; align-items: center; justify-content: center; gap: 6px; background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; border-radius: 6px; padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; outline: none; }
   .ats-btn-analyze:hover:not(:disabled) { background: #1d4ed8; border-color: #1e40af; }
-  .ats-btn-analyze:focus-visible { box-shadow: 0 0 0 2px #09090b, 0 0 0 4px #3b82f6; }
   .ats-btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
   
   .ats-score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
