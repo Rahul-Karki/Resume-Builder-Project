@@ -140,6 +140,9 @@ export interface ResumeDocument {
   sectionVisibility: SectionVisibility;
   createdAt?: string;
   updatedAt?: string;
+  atsScore?: number | null;
+  atsStatus?: string | null;
+  atsAnalyzedAt?: string | null;
 }
 
 // ─── Builder UI State ──────────────────────────────────────────────────────────
@@ -298,6 +301,9 @@ export interface SavedResume {
   updatedAt: string; createdAt: string; completionScore: number;
   personalInfo: { name: string; title: string; email: string; location: string; };
   sectionCounts: { experience: number; education: number; skills: number; projects: number; certifications: number; };
+  atsScore: number | null;
+  atsStatus: string | null;
+  atsAnalyzedAt: string | null;
 }
 
 export interface TemplateMeta {

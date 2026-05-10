@@ -86,6 +86,9 @@ export function mapResumeDocumentToSavedResume(resume: ResumeDocument): SavedRes
       location: personalInfo.location || "",
     },
     sectionCounts,
+    atsScore: resume.atsScore ?? null,
+    atsStatus: resume.atsStatus ?? null,
+    atsAnalyzedAt: resume.atsAnalyzedAt ?? null,
   };
 }
 

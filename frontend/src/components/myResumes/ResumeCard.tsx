@@ -4,6 +4,57 @@ import { SavedResume } from "@/types/resume-types";
 import { TEMPLATES } from "@/utils/templateMapping";
 import { Ring } from "./CompletionRing";
 import { relativeTime } from "@/utils/relativeTime";
+import { FileSearch } from "lucide-react";
+
+function AtsScoreBadge({ atsScore }: { atsScore: number | null }) {
+  if (atsScore === null || atsScore === undefined) {
+    return (
+      <div style={{
+        background: "rgba(0,0,0,0.75)",
+        backdropFilter: "blur(8px)",
+        border: "1px solid rgba(102,102,102,0.3)",
+        borderRadius: 20,
+        padding: "3px 10px",
+        fontSize: 10,
+        fontWeight: 700,
+        color: "#666",
+        display: "flex",
+        alignItems: "center",
+        gap: 4
+      }}>
+        <FileSearch size={10} />
+        Not Scored
+      </div>
+    );
+  }
+
+  const getAtsColor = (score: number) => {
+    if (score >= 75) return "#86EFAC";
+    if (score >= 50) return "#FCD34D";
+    return "#FCA5A5";
+  };
+
+  const color = getAtsColor(atsScore);
+
+  return (
+    <div style={{
+      background: "rgba(0,0,0,0.75)",
+      backdropFilter: "blur(8px)",
+      border: `1px solid ${color}33`,
+      borderRadius: 20,
+      padding: "3px 10px",
+      fontSize: 10,
+      fontWeight: 700,
+      color,
+      display: "flex",
+      alignItems: "center",
+      gap: 4
+    }}>
+      <FileSearch size={10} />
+      ATS {atsScore}
+    </div>
+  );
+}
 
 export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
   resume:SavedResume; onEdit:(id:string)=>void; onPreview:(id:string)=>void;
@@ -50,9 +101,14 @@ export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
           fontSize:10,fontWeight:700,color:"#888",display:"flex",alignItems:"center",gap:5}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:thumbTpl.accent,flexShrink:0}}/>{templateName}
         </div>
-        <div style={{position:"absolute",top:10,right:10,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",
-          border:`1px solid ${sc}33`,borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700,color:sc}}>
-          {resume.completionScore}%
+        <div style={{position:"absolute",top:10,right:10,display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
+          {/* Completion Score Badge */}
+          <div style={{background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",
+            border:`1px solid ${sc}33`,borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700,color:sc}}>
+            {resume.completionScore}%
+          </div>
+          {/* ATS Score Badge */}
+          <AtsScoreBadge atsScore={resume.atsScore} />
         </div>
         {thumbTpl.isPremium&&<div style={{position:"absolute",bottom:10,right:10,background:"#92400E",color:"#FCD34D",fontSize:9,fontWeight:800,padding:"2px 8px",borderRadius:20}}>★ PRO</div>}
       </div>

@@ -7,7 +7,6 @@ import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
 import { ATSAnalysisPanel } from "@/components/builder/ATSAnalysisPanel";
 import { AIAssistantPanel } from "@/components/builder/AIAssistantPanel";
-import { ObservabilityDashboard } from "@/components/builder/ObservabilityDashboard";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
@@ -575,9 +574,6 @@ export default function ResumeBuilder() {
           </div>
         </div>
       </div>
-      
-      {/* Observability Dashboard */}
-      <ObservabilityDashboard />
     </>
   );
 }

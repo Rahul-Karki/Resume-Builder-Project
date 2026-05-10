@@ -1,5 +1,6 @@
 import { Request, Response, RequestHandler } from "express";
 import Resume from "../models/Resume";
+import AtsAnalysis from "../models/AtsAnalysis";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
 import { createResumeVersion } from "../services/resumeVersionService";
@@ -10,6 +11,7 @@ import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
 import { recordResumeCreated, recordResumeDeleted } from "../utils/businessMetrics";
 import { AuthError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
+import mongoose from "mongoose";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -51,7 +53,42 @@ const getAllResumes: RequestHandler = async (req, res) => {
         if (!userId) return;
 
         const resumes = await Resume.find({ userId }).sort({ updatedAt: -1 });
-        const normalizedResumes = resumes.map((resume) => normalizeResumeResponse(resume));
+        
+        // Fetch latest ATS scores for all resumes in parallel
+        const resumeIds = resumes.map(r => r._id.toString());
+        const atsScores = await Promise.all(
+            resumeIds.map(async (resumeId) => {
+                const analysis = await AtsAnalysis.findOne({ 
+                    resumeId: new mongoose.Types.ObjectId(resumeId), 
+                    userId: new mongoose.Types.ObjectId(userId),
+                    status: "completed"
+                })
+                    .sort({ analyzedAt: -1 })
+                    .select("overallScore status analyzedAt")
+                    .lean();
+                return {
+                    resumeId,
+                    atsScore: analysis?.overallScore ?? null,
+                    atsStatus: analysis?.status ?? null,
+                    atsAnalyzedAt: analysis?.analyzedAt ?? null
+                };
+            })
+        );
+        
+        // Create a map for quick lookup
+        const atsScoreMap = new Map(atsScores.map(item => [item.resumeId, item]));
+        
+        // Normalize resumes and include ATS score
+        const normalizedResumes = resumes.map((resume) => {
+            const plainResume = normalizeResumeResponse(resume);
+            const atsData = atsScoreMap.get(resume._id.toString());
+            return {
+                ...plainResume,
+                atsScore: atsData?.atsScore ?? null,
+                atsStatus: atsData?.atsStatus ?? null,
+                atsAnalyzedAt: atsData?.atsAnalyzedAt ?? null
+            };
+        });
 
         logger.info({ userId, count: normalizedResumes.length }, "Fetched resumes");
         markSpanSuccess(span);
