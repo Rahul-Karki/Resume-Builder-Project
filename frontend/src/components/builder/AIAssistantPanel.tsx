@@ -207,16 +207,13 @@ const css = `
   .ai-tone-btn.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
   
   .ai-actions { display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap; align-items: center; }
-  .ai-btn-primary { display: flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; outline: none; }
-  .ai-btn-primary:hover:not(:disabled) { background: #1d4ed8; border-color: #1e40af; }
+  .ai-btn-primary { display: flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
   .ai-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   
-  .ai-btn-secondary { display: flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; outline: none; }
-  .ai-btn-secondary:hover:not(:disabled) { background: #27272a; border-color: #3f3f46; }
+  .ai-btn-secondary { display: flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
   .ai-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
   
-  .ai-btn-apply { display: flex; align-items: center; gap: 4px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; outline: none; }
-  .ai-btn-apply:hover { background: #27272a; border-color: #3f3f46; color: #ffffff; }
+  .ai-btn-apply { display: flex; align-items: center; gap: 4px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 500; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
   
   .ai-status { font-size: 11px; color: #71717a; margin-left: auto; display: flex; align-items: center; gap: 6px; }
   .ai-spin { animation: spin 1s linear infinite; }
