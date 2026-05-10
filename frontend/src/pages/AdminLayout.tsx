@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AdminPage } from "../types/admin.types";
-import { api } from "@/services/api";
+import { api, getBullBoardUrl } from "@/services/api";
 
 // ─── Global CSS (same design system as landing + my-resumes pages) ─────────────
 const GLOBAL_CSS = `
@@ -51,10 +51,12 @@ function TopBar({ page, onLogout, isMobile }: { page: AdminPage; onLogout: () =>
   const titles: Record<AdminPage, string> = {
     dashboard: "Dashboard",
     templates: "Template Management",
+    queues: "Queue Monitor",
   };
   const subtitles: Record<AdminPage, string> = {
     dashboard: "Usage analytics and performance overview",
     templates: "Create, publish, and configure resume templates",
+    queues: "Bull Board is served by the backend API host",
   };
   return (
     <div style={{
@@ -109,6 +111,7 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
   const navigate = useNavigate();
 
   const page: AdminPage = location.pathname.includes("/admin/templates") ? "templates" : "dashboard";
+  const resolvedPage: AdminPage = location.pathname.includes("/admin/queues") ? "queues" : page;
 
   useEffect(() => {
     const updateViewport = () => setIsMobile(window.innerWidth < 1024);
@@ -129,6 +132,11 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
   };
 
   const handleNavigate = (nextPage: AdminPage) => {
+    if (nextPage === "queues") {
+      window.location.href = getBullBoardUrl();
+      return;
+    }
+
     navigate(nextPage === "dashboard" ? "/admin" : "/admin/templates");
   };
 
@@ -138,11 +146,11 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#080808", alignItems: "stretch" }}>
 
         {/* Sidebar */}
-        <AdminSidebar activePage={page} onNavigate={handleNavigate} adminName={adminName} isMobile={isMobile} />
+        <AdminSidebar activePage={resolvedPage} onNavigate={handleNavigate} adminName={adminName} isMobile={isMobile} />
 
         {/* Main area */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <TopBar page={page} onLogout={handleLogout} isMobile={isMobile} />
+          <TopBar page={resolvedPage} onLogout={handleLogout} isMobile={isMobile} />
           <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
             <Outlet />
           </div>

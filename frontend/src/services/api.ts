@@ -72,6 +72,18 @@ const fetchRotatedCsrfToken = async () => {
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
+const resolveBackendOrigin = (baseUrl: string) => {
+  try {
+    const parsed = new URL(baseUrl, window.location.origin);
+    const pathname = parsed.pathname.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    return `${parsed.origin}${pathname}`;
+  } catch {
+    return baseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+  }
+};
+
+export const getBullBoardUrl = () => `${resolveBackendOrigin(apiBaseURL)}/admin/queues`;
+
 export const api = axios.create({
   baseURL: apiBaseURL,
   withCredentials: true,

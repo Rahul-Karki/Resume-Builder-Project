@@ -10,6 +10,7 @@ import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
 import { AdminDashboard } from "./pages/AdminDashboard"
 import { AdminTemplates } from "./pages/AdminTemplates"
+import { AdminQueues } from "./pages/AdminQueues"
 import Unauthorized from "./pages/Unauthorized"
 import NotFound from "./pages/NotFound"
 import { ErrorBoundary } from "./components/ErrorBoundary"
@@ -41,6 +42,7 @@ function App() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="templates" element={<AdminTemplates />} />
+            <Route path="queues" element={<AdminQueues />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
