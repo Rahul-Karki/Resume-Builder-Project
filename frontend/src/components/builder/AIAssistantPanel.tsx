@@ -194,53 +194,58 @@ const getFocusTarget = (
 /* ─── Styles ─────────────────────────────────────────────────────────────────── */
 const css = `
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  .ai-panel { border-bottom: 1px solid #27272a; background-color: #09090b; color: #e4e4e7; font-family: ui-sans-serif, system-ui, sans-serif; }
-  .ai-header { padding: 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .ai-title-wrap { display: flex; flex-direction: column; gap: 4px; }
-  .ai-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #f4f4f5; }
-  .ai-context { display: inline-flex; align-items: center; padding: 2px 8px; background: #18181b; border: 1px solid #27272a; border-radius: 4px; font-size: 11px; color: #a1a1aa; font-weight: 500; }
-  .ai-subtitle { font-size: 12px; color: #71717a; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .ai-panel { border-bottom: 1px solid rgba(255, 255, 255, 0.06); background: linear-gradient(180deg, #09090b 0%, #0c0c0e 100%); color: #e4e4e7; font-family: 'Outfit', system-ui, sans-serif; animation: fadeIn 0.3s ease-out; }
+  .ai-header { padding: 18px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .ai-title-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .ai-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #f4f4f5; letter-spacing: 0.2px; }
+  .ai-context { display: inline-flex; align-items: center; padding: 4px 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; font-size: 11px; color: #a1a1aa; font-weight: 500; letter-spacing: 0.3px; }
+  .ai-subtitle { font-size: 12px; color: #71717a; font-weight: 400; }
   
-  .ai-tone-bar { display: flex; gap: 6px; padding: 0 16px 16px; flex-wrap: wrap; }
-  .ai-tone-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid #27272a; background: #18181b; color: #a1a1aa; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
-  .ai-tone-btn:hover { border-color: #3f3f46; color: #e4e4e7; background: #27272a; }
-  .ai-tone-btn.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+  .ai-tone-bar { display: flex; gap: 8px; padding: 0 20px 16px; flex-wrap: wrap; }
+  .ai-tone-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.02); color: #a1a1aa; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+  .ai-tone-btn:hover { border-color: rgba(255, 255, 255, 0.12); color: #e4e4e7; background: rgba(255, 255, 255, 0.05); transform: translateY(-1px); }
+  .ai-tone-btn.active { background: rgba(200, 245, 90, 0.1); border-color: rgba(200, 245, 90, 0.3); color: #C8F55A; box-shadow: 0 0 12px rgba(200, 245, 90, 0.05); }
   
-  .ai-actions { display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap; align-items: center; }
-  .ai-btn-primary { display: flex; align-items: center; gap: 6px; background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
-  .ai-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ai-actions { display: flex; gap: 10px; padding: 0 20px 20px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.04); margin-bottom: 16px; }
+  .ai-btn-primary { display: flex; align-items: center; gap: 8px; background: #C8F55A; color: #0A0A0A; border: none; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(200, 245, 90, 0.15); }
+  .ai-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(200, 245, 90, 0.2); background: #d4fa6e; }
+  .ai-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
   
-  .ai-btn-secondary { display: flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+  .ai-btn-secondary { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); color: #e4e4e7; border-radius: 8px; padding: 10px 18px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+  .ai-btn-secondary:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.15); }
   .ai-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
   
-  .ai-btn-apply { display: flex; align-items: center; gap: 4px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 500; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; }
+  .ai-btn-apply { display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #e4e4e7; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
+  .ai-btn-apply:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
   
-  .ai-status { font-size: 11px; color: #71717a; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .ai-status { font-size: 12px; color: #71717a; margin-left: auto; display: flex; align-items: center; gap: 6px; font-weight: 500; }
   .ai-spin { animation: spin 1s linear infinite; }
   
-  .ai-card { background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 14px; margin: 0 16px 12px; transition: border-color 0.2s; }
-  .ai-card:hover { border-color: #3f3f46; }
-  .ai-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  .ai-card-reason { font-size: 12px; font-weight: 600; color: #e4e4e7; display: flex; align-items: center; gap: 6px; }
-  .ai-card-text { font-size: 13px; color: #a1a1aa; line-height: 1.5; margin-bottom: 12px; }
-  .ai-card-actions { display: flex; gap: 8px; }
+  .ai-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 16px; margin: 0 20px 16px; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+  .ai-card:hover { border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.03); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); }
+  .ai-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .ai-card-reason { font-size: 13px; font-weight: 600; color: #f4f4f5; display: flex; align-items: center; gap: 8px; }
+  .ai-card-text { font-size: 14px; color: #a1a1aa; line-height: 1.6; margin-bottom: 16px; }
+  .ai-card-actions { display: flex; gap: 10px; }
   
-  .ai-section-label { font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; padding: 0 16px; margin: 16px 0 12px; }
+  .ai-section-label { font-size: 12px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.8px; padding: 0 20px; margin: 0 0 12px; }
   
-  .ai-error { margin: 0 16px 16px; padding: 12px; border-radius: 6px; background: #7f1d1d1a; border: 1px solid #7f1d1d; color: #fca5a5; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+  .ai-error { margin: 0 20px 16px; padding: 14px; border-radius: 8px; background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #fca5a5; font-size: 13px; display: flex; align-items: center; gap: 10px; font-weight: 500; }
   
-  .ai-variation { text-align: left; background: #09090b; border: 1px solid #27272a; color: #a1a1aa; border-radius: 6px; padding: 12px; font-size: 12px; cursor: pointer; line-height: 1.5; transition: all 0.15s; width: 100%; margin: 0 16px 8px; display: block; }
-  .ai-variation:hover { border-color: #3f3f46; background: #18181b; color: #e4e4e7; }
+  .ai-variation { text-align: left; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); color: #a1a1aa; border-radius: 8px; padding: 14px 16px; font-size: 13px; cursor: pointer; line-height: 1.5; transition: all 0.2s ease; width: calc(100% - 40px); margin: 0 20px 10px; display: block; }
+  .ai-variation:hover { border-color: rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.05); color: #e4e4e7; transform: translateX(2px); }
   
-  .ai-empty { padding: 32px 16px; text-align: center; color: #71717a; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .ai-empty-text { font-size: 13px; line-height: 1.5; max-width: 240px; }
+  .ai-empty { padding: 48px 20px; text-align: center; color: #71717a; display: flex; flex-direction: column; align-items: center; gap: 16px; background: #0A0A0A; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+  .ai-empty-text { font-size: 14px; line-height: 1.6; max-width: 280px; font-weight: 400; }
   
-  .ai-impact { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .ai-impact-high { background: #7f1d1d33; color: #fca5a5; }
-  .ai-impact-medium { background: #78350f33; color: #fcd34d; }
-  .ai-impact-low { background: #14532d33; color: #86efac; }
+  .ai-impact { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ai-impact-high { background: rgba(220, 38, 38, 0.15); color: #fca5a5; border: 1px solid rgba(220, 38, 38, 0.2); }
+  .ai-impact-medium { background: rgba(217, 119, 6, 0.15); color: #fcd34d; border: 1px solid rgba(217, 119, 6, 0.2); }
+  .ai-impact-low { background: rgba(22, 163, 74, 0.15); color: #86efac; border: 1px solid rgba(22, 163, 74, 0.2); }
   
-  .ai-loader-block { background: #18181b; border-radius: 4px; height: 12px; margin: 8px 0; opacity: 0.5; }
+  .ai-loader-block { background: rgba(255, 255, 255, 0.04); border-radius: 6px; height: 14px; margin: 10px 0; position: relative; overflow: hidden; }
+  .ai-loader-block::after { content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent); animation: shimmer 1.5s infinite; }
 `;
 
 const impactClass = (impact?: string) =>
@@ -260,20 +265,11 @@ export function AIAssistantPanel() {
   const target = useMemo(() => getFocusTarget(resume, ui.focusedField, ui.activeSection, store), [resume, ui.focusedField, ui.activeSection, store]);
 
   useEffect(() => {
-    if (!target || !target.text) { setRewrite(null); setGrammar(null); return; }
-    const timeout = window.setTimeout(() => {
-      setLoading(true); setError(null);
-      const payload = { text: target.text, section: target.section, tone, context: target.context, targetRole: resume.personalInfo.title || resume.title };
-      Promise.all([
-        target.section === "experience" || target.section === "projects" ? enhanceResumeBullet(payload) : improveResumeText(payload),
-        checkResumeGrammar({ text: target.text, section: target.section, context: target.context }),
-      ])
-        .then(([rewriteResult, grammarResult]) => { setRewrite(rewriteResult); setGrammar(grammarResult); setLastUpdatedAt(new Date().toISOString()); })
-        .catch((err) => setError(err instanceof Error ? err.message : "AI suggestions failed"))
-        .finally(() => setLoading(false));
-    }, 1200);
-    return () => window.clearTimeout(timeout);
-  }, [target, tone, resume.personalInfo.title, resume.title]);
+    // Reset AI state when moving to a new target
+    setRewrite(null);
+    setGrammar(null);
+    setError(null);
+  }, [target?.text]);
 
   const applySuggestion = useCallback((suggestion: string) => { if (target) target.applySuggestion(suggestion); }, [target]);
 

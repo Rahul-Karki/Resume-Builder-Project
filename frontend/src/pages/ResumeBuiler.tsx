@@ -16,7 +16,6 @@ const TABS: { id: EditorTab; label: string; icon: string; description: string }[
   { id: "content",  label: "Content",  icon: "◉", description: "Fill in your resume information" },
   { id: "style",    label: "Style",    icon: "◈", description: "Customize colors, fonts & layout" },
   { id: "sections", label: "Sections", icon: "◧", description: "Show/hide and reorder sections" },
-  { id: "ai",       label: "AI",       icon: "✨", description: "Get AI-powered suggestions" },
 ];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────

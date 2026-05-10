@@ -17,62 +17,71 @@ type Props = { expanded?: boolean };
 const css = `
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes progress { from { width: 0; } }
-  .ats-panel { background-color: #09090b; border-bottom: 1px solid #27272a; color: #e4e4e7; font-family: ui-sans-serif, system-ui, sans-serif; }
-  .ats-header { padding: 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #27272a; }
-  .ats-title-wrap { display: flex; flex-direction: column; gap: 4px; }
-  .ats-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #f4f4f5; }
-  .ats-subtitle { font-size: 12px; color: #71717a; }
-  .ats-body { padding: 16px; display: grid; gap: 16px; }
-  .ats-input { background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #e4e4e7; padding: 10px 12px; font-size: 12px; font-family: inherit; transition: border-color 0.15s; width: 100%; }
-  .ats-input:focus { border-color: #3f3f46; outline: none; }
-  .ats-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
   
-  .ats-btn-analyze { display: flex; align-items: center; justify-content: center; gap: 6px; background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; border-radius: 6px; padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; outline: none; -webkit-tap-highlight-color: transparent; }
-  .ats-btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ats-panel { background: linear-gradient(180deg, #09090b 0%, #0c0c0e 100%); border-bottom: 1px solid rgba(255, 255, 255, 0.06); color: #e4e4e7; font-family: 'Outfit', system-ui, sans-serif; animation: fadeIn 0.3s ease-out; }
+  .ats-header { padding: 18px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+  .ats-title-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .ats-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #f4f4f5; letter-spacing: 0.2px; }
+  .ats-subtitle { font-size: 12px; color: #71717a; font-weight: 400; }
   
-  .ats-score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .ats-score-card { background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; text-align: center; position: relative; overflow: hidden; }
-  .ats-score-label { font-size: 11px; color: #a1a1aa; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-  .ats-score-value { font-size: 24px; font-weight: 700; color: #e4e4e7; }
-  .ats-score-sub { font-size: 12px; color: #71717a; font-weight: 400; }
+  .ats-body { padding: 20px; display: grid; gap: 20px; }
+  .ats-input { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; color: #e4e4e7; padding: 12px 14px; font-size: 13px; font-family: inherit; transition: all 0.2s ease; width: 100%; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+  .ats-input:focus { border-color: rgba(200, 245, 90, 0.4); outline: none; background: rgba(255, 255, 255, 0.04); box-shadow: 0 0 0 2px rgba(200, 245, 90, 0.1); }
+  .ats-textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
   
-  .ats-section-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .ats-section-card { background: #09090b; border: 1px solid #27272a; border-radius: 6px; padding: 12px; }
-  .ats-section-name { font-size: 11px; color: #a1a1aa; font-weight: 500; text-transform: capitalize; margin-bottom: 6px; }
-  .ats-section-score { font-size: 16px; font-weight: 600; color: #e4e4e7; }
-  .ats-progress-bar { height: 4px; background: #27272a; border-radius: 2px; margin-top: 8px; overflow: hidden; }
-  .ats-progress-fill { height: 100%; border-radius: 2px; animation: progress 0.8s ease-out; }
+  .ats-btn-analyze { display: flex; align-items: center; justify-content: center; gap: 8px; background: #C8F55A; color: #0A0A0A; border: none; border-radius: 8px; padding: 12px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; font-family: inherit; outline: none; -webkit-tap-highlight-color: transparent; box-shadow: 0 4px 12px rgba(200, 245, 90, 0.15); }
+  .ats-btn-analyze:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(200, 245, 90, 0.2); background: #d4fa6e; }
+  .ats-btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
   
-  .ats-block { background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; }
-  .ats-block-title { font-size: 12px; color: #f4f4f5; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .ats-score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .ats-score-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 20px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); transition: transform 0.2s; }
+  .ats-score-card:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.1); }
+  .ats-score-label { font-size: 12px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+  .ats-score-value { font-size: 28px; font-weight: 700; color: #e4e4e7; line-height: 1; }
+  .ats-score-sub { font-size: 14px; color: #71717a; font-weight: 500; margin-left: 2px; }
   
-  .ats-tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; margin: 2px 4px 2px 0; border: 1px solid; }
-  .ats-tag-good { background: #14532d1a; border-color: #14532d; color: #86efac; }
-  .ats-tag-warn { background: #78350f1a; border-color: #78350f; color: #fcd34d; }
-  .ats-tag-neutral { background: #27272a66; border-color: #3f3f46; color: #a1a1aa; }
+  .ats-section-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .ats-section-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 16px; transition: border-color 0.2s; }
+  .ats-section-card:hover { border-color: rgba(255, 255, 255, 0.15); }
+  .ats-section-name { font-size: 12px; color: #a1a1aa; font-weight: 600; text-transform: capitalize; margin-bottom: 8px; }
+  .ats-section-score { font-size: 18px; font-weight: 700; color: #e4e4e7; }
+  .ats-progress-bar { height: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+  .ats-progress-fill { height: 100%; border-radius: 3px; animation: progress 1s cubic-bezier(0.4, 0, 0.2, 1); }
   
-  .ats-check-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #18181b; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; }
-  .ats-check-label { font-size: 12px; font-weight: 500; color: #e4e4e7; }
-  .ats-check-pass { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; }
-  .ats-check-pass.pass { background: #14532d33; color: #86efac; }
-  .ats-check-pass.fail { background: #7f1d1d33; color: #fca5a5; }
+  .ats-block { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+  .ats-block-title { font-size: 14px; color: #f4f4f5; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); padding-bottom: 12px; }
   
-  .ats-issue-card { background: #18181b; border: 1px solid #27272a; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
-  .ats-issue-reason { font-size: 12px; font-weight: 600; color: #e4e4e7; margin-bottom: 6px; }
-  .ats-issue-text { font-size: 12px; color: #a1a1aa; line-height: 1.5; }
+  .ats-tag { display: inline-block; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; margin: 4px 6px 4px 0; border: 1px solid; transition: transform 0.15s; }
+  .ats-tag:hover { transform: scale(1.02); }
+  .ats-tag-good { background: rgba(22, 163, 74, 0.1); border-color: rgba(22, 163, 74, 0.2); color: #86efac; }
+  .ats-tag-warn { background: rgba(217, 119, 6, 0.1); border-color: rgba(217, 119, 6, 0.2); color: #fcd34d; }
+  .ats-tag-neutral { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: #a1a1aa; }
   
-  .ats-summary-text { font-size: 13px; color: #a1a1aa; line-height: 1.6; }
+  .ats-check-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; margin-bottom: 10px; transition: background 0.2s; }
+  .ats-check-row:hover { background: rgba(255, 255, 255, 0.04); }
+  .ats-check-label { font-size: 13px; font-weight: 500; color: #e4e4e7; }
+  .ats-check-pass { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; letter-spacing: 0.5px; }
+  .ats-check-pass.pass { background: rgba(22, 163, 74, 0.15); color: #86efac; border: 1px solid rgba(22, 163, 74, 0.2); }
+  .ats-check-pass.fail { background: rgba(220, 38, 38, 0.15); color: #fca5a5; border: 1px solid rgba(220, 38, 38, 0.2); }
   
-  .ats-error { padding: 12px; border-radius: 6px; background: #7f1d1d1a; border: 1px solid #7f1d1d; color: #fca5a5; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+  .ats-issue-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 14px; margin-bottom: 10px; transition: border-color 0.2s; }
+  .ats-issue-card:hover { border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.03); }
+  .ats-issue-reason { font-size: 13px; font-weight: 600; color: #e4e4e7; margin-bottom: 8px; }
+  .ats-issue-text { font-size: 13px; color: #a1a1aa; line-height: 1.6; }
   
-  .ats-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px; justify-content: center; font-size: 13px; color: #71717a; }
+  .ats-summary-text { font-size: 14px; color: #a1a1aa; line-height: 1.6; }
+  
+  .ats-error { padding: 14px; border-radius: 8px; background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); color: #fca5a5; font-size: 13px; display: flex; align-items: center; gap: 10px; font-weight: 500; }
+  
+  .ats-loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; justify-content: center; font-size: 14px; color: #71717a; }
   .ats-spin { animation: spin 1s linear infinite; }
   
-  .ats-toggle { display: flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #27272a; color: #a1a1aa; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; }
-  .ats-toggle:hover { border-color: #3f3f46; color: #e4e4e7; }
+  .ats-toggle { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); color: #e4e4e7; border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+  .ats-toggle:hover { border-color: rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.06); }
   
-  .ats-select { background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #a1a1aa; padding: 10px 12px; font-size: 12px; font-family: inherit; cursor: pointer; width: 100%; transition: border-color 0.15s; }
-  .ats-select:focus { border-color: #3f3f46; outline: none; }
+  .ats-select { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; color: #e4e4e7; padding: 12px 14px; font-size: 13px; font-family: inherit; cursor: pointer; width: 100%; transition: all 0.2s ease; }
+  .ats-select:focus { border-color: rgba(200, 245, 90, 0.4); outline: none; box-shadow: 0 0 0 2px rgba(200, 245, 90, 0.1); }
 `;
 
 const getScoreColor = (score: number) => score >= 75 ? "#86EFAC" : score >= 50 ? "#FBBF24" : "#FCA5A5";
