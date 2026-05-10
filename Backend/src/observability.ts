@@ -18,6 +18,8 @@ import { env } from "./config/env";
 
 const metricsRegistry = new Registry();
 
+export { metricsRegistry };
+
 if (env.ENABLE_METRICS) {
   collectDefaultMetrics({
     register: metricsRegistry,

@@ -6,6 +6,7 @@ import { startManagedWorker } from "./workerRuntime";
 export const startAtsWorker = async () => startManagedWorker({
   workerLabel: "ats-analysis",
   queueName: atsAnalysisQueueName,
+  queuePrefix: env.ATS_ANALYSIS_QUEUE_PREFIX,
   concurrency: env.ATS_ANALYSIS_WORKER_CONCURRENCY,
   processJob: processAtsAnalysisJob,
 }).then((handle) => {

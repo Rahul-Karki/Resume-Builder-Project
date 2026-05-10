@@ -16,9 +16,13 @@ export type ResumeDownloadJobData = {
 export type AtsAnalysisJobData = {
   userId: string;
   resumeId: string;
+  analysisId: string;
   resume: Record<string, unknown>;
   jobTitle?: string;
+  jobDescription?: string;
   keywords: string[];
+  tone?: "professional" | "concise" | "technical" | "leadership-focused";
+  reportType?: "resume-analysis" | "job-description-match";
   requestId?: string;
 };
 

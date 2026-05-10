@@ -171,12 +171,29 @@ export interface ResumeVersionMeta {
 export interface BuilderUIState {
   activeTab: EditorTab;
   activeSection: ActiveSection;
+  focusedField: FocusedEditorField | null;
   previewScale: PreviewScale;
   exportPreset: ExportPreset;
   isSaving: boolean;
   isSaved: boolean;
   isDirty: boolean;
   saveError: string | null;
+}
+
+export interface FocusedEditorField {
+  section: ActiveSection;
+  label: string;
+  kind:
+    | "personal"
+    | "experience"
+    | "education"
+    | "skills"
+    | "projects"
+    | "certification"
+    | "language";
+  entityId?: string;
+  field?: string;
+  index?: number;
 }
 
 // ─── Default Values ────────────────────────────────────────────────────────────
@@ -288,5 +305,19 @@ export interface TemplateMeta {
   description: string; isPremium: boolean; accent: string;
   palette: { bg: string; primary: string; secondary: string; sidebar?: string; };
 }
+
+export type {
+  AiGrammarIssue,
+  AiGrammarResult,
+  AiRewriteResult,
+  AiSuggestion,
+  AiTone,
+  AtsAnalysisReport,
+  AtsFormattingCheck,
+  AtsGrammarFinding,
+  AtsKeywordAnalysis,
+  AtsScoreBreakdown,
+} from "../../../shared/src/ai";
+
 export type SortOption = "updatedAt" | "createdAt" | "title" | "completion";
 export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; }

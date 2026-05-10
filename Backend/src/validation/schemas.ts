@@ -133,6 +133,34 @@ const exportPresetSchema = z.object({
   preset: z.enum(["web", "standard", "print"]).optional(),
 }).strict();
 
+const aiToneSchema = z.enum(["professional", "concise", "technical", "leadership-focused"]);
+
+const aiTextSchema = z.object({
+  text: plainText(4000).pipe(z.string().min(1).max(4000)),
+  section: z.enum(["summary", "experience", "education", "skills", "projects", "certifications", "languages"]),
+  tone: aiToneSchema.optional(),
+  context: plainText(1200).optional(),
+  targetRole: plainText(160).optional(),
+}).strict();
+
+const aiGrammarSchema = z.object({
+  text: plainText(4000).pipe(z.string().min(1).max(4000)),
+  section: z.enum(["summary", "experience", "education", "skills", "projects", "certifications", "languages"]),
+  context: plainText(1200).optional(),
+}).strict();
+
+const atsAnalysisRequestSchema = z.object({
+  jobTitle: plainText(160).optional(),
+  jobDescription: plainText(6000).optional(),
+  keywords: z.array(plainText(80).pipe(z.string().min(1).max(80))).max(40).optional(),
+  tone: aiToneSchema.optional(),
+  reportType: z.enum(["resume-analysis", "job-description-match"]).optional(),
+}).strict();
+
+const atsAnalysisLookupSchema = z.object({
+  jobId: z.string().min(1).max(200),
+}).strict();
+
 const resumeEntrySchema = z.object({
   id: z.string().trim().min(1).max(120),
   company: plainText(160).optional(),
@@ -256,11 +284,15 @@ export {
   authLoginSchema,
   authResetPasswordSchema,
   authSignupSchema,
+  aiGrammarSchema,
+  aiTextSchema,
   createResumeSchema,
   createTemplateSchema,
   downloadResumeSchema,
   emptyObjectSchema,
   exportPresetSchema,
+  atsAnalysisLookupSchema,
+  atsAnalysisRequestSchema,
   googleLoginSchema,
   oauthLinkSchema,
   oauthUnlinkSchema,

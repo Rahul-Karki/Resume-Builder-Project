@@ -1,16 +1,18 @@
+import crypto from "crypto";
 import { Request, RequestHandler, Response } from "express";
 import Resume from "../models/Resume";
 import AtsAnalysis from "../models/AtsAnalysis";
 import ResumeVersion from "../models/ResumeVersion";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
-import { enqueueAtsAnalysisJob, getAtsQueueEvents } from "../queue/atsQueue";
+import { createAtsAnalysisJobId, enqueueAtsAnalysisJob } from "../queue/atsQueue";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache } from "../middleware/redisCache";
 import { AuthError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { compactText } from "../../../shared/src/ai";
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -83,29 +85,140 @@ export const analyzeAts: RequestHandler = async (req, res) => {
     }
 
     const bodyKeywords = Array.isArray(req.body?.keywords)
-      ? req.body.keywords.filter((value: unknown) => typeof value === "string").map((value: string) => value.trim().toLowerCase()).filter(Boolean)
+      ? req.body.keywords.filter((value: unknown) => typeof value === "string").map((value: string) => compactText(value).toLowerCase()).filter(Boolean)
       : [];
 
     const jobTitle = typeof req.body?.jobTitle === "string" ? req.body.jobTitle : "";
-    const keywords = Array.from(new Set([...getRoleKeywords(jobTitle), ...bodyKeywords]));
+    const jobDescription = typeof req.body?.jobDescription === "string" ? req.body.jobDescription : "";
+    const tone = typeof req.body?.tone === "string" ? req.body.tone : undefined;
+    const reportType = req.body?.reportType === "job-description-match" ? "job-description-match" : "resume-analysis";
+    const keywords = Array.from(new Set([
+      ...getRoleKeywords(jobTitle),
+      ...bodyKeywords,
+      ...(compactText(jobDescription).length > 0 ? compactText(jobDescription).split(/\s+/).filter((word) => word.length > 6).slice(0, 10) : []),
+    ]));
+
+    const analysisId = crypto.randomUUID();
+    const jobId = createAtsAnalysisJobId({
+      userId,
+      resumeId: String(resume._id),
+      analysisId,
+      resume: resume.toObject() as unknown as Record<string, unknown>,
+      jobTitle,
+      jobDescription,
+      keywords,
+      tone,
+      reportType,
+    });
+
+    await AtsAnalysis.findOneAndUpdate(
+      { jobId, userId },
+      {
+        jobId,
+        resumeId: resume._id,
+        userId,
+        status: "pending",
+        reportType,
+        jobTitle,
+        jobDescription,
+        targetKeywords: keywords,
+        scoreOverall: 0,
+        matchScore: 0,
+        sectionScores: {
+          summary: 0,
+          experience: 0,
+          skills: 0,
+          education: 0,
+          formatting: 0,
+          projects: 0,
+        },
+        keywordAnalysis: {
+          missingKeywords: keywords,
+          repeatedKeywords: [],
+          weakKeywords: [],
+          atsFriendlyKeywords: [],
+          matchedKeywords: [],
+        },
+        grammarIssues: [],
+        formattingChecks: [],
+        rewriteSuggestions: [],
+        summary: "ATS analysis queued.",
+        lastError: "",
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
 
     const queuedJob = await enqueueAtsAnalysisJob({
+      analysisId,
       userId,
       resumeId: String(resume._id),
       resume: resume.toObject() as unknown as Record<string, unknown>,
       jobTitle,
+      jobDescription,
       keywords,
+      tone,
+      reportType,
       requestId: req.traceId ?? req.correlationId,
     });
 
-    const saved = await queuedJob.waitUntilFinished(getAtsQueueEvents());
-
-    logger.info({ userId, resumeId: req.params.id }, "ATS analysis generated");
+    logger.info({ userId, resumeId: req.params.id, jobId: queuedJob.id }, "ATS analysis queued");
     markSpanSuccess(span);
-    res.status(200).json({ analysis: saved });
+    res.status(202).json({
+      message: "ATS analysis queued",
+      jobId: queuedJob.id,
+      analysisId,
+      statusUrl: `/api/resumes/${encodeURIComponent(String(req.params.id))}/ats-analysis/${encodeURIComponent(String(queuedJob.id))}`,
+      latestUrl: `/api/resumes/${encodeURIComponent(String(req.params.id))}/ats-analysis/latest`,
+    });
   } catch (error) {
     markSpanError(span, error as Error, "Failed to analyze ATS score");
     logger.error({ error, resumeId: req.params.id }, "Failed to analyze ATS score");
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const getLatestAtsAnalysis: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.getLatestAtsAnalysis", req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const analysis = await AtsAnalysis.findOne({ resumeId: req.params.id, userId }).sort({ createdAt: -1 }).lean();
+    if (!analysis) {
+      res.status(404).json({ message: "ATS analysis not found" });
+      return;
+    }
+
+    markSpanSuccess(span);
+    res.status(200).json({ analysis });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to fetch ATS analysis");
+    logger.error({ error, resumeId: req.params.id }, "Failed to fetch ATS analysis");
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const getAtsAnalysisByJobId: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.getAtsAnalysisByJobId", req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const analysis = await AtsAnalysis.findOne({ resumeId: req.params.id, userId, jobId: req.params.jobId }).lean();
+    if (!analysis) {
+      res.status(404).json({ message: "ATS analysis not found" });
+      return;
+    }
+
+    markSpanSuccess(span);
+    res.status(200).json({ analysis });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to fetch ATS analysis status");
+    logger.error({ error, resumeId: req.params.id, jobId: req.params.jobId }, "Failed to fetch ATS analysis status");
     sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
@@ -139,6 +252,11 @@ export const applyAtsSuggestion: RequestHandler = async (req, res) => {
     }
 
     const mutable = resume.toObject();
+    if (!suggestion.path) {
+      res.status(400).json({ message: "Suggestion path is missing" });
+      return;
+    }
+
     setPathValue(mutable, suggestion.path, suggestion.suggestionText);
 
     const updated = await Resume.findOneAndUpdate(

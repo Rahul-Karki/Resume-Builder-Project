@@ -3,7 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import {
   ResumeDocument, BuilderUIState, PersonalInfo, ResumeStyle,
   WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry,
-  ActiveSection, EditorTab, ExportPreset, PreviewScale, SectionVisibility,
+  ActiveSection, EditorTab, ExportPreset, PreviewScale, SectionVisibility, FocusedEditorField,
   defaultStyle, defaultPersonalInfo, defaultResumeSections,
   defaultSectionVisibility, defaultSectionOrder,
 } from "@/types/resume-types";
@@ -180,6 +180,7 @@ interface ResumeBuilderStore {
   // ── UI controls ────────────────────────────────────────────────────────────
   setActiveTab: (tab: EditorTab) => void;
   setActiveSection: (section: ActiveSection) => void;
+  setFocusedField: (field: FocusedEditorField | null) => void;
   setPreviewScale: (scale: PreviewScale) => void;
   setExportPreset: (preset: ExportPreset) => void;
 
@@ -205,6 +206,7 @@ const initialResume: ResumeDocument = {
 const initialUI: BuilderUIState = {
   activeTab: "content",
   activeSection: "personal",
+  focusedField: null,
   previewScale: 0.5,
   exportPreset: "standard",
   isSaving: false,
@@ -726,6 +728,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
     // ─── UI Controls ─────────────────────────────────────────────────────────
     setActiveTab: (tab) => set(s => ({ ui: { ...s.ui, activeTab: tab } })),
     setActiveSection: (section) => set(s => ({ ui: { ...s.ui, activeSection: section } })),
+    setFocusedField: (field) => set(s => ({ ui: { ...s.ui, focusedField: field } })),
     setPreviewScale: (scale) => set(s => ({ ui: { ...s.ui, previewScale: scale } })),
     setExportPreset: (preset) => set(s => ({ ui: { ...s.ui, exportPreset: preset } })),
 

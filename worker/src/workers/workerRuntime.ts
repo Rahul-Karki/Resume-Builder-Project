@@ -8,6 +8,7 @@ import WorkerHeartbeat from "../models/WorkerHeartbeat";
 export type StartWorkerOptions<T> = {
   workerLabel: string;
   queueName: string;
+  queuePrefix: string;
   concurrency: number;
   processJob: (job: Job<T>) => Promise<unknown>;
 };
@@ -52,6 +53,7 @@ const writeHeartbeat = async (
 export const startManagedWorker = async <T>({
   workerLabel,
   queueName,
+  queuePrefix,
   concurrency,
   processJob,
 }: StartWorkerOptions<T>): Promise<ManagedWorker> => {
@@ -60,12 +62,12 @@ export const startManagedWorker = async <T>({
 
   const queueEvents = new QueueEvents(queueName, {
     connection: getBullmqConnection(),
-    prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
+    prefix: queuePrefix,
   });
 
   const worker = new Worker<T>(queueName, processJob, {
     connection: getBullmqConnection(),
-    prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
+    prefix: queuePrefix,
     concurrency,
   });
 

@@ -1,5 +1,11 @@
 import axios from "axios";
 import { ExportPreset, ResumeDocument } from "@/types/resume-types";
+import type {
+  AiGrammarResult,
+  AiRewriteResult,
+  AiTone,
+  AtsAnalysisReport,
+} from "../../../shared/src/ai";
 
 type RetriableConfig = {
   _retry?: boolean;
@@ -97,6 +103,26 @@ export type ResumeDownloadJobStatusResponse = {
   durationMs: number | null;
 };
 
+export type AiSectionRequest = {
+  text: string;
+  section: "summary" | "experience" | "education" | "skills" | "projects" | "certifications" | "languages";
+  tone?: AiTone;
+  context?: string;
+  targetRole?: string;
+};
+
+export type AtsAnalysisQueueResponse = {
+  message: string;
+  jobId: string;
+  analysisId: string;
+  statusUrl: string;
+  latestUrl: string;
+};
+
+export type AtsAnalysisResponse = {
+  analysis: AtsAnalysisReport;
+};
+
 export const getResumeExportPreset = async (resumeId: string, preset: ExportPreset) => {
   const response = await api.post(`/resumes/${resumeId}/export-pdf`, { preset });
   return response.data?.export as { preset: ExportPreset; options: { scale: number }; filename: string };
@@ -110,6 +136,42 @@ export const queueResumeDownload = async (payload: ResumeDownloadRequest) => {
 export const getResumeDownloadJobStatus = async (jobId: string) => {
   const response = await api.get(`/resumes/job-status/${encodeURIComponent(jobId)}`);
   return response.data as ResumeDownloadJobStatusResponse;
+};
+
+export const improveResumeText = async (payload: AiSectionRequest) => {
+  const response = await api.post("/ai/improve-text", payload, { timeout: 20000 });
+  return response.data as AiRewriteResult;
+};
+
+export const checkResumeGrammar = async (payload: AiSectionRequest) => {
+  const response = await api.post("/ai/check-grammar", payload, { timeout: 20000 });
+  return response.data as AiGrammarResult;
+};
+
+export const enhanceResumeBullet = async (payload: AiSectionRequest) => {
+  const response = await api.post("/ai/enhance-bullet", payload, { timeout: 20000 });
+  return response.data as AiRewriteResult;
+};
+
+export const queueAtsAnalysis = async (resumeId: string, payload: {
+  jobTitle?: string;
+  jobDescription?: string;
+  keywords?: string[];
+  tone?: AiTone;
+  reportType?: "resume-analysis" | "job-description-match";
+}) => {
+  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/analyze-ats`, payload, { timeout: 60000 });
+  return response.data as AtsAnalysisQueueResponse;
+};
+
+export const getAtsAnalysis = async (resumeId: string, jobId: string) => {
+  const response = await api.get(`/resumes/${encodeURIComponent(resumeId)}/ats-analysis/${encodeURIComponent(jobId)}`);
+  return response.data as AtsAnalysisResponse;
+};
+
+export const getLatestAtsAnalysis = async (resumeId: string) => {
+  const response = await api.get(`/resumes/${encodeURIComponent(resumeId)}/ats-analysis/latest`);
+  return response.data as AtsAnalysisResponse;
 };
 
 export async function bootstrapAuthSession() {

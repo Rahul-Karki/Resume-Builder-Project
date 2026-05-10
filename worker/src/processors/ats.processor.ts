@@ -1,153 +1,214 @@
 import type { Job } from "bullmq";
 import type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
+import { clampScore, compactText, createSuggestionId, type AtsAnalysisReport, type AtsFormattingCheck } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
+import { analyzeGrammarIssues } from "./grammarAnalysis.processor";
+import { analyzeKeywordMatch } from "./jdMatch.processor";
 
 const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
   "automated", "developed", "scaled", "reduced", "increased", "collaborated", "architected", "streamlined",
 ]);
 
-const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|latency|revenue|conversion|sla)\b/i.test(text);
+const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|latency|revenue|conversion|sla|throughput|requests)\b/i.test(text);
 
-const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const getSections = (resume: Record<string, unknown>) => ({
+  summary: compactText((resume.personalInfo as Record<string, unknown> | undefined)?.summary),
+  experience: Array.isArray((resume.sections as Record<string, unknown> | undefined)?.experience)
+    ? (resume.sections as Record<string, unknown>).experience as Array<Record<string, unknown>>
+    : [],
+  skills: Array.isArray((resume.sections as Record<string, unknown> | undefined)?.skills)
+    ? (resume.sections as Record<string, unknown>).skills as Array<Record<string, unknown>>
+    : [],
+  education: Array.isArray((resume.sections as Record<string, unknown> | undefined)?.education)
+    ? (resume.sections as Record<string, unknown>).education as Array<Record<string, unknown>>
+    : [],
+  projects: Array.isArray((resume.sections as Record<string, unknown> | undefined)?.projects)
+    ? (resume.sections as Record<string, unknown>).projects as Array<Record<string, unknown>>
+    : [],
+});
 
-const getRoleKeywords = (jobTitle = "") => {
-  const lower = jobTitle.toLowerCase();
-  if (lower.includes("frontend")) {
-    return ["react", "typescript", "accessibility", "performance", "responsive"];
-  }
-  if (lower.includes("backend")) {
-    return ["node", "api", "mongodb", "scalability", "testing"];
-  }
-  if (lower.includes("product")) {
-    return ["roadmap", "stakeholders", "kpi", "experimentation", "execution"];
-  }
-  return ["impact", "collaboration", "results", "ownership", "delivery"];
+const buildFormattingChecks = (resume: Record<string, unknown>): AtsFormattingCheck[] => {
+  const sections = getSections(resume);
+  const personal = (resume.personalInfo as Record<string, unknown> | undefined) ?? {};
+
+  return [
+    {
+      id: "contact-info",
+      label: "Contact information present",
+      passed: Boolean(compactText(personal.name) && compactText(personal.email)),
+      score: Boolean(compactText(personal.name) && compactText(personal.email)) ? 100 : 40,
+      reason: "A clear name and email improve ATS parsing.",
+    },
+    {
+      id: "summary-length",
+      label: "Summary length is balanced",
+      passed: sections.summary.length >= 80 && sections.summary.length <= 500,
+      score: sections.summary.length === 0 ? 20 : sections.summary.length < 80 ? 45 : sections.summary.length > 500 ? 65 : 100,
+      reason: "A concise but substantive summary helps recruiters scan quickly.",
+    },
+    {
+      id: "core-sections",
+      label: "Core sections are populated",
+      passed: sections.experience.length > 0 && sections.skills.length > 0,
+      score: clampScore((sections.experience.length > 0 ? 55 : 20) + (sections.skills.length > 0 ? 45 : 20)),
+      reason: "Experience and skills are the core ATS signals.",
+    },
+    {
+      id: "project-presence",
+      label: "Project or experience depth",
+      passed: sections.projects.length > 0 || sections.experience.length > 1,
+      score: clampScore((sections.projects.length > 0 ? 60 : 30) + Math.min(sections.experience.length * 10, 40)),
+      reason: "Projects or multiple roles improve context and depth.",
+    },
+  ];
 };
 
-const buildAtsAnalysis = (resume: any, keywords: string[]) => {
-  const summary = String(resume.personalInfo?.summary ?? "");
-  const experience = Array.isArray(resume.sections?.experience) ? resume.sections.experience : [];
-  const skills = Array.isArray(resume.sections?.skills) ? resume.sections.skills : [];
-  const education = Array.isArray(resume.sections?.education) ? resume.sections.education : [];
+const buildSectionScores = (resume: Record<string, unknown>, keywordMatchScore: number) => {
+  const sections = getSections(resume);
+  const summaryScore = clampScore((sections.summary.length / 180) * 100);
+  const experienceBullets = sections.experience.flatMap((entry) => Array.isArray(entry.bullets) ? entry.bullets.map((bullet) => compactText(bullet)) : []);
+  const strongBullets = experienceBullets.filter((bullet) => ACTION_VERBS.has(bullet.split(/\s+/)[0]?.toLowerCase() ?? "") && hasMetric(bullet)).length;
+  const experienceScore = experienceBullets.length === 0 ? 25 : clampScore((strongBullets / Math.max(1, experienceBullets.length)) * 100);
+  const skillsCount = sections.skills.reduce((count, entry) => count + (Array.isArray(entry.items) ? entry.items.length : 0), 0);
+  const skillsScore = clampScore((sections.skills.length > 0 ? 45 : 0) + Math.min(skillsCount * 4, 55));
+  const educationScore = sections.education.length > 0 ? 80 : 45;
+  const projectsScore = sections.projects.length > 0 ? clampScore(50 + sections.projects.length * 10) : 30;
+  const formattingScore = clampScore(buildFormattingChecks(resume).reduce((sum, check) => sum + (check.passed ? check.score : Math.max(20, check.score - 20)), 0) / 4);
 
-  const corpus = [
-    summary,
-    ...experience.flatMap((entry: any) => [entry.role, entry.company, ...(entry.bullets ?? [])]),
-    ...skills.flatMap((entry: any) => [entry.category, ...(entry.items ?? [])]),
-    ...education.flatMap((entry: any) => [entry.institution, entry.degree, entry.field]),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  const missingKeywords = keywords.filter((keyword) => {
-    const regex = new RegExp(`\\b${escapeRegex(keyword.toLowerCase())}\\b`, "i");
-    return !regex.test(corpus);
-  });
-
-  const totalBullets = experience.reduce((acc: number, entry: any) => acc + (entry.bullets ?? []).length, 0);
-  const strongBullets = experience.reduce((acc: number, entry: any) => {
-    const bullets: string[] = entry.bullets ?? [];
-    const score = bullets.filter((bullet) => {
-      const firstWord = bullet.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
-      return ACTION_VERBS.has(firstWord) && hasMetric(bullet);
-    }).length;
-    return acc + score;
-  }, 0);
-
-  const keywordCoverageScore = keywords.length === 0
-    ? 100
-    : Math.round(((keywords.length - missingKeywords.length) / keywords.length) * 100);
-
-  const summaryScore = Math.min(100, Math.round((summary.trim().length / 180) * 100));
-  const experienceScore = totalBullets === 0 ? 30 : Math.round((strongBullets / totalBullets) * 100);
-  const skillsScore = Math.min(100, (skills.length > 0 ? 40 : 0) + Math.min(60, skills.reduce((a: number, s: any) => a + (s.items?.length ?? 0), 0) * 6));
-  const educationScore = education.length > 0 ? 85 : 45;
-  const formattingScore = resume.sectionOrder?.length ? 90 : 70;
-
-  const scoreOverall = Math.round(
-    (summaryScore * 0.2)
-      + (experienceScore * 0.3)
-      + (skillsScore * 0.2)
-      + (educationScore * 0.1)
-      + (keywordCoverageScore * 0.15)
-      + (formattingScore * 0.05),
+  const overall = clampScore(
+    summaryScore * 0.16
+      + experienceScore * 0.28
+      + skillsScore * 0.2
+      + educationScore * 0.08
+      + projectsScore * 0.08
+      + formattingScore * 0.12
+      + keywordMatchScore * 0.08,
   );
 
-  const rewriteSuggestions: Array<{
-    id: string;
-    path: string;
-    originalText: string;
-    suggestionText: string;
-    reason: string;
-    impact: "low" | "medium" | "high";
-  }> = [];
+  return {
+    summary: summaryScore,
+    experience: experienceScore,
+    skills: skillsScore,
+    education: educationScore,
+    formatting: formattingScore,
+    projects: projectsScore,
+    overall,
+  };
+};
 
-  if (summary.trim().length < 120) {
-    rewriteSuggestions.push({
-      id: `sum_${Date.now()}`,
-      path: "personalInfo.summary",
+const buildRewriteSuggestions = (resume: Record<string, unknown>, grammarIssues: ReturnType<typeof analyzeGrammarIssues>) => {
+  const sections = getSections(resume);
+  const summary = sections.summary;
+  const suggestions: AtsAnalysisReport["rewriteSuggestions"] = [];
+
+  if (summary.length < 120) {
+    suggestions.push({
+      id: createSuggestionId("summary", 0),
       originalText: summary,
-      suggestionText: `${summary.trim()} Focus on quantified outcomes, core domain strengths, and role-relevant keywords.`,
-      reason: "Summary is short for ATS relevance and recruiter scanability.",
+      suggestionText: `${summary} Focus on quantified outcomes, core strengths, and role-relevant keywords.`.trim(),
+      reason: "The summary is too short to carry ATS value on its own.",
       impact: "high",
+      path: "personalInfo.summary",
     });
   }
 
-  experience.forEach((entry: any, expIndex: number) => {
-    const bullets: string[] = entry.bullets ?? [];
-    bullets.forEach((bullet, bulletIndex) => {
-      const firstWord = bullet.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
-      const missingVerb = !ACTION_VERBS.has(firstWord);
-      const missingNumbers = !hasMetric(bullet);
-
-      if (!missingVerb && !missingNumbers) return;
-
-      const suggestionText = `${missingVerb ? "Led" : firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${bullet.replace(/^\w+\s*/i, "")} ${missingNumbers ? "resulting in measurable impact (e.g., 20% improvement)." : ""}`.trim();
-
-      rewriteSuggestions.push({
-        id: `exp_${expIndex}_${bulletIndex}`,
-        path: `sections.experience[${expIndex}].bullets[${bulletIndex}]`,
-        originalText: bullet,
-        suggestionText,
-        reason: missingVerb
-          ? "Start bullets with strong action verbs."
-          : "Add metrics to quantify impact.",
-        impact: missingNumbers ? "high" : "medium",
-      });
+  grammarIssues.slice(0, 10).forEach((issue, index) => {
+    suggestions.push({
+      id: createSuggestionId("rewrite", index + 1),
+      originalText: issue.originalText,
+      suggestionText: issue.suggestionText,
+      reason: issue.reason,
+      impact: issue.severity,
+      path: issue.path,
     });
   });
 
+  return suggestions.slice(0, 20);
+};
+
+const buildReportSummary = (jobTitle: string | undefined, overall: number, matchScore: number, missingKeywords: string[]) => {
+  const title = compactText(jobTitle) || "resume";
+  return `${title} scored ${overall}/100 with a ${matchScore}% keyword match.${missingKeywords.length > 0 ? ` Missing keywords: ${missingKeywords.slice(0, 6).join(", ")}.` : ""}`;
+};
+
+const buildAtsReport = (job: Job<AtsAnalysisJobData>): AtsAnalysisReport => {
+  const reportType = job.data.reportType ?? (job.data.jobDescription ? "job-description-match" : "resume-analysis");
+  const keywords = Array.from(new Set((job.data.keywords.length > 0 ? job.data.keywords : []).map((keyword) => compactText(keyword)).filter(Boolean)));
+  const keywordResult = analyzeKeywordMatch(job.data.resume, keywords, job.data.jobDescription);
+  const grammarIssues = analyzeGrammarIssues(job.data.resume);
+  const sectionScores = buildSectionScores(job.data.resume, keywordResult.matchScore);
+  const formattingChecks = buildFormattingChecks(job.data.resume);
+  const rewriteSuggestions = buildRewriteSuggestions(job.data.resume, grammarIssues);
+
   return {
-    scoreOverall: Math.max(0, Math.min(100, scoreOverall)),
-    sectionScores: {
-      summary: summaryScore,
-      experience: experienceScore,
-      skills: skillsScore,
-      education: educationScore,
-      formatting: formattingScore,
-    },
-    missingKeywords,
-    rewriteSuggestions: rewriteSuggestions.slice(0, 20),
+    jobId: job.data.analysisId,
+    resumeId: job.data.resumeId,
+    status: "completed",
+    reportType,
+    jobTitle: compactText(job.data.jobTitle),
+    jobDescription: compactText(job.data.jobDescription),
+    targetKeywords: keywords,
+    overallScore: sectionScores.overall,
+    matchScore: keywordResult.matchScore,
+    sectionScores,
+    keywordAnalysis: keywordResult.analysis,
+    grammarIssues,
+    formattingChecks,
+    rewriteSuggestions,
+    summary: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
+    analyzedAt: new Date().toISOString(),
   };
 };
 
 export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
-  const keywords = job.data.keywords.length > 0 ? job.data.keywords : getRoleKeywords(job.data.jobTitle);
-  const analysis = buildAtsAnalysis(job.data.resume, keywords);
+  try {
+    const report = buildAtsReport(job);
 
-  const saved = await AtsAnalysis.findOneAndUpdate(
-    { resumeId: job.data.resumeId, userId: job.data.userId },
-    {
-      resumeId: job.data.resumeId,
-      userId: job.data.userId,
-      ...analysis,
-    },
-    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
-  );
+    const saved = await AtsAnalysis.findOneAndUpdate(
+      { jobId: job.data.analysisId, userId: job.data.userId },
+      {
+        jobId: job.data.analysisId,
+        resumeId: job.data.resumeId,
+        userId: job.data.userId,
+        status: "completed",
+        reportType: report.reportType,
+        jobTitle: report.jobTitle ?? "",
+        jobDescription: report.jobDescription ?? "",
+        targetKeywords: report.targetKeywords,
+        scoreOverall: report.overallScore,
+        matchScore: report.matchScore,
+        sectionScores: report.sectionScores,
+        keywordAnalysis: report.keywordAnalysis,
+        grammarIssues: report.grammarIssues,
+        formattingChecks: report.formattingChecks,
+        rewriteSuggestions: report.rewriteSuggestions,
+        summary: report.summary,
+        analyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
+        lastError: "",
+      },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
+    );
 
-  logger.info({ jobId: job.id, resumeId: job.data.resumeId }, "ATS analysis job completed");
-  return saved?.toObject() ?? analysis;
+    logger.info({ jobId: job.data.analysisId, resumeId: job.data.resumeId }, "ATS analysis job completed");
+    return saved?.toObject() ?? report;
+  } catch (error) {
+    await AtsAnalysis.findOneAndUpdate(
+      { jobId: job.data.analysisId, userId: job.data.userId },
+      {
+        jobId: job.data.analysisId,
+        resumeId: job.data.resumeId,
+        userId: job.data.userId,
+        status: "failed",
+        lastError: error instanceof Error ? error.message : String(error),
+      },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
+    ).catch((saveError) => {
+      logger.warn({ saveError, jobId: job.data.analysisId }, "Failed to persist ATS failure state");
+    });
+
+    logger.error({ error, jobId: job.data.analysisId, resumeId: job.data.resumeId }, "ATS analysis job failed");
+    throw error;
+  }
 };

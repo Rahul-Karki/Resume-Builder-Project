@@ -5,6 +5,7 @@ import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
 import { EditorPanel } from "@/components/builder/editorPanel";
 import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
+import { ATSAnalysisPanel } from "@/components/builder/ATSAnalysisPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
@@ -377,6 +378,7 @@ export default function ResumeBuilder() {
 
           {/* ─── RIGHT PANEL: Live Preview ─── */}
           <div style={{ flex: 1, minHeight: isMobile ? "50vh" : "auto", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+            <ATSAnalysisPanel />
             {/* Preview panel with inner ID for export */}
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <div id="resume-preview-inner" style={{ display: "none" }}>

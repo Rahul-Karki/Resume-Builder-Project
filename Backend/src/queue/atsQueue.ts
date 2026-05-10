@@ -30,15 +30,15 @@ export const createAtsAnalysisJobId = (data: Record<string, unknown>) => createB
 
 export const getAtsQueueRuntimeInfo = () => {
   const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
-  return getBullmqRuntimeInfo(ATS_ANALYSIS_QUEUE_NAME, env.RESUME_DOWNLOAD_QUEUE_PREFIX, redisUrl, env.SERVICE_NAME);
+  return getBullmqRuntimeInfo(ATS_ANALYSIS_QUEUE_NAME, env.ATS_ANALYSIS_QUEUE_PREFIX, redisUrl, env.SERVICE_NAME);
 };
 
 export const getAtsQueue = () => {
   if (!atsQueueInstance) {
     atsQueueInstance = new Queue<AtsAnalysisJobData>(ATS_ANALYSIS_QUEUE_NAME, {
       connection: getAtsBullmqConnection(),
-      prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
-      defaultJobOptions: createBullmqQueueOptions(env.RESUME_DOWNLOAD_JOB_ATTEMPTS, env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS) satisfies JobsOptions,
+      prefix: env.ATS_ANALYSIS_QUEUE_PREFIX,
+      defaultJobOptions: createBullmqQueueOptions(env.ATS_ANALYSIS_JOB_ATTEMPTS, env.ATS_ANALYSIS_BACKOFF_DELAY_MS) satisfies JobsOptions,
     });
 
     atsQueueInstance.on("error", (error) => {
@@ -53,7 +53,7 @@ export const getAtsQueueEvents = () => {
   if (!atsQueueEventsInstance) {
     atsQueueEventsInstance = new QueueEvents(ATS_ANALYSIS_QUEUE_NAME, {
       connection: getAtsBullmqConnection(),
-      prefix: env.RESUME_DOWNLOAD_QUEUE_PREFIX,
+      prefix: env.ATS_ANALYSIS_QUEUE_PREFIX,
     });
 
     atsQueueEventsInstance.on("error", (error: Error) => {
@@ -94,7 +94,7 @@ export const enqueueAtsAnalysisJob = async (data: AtsAnalysisJobData) => {
   try {
     const job = await queue.add("analyze-ats", data, {
       jobId,
-      ...createBullmqQueueOptions(env.RESUME_DOWNLOAD_JOB_ATTEMPTS, env.RESUME_DOWNLOAD_BACKOFF_DELAY_MS),
+      ...createBullmqQueueOptions(env.ATS_ANALYSIS_JOB_ATTEMPTS, env.ATS_ANALYSIS_BACKOFF_DELAY_MS),
     });
 
     logger.info({ jobId, userId: data.userId, queueJobId: job.id }, "ATS analysis job successfully enqueued");

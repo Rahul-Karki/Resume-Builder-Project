@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry } from "@/types/resume-types";
+import { AIAssistantPanel } from "@/components/builder/AIAssistantPanel";
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
@@ -139,7 +140,7 @@ function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
 
 // ─── PERSONAL SECTION ─────────────────────────────────────────────────────────
 function PersonalSection() {
-  const { resume, updatePersonalInfo } = useResumeBuilderStore();
+  const { resume, updatePersonalInfo, setFocusedField } = useResumeBuilderStore();
   const p = resume.personalInfo;
   const showTechLinks = resume.templateCategory === "tech";
   return (
@@ -147,40 +148,40 @@ function PersonalSection() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div>
           <span style={label}>Full Name</span>
-          <input value={p.name} onChange={e => updatePersonalInfo("name", e.target.value)} placeholder="Maya Thompson" style={inp} />
+          <input value={p.name} onChange={e => updatePersonalInfo("name", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "name", label: "Full Name" })} placeholder="Maya Thompson" style={inp} />
         </div>
         <div>
           <span style={label}>Job Title</span>
-          <input value={p.title} onChange={e => updatePersonalInfo("title", e.target.value)} placeholder="Operations and Client Services Manager" style={inp} />
+          <input value={p.title} onChange={e => updatePersonalInfo("title", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "title", label: "Job Title" })} placeholder="Operations and Client Services Manager" style={inp} />
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div>
           <span style={label}>Email</span>
-          <input type="email" value={p.email} onChange={e => updatePersonalInfo("email", e.target.value)} placeholder="alex@email.com" style={inp} />
+          <input type="email" value={p.email} onChange={e => updatePersonalInfo("email", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "email", label: "Email" })} placeholder="alex@email.com" style={inp} />
         </div>
         <div>
           <span style={label}>Phone</span>
-          <input value={p.phone} onChange={e => updatePersonalInfo("phone", e.target.value)} placeholder="+1 (555) 000-0000" style={inp} />
+          <input value={p.phone} onChange={e => updatePersonalInfo("phone", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "phone", label: "Phone" })} placeholder="+1 (555) 000-0000" style={inp} />
         </div>
       </div>
       <div style={{ marginBottom: 10 }}>
         <span style={label}>Location</span>
-        <input value={p.location} onChange={e => updatePersonalInfo("location", e.target.value)} placeholder="San Francisco, CA" style={inp} />
+        <input value={p.location} onChange={e => updatePersonalInfo("location", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "location", label: "Location" })} placeholder="San Francisco, CA" style={inp} />
       </div>
       <div style={{ marginBottom: 10 }}>
         <span style={label}>LinkedIn</span>
-        <input value={p.linkedin} onChange={e => updatePersonalInfo("linkedin", e.target.value)} placeholder="linkedin.com/in/you" style={inp} />
+        <input value={p.linkedin} onChange={e => updatePersonalInfo("linkedin", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "linkedin", label: "LinkedIn" })} placeholder="linkedin.com/in/you" style={inp} />
       </div>
       {showTechLinks && (
         <>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>GitHub</span>
-            <input value={p.github} onChange={e => updatePersonalInfo("github", e.target.value)} placeholder="github.com/your-handle" style={inp} />
+            <input value={p.github} onChange={e => updatePersonalInfo("github", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "github", label: "GitHub" })} placeholder="github.com/your-handle" style={inp} />
           </div>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>Portfolio Website</span>
-            <input value={p.portfolio} onChange={e => updatePersonalInfo("portfolio", e.target.value)} placeholder="yourportfolio.com" style={inp} />
+            <input value={p.portfolio} onChange={e => updatePersonalInfo("portfolio", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "portfolio", label: "Portfolio Website" })} placeholder="yourportfolio.com" style={inp} />
           </div>
         </>
       )}
@@ -188,7 +189,7 @@ function PersonalSection() {
         <span style={label}>Professional Summary</span>
         <textarea value={p.summary} onChange={e => updatePersonalInfo("summary", e.target.value)}
           rows={5} placeholder="Operations leader with 7+ years improving service quality, team coordination, and client satisfaction across fast-paced environments." style={ta}
-          onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "personal", kind: "personal", field: "summary", label: "Professional Summary" }); }}
           onBlur={e => e.currentTarget.style.borderColor = "#252525"}
         />
         <div style={{ fontSize: 10, color: "#444", marginTop: 4 }}>{p.summary.length} characters · Aim for 2–4 impactful sentences</div>
@@ -199,7 +200,7 @@ function PersonalSection() {
 
 // ─── EXPERIENCE SECTION ────────────────────────────────────────────────────────
 function ExperienceSection() {
-  const { resume, addExperience, updateExperience, removeExperience, addBullet, updateBullet, removeBullet } = useResumeBuilderStore();
+  const { resume, addExperience, updateExperience, removeExperience, addBullet, updateBullet, removeBullet, setFocusedField } = useResumeBuilderStore();
   const experience = resume.sections.experience;
 
   return (
@@ -207,19 +208,19 @@ function ExperienceSection() {
       {experience.map((e: WorkEntry, idx: number) => (
         <EntryCard key={e.id} title={e.role || "New Role"} subtitle={e.company} onRemove={() => removeExperience(e.id)} defaultOpen={idx === experience.length - 1}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10, marginTop: 4 }}>
-            <div><span style={label}>Job Title</span><input value={e.role} onChange={v => updateExperience(e.id, "role", v.target.value)} placeholder="Operations Supervisor" style={inp} /></div>
-            <div><span style={label}>Company</span><input value={e.company} onChange={v => updateExperience(e.id, "company", v.target.value)} placeholder="BrightPath Services" style={inp} /></div>
+            <div><span style={label}>Job Title</span><input value={e.role} onChange={v => updateExperience(e.id, "role", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "role", label: "Job Title" })} placeholder="Operations Supervisor" style={inp} /></div>
+            <div><span style={label}>Company</span><input value={e.company} onChange={v => updateExperience(e.id, "company", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "company", label: "Company" })} placeholder="BrightPath Services" style={inp} /></div>
           </div>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>Location</span>
-            <input value={e.location} onChange={v => updateExperience(e.id, "location", v.target.value)} placeholder="San Francisco, CA" style={inp} />
+            <input value={e.location} onChange={v => updateExperience(e.id, "location", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "location", label: "Location" })} placeholder="San Francisco, CA" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
-            <div><span style={label}>Start Date</span><input value={e.start} onChange={v => updateExperience(e.id, "start", v.target.value)} placeholder="Mar 2021" style={inp} /></div>
-            <div><span style={label}>End Date</span><input value={e.end} onChange={v => updateExperience(e.id, "end", v.target.value)} placeholder="Present" disabled={e.current} style={{ ...inp, opacity: e.current ? 0.4 : 1 }} /></div>
+            <div><span style={label}>Start Date</span><input value={e.start} onChange={v => updateExperience(e.id, "start", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "start", label: "Start Date" })} placeholder="Mar 2021" style={inp} /></div>
+            <div><span style={label}>End Date</span><input value={e.end} onChange={v => updateExperience(e.id, "end", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "end", label: "End Date" })} placeholder="Present" disabled={e.current} style={{ ...inp, opacity: e.current ? 0.4 : 1 }} /></div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 2 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                <input type="checkbox" checked={e.current} onChange={v => updateExperience(e.id, "current", v.target.checked)} />
+                <input type="checkbox" checked={e.current} onChange={v => updateExperience(e.id, "current", v.target.checked)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "current", label: "Current Role" })} />
                 <span style={{ fontSize: 11, color: "#888" }}>Current</span>
               </label>
             </div>
@@ -238,9 +239,11 @@ function ExperienceSection() {
               <textarea
                 value={e.description}
                 onChange={v => updateExperience(e.id, "description", v.target.value)}
+                onFocus={(ev) => { ev.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "description", label: "Experience Summary" }); }}
                 rows={4}
                 placeholder="Summarize your impact, scope of work, and service outcomes in a concise paragraph..."
                 style={ta}
+                onBlur={ev => { ev.currentTarget.style.borderColor = "#252525"; }}
               />
             </div>
           ) : (
@@ -252,9 +255,11 @@ function ExperienceSection() {
                   <textarea
                     value={b}
                     onChange={v => updateBullet(e.id, i, v.target.value)}
+                    onFocus={(ev) => { ev.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "bullet", index: i, label: `Experience Bullet ${i + 1}` }); }}
                     placeholder="Describe a measurable improvement, service outcome, or process win..."
                     rows={2}
                     style={{ ...ta, flex: 1, minHeight: 44 }}
+                    onBlur={ev => { ev.currentTarget.style.borderColor = "#252525"; }}
                   />
                   <button onClick={() => removeBullet(e.id, i)}
                     style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 8, flexShrink: 0 }}>✕</button>
@@ -302,7 +307,7 @@ function EducationSection() {
 
 // ─── SKILLS SECTION ────────────────────────────────────────────────────────────
 function SkillsSection() {
-  const { resume, addSkillGroup, updateSkillGroup, removeSkillGroup } = useResumeBuilderStore();
+  const { resume, addSkillGroup, updateSkillGroup, removeSkillGroup, setFocusedField } = useResumeBuilderStore();
   const [skillDrafts, setSkillDrafts] = useState<Record<string, string>>({});
 
   const commitSkills = (id: string) => {
@@ -338,13 +343,14 @@ function SkillsSection() {
         <EntryCard key={sk.id} title={sk.category || "Skill Category"} subtitle={`${sk.items.length} items`} onRemove={() => removeSkillGroup(sk.id)}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Category Name</span>
-            <input value={sk.category} onChange={v => updateSkillGroup(sk.id, "category", v.target.value)} placeholder="Operations / Service / Software" style={inp} />
+            <input value={sk.category} onChange={v => updateSkillGroup(sk.id, "category", v.target.value)} onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: sk.id, field: "category", label: "Category Name" })} placeholder="Operations / Service / Software" style={inp} />
           </div>
           <div>
             <span style={label}>Skills (comma-separated)</span>
             <input
               value={skillDrafts[sk.id] ?? sk.items.join(", ")}
               onChange={v => handleSkillChange(sk.id, v.target.value)}
+              onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: sk.id, field: "items", label: "Skills" })}
               onBlur={() => commitSkills(sk.id)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -373,18 +379,18 @@ function SkillsSection() {
 
 // ─── PROJECTS SECTION ──────────────────────────────────────────────────────────
 function ProjectsSection() {
-  const { resume, addProject, updateProject, addProjectBullet, updateProjectBullet, removeProjectBullet, removeProject } = useResumeBuilderStore();
+  const { resume, addProject, updateProject, addProjectBullet, updateProjectBullet, removeProjectBullet, removeProject, setFocusedField } = useResumeBuilderStore();
   return (
     <div>
       {resume.sections.projects.map((pr: Project, idx: number) => (
         <EntryCard key={pr.id} title={pr.name || "New Project"} subtitle={pr.tech} onRemove={() => removeProject(pr.id)} defaultOpen={idx === resume.sections.projects.length - 1}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Project Name</span>
-            <input value={pr.name} onChange={v => updateProject(pr.id, "name", v.target.value)} placeholder="Service Recovery Playbook" style={inp} />
+            <input value={pr.name} onChange={v => updateProject(pr.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "name", label: "Project Name" })} placeholder="Service Recovery Playbook" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <div><span style={label}>Focus Area</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} placeholder="Process Design, Training, Reporting" style={inp} /></div>
-            <div><span style={label}>Reference Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} placeholder="organization.org/program" style={inp} /></div>
+            <div><span style={label}>Focus Area</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "tech", label: "Focus Area" })} placeholder="Process Design, Training, Reporting" style={inp} /></div>
+            <div><span style={label}>Reference Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "link", label: "Reference Link" })} placeholder="organization.org/program" style={inp} /></div>
           </div>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>Description Format</span>
@@ -397,7 +403,7 @@ function ProjectsSection() {
           {pr.contentMode === "paragraph" ? (
             <div>
               <span style={label}>Description</span>
-              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)}
+              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)} onFocus={(ev) => { ev.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "description", label: "Description" }); }}
                 rows={3} placeholder="Briefly describe the initiative, who it supported, and the outcome it improved." style={ta} />
             </div>
           ) : (
@@ -409,9 +415,11 @@ function ProjectsSection() {
                   <textarea
                     value={b}
                     onChange={v => updateProjectBullet(pr.id, i, v.target.value)}
+                    onFocus={(ev) => { ev.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "bullet", index: i, label: `Project Bullet ${i + 1}` }); }}
                     placeholder="Highlight one project outcome or feature..."
                     rows={2}
                     style={{ ...ta, flex: 1, minHeight: 44 }}
+                    onBlur={ev => { ev.currentTarget.style.borderColor = "#252525"; }}
                   />
                   <button
                     onClick={() => removeProjectBullet(pr.id, i)}
@@ -437,18 +445,18 @@ function ProjectsSection() {
 
 // ─── CERTIFICATIONS SECTION ────────────────────────────────────────────────────
 function CertificationsSection() {
-  const { resume, addCertification, updateCertification, removeCertification } = useResumeBuilderStore();
+  const { resume, addCertification, updateCertification, removeCertification, setFocusedField } = useResumeBuilderStore();
   return (
     <div>
       {resume.sections.certifications.map((c: CertEntry) => (
         <EntryCard key={c.id} title={c.name || "New Certification"} subtitle={c.issuer} onRemove={() => removeCertification(c.id)}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Certification Name</span>
-            <input value={c.name} onChange={v => updateCertification(c.id, "name", v.target.value)} placeholder="Certified Administrative Professional" style={inp} />
+            <input value={c.name} onChange={v => updateCertification(c.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "name", label: "Certification Name" })} placeholder="Certified Administrative Professional" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div><span style={label}>Issuing Body</span><input value={c.issuer} onChange={v => updateCertification(c.id, "issuer", v.target.value)} placeholder="IAAP" style={inp} /></div>
-            <div><span style={label}>Year</span><input value={c.year} onChange={v => updateCertification(c.id, "year", v.target.value)} placeholder="2023" style={inp} /></div>
+            <div><span style={label}>Issuing Body</span><input value={c.issuer} onChange={v => updateCertification(c.id, "issuer", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "issuer", label: "Issuing Body" })} placeholder="IAAP" style={inp} /></div>
+            <div><span style={label}>Year</span><input value={c.year} onChange={v => updateCertification(c.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "year", label: "Year" })} placeholder="2023" style={inp} /></div>
           </div>
         </EntryCard>
       ))}
@@ -459,16 +467,16 @@ function CertificationsSection() {
 
 // ─── LANGUAGES SECTION ─────────────────────────────────────────────────────────
 function LanguagesSection() {
-  const { resume, addLanguage, updateLanguage, removeLanguage } = useResumeBuilderStore();
+  const { resume, addLanguage, updateLanguage, removeLanguage, setFocusedField } = useResumeBuilderStore();
   return (
     <div>
       {resume.sections.languages.map((l: LanguageEntry) => (
         <EntryCard key={l.id} title={l.language || "New Language"} subtitle={l.proficiency} onRemove={() => removeLanguage(l.id)}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
-            <div><span style={label}>Language</span><input value={l.language} onChange={v => updateLanguage(l.id, "language", v.target.value)} placeholder="Mandarin" style={inp} /></div>
+            <div><span style={label}>Language</span><input value={l.language} onChange={v => updateLanguage(l.id, "language", v.target.value)} onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: l.id, field: "language", label: "Language" })} placeholder="Mandarin" style={inp} /></div>
             <div>
               <span style={label}>Proficiency</span>
-              <select value={l.proficiency} onChange={v => updateLanguage(l.id, "proficiency", v.target.value)}
+              <select value={l.proficiency} onChange={v => updateLanguage(l.id, "proficiency", v.target.value)} onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: l.id, field: "proficiency", label: "Proficiency" })}
                 style={{ ...inp, cursor: "pointer" }}>
                 {["Native", "Fluent", "Advanced", "Intermediate", "Basic"].map(p => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -557,6 +565,7 @@ export function EditorPanel() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
+      <AIAssistantPanel />
       {/* Section Nav */}
       <div style={{ padding: "10px 10px 0", borderBottom: "1px solid #1E1E1E" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, paddingBottom: 10 }}>
