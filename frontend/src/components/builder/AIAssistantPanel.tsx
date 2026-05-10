@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { improveResumeText, checkResumeGrammar, enhanceResumeBullet } from "@/services/api";
 import type { AiRewriteResult, AiGrammarResult, AiTone, FocusedEditorField } from "@/types/resume-types";
+import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, PenTool } from "lucide-react";
 
-const TONES: { id: AiTone; label: string; icon: string }[] = [
-  { id: "professional", label: "Professional", icon: "💼" },
-  { id: "concise", label: "Concise", icon: "✂️" },
-  { id: "technical", label: "Technical", icon: "⚙️" },
-  { id: "leadership-focused", label: "Leadership", icon: "🎯" },
+const TONES: { id: AiTone; label: string; icon: React.ReactNode }[] = [
+  { id: "professional", label: "Professional", icon: <Briefcase size={14} /> },
+  { id: "concise", label: "Concise", icon: <Scissors size={14} /> },
+  { id: "technical", label: "Technical", icon: <Settings size={14} /> },
+  { id: "leadership-focused", label: "Leadership", icon: <Target size={14} /> },
 ];
 
 type FocusTarget = {
@@ -192,57 +193,57 @@ const getFocusTarget = (
 
 /* ─── Styles ─────────────────────────────────────────────────────────────────── */
 const css = `
-  @keyframes ai-shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-  @keyframes ai-pulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-  @keyframes ai-fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .ai-panel { border-bottom: 1px solid #1E1E1E; background: linear-gradient(180deg, rgba(139,92,246,0.06) 0%, rgba(139,92,246,0.01) 100%); }
-  .ai-header { padding: 14px 16px 12px; display: flex; align-items: center; gap: 10px; }
-  .ai-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 7px; background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.15)); border: 1px solid rgba(139,92,246,0.3); border-radius: 20px; font-size: 11px; font-weight: 700; color: #C4B5FD; letter-spacing: 0.3px; }
-  .ai-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #8B5CF6; box-shadow: 0 0 8px rgba(139,92,246,0.6); }
-  .ai-subtitle { font-size: 11px; color: #555; margin-top: 2px; }
-  .ai-tone-bar { display: flex; gap: 4px; padding: 0 16px 12px; flex-wrap: wrap; }
-  .ai-tone-btn { padding: 5px 10px; border-radius: 8px; border: 1px solid #252525; background: #111; color: #777; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px; }
-  .ai-tone-btn:hover { border-color: rgba(139,92,246,0.4); color: #aaa; }
-  .ai-tone-btn.active { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); color: #C4B5FD; }
-  .ai-actions { display: flex; gap: 8px; padding: 0 16px 14px; flex-wrap: wrap; align-items: center; }
-  .ai-btn-primary { background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.15)); border: 1px solid rgba(139,92,246,0.35); color: #C4B5FD; border-radius: 10px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-  .ai-btn-primary:hover { background: linear-gradient(135deg, rgba(139,92,246,0.3), rgba(59,130,246,0.25)); border-color: rgba(139,92,246,0.5); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,92,246,0.2); }
-  .ai-btn-secondary { background: #111; border: 1px solid #252525; color: #888; border-radius: 10px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-  .ai-btn-secondary:hover { border-color: #3a3a3a; color: #bbb; }
-  .ai-btn-apply { background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,185,129,0.1)); border: 1px solid rgba(34,197,94,0.3); color: #86EFAC; border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  .ai-btn-apply:hover { background: linear-gradient(135deg, rgba(34,197,94,0.25), rgba(16,185,129,0.2)); transform: translateY(-1px); }
-  .ai-btn-copy { background: #111; border: 1px solid #252525; color: #888; border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-  .ai-btn-copy:hover { border-color: #3a3a3a; color: #bbb; }
-  .ai-status { font-size: 11px; color: #555; margin-left: auto; display: flex; align-items: center; gap: 6px; }
-  .ai-loading-dot { width: 5px; height: 5px; border-radius: 50%; background: #8B5CF6; animation: ai-pulse 1.2s ease-in-out infinite; }
-  .ai-card { background: #0D0D0D; border: 1px solid #1E1E1E; border-radius: 12px; padding: 14px; margin: 0 16px 10px; animation: ai-fadeIn 0.3s ease-out; transition: border-color 0.2s; }
-  .ai-card:hover { border-color: rgba(139,92,246,0.25); }
-  .ai-card-reason { font-size: 12px; font-weight: 700; color: #E5E5E5; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-  .ai-card-text { font-size: 12px; color: #999; line-height: 1.6; margin-bottom: 10px; }
-  .ai-card-actions { display: flex; gap: 6px; }
-  .ai-section-label { font-size: 10px; font-weight: 800; color: #555; text-transform: uppercase; letter-spacing: 1px; padding: 0 16px; margin: 8px 0 10px; display: flex; align-items: center; gap: 8px; }
-  .ai-section-label::after { content: ''; flex: 1; height: 1px; background: #1A1A1A; }
-  .ai-error { margin: 0 16px 12px; padding: 10px 14px; border-radius: 10px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #FCA5A5; font-size: 12px; display: flex; align-items: center; gap: 8px; }
-  .ai-variation { text-align: left; background: #0D0D0D; border: 1px solid #1E1E1E; color: #999; border-radius: 10px; padding: 12px 14px; font-size: 12px; cursor: pointer; line-height: 1.5; transition: all 0.2s; width: 100%; margin: 0 16px 6px; display: block; }
-  .ai-variation:hover { border-color: rgba(139,92,246,0.3); color: #ccc; background: rgba(139,92,246,0.04); }
-  .ai-empty { padding: 20px 16px; text-align: center; }
-  .ai-empty-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
-  .ai-empty-text { font-size: 12px; color: #444; line-height: 1.5; }
-  .ai-impact { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .ai-impact-high { background: rgba(239,68,68,0.12); color: #F87171; }
-  .ai-impact-medium { background: rgba(245,158,11,0.12); color: #FBBF24; }
-  .ai-impact-low { background: rgba(34,197,94,0.12); color: #86EFAC; }
-  .ai-shimmer { background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%); background-size: 200% 100%; animation: ai-shimmer 1.5s ease-in-out infinite; border-radius: 6px; height: 14px; margin: 4px 0; }
-  .ai-context-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); border-radius: 6px; font-size: 10px; color: #93C5FD; font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .ai-panel { border-bottom: 1px solid #27272a; background-color: #09090b; color: #e4e4e7; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .ai-header { padding: 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .ai-title-wrap { display: flex; flex-direction: column; gap: 4px; }
+  .ai-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #f4f4f5; }
+  .ai-context { display: inline-flex; align-items: center; padding: 2px 8px; background: #18181b; border: 1px solid #27272a; border-radius: 4px; font-size: 11px; color: #a1a1aa; font-weight: 500; }
+  .ai-subtitle { font-size: 12px; color: #71717a; }
+  
+  .ai-tone-bar { display: flex; gap: 6px; padding: 0 16px 16px; flex-wrap: wrap; }
+  .ai-tone-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid #27272a; background: #18181b; color: #a1a1aa; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
+  .ai-tone-btn:hover { border-color: #3f3f46; color: #e4e4e7; background: #27272a; }
+  .ai-tone-btn.active { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+  
+  .ai-actions { display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap; align-items: center; }
+  .ai-btn-primary { display: flex; align-items: center; gap: 6px; background: #ffffff; color: #09090b; border: 1px solid #e4e4e7; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .ai-btn-primary:hover:not(:disabled) { background: #f4f4f5; }
+  .ai-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  .ai-btn-secondary { display: flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .ai-btn-secondary:hover:not(:disabled) { background: #27272a; border-color: #3f3f46; }
+  .ai-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  .ai-btn-apply { display: flex; align-items: center; gap: 4px; background: #18181b; border: 1px solid #27272a; color: #e4e4e7; border-radius: 4px; padding: 4px 10px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .ai-btn-apply:hover { background: #27272a; border-color: #3f3f46; color: #ffffff; }
+  
+  .ai-status { font-size: 11px; color: #71717a; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .ai-spin { animation: spin 1s linear infinite; }
+  
+  .ai-card { background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 14px; margin: 0 16px 12px; transition: border-color 0.2s; }
+  .ai-card:hover { border-color: #3f3f46; }
+  .ai-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .ai-card-reason { font-size: 12px; font-weight: 600; color: #e4e4e7; display: flex; align-items: center; gap: 6px; }
+  .ai-card-text { font-size: 13px; color: #a1a1aa; line-height: 1.5; margin-bottom: 12px; }
+  .ai-card-actions { display: flex; gap: 8px; }
+  
+  .ai-section-label { font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; padding: 0 16px; margin: 16px 0 12px; }
+  
+  .ai-error { margin: 0 16px 16px; padding: 12px; border-radius: 6px; background: #7f1d1d1a; border: 1px solid #7f1d1d; color: #fca5a5; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+  
+  .ai-variation { text-align: left; background: #09090b; border: 1px solid #27272a; color: #a1a1aa; border-radius: 6px; padding: 12px; font-size: 12px; cursor: pointer; line-height: 1.5; transition: all 0.15s; width: 100%; margin: 0 16px 8px; display: block; }
+  .ai-variation:hover { border-color: #3f3f46; background: #18181b; color: #e4e4e7; }
+  
+  .ai-empty { padding: 32px 16px; text-align: center; color: #71717a; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .ai-empty-text { font-size: 13px; line-height: 1.5; max-width: 240px; }
+  
+  .ai-impact { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ai-impact-high { background: #7f1d1d33; color: #fca5a5; }
+  .ai-impact-medium { background: #78350f33; color: #fcd34d; }
+  .ai-impact-low { background: #14532d33; color: #86efac; }
+  
+  .ai-loader-block { background: #18181b; border-radius: 4px; height: 12px; margin: 8px 0; opacity: 0.5; }
 `;
 
 const impactClass = (impact?: string) =>
@@ -307,8 +308,8 @@ export function AIAssistantPanel() {
       <div className="ai-panel">
         <style>{css}</style>
         <div className="ai-empty">
-          <div className="ai-empty-icon">✨</div>
-          <div className="ai-empty-text">Click on any text field in your resume to get<br />AI-powered writing suggestions</div>
+          <Sparkles size={24} opacity={0.5} />
+          <div className="ai-empty-text">Select any text field in the editor to view context-aware writing suggestions.</div>
         </div>
       </div>
     );
@@ -320,20 +321,20 @@ export function AIAssistantPanel() {
 
       {/* Header */}
       <div className="ai-header">
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-            <span className="ai-badge"><span className="ai-badge-dot" />AI Assistant</span>
-            {target.label && <span className="ai-context-pill">📝 {target.label}</span>}
+        <div className="ai-title-wrap">
+          <div className="ai-title">
+            <Sparkles size={14} /> AI Assistant
           </div>
-          <div className="ai-subtitle">Context-aware suggestions · Nothing applied automatically</div>
+          <div className="ai-subtitle">Select a tone to refine your content</div>
         </div>
+        {target.label && <div className="ai-context">{target.label}</div>}
       </div>
 
       {/* Tone selector */}
       <div className="ai-tone-bar">
         {TONES.map((item) => (
           <button key={item.id} className={`ai-tone-btn ${tone === item.id ? "active" : ""}`} onClick={() => setTone(item.id)}>
-            <span style={{ fontSize: 12 }}>{item.icon}</span> {item.label}
+            {item.icon} {item.label}
           </button>
         ))}
       </div>
@@ -341,44 +342,52 @@ export function AIAssistantPanel() {
       {/* Action buttons */}
       <div className="ai-actions">
         <button className="ai-btn-primary" onClick={handleImprove} disabled={loading}>
-          <span style={{ fontSize: 14 }}>✨</span> Improve with AI
+          {loading ? <Loader2 size={14} className="ai-spin" /> : <RefreshCw size={14} />} 
+          Improve Content
         </button>
         <button className="ai-btn-secondary" onClick={handleGrammar} disabled={loading}>
-          <span style={{ fontSize: 14 }}>📝</span> Check Grammar
+          <PenTool size={14} /> Check Grammar
         </button>
         <div className="ai-status">
-          {loading ? (<><span className="ai-loading-dot" /><span className="ai-loading-dot" style={{ animationDelay: "0.2s" }} /><span className="ai-loading-dot" style={{ animationDelay: "0.4s" }} /> Analyzing...</>)
-            : lastUpdatedAt ? `Updated ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "Ready"}
+          {loading ? "Analyzing..." : lastUpdatedAt ? `Updated ${new Date(lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "Ready"}
         </div>
       </div>
 
       {/* Loading skeleton */}
       {loading && !rewrite && !grammar && (
-        <div style={{ padding: "0 16px 12px" }}>
-          <div className="ai-shimmer" style={{ width: "80%" }} />
-          <div className="ai-shimmer" style={{ width: "60%", marginTop: 8 }} />
-          <div className="ai-shimmer" style={{ width: "90%", marginTop: 8 }} />
+        <div style={{ padding: "0 16px 16px" }}>
+          <div className="ai-loader-block" style={{ width: "80%" }} />
+          <div className="ai-loader-block" style={{ width: "60%" }} />
+          <div className="ai-loader-block" style={{ width: "90%" }} />
         </div>
       )}
 
       {/* Error */}
-      {error && <div className="ai-error"><span>⚠</span> {error}</div>}
+      {error && (
+        <div className="ai-error">
+          <AlertCircle size={14} /> {error}
+        </div>
+      )}
 
       {/* Rewrite suggestions */}
       {rewrite && rewrite.suggestions.length > 0 && (
         <>
-          <div className="ai-section-label">Suggestions</div>
+          <div className="ai-section-label">Recommendations</div>
           {rewrite.suggestions.slice(0, 3).map((suggestion) => (
             <div key={suggestion.id} className="ai-card">
-              <div className="ai-card-reason">
-                <span>💡</span> {suggestion.reason}
+              <div className="ai-card-header">
+                <div className="ai-card-reason">
+                  {suggestion.reason}
+                </div>
                 {suggestion.impact && <span className={`ai-impact ${impactClass(suggestion.impact)}`}>{suggestion.impact}</span>}
               </div>
               <div className="ai-card-text">{suggestion.suggestionText}</div>
               <div className="ai-card-actions">
-                <button className="ai-btn-apply" onClick={() => applySuggestion(suggestion.suggestionText)}>✓ Apply</button>
-                <button className="ai-btn-copy" onClick={() => handleCopy(suggestion.suggestionText, suggestion.id)}>
-                  {copiedId === suggestion.id ? "Copied!" : "Copy"}
+                <button className="ai-btn-apply" onClick={() => applySuggestion(suggestion.suggestionText)}>
+                  <Check size={12} /> Apply
+                </button>
+                <button className="ai-btn-apply" onClick={() => handleCopy(suggestion.suggestionText, suggestion.id)}>
+                  <Copy size={12} /> {copiedId === suggestion.id ? "Copied" : "Copy"}
                 </button>
               </div>
             </div>
@@ -392,10 +401,14 @@ export function AIAssistantPanel() {
           <div className="ai-section-label">Grammar Issues</div>
           {grammar.issues.slice(0, 3).map((issue) => (
             <div key={issue.id} className="ai-card">
-              <div className="ai-card-reason"><span>🔤</span> {issue.reason}</div>
+              <div className="ai-card-header">
+                <div className="ai-card-reason">{issue.reason}</div>
+              </div>
               <div className="ai-card-text">{issue.suggestionText}</div>
               <div className="ai-card-actions">
-                <button className="ai-btn-apply" onClick={() => applySuggestion(issue.suggestionText)}>✓ Accept</button>
+                <button className="ai-btn-apply" onClick={() => applySuggestion(issue.suggestionText)}>
+                  <Check size={12} /> Resolve
+                </button>
               </div>
             </div>
           ))}
@@ -405,8 +418,8 @@ export function AIAssistantPanel() {
       {/* Rewrite variations */}
       {rewrite?.variations?.length ? (
         <>
-          <div className="ai-section-label">Alternative Rewrites</div>
-          <div style={{ padding: "0 0 12px" }}>
+          <div className="ai-section-label">Alternative Phrasing</div>
+          <div style={{ padding: "0 0 16px" }}>
             {rewrite.variations.map((variation, index) => (
               <button key={`${variation}-${index}`} className="ai-variation" onClick={() => applySuggestion(variation)}>
                 {variation}

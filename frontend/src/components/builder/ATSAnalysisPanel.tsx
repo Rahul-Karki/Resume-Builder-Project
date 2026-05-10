@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { queueAtsAnalysis, getAtsAnalysis, getLatestAtsAnalysis } from "@/services/api";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import type { AtsAnalysisReport, AiTone } from "@/types/resume-types";
+import { Target, BarChart2, Key, CheckSquare, Edit3, ClipboardList, AlertTriangle, Activity, Loader2, Play } from "lucide-react";
 
 const TONES: AiTone[] = ["professional", "concise", "technical", "leadership-focused"];
 const compact = (value: string) => value.replace(/\s+/g, " ").trim();
@@ -14,53 +15,65 @@ const buildSkillKeywords = (resume = useResumeBuilderStore.getState().resume) =>
 type Props = { expanded?: boolean };
 
 const css = `
-  @keyframes ats-fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes ats-scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-  @keyframes ats-pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-  @keyframes ats-progress { from { width: 0; } }
-  .ats-panel { background: linear-gradient(180deg, rgba(245,158,11,0.04) 0%, rgba(245,158,11,0.01) 100%); border-bottom: 1px solid #1E1E1E; }
-  .ats-header { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1A1A1A; }
-  .ats-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 7px; background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(234,88,12,0.15)); border: 1px solid rgba(245,158,11,0.3); border-radius: 20px; font-size: 11px; font-weight: 700; color: #FCD34D; letter-spacing: 0.3px; }
-  .ats-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #F59E0B; box-shadow: 0 0 8px rgba(245,158,11,0.6); }
-  .ats-body { padding: 14px 16px; display: grid; gap: 14px; }
-  .ats-input { background: #0D0D0D; border: 1px solid #1E1E1E; border-radius: 10px; color: #E5E5E5; padding: 10px 14px; font-size: 12px; font-family: inherit; transition: border-color 0.2s; width: 100%; }
-  .ats-input:focus { border-color: rgba(245,158,11,0.4); outline: none; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes progress { from { width: 0; } }
+  .ats-panel { background-color: #09090b; border-bottom: 1px solid #27272a; color: #e4e4e7; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .ats-header { padding: 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #27272a; }
+  .ats-title-wrap { display: flex; flex-direction: column; gap: 4px; }
+  .ats-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #f4f4f5; }
+  .ats-subtitle { font-size: 12px; color: #71717a; }
+  .ats-body { padding: 16px; display: grid; gap: 16px; }
+  .ats-input { background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #e4e4e7; padding: 10px 12px; font-size: 12px; font-family: inherit; transition: border-color 0.15s; width: 100%; }
+  .ats-input:focus { border-color: #3f3f46; outline: none; }
   .ats-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
-  .ats-btn-analyze { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(234,88,12,0.15)); border: 1px solid rgba(245,158,11,0.35); color: #FCD34D; border-radius: 10px; padding: 10px 16px; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; font-family: inherit; }
-  .ats-btn-analyze:hover:not(:disabled) { background: linear-gradient(135deg, rgba(245,158,11,0.3), rgba(234,88,12,0.25)); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,158,11,0.2); }
-  .ats-btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; }
-  .ats-score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .ats-score-card { background: #0D0D0D; border: 1px solid #1E1E1E; border-radius: 12px; padding: 14px; text-align: center; animation: ats-scaleIn 0.3s ease-out; transition: border-color 0.2s; position: relative; overflow: hidden; }
-  .ats-score-card:hover { border-color: rgba(245,158,11,0.25); }
-  .ats-score-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-  .ats-score-value { font-size: 24px; font-weight: 800; color: #E5E5E5; }
-  .ats-section-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .ats-section-card { background: #0D0D0D; border: 1px solid #1E1E1E; border-radius: 10px; padding: 10px 12px; animation: ats-fadeIn 0.3s ease-out; }
-  .ats-section-name { font-size: 10px; color: #555; text-transform: capitalize; margin-bottom: 4px; }
-  .ats-section-score { font-size: 16px; font-weight: 800; color: #E5E5E5; }
-  .ats-progress-bar { height: 3px; background: #1A1A1A; border-radius: 2px; margin-top: 6px; overflow: hidden; }
-  .ats-progress-fill { height: 100%; border-radius: 2px; animation: ats-progress 0.8s ease-out; }
-  .ats-block { background: #0D0D0D; border: 1px solid #1E1E1E; border-radius: 12px; padding: 14px; animation: ats-fadeIn 0.3s ease-out; }
-  .ats-block-title { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-  .ats-tag { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; margin: 2px 4px 2px 0; }
-  .ats-tag-good { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2); color: #86EFAC; }
-  .ats-tag-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: #FBBF24; }
-  .ats-tag-neutral { background: rgba(148,163,184,0.08); border: 1px solid rgba(148,163,184,0.15); color: #CBD5E1; }
-  .ats-check-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #0A0A0A; border: 1px solid #1A1A1A; border-radius: 8px; margin-bottom: 6px; }
-  .ats-check-label { font-size: 12px; font-weight: 600; color: #E5E5E5; }
-  .ats-check-pass { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
-  .ats-check-pass.pass { background: rgba(34,197,94,0.12); color: #86EFAC; }
-  .ats-check-pass.fail { background: rgba(239,68,68,0.12); color: #FCA5A5; }
-  .ats-issue-card { background: #0A0A0A; border: 1px solid #1A1A1A; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
-  .ats-issue-reason { font-size: 12px; font-weight: 700; color: #E5E5E5; margin-bottom: 4px; }
-  .ats-issue-text { font-size: 11px; color: #888; line-height: 1.5; }
-  .ats-summary-text { font-size: 12px; color: #bbb; line-height: 1.7; }
-  .ats-error { padding: 10px 14px; border-radius: 10px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #FCA5A5; font-size: 12px; display: flex; align-items: center; gap: 8px; }
-  .ats-loading { display: flex; align-items: center; gap: 8px; padding: 20px; justify-content: center; font-size: 12px; color: #555; }
-  .ats-loading-dot { width: 5px; height: 5px; border-radius: 50%; background: #F59E0B; animation: ats-pulse 1.2s ease-in-out infinite; }
-  .ats-toggle { background: #111; border: 1px solid #252525; color: #888; border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: inherit; }
-  .ats-toggle:hover { border-color: #3a3a3a; color: #bbb; }
-  .ats-select { background: #0D0D0D; border: 1px solid #1E1E1E; border-radius: 10px; color: #bbb; padding: 10px 14px; font-size: 12px; font-family: inherit; cursor: pointer; }
+  
+  .ats-btn-analyze { display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; color: #09090b; border: 1px solid #e4e4e7; border-radius: 6px; padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .ats-btn-analyze:hover:not(:disabled) { background: #f4f4f5; }
+  .ats-btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  .ats-score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .ats-score-card { background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; text-align: center; position: relative; overflow: hidden; }
+  .ats-score-label { font-size: 11px; color: #a1a1aa; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .ats-score-value { font-size: 24px; font-weight: 700; color: #e4e4e7; }
+  .ats-score-sub { font-size: 12px; color: #71717a; font-weight: 400; }
+  
+  .ats-section-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .ats-section-card { background: #09090b; border: 1px solid #27272a; border-radius: 6px; padding: 12px; }
+  .ats-section-name { font-size: 11px; color: #a1a1aa; font-weight: 500; text-transform: capitalize; margin-bottom: 6px; }
+  .ats-section-score { font-size: 16px; font-weight: 600; color: #e4e4e7; }
+  .ats-progress-bar { height: 4px; background: #27272a; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .ats-progress-fill { height: 100%; border-radius: 2px; animation: progress 0.8s ease-out; }
+  
+  .ats-block { background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 16px; }
+  .ats-block-title { font-size: 12px; color: #f4f4f5; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  
+  .ats-tag { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; margin: 2px 4px 2px 0; border: 1px solid; }
+  .ats-tag-good { background: #14532d1a; border-color: #14532d; color: #86efac; }
+  .ats-tag-warn { background: #78350f1a; border-color: #78350f; color: #fcd34d; }
+  .ats-tag-neutral { background: #27272a66; border-color: #3f3f46; color: #a1a1aa; }
+  
+  .ats-check-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #18181b; border: 1px solid #27272a; border-radius: 6px; margin-bottom: 8px; }
+  .ats-check-label { font-size: 12px; font-weight: 500; color: #e4e4e7; }
+  .ats-check-pass { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; }
+  .ats-check-pass.pass { background: #14532d33; color: #86efac; }
+  .ats-check-pass.fail { background: #7f1d1d33; color: #fca5a5; }
+  
+  .ats-issue-card { background: #18181b; border: 1px solid #27272a; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+  .ats-issue-reason { font-size: 12px; font-weight: 600; color: #e4e4e7; margin-bottom: 6px; }
+  .ats-issue-text { font-size: 12px; color: #a1a1aa; line-height: 1.5; }
+  
+  .ats-summary-text { font-size: 13px; color: #a1a1aa; line-height: 1.6; }
+  
+  .ats-error { padding: 12px; border-radius: 6px; background: #7f1d1d1a; border: 1px solid #7f1d1d; color: #fca5a5; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+  
+  .ats-loading { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px; justify-content: center; font-size: 13px; color: #71717a; }
+  .ats-spin { animation: spin 1s linear infinite; }
+  
+  .ats-toggle { display: flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #27272a; color: #a1a1aa; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .ats-toggle:hover { border-color: #3f3f46; color: #e4e4e7; }
+  
+  .ats-select { background: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #a1a1aa; padding: 10px 12px; font-size: 12px; font-family: inherit; cursor: pointer; width: 100%; transition: border-color 0.15s; }
+  .ats-select:focus { border-color: #3f3f46; outline: none; }
 `;
 
 const getScoreColor = (score: number) => score >= 75 ? "#86EFAC" : score >= 50 ? "#FBBF24" : "#FCA5A5";
@@ -133,41 +146,46 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
       <style>{css}</style>
 
       <div className="ats-header">
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 2 }}>
-            <span className="ats-badge"><span className="ats-badge-dot" />ATS Analysis</span>
+        <div className="ats-title-wrap">
+          <div className="ats-title">
+            <Activity size={14} /> ATS Analysis
           </div>
-          <div style={{ fontSize: 11, color: "#555", marginTop: 4 }}>Deep resume scoring with keyword matching · Powered by BullMQ</div>
+          <div className="ats-subtitle">Evaluate keyword match and readability</div>
         </div>
         <button className="ats-toggle" onClick={() => setShowDetails((v) => !v)}>{showDetails ? "Collapse" : "Expand"}</button>
       </div>
 
       {showDetails && (
         <div className="ats-body">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 140px", gap: 12 }}>
             <input className="ats-input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Target job title or role" />
             <select className="ats-select" value={tone} onChange={(e) => setTone(e.target.value as AiTone)}>
-              {TONES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {TONES.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
             </select>
           </div>
 
-          <textarea className="ats-input ats-textarea" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} placeholder="Paste the job description to calculate match % and missing skills..." />
+          <textarea className="ats-input ats-textarea" value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} placeholder="Paste the target job description to compute a match score..." />
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <button className="ats-btn-analyze" onClick={() => void handleAnalyze()} disabled={isRunning}>
-              {isRunning ? (<><span className="ats-loading-dot" /> Analyzing...</>) : (<><span style={{ fontSize: 14 }}>🎯</span> Analyze Resume</>)}
+              {isRunning ? <Loader2 size={14} className="ats-spin" /> : <Play size={14} />} 
+              {isRunning ? "Analyzing..." : "Analyze Resume"}
             </button>
-            <span style={{ fontSize: 11, color: "#444" }}>
-              {queuedJobId ? `Job ${queuedJobId.slice(0, 8)}...` : lastUpdatedAt ? `Last run ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "No analysis yet"}
+            <span style={{ fontSize: 12, color: "#71717a" }}>
+              {queuedJobId ? `Job ID: ${queuedJobId.slice(0, 8)}...` : lastUpdatedAt ? `Last run ${new Date(lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : "No analysis yet"}
             </span>
           </div>
 
-          {error && <div className="ats-error"><span>⚠</span> {error}</div>}
+          {error && (
+            <div className="ats-error">
+              <AlertTriangle size={14} /> {error}
+            </div>
+          )}
 
           {isRunning && !analysis && (
             <div className="ats-loading">
-              <span className="ats-loading-dot" /><span className="ats-loading-dot" style={{ animationDelay: "0.2s" }} /><span className="ats-loading-dot" style={{ animationDelay: "0.4s" }} />
-              Processing in background...
+              <Loader2 size={24} className="ats-spin" />
+              <span>Running background analysis...</span>
             </div>
           )}
 
@@ -176,24 +194,24 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
               {/* Score cards */}
               <div className="ats-score-grid">
                 <div className="ats-score-card">
-                  <div className="ats-score-label">ATS Score</div>
-                  <div className="ats-score-value" style={{ color: getScoreColor(analysis.overallScore) }}>{analysis.overallScore}<span style={{ fontSize: 12, color: "#555" }}>/100</span></div>
+                  <div className="ats-score-label">Overall Score</div>
+                  <div className="ats-score-value" style={{ color: getScoreColor(analysis.overallScore) }}>{analysis.overallScore}<span className="ats-score-sub">/100</span></div>
                   <div className="ats-progress-bar"><div className="ats-progress-fill" style={{ width: `${analysis.overallScore}%`, background: getScoreColor(analysis.overallScore) }} /></div>
                 </div>
                 <div className="ats-score-card">
-                  <div className="ats-score-label">Match</div>
-                  <div className="ats-score-value" style={{ color: getScoreColor(analysis.matchScore) }}>{analysis.matchScore}<span style={{ fontSize: 12, color: "#555" }}>%</span></div>
+                  <div className="ats-score-label">Role Match</div>
+                  <div className="ats-score-value" style={{ color: getScoreColor(analysis.matchScore) }}>{analysis.matchScore}<span className="ats-score-sub">%</span></div>
                   <div className="ats-progress-bar"><div className="ats-progress-fill" style={{ width: `${analysis.matchScore}%`, background: getScoreColor(analysis.matchScore) }} /></div>
                 </div>
                 <div className="ats-score-card">
                   <div className="ats-score-label">Status</div>
-                  <div className="ats-score-value" style={{ fontSize: 16, color: analysis.status === "completed" ? "#86EFAC" : "#FCA5A5" }}>{analysis.status.toUpperCase()}</div>
+                  <div className="ats-score-value" style={{ fontSize: 16, marginTop: 4, color: analysis.status === "completed" ? "#e4e4e7" : "#a1a1aa" }}>{analysis.status.toUpperCase()}</div>
                 </div>
               </div>
 
               {/* Section scores */}
               <div className="ats-block">
-                <div className="ats-block-title"><span>📊</span> Section Scores</div>
+                <div className="ats-block-title"><BarChart2 size={14} /> Section Analysis</div>
                 <div className="ats-section-grid">
                   {Object.entries(analysis.sectionScores).map(([label, value]) => (
                     <div key={label} className="ats-section-card">
@@ -206,17 +224,17 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
               </div>
 
               {/* Keywords */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16 }}>
                 <div className="ats-block">
-                  <div className="ats-block-title"><span>🔑</span> Keyword Analysis</div>
-                  <TagGroup label="Matched" values={analysis.keywordAnalysis.matchedKeywords} cls="ats-tag-good" />
-                  <TagGroup label="Missing" values={analysis.keywordAnalysis.missingKeywords} cls="ats-tag-warn" />
-                  <TagGroup label="Repeated" values={analysis.keywordAnalysis.repeatedKeywords} cls="ats-tag-neutral" />
-                  <TagGroup label="ATS-friendly" values={analysis.keywordAnalysis.atsFriendlyKeywords} cls="ats-tag-good" />
+                  <div className="ats-block-title"><Key size={14} /> Keyword Alignment</div>
+                  <TagGroup label="Matched Keywords" values={analysis.keywordAnalysis.matchedKeywords} cls="ats-tag-good" />
+                  <TagGroup label="Missing Keywords" values={analysis.keywordAnalysis.missingKeywords} cls="ats-tag-warn" />
+                  <TagGroup label="Overused Keywords" values={analysis.keywordAnalysis.repeatedKeywords} cls="ats-tag-neutral" />
+                  <TagGroup label="ATS Optimizations" values={analysis.keywordAnalysis.atsFriendlyKeywords} cls="ats-tag-good" />
                 </div>
 
                 <div className="ats-block">
-                  <div className="ats-block-title"><span>✅</span> Formatting</div>
+                  <div className="ats-block-title"><CheckSquare size={14} /> Formatting Checks</div>
                   {analysis.formattingChecks.map((check) => (
                     <div key={check.id} className="ats-check-row">
                       <span className="ats-check-label">{check.label}</span>
@@ -229,7 +247,7 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
               {/* Grammar + rewrite */}
               {(analysis.grammarIssues.length > 0 || analysis.rewriteSuggestions.length > 0) && (
                 <div className="ats-block">
-                  <div className="ats-block-title"><span>✍️</span> Suggestions</div>
+                  <div className="ats-block-title"><Edit3 size={14} /> Writing Suggestions</div>
                   {analysis.grammarIssues.slice(0, 4).map((issue) => (
                     <div key={issue.id} className="ats-issue-card">
                       <div className="ats-issue-reason">{issue.reason}</div>
@@ -247,7 +265,7 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
 
               {/* Summary */}
               <div className="ats-block">
-                <div className="ats-block-title"><span>📋</span> Report Summary</div>
+                <div className="ats-block-title"><ClipboardList size={14} /> Executive Summary</div>
                 <div className="ats-summary-text">{analysis.summary}</div>
               </div>
             </>
@@ -260,12 +278,12 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
 
 function TagGroup({ label, values, cls }: { label: string; values: string[]; cls: string }) {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 6 }}>{label}</div>
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#a1a1aa", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
         {values.length > 0
           ? values.map((v) => <span key={v} className={`ats-tag ${cls}`}>{v}</span>)
-          : <span style={{ color: "#444", fontSize: 11 }}>None</span>}
+          : <span style={{ color: "#71717a", fontSize: 12 }}>None</span>}
       </div>
     </div>
   );
