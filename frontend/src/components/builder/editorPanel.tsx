@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry } from "@/types/resume-types";
-import { AIAssistantPanel } from "@/components/builder/AIAssistantPanel";
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
@@ -281,22 +280,22 @@ function ExperienceSection() {
 
 // ─── EDUCATION SECTION ─────────────────────────────────────────────────────────
 function EducationSection() {
-  const { resume, addEducation, updateEducation, removeEducation } = useResumeBuilderStore();
+  const { resume, addEducation, updateEducation, removeEducation, setFocusedField } = useResumeBuilderStore();
   return (
     <div>
       {resume.sections.education.map((e: EduEntry, idx: number) => (
         <EntryCard key={e.id} title={e.institution || "New School"} subtitle={e.degree && e.field ? `${e.degree} ${e.field}` : ""} onRemove={() => removeEducation(e.id)} defaultOpen={idx === resume.sections.education.length - 1}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Institution</span>
-            <input value={e.institution} onChange={v => updateEducation(e.id, "institution", v.target.value)} placeholder="State University of New York" style={inp} />
+            <input value={e.institution} onChange={v => updateEducation(e.id, "institution", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "institution", label: "Institution" })} placeholder="State University of New York" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <div><span style={label}>Degree</span><input value={e.degree} onChange={v => updateEducation(e.id, "degree", v.target.value)} placeholder="B.A." style={inp} /></div>
-            <div><span style={label}>Field of Study</span><input value={e.field} onChange={v => updateEducation(e.id, "field", v.target.value)} placeholder="Business Administration" style={inp} /></div>
+            <div><span style={label}>Degree</span><input value={e.degree} onChange={v => updateEducation(e.id, "degree", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "degree", label: "Degree" })} placeholder="B.A." style={inp} /></div>
+            <div><span style={label}>Field of Study</span><input value={e.field} onChange={v => updateEducation(e.id, "field", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "field", label: "Field of Study" })} placeholder="Business Administration" style={inp} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div><span style={label}>Graduation Year</span><input value={e.year} onChange={v => updateEducation(e.id, "year", v.target.value)} placeholder="2020" style={inp} /></div>
-            <div><span style={label}>GPA (optional)</span><input value={e.cgpa} onChange={v => updateEducation(e.id, "cgpa", v.target.value)} placeholder="3.8" style={inp} /></div>
+            <div><span style={label}>Graduation Year</span><input value={e.year} onChange={v => updateEducation(e.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "year", label: "Graduation Year" })} placeholder="2020" style={inp} /></div>
+            <div><span style={label}>GPA (optional)</span><input value={e.cgpa} onChange={v => updateEducation(e.id, "cgpa", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "cgpa", label: "GPA" })} placeholder="3.8" style={inp} /></div>
           </div>
         </EntryCard>
       ))}
@@ -565,7 +564,6 @@ export function EditorPanel() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
-      <AIAssistantPanel />
       {/* Section Nav */}
       <div style={{ padding: "10px 10px 0", borderBottom: "1px solid #1E1E1E" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, paddingBottom: 10 }}>
