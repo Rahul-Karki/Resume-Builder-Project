@@ -6,7 +6,7 @@ require("./helpers/setupEnv");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const csrfProtectionPath = path.join(distRoot, "middleware", "csrfProtection.js");
 
 function createRes() {

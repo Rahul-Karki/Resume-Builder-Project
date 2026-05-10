@@ -1,13 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { normalizeResumeTemplateId } = require("../dist/utils/resumeTemplate");
+const { normalizeResumeTemplateId } = require("../dist/Backend/src/utils/resumeTemplate");
 const {
   createTemplateSchema,
   createResumeSchema,
   publicTemplateListQuerySchema,
   updateResumeSchema,
-} = require("../dist/validation/schemas");
+} = require("../dist/Backend/src/validation/schemas");
 
 test("normalizeResumeTemplateId maps legacy template labels to current ids", () => {
   assert.equal(normalizeResumeTemplateId("Classic Template"), "classic");

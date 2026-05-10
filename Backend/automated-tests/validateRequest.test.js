@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { z } = require("zod");
 
-const { validateRequest } = require("../dist/middleware/validateRequest");
+const { validateRequest } = require("../dist/Backend/src/middleware/validateRequest");
 
 const createRes = () => {
   const data = {

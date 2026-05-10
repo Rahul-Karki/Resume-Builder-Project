@@ -4,7 +4,7 @@ const path = require("node:path");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const requestTimeoutPath = path.join(distRoot, "middleware", "requestTimeout.js");
 const observabilityPath = path.join(distRoot, "observability.js");
 const envPath = path.join(distRoot, "config", "env.js");

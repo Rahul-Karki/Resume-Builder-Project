@@ -8,7 +8,7 @@ const {
   AuthError,
   NotFoundError,
   ValidationError,
-} = require("../dist/utils/errorResponse");
+} = require("../dist/Backend/src/utils/errorResponse");
 
 test("buildErrorResponse maps validation errors to a structured payload", () => {
   const response = buildErrorResponse(

@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 
 require("./helpers/setupEnv");
 
-const { generateAccessToken, generateRefreshToken } = require("../dist/utils/generateToken");
+const { generateAccessToken, generateRefreshToken } = require("../dist/Backend/src/utils/generateToken");
 
 test("generateAccessToken signs token with access secret", () => {
   const userId = "user-123";

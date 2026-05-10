@@ -189,7 +189,12 @@ const RESUME_DOWNLOAD_MAX_POLLS = 60;
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
-const sanitizeFileName = (value: string) => value.replace(/[<>:"/\\|?*\x00-\x1F]/g, "-").replace(/\s+/g, " ").trim() || "resume";
+const sanitizeFileName = (value: string) =>
+  Array.from(value)
+    .map((char) => (char.charCodeAt(0) < 32 || /[<>:"/\\|?*]/.test(char) ? "-" : char))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim() || "resume";
 
 const buildDownloadFileName = (resume: ResumeDocument, preset: string) => `${sanitizeFileName(resume.title || "resume")}-${preset}.pdf`;
 

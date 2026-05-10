@@ -6,7 +6,7 @@ require("./helpers/setupEnv");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const refreshControllerPath = path.join(distRoot, "controllers", "refreshController.js");
 const generateTokenPath = path.join(distRoot, "utils", "generateToken.js");
 const cookieParserPath = path.join(distRoot, "utils", "cookieParser.js");
@@ -14,6 +14,7 @@ const authCookiesPath = path.join(distRoot, "utils", "authCookies.js");
 const envPath = path.join(distRoot, "config", "env.js");
 const observabilityPath = path.join(distRoot, "observability.js");
 const controllerObservabilityPath = path.join(distRoot, "utils", "controllerObservability.js");
+const errorResponsePath = path.join(distRoot, "utils", "errorResponse.js");
 
 function loadRefreshController(overrides = {}) {
   return loadWithMocks(refreshControllerPath, {
@@ -50,6 +51,16 @@ function loadRefreshController(overrides = {}) {
       markSpanSuccess: overrides.markSpanSuccess ?? (() => {}),
       markSpanError: overrides.markSpanError ?? (() => {}),
       finishControllerSpan: overrides.finishControllerSpan ?? (() => {}),
+    },
+    [errorResponsePath]: {
+      sendErrorResponse: (_res, _error, fallback = {}) => {
+        const message = fallback.message ?? (_error instanceof Error ? _error.message : "Server error");
+        return _res.status(fallback.statusCode ?? 500).json({
+          message,
+          code: fallback.code ?? "SERVER_ERROR",
+          traceId: "test-trace-id",
+        });
+      },
     },
     jsonwebtoken: {
       verify: overrides.verify ?? (() => ({ userId: "user-123" })),

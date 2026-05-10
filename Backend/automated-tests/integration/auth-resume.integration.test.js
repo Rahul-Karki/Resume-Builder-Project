@@ -11,6 +11,15 @@ let mongoServer;
 let app;
 let Template;
 let Resume;
+let closeRedisClient;
+
+const withTimeout = (promise, ms, label) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+    ),
+  ]);
 
 const getTestUser = () => {
   const uniqueSuffix = randomUUID().slice(0, 8);
@@ -34,16 +43,21 @@ test.before(async () => {
 
   await mongoose.connect(process.env.MONGO_URI);
 
-  ({ default: app } = require("../../dist/app"));
-  ({ default: Template } = require("../../dist/models/Template"));
-  ({ default: Resume } = require("../../dist/models/Resume"));
+  ({ default: app } = require("../../dist/Backend/src/app"));
+  ({ default: Template } = require("../../dist/Backend/src/models/Template"));
+  ({ default: Resume } = require("../../dist/Backend/src/models/Resume"));
+  ({ closeRedisClient } = require("../../dist/Backend/src/utils/redis"));
 });
 
 test.after(async () => {
-  await mongoose.disconnect();
+  if (closeRedisClient) {
+    await closeRedisClient();
+  }
+
+  await withTimeout(mongoose.disconnect(), 5000, "Mongoose disconnect");
 
   if (mongoServer) {
-    await mongoServer.stop();
+    await withTimeout(mongoServer.stop({ doCleanup: true, force: true }), 10000, "Mongo memory server stop");
   }
 });
 

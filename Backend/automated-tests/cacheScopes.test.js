@@ -4,7 +4,7 @@ const path = require("node:path");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const cacheScopesPath = path.join(distRoot, "constants", "cacheScopes.js");
 const redisCachePath = path.join(distRoot, "middleware", "redisCache.js");
 const redisUtilsPath = path.join(distRoot, "utils", "redis.js");

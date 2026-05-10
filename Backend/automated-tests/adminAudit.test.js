@@ -4,7 +4,7 @@ const path = require("node:path");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const adminAuditPath = path.join(distRoot, "middleware", "adminAudit.js");
 const securityLoggerPath = path.join(distRoot, "utils", "securityLogger.js");
 

@@ -6,7 +6,7 @@ require("./helpers/setupEnv");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const authMiddlewarePath = path.join(distRoot, "middleware", "authMiddleware.js");
 const cookieParserPath = path.join(distRoot, "utils", "cookieParser.js");
 const userModelPath = path.join(distRoot, "models", "User.js");

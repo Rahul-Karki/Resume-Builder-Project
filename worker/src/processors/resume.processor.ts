@@ -345,10 +345,19 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
       // Use screen media so styles match on-screen rendering
       await page.emulateMediaType("screen");
 
-      await page.goto(previewUrl, { waitUntil: "networkidle0", timeout: 60000 });
+      let loadedFrontendPreview = false;
 
-      // Ensure the preview DOM root is present and fonts/resources are ready
-      await page.waitForSelector("#resume-export-root", { timeout: 10000 }).catch(() => undefined);
+      try {
+        await page.goto(previewUrl, { waitUntil: "networkidle0", timeout: 60000 });
+        await page.waitForSelector("#resume-export-root", { timeout: 10000 });
+        loadedFrontendPreview = true;
+      } catch (error) {
+        logger.warn(
+          { error, jobId, previewUrl },
+          "Frontend resume preview unavailable; falling back to worker-rendered PDF HTML",
+        );
+        await page.setContent(html, { waitUntil: "networkidle0", timeout: 60000 });
+      }
 
       // Wait for document.fonts.ready to resolve (ensures fonts are loaded)
       try {
@@ -356,6 +365,8 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
       } catch (err) {
         logger.debug({ jobId, err }, "document.fonts.ready timed out or failed, continuing");
       }
+
+      logger.debug({ jobId, loadedFrontendPreview }, "Resume PDF render source selected");
 
       // Extra small pause to let any late-loaded CSS finish
       await new Promise((r) => setTimeout(r, 200));

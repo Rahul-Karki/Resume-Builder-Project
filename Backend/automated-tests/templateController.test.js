@@ -6,7 +6,7 @@ require("./helpers/setupEnv");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const controllerPath = path.join(distRoot, "controllers", "templateController.js");
 const servicePath = path.join(distRoot, "services", "templateService.js");
 const observabilityPath = path.join(distRoot, "observability.js");

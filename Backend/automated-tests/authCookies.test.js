@@ -8,7 +8,7 @@ const {
   setAccessTokenCookie,
   setAuthCookies,
   setCsrfCookie,
-} = require("../dist/utils/authCookies");
+} = require("../dist/Backend/src/utils/authCookies");
 
 const createReq = (overrides = {}) => ({
   secure: false,

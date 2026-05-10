@@ -185,7 +185,7 @@ function ThumbnailSVG({ template }: { template: TemplateMeta }) {
         <rect x="14" y="78" width="48" height="5" rx="2" fill="#CBD5E1" opacity="0.7" />
         <rect x="18" y="87" width="40" height="3" rx="1" fill="#94A3B8" opacity="0.5" />
         <rect x="10" y="100" width="56" height="0.75" fill="#334155" />
-        {[108, 116, 124, 132, 140].map((y) => <rect key={y} x="10" y={y} width={44 + Math.floor(Math.random() * 12)} height="2.5" rx="1" fill="#475569" opacity="0.55" />)}
+        {[48, 54, 44, 52, 46].map((width, index) => <rect key={index} x="10" y={108 + index * 8} width={width} height="2.5" rx="1" fill="#475569" opacity="0.55" />)}
         <rect x="10" y="154" width="56" height="0.75" fill="#334155" />
         <rect x="10" y="162" width="56" height="3" rx="1" fill="#64748B" opacity="0.4" />
         {[170, 178, 186, 194, 202, 210].map((y) => <rect key={y} x="10" y={y} width={24 + (y % 16)} height="8" rx="4" fill="#334155" />)}

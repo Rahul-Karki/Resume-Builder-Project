@@ -6,8 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node -r ./dist/Backend/src/instrumentation.js dist/Backend/src/server.js",
-    "test": "npm run build && node --test automated-tests/**/*.test.js",
-    "test:integration": "npm run build && node --test automated-tests/integration/**/*.test.js",
+    "test": "npm run build && node --test --test-force-exit automated-tests/**/*.test.js",
+    "test:unit": "npm run build && node --test --test-force-exit automated-tests/*.test.js",
+    "test:integration": "npm run build && node --test --test-force-exit automated-tests/integration/*.test.js",
     "test:ci": "npm run build && npm run test",
     "test:automated": "npm run test",
     "test:manual": "echo \"Run one or more manual test scripts from ./manual-tests\"",

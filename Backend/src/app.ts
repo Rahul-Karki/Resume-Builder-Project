@@ -78,7 +78,9 @@ export const createApp = () => {
   app.use("/api/ai", aiRoutes);
   app.use("/api/resumes", resumeRoutes);
   app.use("/api/admin", adminRoutes);
-  app.use("/admin/queues", adminGuard, setupBullBoard());
+  if (env.NODE_ENV !== "test") {
+    app.use("/admin/queues", adminGuard, setupBullBoard());
+  }
   app.use("/api/templates", templateRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);

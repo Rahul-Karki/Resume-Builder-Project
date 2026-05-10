@@ -11,6 +11,14 @@ const booleanFromEnv = z.preprocess((value) => {
   return value;
 }, z.boolean());
 
+const optionalUrlFromEnv = z.preprocess((value) => {
+  if (typeof value === "string" && value.trim() === "") {
+    return undefined;
+  }
+
+  return value;
+}, z.string().url().optional());
+
 const baseEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(5000),
@@ -62,16 +70,16 @@ const baseEnvSchema = z.object({
   RESUME_DOWNLOAD_STORAGE_DIR: z.string().optional().default(""),
   RESUME_DOWNLOAD_PUBLIC_BASE_URL: z.string().optional().default(""),
   PUPPETEER_EXECUTABLE_PATH: z.string().optional().default(""),
-  GRAFANA_OTLP_ENDPOINT: z.string().url().optional(),
+  GRAFANA_OTLP_ENDPOINT: optionalUrlFromEnv,
   OTEL_INSTANCE_ID: z.string().optional().default(""),
   OTLP_INSTANCE_ID: z.string().optional().default(""),
   GRAFANA_API_TOKEN: z.string().optional().default(""),
-  GRAFANA_LOKI_URL: z.string().url().optional().default(""),
+  GRAFANA_LOKI_URL: optionalUrlFromEnv.default(""),
   LOKI_INSTANCE_ID: z.string().optional().default(""),
   OTEL_SERVICE_NAME: z.string().min(1).optional(),
-  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
-  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.string().url().optional(),
-  OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: z.string().url().optional(),
+  OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrlFromEnv,
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: optionalUrlFromEnv,
+  OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: optionalUrlFromEnv,
   OTEL_EXPORTER_OTLP_HEADERS: z.string().optional().default(""),
   OTEL_TRACES_SAMPLER_ARG: z.coerce.number().min(0).max(1).default(1),
   OTEL_METRIC_EXPORT_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
