@@ -12,16 +12,30 @@ import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
-const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
-  { id: "content",  label: "Content",  icon: "◉", description: "Fill in your resume information" },
-  { id: "style",    label: "Style",    icon: "◈", description: "Customize colors, fonts & layout" },
-  { id: "sections", label: "Sections", icon: "◧", description: "Show/hide and reorder sections" },
+import { FileText, Palette, LayoutGrid } from "lucide-react";
+
+const TABS: { id: EditorTab; label: string; icon: React.ReactNode; description: string }[] = [
+  { id: "content",  label: "Content",  icon: <FileText size={14} />, description: "Fill in your resume information" },
+  { id: "style",    label: "Style",    icon: <Palette size={14} />, description: "Customize colors, fonts & layout" },
+  { id: "sections", label: "Sections", icon: <LayoutGrid size={14} />, description: "Show/hide and reorder sections" },
 ];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────
+import { GripVertical, Eye, EyeOff, Briefcase, GraduationCap, Wrench, FolderGit, Award, Languages } from "lucide-react";
+
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+  experience: <Briefcase size={16} />,
+  education: <GraduationCap size={16} />,
+  skills: <Wrench size={16} />,
+  projects: <FolderGit size={16} />,
+  certifications: <Award size={16} />,
+  languages: <Languages size={16} />,
+};
+
 function SectionsTab() {
   const { resume, toggleSectionVisibility, reorderSections } = useResumeBuilderStore();
   const [dragging, setDragging] = React.useState<number | null>(null);
+  const [dragOver, setDragOver] = React.useState<number | null>(null);
 
   const SECTION_LABELS: Record<string, { label: string; desc: string }> = {
     experience:     { label: "Experience",    desc: "Work history and achievements" },
@@ -33,60 +47,139 @@ function SectionsTab() {
   };
 
   return (
-    <div style={{ padding: "14px", fontFamily: "'Outfit', sans-serif" }}>
-      <div style={{ padding: "10px 12px", background: "#141414", border: "1px solid #252525", borderRadius: 10, marginBottom: 16, fontSize: 12, color: "#555", lineHeight: 1.5 }}>
-        Drag rows to reorder. Toggle the switch to show or hide a section from your resume.
+    <div style={{ padding: "16px", fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ 
+        padding: "12px 14px", 
+        background: "linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.02) 100%)", 
+        border: "1px solid rgba(200,245,90,0.15)", 
+        borderRadius: 10, 
+        marginBottom: 16, 
+        fontSize: 12, 
+        color: "#888", 
+        lineHeight: 1.5,
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }}>
+        <GripVertical size={14} style={{ color: "#C8F55A" }} />
+        Drag sections to reorder. Click the eye icon to show/hide.
       </div>
-      {resume.sectionOrder.map((sectionKey, idx) => {
-        const meta = SECTION_LABELS[sectionKey];
-        const visible = resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility];
-        return (
-          <div
-            key={sectionKey}
-            draggable
-            onDragStart={() => setDragging(idx)}
-            onDragOver={e => e.preventDefault()}
-            onDrop={() => {
-              if (dragging !== null && dragging !== idx) {
-                reorderSections(dragging, idx);
-                setDragging(null);
-              }
-            }}
-            onDragEnd={() => setDragging(null)}
-            style={{
-              display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-              background: "#141414", border: "1px solid #252525", borderRadius: 10,
-              marginBottom: 6, cursor: "grab", userSelect: "none",
-              opacity: dragging === idx ? 0.4 : 1,
-              transition: "all 0.15s",
-            }}
-          >
-            <span style={{ color: "#333", fontSize: 18, lineHeight: 1, flexShrink: 0 }}>⠿</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: visible ? "#C8C7C0" : "#444" }}>{meta?.label}</div>
-              <div style={{ fontSize: 11, color: "#444", marginTop: 1 }}>{meta?.desc}</div>
-            </div>
-            <span style={{ fontSize: 11, color: "#444", fontFamily: "monospace" }}>#{idx + 1}</span>
-            {/* Toggle */}
+      
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {resume.sectionOrder.map((sectionKey, idx) => {
+          const meta = SECTION_LABELS[sectionKey];
+          const visible = resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility];
+          const isDragging = dragging === idx;
+          const isDragOver = dragOver === idx;
+          
+          return (
             <div
-              onClick={() => toggleSectionVisibility(sectionKey as any)}
+              key={sectionKey}
+              draggable
+              onDragStart={() => setDragging(idx)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(idx);
+              }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={() => {
+                if (dragging !== null && dragging !== idx) {
+                  reorderSections(dragging, idx);
+                }
+                setDragging(null);
+                setDragOver(null);
+              }}
+              onDragEnd={() => {
+                setDragging(null);
+                setDragOver(null);
+              }}
               style={{
-                width: 44, height: 24, borderRadius: 12, cursor: "pointer", flexShrink: 0,
-                background: visible ? "#C8F55A" : "#1E1E1E",
-                border: `1px solid ${visible ? "#C8F55A" : "#2A2A2A"}`,
-                position: "relative", transition: "all 0.2s",
+                display: "flex", 
+                alignItems: "center", 
+                gap: 12, 
+                padding: "14px 16px",
+                background: isDragging ? "rgba(200,245,90,0.05)" : isDragOver ? "rgba(200,245,90,0.08)" : "#141414", 
+                border: `1px solid ${isDragOver ? "rgba(200,245,90,0.3)" : "#252525"}`, 
+                borderRadius: 12,
+                cursor: "grab", 
+                userSelect: "none",
+                opacity: isDragging ? 0.5 : 1,
+                transform: isDragOver ? "translateY(2px)" : "none",
+                transition: "all 0.2s ease",
+                boxShadow: isDragOver ? "0 4px 12px rgba(0,0,0,0.3)" : "none",
               }}
             >
-              <div style={{
-                position: "absolute", top: 3, width: 16, height: 16, borderRadius: "50%",
-                background: visible ? "#0E0E0E" : "#3A3A3A",
-                left: visible ? 23 : 3, transition: "left 0.2s",
-              }} />
+              <div style={{ color: visible ? "#555" : "#333", flexShrink: 0, cursor: "grab" }}>
+                <GripVertical size={18} />
+              </div>
+              
+              <div style={{ 
+                width: 32, 
+                height: 32, 
+                borderRadius: 8, 
+                background: visible ? "rgba(200,245,90,0.1)" : "#1A1A1A",
+                border: `1px solid ${visible ? "rgba(200,245,90,0.2)" : "#2A2A2A"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: visible ? "#C8F55A" : "#555",
+                flexShrink: 0,
+                transition: "all 0.2s ease"
+              }}>
+                {SECTION_ICONS[sectionKey]}
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <div style={{ 
+                  fontSize: 14, 
+                  fontWeight: 600, 
+                  color: visible ? "#C8C7C0" : "#555",
+                  transition: "color 0.2s ease"
+                }}>
+                  {meta?.label}
+                </div>
+                <div style={{ fontSize: 11, color: visible ? "#666" : "#444", marginTop: 2 }}>
+                  {meta?.desc}
+                </div>
+              </div>
+              
+              <span style={{ 
+                fontSize: 11, 
+                color: "#444", 
+                fontFamily: "monospace",
+                background: "#1A1A1A",
+                padding: "2px 8px",
+                borderRadius: 4,
+                border: "1px solid #2A2A2A"
+              }}>
+                {idx + 1}
+              </span>
+              
+              {/* Toggle Button */}
+              <button
+                onClick={() => toggleSectionVisibility(sectionKey as any)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  border: "1px solid #2A2A2A",
+                  background: visible ? "rgba(200,245,90,0.1)" : "#1A1A1A",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: visible ? "#C8F55A" : "#555",
+                  transition: "all 0.2s ease",
+                  flexShrink: 0,
+                }}
+                title={visible ? "Hide section" : "Show section"}
+              >
+                {visible ? <Eye size={16} /> : <EyeOff size={16} />}
+              </button>
             </div>
-          </div>
-        );
-      })}
-
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -329,27 +422,48 @@ export default function ResumeBuilder() {
           }}>
             {/* Tab switcher */}
             <div style={{
-              display: "flex", borderBottom: "1px solid #1E1E1E",
-              padding: "0 8px", background: "#0A0A0A",
+              display: "flex", 
+              borderBottom: "1px solid #1E1E1E",
+              padding: "8px 12px 0", 
+              background: "#0A0A0A",
+              gap: 4,
             }}>
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  title={tab.description}
-                  style={{
-                    flex: 1, padding: "12px 8px", background: "none", border: "none",
-                    borderBottom: `2px solid ${ui.activeTab === tab.id ? "#C8F55A" : "transparent"}`,
-                    color: ui.activeTab === tab.id ? "#C8F55A" : "#555",
-                    fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit', sans-serif",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <span style={{ fontSize: 11 }}>{tab.icon}</span>
-                  {tab.label}
-                </button>
-              ))}
+              {TABS.map(tab => {
+                const isActive = ui.activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    title={tab.description}
+                    style={{
+                      flex: 1, 
+                      padding: "10px 12px", 
+                      background: isActive ? "rgba(200,245,90,0.08)" : "transparent", 
+                      border: "none",
+                      borderRadius: "8px 8px 0 0",
+                      borderBottom: `2px solid ${isActive ? "#C8F55A" : "transparent"}`,
+                      color: isActive ? "#C8F55A" : "#666",
+                      fontSize: 12, 
+                      fontWeight: isActive ? 700 : 600, 
+                      cursor: "pointer", 
+                      fontFamily: "'Outfit', sans-serif",
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      gap: 6,
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <span style={{ 
+                      opacity: isActive ? 1 : 0.7,
+                      transition: "opacity 0.2s ease"
+                    }}>
+                      {tab.icon}
+                    </span>
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Panel content */}
@@ -372,15 +486,75 @@ export default function ResumeBuilder() {
 
             {/* Bottom status bar */}
             <div style={{
-              borderTop: "1px solid #1A1A1A", padding: "8px 14px",
-              display: "flex", alignItems: "center", gap: 8,
+              borderTop: "1px solid #1A1A1A", 
+              padding: "10px 16px",
+              display: "flex", 
+              alignItems: "center", 
+              gap: 12,
               fontFamily: "'Outfit', sans-serif",
+              background: "#0A0A0A",
             }}>
-              <span style={{ fontSize: 10, color: "#333" }}>⌘S to save</span>
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 6,
+                fontSize: 11, 
+                color: "#555",
+                background: "#141414",
+                padding: "4px 10px",
+                borderRadius: 6,
+                border: "1px solid #252525"
+              }}>
+                <span style={{ color: "#C8F55A", fontWeight: 600 }}>⌘S</span>
+                <span>to save</span>
+              </div>
+              
               <div style={{ flex: 1 }} />
-              <span style={{ fontSize: 10, color: "#2A2A2A" }}>
-                {resume.sections.experience.length} exp · {resume.sections.skills.length} skill groups · {resume.sections.education.length} edu
-              </span>
+              
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 12,
+                fontSize: 11, 
+                color: "#666" 
+              }}>
+                <span style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 4,
+                  background: "#141414",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #252525"
+                }}>
+                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.experience.length}</span>
+                  <span>exp</span>
+                </span>
+                <span style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 4,
+                  background: "#141414",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #252525"
+                }}>
+                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.skills.length}</span>
+                  <span>skills</span>
+                </span>
+                <span style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 4,
+                  background: "#141414",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #252525"
+                }}>
+                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.education.length}</span>
+                  <span>edu</span>
+                </span>
+              </div>
             </div>
           </div>
 

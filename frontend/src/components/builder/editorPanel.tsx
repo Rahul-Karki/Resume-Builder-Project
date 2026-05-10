@@ -4,15 +4,128 @@ import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, Lan
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
-  width: "100%", padding: "7px 10px", background: "#141414", border: "1px solid #252525",
-  borderRadius: 7, color: "#C8C7C0", fontSize: 13, fontFamily: "'Outfit', sans-serif",
-  outline: "none", boxSizing: "border-box", transition: "border-color 0.15s",
+  width: "100%", 
+  padding: "10px 12px", 
+  background: "#141414", 
+  border: "1px solid #2A2A2A",
+  borderRadius: 8, 
+  color: "#C8C7C0", 
+  fontSize: 14, 
+  fontFamily: "'Outfit', sans-serif",
+  outline: "none", 
+  boxSizing: "border-box", 
+  transition: "all 0.2s ease",
 };
-const ta: React.CSSProperties = { ...inp, resize: "vertical", lineHeight: 1.5, minHeight: 72 };
-const label: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: "#555", textTransform: "uppercase", letterSpacing: "0.6px", display: "block", marginBottom: 5 };
+
+const inpFocus: React.CSSProperties = {
+  borderColor: "rgba(200,245,90,0.4)",
+  background: "#1A1A1A",
+  boxShadow: "0 0 0 3px rgba(200,245,90,0.08)",
+};
+
+const ta: React.CSSProperties = { 
+  ...inp, 
+  resize: "vertical", 
+  lineHeight: 1.6, 
+  minHeight: 80,
+  padding: "12px",
+};
+
+const label: React.CSSProperties = { 
+  fontSize: 12, 
+  fontWeight: 600, 
+  color: "#888", 
+  textTransform: "uppercase", 
+  letterSpacing: "0.8px", 
+  display: "block", 
+  marginBottom: 8 
+};
+
 const fieldGroup = (children: React.ReactNode, key?: string) => (
-  <div key={key} style={{ marginBottom: 10 }}>{children}</div>
+  <div key={key} style={{ marginBottom: 16 }}>{children}</div>
 );
+
+// Input with focus state handler
+function Input({ 
+  value, 
+  onChange, 
+  onFocus, 
+  placeholder, 
+  type = "text",
+  style = {}
+}: { 
+  value: string; 
+  onChange: (v: string) => void; 
+  onFocus?: () => void;
+  placeholder?: string;
+  type?: string;
+  style?: React.CSSProperties;
+}) {
+  const [isFocused, setIsFocused] = useState(false);
+  
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      onFocus={() => {
+        setIsFocused(true);
+        onFocus?.();
+      }}
+      onBlur={() => setIsFocused(false)}
+      placeholder={placeholder}
+      style={{
+        ...inp,
+        ...(isFocused ? inpFocus : {}),
+        ...style,
+      }}
+    />
+  );
+}
+
+// TextArea with focus state handler
+function TextArea({ 
+  value, 
+  onChange, 
+  onFocus, 
+  placeholder, 
+  rows = 4,
+  hint
+}: { 
+  value: string; 
+  onChange: (v: string) => void; 
+  onFocus?: () => void;
+  placeholder?: string;
+  rows?: number;
+  hint?: string;
+}) {
+  const [isFocused, setIsFocused] = useState(false);
+  
+  return (
+    <>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => {
+          setIsFocused(true);
+          onFocus?.();
+        }}
+        onBlur={() => setIsFocused(false)}
+        placeholder={placeholder}
+        rows={rows}
+        style={{
+          ...ta,
+          ...(isFocused ? inpFocus : {}),
+        }}
+      />
+      {hint && (
+        <div style={{ fontSize: 11, color: "#555", marginTop: 6, fontStyle: "italic" }}>
+          {hint}
+        </div>
+      )}
+    </>
+  );
+}
 
 const modeToggleWrap: React.CSSProperties = {
   display: "inline-flex",
@@ -111,87 +224,58 @@ function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-// ─── Field components ──────────────────────────────────────────────────────────
-function Inp({ label: l, value, onChange, placeholder, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
-}) {
-  return fieldGroup(<>
-    <span style={label}>{l}</span>
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={inp}
-      onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
-      onBlur={e => e.currentTarget.style.borderColor = "#252525"}
-    />
-  </>);
-}
-
-function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
-}) {
-  return fieldGroup(<>
-    <span style={label}>{l}</span>
-    <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      rows={rows} style={ta}
-      onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
-      onBlur={e => e.currentTarget.style.borderColor = "#252525"}
-    />
-  </>);
-}
-
 // ─── PERSONAL SECTION ─────────────────────────────────────────────────────────
 function PersonalSection() {
   const { resume, updatePersonalInfo, setFocusedField } = useResumeBuilderStore();
   const p = resume.personalInfo;
   const showTechLinks = resume.templateCategory === "tech";
+  
+  // Helper for consistent input rendering
+  const renderInput = (field: keyof typeof p, labelText: string, placeholder: string, type = "text") => (
+    <div style={{ marginBottom: 16 }}>
+      <span style={label}>{labelText}</span>
+      <Input
+        type={type}
+        value={p[field] as string}
+        onChange={v => updatePersonalInfo(field, v)}
+        onFocus={() => setFocusedField({ section: "personal", kind: "personal", field, label: labelText })}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+  
   return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <div>
-          <span style={label}>Full Name</span>
-          <input value={p.name} onChange={e => updatePersonalInfo("name", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "name", label: "Full Name" })} placeholder="Maya Thompson" style={inp} />
-        </div>
-        <div>
-          <span style={label}>Job Title</span>
-          <input value={p.title} onChange={e => updatePersonalInfo("title", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "title", label: "Job Title" })} placeholder="Operations and Client Services Manager" style={inp} />
-        </div>
+    <div style={{ padding: "4px 4px 20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 4 }}>
+        {renderInput("name", "Full Name", "Maya Thompson")}
+        {renderInput("title", "Job Title", "Operations and Client Services Manager")}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <div>
-          <span style={label}>Email</span>
-          <input type="email" value={p.email} onChange={e => updatePersonalInfo("email", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "email", label: "Email" })} placeholder="alex@email.com" style={inp} />
-        </div>
-        <div>
-          <span style={label}>Phone</span>
-          <input value={p.phone} onChange={e => updatePersonalInfo("phone", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "phone", label: "Phone" })} placeholder="+1 (555) 000-0000" style={inp} />
-        </div>
+      
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 4 }}>
+        {renderInput("email", "Email", "alex@email.com", "email")}
+        {renderInput("phone", "Phone", "+1 (555) 000-0000")}
       </div>
-      <div style={{ marginBottom: 10 }}>
-        <span style={label}>Location</span>
-        <input value={p.location} onChange={e => updatePersonalInfo("location", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "location", label: "Location" })} placeholder="San Francisco, CA" style={inp} />
-      </div>
-      <div style={{ marginBottom: 10 }}>
-        <span style={label}>LinkedIn</span>
-        <input value={p.linkedin} onChange={e => updatePersonalInfo("linkedin", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "linkedin", label: "LinkedIn" })} placeholder="linkedin.com/in/you" style={inp} />
-      </div>
+      
+      {renderInput("location", "Location", "San Francisco, CA")}
+      {renderInput("linkedin", "LinkedIn", "linkedin.com/in/you")}
+      
       {showTechLinks && (
         <>
-          <div style={{ marginBottom: 10 }}>
-            <span style={label}>GitHub</span>
-            <input value={p.github} onChange={e => updatePersonalInfo("github", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "github", label: "GitHub" })} placeholder="github.com/your-handle" style={inp} />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <span style={label}>Portfolio Website</span>
-            <input value={p.portfolio} onChange={e => updatePersonalInfo("portfolio", e.target.value)} onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "portfolio", label: "Portfolio Website" })} placeholder="yourportfolio.com" style={inp} />
-          </div>
+          {renderInput("github", "GitHub", "github.com/your-handle")}
+          {renderInput("portfolio", "Portfolio Website", "yourportfolio.com")}
         </>
       )}
+      
       <div>
         <span style={label}>Professional Summary</span>
-        <textarea value={p.summary} onChange={e => updatePersonalInfo("summary", e.target.value)}
-          rows={5} placeholder="Operations leader with 7+ years improving service quality, team coordination, and client satisfaction across fast-paced environments." style={ta}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "personal", kind: "personal", field: "summary", label: "Professional Summary" }); }}
-          onBlur={e => e.currentTarget.style.borderColor = "#252525"}
+        <TextArea
+          value={p.summary}
+          onChange={v => updatePersonalInfo("summary", v)}
+          onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "summary", label: "Professional Summary" })}
+          placeholder="Operations leader with 7+ years improving service quality, team coordination, and client satisfaction across fast-paced environments."
+          rows={5}
+          hint={`${p.summary.length} characters · Aim for 2–4 impactful sentences`}
         />
-        <div style={{ fontSize: 10, color: "#444", marginTop: 4 }}>{p.summary.length} characters · Aim for 2–4 impactful sentences</div>
       </div>
     </div>
   );

@@ -124,48 +124,107 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
       <div style={{ width: 1, height: 24, background: "#2A2A2A", flexShrink: 0 }} />
 
       {editingTitle ? (
-        <input
-          autoFocus
-          value={titleDraft}
-          onChange={(e) => setTitleDraft(e.target.value)}
-          onBlur={handleTitleCommit}
-          onKeyDown={(e) => e.key === "Enter" && handleTitleCommit()}
-          style={{
-            background: "#1A1A1A", border: "1px solid #3A3A3A", borderRadius: 6,
-            color: "#F0EFE8", fontSize: 13, fontWeight: 600, padding: "4px 10px",
-            outline: "none", fontFamily: "inherit", width: 200,
-          }}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            autoFocus
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={handleTitleCommit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleTitleCommit();
+              if (e.key === "Escape") setEditingTitle(false);
+            }}
+            style={{
+              background: "#1A1A1A", border: "1px solid #C8F55A", borderRadius: 6,
+              color: "#F0EFE8", fontSize: 13, fontWeight: 600, padding: "6px 12px",
+              outline: "none", fontFamily: "inherit", width: 220,
+            }}
+          />
+          <span style={{ fontSize: 11, color: "#666" }}>Press Enter to save</span>
+        </div>
       ) : (
-        <button
-          onClick={() => {
-            setTitleDraft(resume.title);
-            setEditingTitle(true);
-          }}
-          title="Click to rename"
-          style={{
-            background: "none", border: "none", color: "#888", fontSize: 13,
-            fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-            padding: "4px 8px", borderRadius: 6, maxWidth: isMobile ? 140 : 200,
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-            transition: "color 0.15s", opacity: 1,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#F0EFE8";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "#888";
-          }}
-        >
-          Rename {resume.title}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ 
+            fontSize: 13, 
+            fontWeight: 600, 
+            color: "#F0EFE8",
+            maxWidth: isMobile ? 140 : 200,
+            whiteSpace: "nowrap", 
+            overflow: "hidden", 
+            textOverflow: "ellipsis",
+          }}>
+            {resume.title}
+          </span>
+          <button
+            onClick={() => {
+              setTitleDraft(resume.title);
+              setEditingTitle(true);
+            }}
+            title="Rename resume"
+            style={{
+              background: "transparent", 
+              border: "1px solid #2A2A2A", 
+              borderRadius: 6,
+              color: "#666", 
+              fontSize: 11,
+              fontWeight: 500, 
+              cursor: "pointer", 
+              fontFamily: "inherit",
+              padding: "4px 10px",
+              transition: "all 0.2s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#C8F55A";
+              e.currentTarget.style.color = "#C8F55A";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "#2A2A2A";
+              e.currentTarget.style.color = "#666";
+            }}
+          >
+            ✎ Rename
+          </button>
+        </div>
       )}
 
       {ui.isDirty && !ui.isSaved && (
-        <span style={{ fontSize: 10, color: "#F59E0B", fontWeight: 600, flexShrink: 0 }}>Unsaved</span>
+        <span style={{ 
+          fontSize: 10, 
+          color: "#F59E0B", 
+          fontWeight: 600, 
+          flexShrink: 0,
+          background: "rgba(245,158,11,0.1)",
+          padding: "4px 10px",
+          borderRadius: 6,
+          border: "1px solid rgba(245,158,11,0.2)",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
+          Unsaved
+        </span>
       )}
       {ui.isSaved && (
-        <span style={{ fontSize: 10, color: "#4ADE80", fontWeight: 600, flexShrink: 0 }}>Saved</span>
+        <span style={{ 
+          fontSize: 10, 
+          color: "#4ADE80", 
+          fontWeight: 600, 
+          flexShrink: 0,
+          background: "rgba(74,222,128,0.1)",
+          padding: "4px 10px",
+          borderRadius: 6,
+          border: "1px solid rgba(74,222,128,0.2)",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80" }} />
+          Saved
+        </span>
       )}
 
       <div style={{ position: "relative", marginLeft: 4 }}>
