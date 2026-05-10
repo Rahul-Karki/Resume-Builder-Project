@@ -255,6 +255,7 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
   const [queuedJobId, setQueuedJobId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const analyzeLock = React.useRef(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -279,12 +280,12 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
         setAnalysis(response.analysis);
         setLastUpdatedAt(response.analysis.analyzedAt ?? null);
         if (response.analysis.status === "completed" || response.analysis.status === "failed") {
-          setIsRunning(false); setQueuedJobId(null); window.clearInterval(interval);
+          setIsRunning(false); setQueuedJobId(null); analyzeLock.current = false; window.clearInterval(interval);
         }
       } catch (pollError) {
         if (!active) return;
         setError(pollError instanceof Error ? pollError.message : "ATS analysis polling failed");
-        setIsRunning(false); setQueuedJobId(null); window.clearInterval(interval);
+        setIsRunning(false); setQueuedJobId(null); analyzeLock.current = false; window.clearInterval(interval);
       }
     }, 2000);
     return () => { active = false; window.clearInterval(interval); };
@@ -292,6 +293,9 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
 
   const handleAnalyze = async () => {
     if (!resumeId) { setError("Save the resume before running ATS analysis."); return; }
+    // Prevent double-queueing while a job is already running or queued
+    if (isRunning || queuedJobId || analyzeLock.current) return;
+    analyzeLock.current = true;
     setIsRunning(true); setError(null);
     try {
       const response = await queueAtsAnalysis(resumeId, {
@@ -303,7 +307,9 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
     } catch (queueError) {
       setIsRunning(false);
       setError(queueError instanceof Error ? queueError.message : "Failed to queue ATS analysis");
+      analyzeLock.current = false;
     }
+    // keep lock until polling clears queuedJobId or job finishes
   };
 
   if (!expanded) return null;
@@ -393,7 +399,7 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
 
           {/* Analyze Button */}
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <button className="ats-btn-analyze" onClick={() => void handleAnalyze()} disabled={isRunning}>
+            <button className="ats-btn-analyze" onClick={() => void handleAnalyze()} disabled={isRunning || !!queuedJobId}>
               {isRunning ? <Loader2 size={12} className="ats-spin" /> : <Play size={12} />} 
               {isRunning ? "Analyzing..." : "Analyze"}
             </button>

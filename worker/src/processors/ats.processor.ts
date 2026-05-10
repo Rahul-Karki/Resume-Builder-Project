@@ -177,7 +177,7 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
         jobTitle: report.jobTitle ?? "",
         jobDescription: report.jobDescription ?? "",
         targetKeywords: report.targetKeywords,
-        scoreOverall: report.overallScore,
+        overallScore: report.overallScore,
         matchScore: report.matchScore,
         sectionScores: report.sectionScores,
         keywordAnalysis: report.keywordAnalysis,

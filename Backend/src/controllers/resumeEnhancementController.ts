@@ -122,7 +122,7 @@ export const analyzeAts: RequestHandler = async (req, res) => {
         jobTitle,
         jobDescription,
         targetKeywords: keywords,
-        scoreOverall: 0,
+        overallScore: 0,
         matchScore: 0,
         sectionScores: {
           summary: 0,

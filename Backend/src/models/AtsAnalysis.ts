@@ -19,7 +19,7 @@ export interface IAtsAnalysis extends Document {
   jobTitle?: string;
   jobDescription?: string;
   targetKeywords: string[];
-  scoreOverall: number;
+  overallScore: number;
   matchScore: number;
   sectionScores: AtsScoreBreakdown;
   keywordAnalysis: AtsKeywordAnalysis;
@@ -78,7 +78,7 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
     jobTitle: { type: String, default: "" },
     jobDescription: { type: String, default: "" },
     targetKeywords: { type: [String], default: [] },
-    scoreOverall: { type: Number, required: true, min: 0, max: 100, default: 0 },
+    overallScore: { type: Number, required: true, min: 0, max: 100, default: 0 },
     matchScore: { type: Number, required: true, min: 0, max: 100, default: 0 },
     sectionScores: {
       summary: { type: Number, required: true, min: 0, max: 100, default: 0 },
