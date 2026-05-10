@@ -171,7 +171,9 @@ export const trackAiRequest = (
   }
 
   if (fallback) {
-    aiFallbackRate.labels(type).set((aiFallbackRate.get()?.values || [])[0]?.value || 0);
+    aiFallbackRate.labels(type).set(100);
+  } else {
+    aiFallbackRate.labels(type).set(0);
   }
 };
 
