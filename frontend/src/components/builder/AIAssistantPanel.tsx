@@ -266,7 +266,7 @@ export function AIAssistantPanel() {
       const payload = { text: target.text, section: target.section, tone, context: target.context, targetRole: resume.personalInfo.title || resume.title };
       Promise.all([
         target.section === "experience" || target.section === "projects" ? enhanceResumeBullet(payload) : improveResumeText(payload),
-        checkResumeGrammar(payload),
+        checkResumeGrammar({ text: target.text, section: target.section, context: target.context }),
       ])
         .then(([rewriteResult, grammarResult]) => { setRewrite(rewriteResult); setGrammar(grammarResult); setLastUpdatedAt(new Date().toISOString()); })
         .catch((err) => setError(err instanceof Error ? err.message : "AI suggestions failed"))
