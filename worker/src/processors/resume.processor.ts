@@ -348,7 +348,7 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
       let loadedFrontendPreview = false;
 
       try {
-        await page.goto(previewUrl, { waitUntil: "networkidle0", timeout: 60000 });
+        await page.goto(previewUrl, { waitUntil: "load", timeout: 60000 });
         await page.waitForSelector("#resume-export-root", { timeout: 10000 });
         loadedFrontendPreview = true;
       } catch (error) {
@@ -358,7 +358,7 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
         );
         // When falling back, ensure print media type is still active
         await page.emulateMediaType("print");
-        await page.setContent(html, { waitUntil: "networkidle0", timeout: 60000 });
+        await page.setContent(html, { waitUntil: "load", timeout: 60000 });
       }
 
       // Wait for document.fonts.ready to resolve (ensures fonts are loaded)
