@@ -4,6 +4,7 @@ import { sendErrorResponse } from "../utils/errorResponse";
 import { AuthError } from "../errors/AppError";
 import { calculateEstimatedCredits } from "../utils/creditCalculator"
 import User from "../models/User";
+import { env } from "../config/env";
 
 export interface CreditDeductionOptions {
   operation: 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
@@ -36,6 +37,10 @@ export const creditDeductionMiddleware = (options: CreditDeductionOptions) => {
     const startTime = Date.now();
     
     try {
+      if (!env.AI_CREDITS_ENFORCED) {
+        return next();
+      }
+
       // Get user ID from authenticated request
       const userId = req.user?.id;
       if (!userId) {

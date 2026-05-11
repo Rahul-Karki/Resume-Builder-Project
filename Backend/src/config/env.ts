@@ -67,6 +67,7 @@ const baseEnvSchema = z.object({
   AI_REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1000).default(12000),
   AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
   AI_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
+  AI_CREDITS_ENFORCED: booleanFromEnv.default(false),
   RESUME_DOWNLOAD_STORAGE_DIR: z.string().optional().default(""),
   RESUME_DOWNLOAD_PUBLIC_BASE_URL: z.string().optional().default(""),
   PUPPETEER_EXECUTABLE_PATH: z.string().optional().default(""),
