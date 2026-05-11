@@ -7,6 +7,7 @@ import { deduplicationMiddleware, createOperationDeduplication } from "../middle
 import { env } from "../config/env";
 import { aiGrammarSchema, aiTextSchema } from "../validation/schemas";
 import { checkGrammarHandler, enhanceBulletHandler, improveTextHandler } from "../controllers/aiController";
+import { getAiUsageStats, getAiRequestHistory } from "../controllers/aiUsageController";
 
 const router = express.Router();
 
@@ -41,5 +42,9 @@ router.use("/enhance-bullet", createOperationDeduplication("enhance-bullet", 600
 router.post("/improve-text", validateRequest({ body: aiTextSchema }), aiLimiter, improveTextHandler);
 router.post("/check-grammar", validateRequest({ body: aiGrammarSchema }), aiLimiter, checkGrammarHandler);
 router.post("/enhance-bullet", validateRequest({ body: aiTextSchema }), aiLimiter, enhanceBulletHandler);
+
+// AI usage stats endpoints
+router.get("/usage-stats", getAiUsageStats);
+router.get("/request-history", getAiRequestHistory);
 
 export default router;

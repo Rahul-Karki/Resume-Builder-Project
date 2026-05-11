@@ -79,7 +79,7 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
       return;
     }
 
-    const result = await improveText({ text, section, tone, context, targetRole });
+    const result = await improveText({ text, section, tone, context, targetRole, userId });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -169,7 +169,7 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
       return;
     }
 
-    const result = await checkGrammar({ text, section, context });
+    const result = await checkGrammar({ text, section, context, userId });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -262,7 +262,7 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
       return;
     }
 
-    const result = await enhanceBullet({ text, section, tone, context, targetRole });
+    const result = await enhanceBullet({ text, section, tone, context, targetRole, userId });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(

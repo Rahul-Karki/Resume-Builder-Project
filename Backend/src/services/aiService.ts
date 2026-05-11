@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { env } from "../config/env";
 import { logger } from "../observability";
+import AiUsage from "../models/AiUsage";
 import {
   clampScore,
   compactText,
@@ -24,6 +25,7 @@ type AiPromptContext = {
   tone?: string;
   context?: string;
   targetRole?: string;
+  userId?: string;
 };
 
 type AtsPromptContext = {
@@ -33,6 +35,7 @@ type AtsPromptContext = {
   keywords: string[];
   tone?: string;
   reportType?: AtsAnalysisReport["reportType"];
+  userId?: string;
 };
 
 export type StructuredAiMetadata = {
@@ -334,15 +337,88 @@ const callProvider = async (provider: AiProviderName, systemPrompt: string, user
   };
 };
 
+// Calculate cost in USD based on provider and token usage
+const calculateCost = (provider: "openai" | "gemini", model: string, inputTokens: number, outputTokens: number): number => {
+  if (provider === "openai") {
+    // OpenAI pricing as of 2024
+    const isGpt4o = !model.includes("gpt-4o-mini");
+    if (isGpt4o) {
+      // gpt-4o: $5/M input, $15/M output
+      return (inputTokens * 5 / 1_000_000) + (outputTokens * 15 / 1_000_000);
+    } else {
+      // gpt-4o-mini: $0.15/M input, $0.60/M output
+      return (inputTokens * 0.15 / 1_000_000) + (outputTokens * 0.60 / 1_000_000);
+    }
+  }
+
+  if (provider === "gemini") {
+    // Gemini pricing as of 2024
+    // gemini-2.0-flash: $0.075/M input, $0.30/M output
+    return (inputTokens * 0.075 / 1_000_000) + (outputTokens * 0.30 / 1_000_000);
+  }
+
+  return 0;
+};
+
+// Log AI usage to database
+const logAiUsage = async (
+  provider: "openai" | "gemini" | "fallback",
+  model: string,
+  feature: "grammar" | "rewrite" | "ats-analysis" | "ats-jd-match",
+  inputTokens: number,
+  outputTokens: number,
+  userId?: string,
+  isFallback: boolean = false,
+  success: boolean = true
+) => {
+  try {
+    if (!userId || userId === "unknown") return; // Skip logging for unauthenticated users
+
+    const costUsd = provider !== "fallback" ? calculateCost(provider, model, inputTokens, outputTokens) : 0;
+
+    await AiUsage.create({
+      userId,
+      provider,
+      modelName: model,
+      feature,
+      inputTokens,
+      outputTokens,
+      totalTokens: inputTokens + outputTokens,
+      costUsd,
+      fallback: isFallback,
+      success,
+    });
+
+    logger.debug(
+      {
+        userId,
+        provider,
+        modelName: model,
+        feature,
+        inputTokens,
+        outputTokens,
+        costUsd: costUsd.toFixed(6),
+      },
+      "AI usage logged"
+    );
+  } catch (error) {
+    logger.warn({ error, feature }, "Failed to log AI usage");
+  }
+};
+
 const runStructuredAi = async <T extends Record<string, unknown>>(
   systemPrompt: string,
   userPrompt: string,
   fallback: T,
-  provider?: AiProviderName
+  provider?: AiProviderName,
+  featureName?: "grammar" | "rewrite" | "ats-analysis" | "ats-jd-match",
+  userId?: string
 ): Promise<StructuredAiResult<T>> => {
   const providerOrder = getProviderOrder(provider);
+  const feature = featureName ?? "rewrite";
 
   if (providerOrder.length === 0) {
+    await logAiUsage("fallback", "fallback", feature, 0, 0, userId, true, true);
     return {
       ...fallback,
       _tokens: { input: 0, output: 0 },
@@ -358,6 +434,8 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
     try {
       const { parsed, tokenCount, model } = await callProvider(selectedProvider, systemPrompt, userPrompt);
 
+      await logAiUsage(selectedProvider, model, feature, tokenCount.input, tokenCount.output, userId, false, true);
+
       return {
         ...parsed as T,
         _tokens: { input: tokenCount.input, output: tokenCount.output },
@@ -368,6 +446,7 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
     } catch (error) {
       lastError = error;
       logger.warn({ error, provider: selectedProvider }, "AI provider request failed; trying next provider if available");
+      await logAiUsage(selectedProvider, "", feature, 0, 0, userId, false, false);
     }
   }
 
@@ -375,6 +454,8 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
   const tokenCount = fallbackProvider === "openai"
     ? countOpenAITokens(systemPrompt, userPrompt, "")
     : countGeminiTokens(systemPrompt, userPrompt, "");
+
+  await logAiUsage(fallbackProvider, "", feature, tokenCount.input, tokenCount.output, userId, true, false);
 
   logger.warn({ error: lastError, provider: fallbackProvider }, "All AI providers failed; falling back to deterministic suggestions");
   return {
@@ -402,6 +483,9 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
     "You are a resume writing assistant. Return JSON only with suggestions, variations, and a short summary. Never overwrite user text automatically.",
     userPrompt,
     fallback,
+    undefined,
+    "rewrite",
+    context.userId,
   );
 };
 
@@ -419,6 +503,9 @@ export const checkGrammar = async (context: AiPromptContext): Promise<Structured
     "You are a grammar checker for resumes. Return JSON only. Focus on spelling, clarity, and concise professional language.",
     userPrompt,
     fallback,
+    undefined,
+    "grammar",
+    context.userId,
   );
 };
 
@@ -437,6 +524,9 @@ export const enhanceBullet = async (context: AiPromptContext): Promise<Structure
     "You are a senior resume writer. Return JSON only. Prefer action verbs, measurable impact, and professional phrasing.",
     userPrompt,
     fallback,
+    undefined,
+    "rewrite",
+    context.userId,
   );
 };
 
@@ -677,6 +767,9 @@ export const analyzeResumeForAts = async (context: AtsPromptContext & { jobId?: 
     "You are an ATS resume analyzer. Return JSON only. Do not invent scores; base them on the provided resume and keyword evidence.",
     userPrompt,
     fallback,
+    undefined,
+    "ats-analysis",
+    context.userId,
   );
 
   return {
