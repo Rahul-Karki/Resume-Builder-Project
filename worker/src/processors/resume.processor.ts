@@ -333,7 +333,7 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
     const page = await browser.newPage();
 
     try {
-      await page.setViewport({ width: 1280, height: 1800, deviceScaleFactor: 2 });
+      await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
       
       // Prefer visiting the frontend preview route so compiled Tailwind, custom CSS and fonts load correctly.
       const frontendBase = (env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
@@ -342,8 +342,8 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
         ? `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}?previewToken=${encodeURIComponent(tokenParam)}`
         : `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}`;
 
-      // Use screen media so styles match on-screen rendering
-      await page.emulateMediaType("screen");
+      // Use print media type to apply print-specific styles and ensure PDF rendering is consistent
+      await page.emulateMediaType("print");
 
       let loadedFrontendPreview = false;
 
@@ -356,25 +356,41 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
           { error, jobId, previewUrl },
           "Frontend resume preview unavailable; falling back to worker-rendered PDF HTML",
         );
+        // When falling back, ensure print media type is still active
+        await page.emulateMediaType("print");
         await page.setContent(html, { waitUntil: "networkidle0", timeout: 60000 });
       }
 
       // Wait for document.fonts.ready to resolve (ensures fonts are loaded)
       try {
-        await page.evaluateHandle("document.fonts.ready");
+        const fontLoadPromise = page.evaluateHandle("document.fonts.ready");
+        await Promise.race([
+          fontLoadPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Font loading timeout")), 5000))
+        ]);
       } catch (err) {
         logger.debug({ jobId, err }, "document.fonts.ready timed out or failed, continuing");
       }
 
       logger.debug({ jobId, loadedFrontendPreview }, "Resume PDF render source selected");
 
-      // Extra small pause to let any late-loaded CSS finish
-      await new Promise((r) => setTimeout(r, 200));
+      // Extended pause to ensure all CSS, fonts, and animations are complete
+      await new Promise((r) => setTimeout(r, 1000));
+
+      // Force a layout recalculation before PDF generation
+      try {
+        await page.evaluate(() => {
+          document.body.offsetHeight; // Trigger a reflow
+        });
+      } catch (err) {
+        logger.debug({ jobId, err }, "Layout recalculation failed");
+      }
 
       const generatedBuffer = await page.pdf({
         format: "A4",
         printBackground: true,
         preferCSSPageSize: true,
+        margin: { top: 0, bottom: 0, left: 0, right: 0 },
       });
 
       pdfBuffer = Buffer.isBuffer(generatedBuffer) ? generatedBuffer : Buffer.from(generatedBuffer);
