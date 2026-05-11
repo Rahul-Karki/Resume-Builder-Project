@@ -32,6 +32,7 @@ export interface CreditPlan {
 }
 
 const FREE_PLAN_CREDITS = 200;
+const UNLIMITED_AI_CREDITS = true;
 
 const getPlanCredits = (plan: CreditPlan['planType']) => {
   switch (plan) {
@@ -143,6 +144,7 @@ class AICreditsManager {
   }
 
   private setupUsageMonitoring() {
+    if (UNLIMITED_AI_CREDITS) return;
     // Check for usage spikes every minute
     setInterval(() => {
       this.checkForUsageSpikes();
@@ -155,6 +157,7 @@ class AICreditsManager {
   }
 
   private checkForUsageSpikes() {
+    if (UNLIMITED_AI_CREDITS) return;
     const now = Date.now();
     const oneHourAgo = now - (60 * 60 * 1000);
     
@@ -172,6 +175,7 @@ class AICreditsManager {
   }
 
   private checkCreditThresholds() {
+    if (UNLIMITED_AI_CREDITS) return;
     const currentCredits = this.getCurrentCredits();
     
     if (currentCredits <= 0) {
@@ -209,12 +213,6 @@ class AICreditsManager {
 
   async recordUsage(operation: CreditUsage['operation'], creditsUsed: number, metadata?: Record<string, any>): Promise<void> {
     const currentCredits = this.getCurrentCredits();
-    
-    if (currentCredits < creditsUsed) {
-      const error = new Error(`Insufficient credits. Required: ${creditsUsed}, Available: ${currentCredits}`);
-      errorTracker.trackError('Insufficient AI Credits', error, { operation, creditsUsed, currentCredits });
-      throw error;
-    }
 
     const usage: CreditUsage = {
       id: this.generateUsageId(),
@@ -227,7 +225,9 @@ class AICreditsManager {
     };
 
     this.usage.push(usage);
-    this.updateCurrentPlan(currentCredits - creditsUsed);
+    if (!UNLIMITED_AI_CREDITS) {
+      this.updateCurrentPlan(currentCredits - creditsUsed);
+    }
     this.saveData();
     
     // Notify listeners of credit change
@@ -275,6 +275,7 @@ class AICreditsManager {
   }
 
   syncFromServer(credits: { remaining: number; resetAt?: string; plan?: CreditPlan['planType'] } | null | undefined) {
+    if (UNLIMITED_AI_CREDITS) return;
     if (!credits) return;
     const planType = credits.plan ?? this.currentPlan?.planType ?? 'free';
     const totalCredits = getPlanCredits(planType);
@@ -292,6 +293,7 @@ class AICreditsManager {
   }
 
   getCurrentCredits(): number {
+    if (UNLIMITED_AI_CREDITS) return Number.MAX_SAFE_INTEGER;
     return this.currentPlan?.remainingCredits || 0;
   }
 
@@ -407,6 +409,7 @@ class AICreditsManager {
   }
 
   canAfford(operation: CreditUsage['operation'], textLength?: number): boolean {
+    if (UNLIMITED_AI_CREDITS) return true;
     const estimatedCost = this.estimateCredits(operation, textLength);
     return this.getCurrentCredits() >= estimatedCost;
   }

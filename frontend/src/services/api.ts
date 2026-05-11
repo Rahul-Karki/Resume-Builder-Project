@@ -159,12 +159,6 @@ export const getResumeDownloadJobStatus = async (jobId: string) => {
 export const improveResumeText = async (payload: AiSectionRequest) => {
   const operation = 'improve-text';
   const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
-  
-  if (!aiCreditsManager.canAfford(operation, payload.text.length)) {
-    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
-    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
-    throw error;
-  }
 
   try {
     logger.info('Starting AI text improvement', { operation, textLength: payload.text.length, estimatedCredits });
@@ -190,12 +184,6 @@ export const improveResumeText = async (payload: AiSectionRequest) => {
 export const checkResumeGrammar = async (payload: AiSectionRequest) => {
   const operation = 'check-grammar';
   const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
-  
-  if (!aiCreditsManager.canAfford(operation, payload.text.length)) {
-    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
-    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
-    throw error;
-  }
 
   try {
     logger.info('Starting AI grammar check', { operation, textLength: payload.text.length, estimatedCredits });
@@ -221,12 +209,6 @@ export const checkResumeGrammar = async (payload: AiSectionRequest) => {
 export const enhanceResumeBullet = async (payload: AiSectionRequest) => {
   const operation = 'enhance-bullet';
   const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
-  
-  if (!aiCreditsManager.canAfford(operation, payload.text.length)) {
-    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
-    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
-    throw error;
-  }
 
   try {
     logger.info('Starting AI bullet enhancement', { operation, textLength: payload.text.length, estimatedCredits });
@@ -258,12 +240,6 @@ export const queueAtsAnalysis = async (resumeId: string, payload: {
 }) => {
   const operation = 'ats-analysis';
   const estimatedCredits = aiCreditsManager.estimateCredits(operation);
-  
-  if (!aiCreditsManager.canAfford(operation)) {
-    const error = new Error(`Insufficient credits for ${operation}. Required: ${estimatedCredits}, Available: ${aiCreditsManager.getCurrentCredits()}`);
-    errorTracker.trackError('Insufficient AI Credits', error, { operation, estimatedCredits });
-    throw error;
-  }
 
   try {
     logger.info('Starting ATS analysis', { operation, resumeId, reportType: payload.reportType, estimatedCredits });
