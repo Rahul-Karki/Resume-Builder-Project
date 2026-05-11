@@ -1,5 +1,6 @@
 import type { Job } from "bullmq";
 import type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
+import { createBullmqJobId } from "../../../shared/src/bullmq";
 import { clampScore, compactText, createSuggestionId, type AtsAnalysisReport, type AtsFormattingCheck } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
@@ -141,9 +142,11 @@ const buildAtsReport = (job: Job<AtsAnalysisJobData>): AtsAnalysisReport => {
   const sectionScores = buildSectionScores(job.data.resume, keywordResult.matchScore);
   const formattingChecks = buildFormattingChecks(job.data.resume);
   const rewriteSuggestions = buildRewriteSuggestions(job.data.resume, grammarIssues);
+  // Use the reconstructed deterministic job ID to match the database record
+  const jobId = createBullmqJobId("ats-analysis", job.data);
 
   return {
-    jobId: job.data.analysisId,
+    jobId,
     resumeId: job.data.resumeId,
     status: "completed",
     reportType,
@@ -165,11 +168,13 @@ const buildAtsReport = (job: Job<AtsAnalysisJobData>): AtsAnalysisReport => {
 export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
   try {
     const report = buildAtsReport(job);
+    // Reconstruct the deterministic job ID that was created by the controller
+    const jobId = createBullmqJobId("ats-analysis", job.data);
 
     const saved = await AtsAnalysis.findOneAndUpdate(
-      { jobId: job.data.analysisId, userId: job.data.userId },
+      { jobId, userId: job.data.userId },
       {
-        jobId: job.data.analysisId,
+        jobId,
         resumeId: job.data.resumeId,
         userId: job.data.userId,
         status: "completed",
@@ -194,10 +199,11 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
     logger.info({ jobId: job.data.analysisId, resumeId: job.data.resumeId }, "ATS analysis job completed");
     return saved?.toObject() ?? report;
   } catch (error) {
+    const jobId = createBullmqJobId("ats-analysis", job.data);
     await AtsAnalysis.findOneAndUpdate(
-      { jobId: job.data.analysisId, userId: job.data.userId },
+      { jobId, userId: job.data.userId },
       {
-        jobId: job.data.analysisId,
+        jobId,
         resumeId: job.data.resumeId,
         userId: job.data.userId,
         status: "failed",
