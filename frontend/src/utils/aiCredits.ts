@@ -31,6 +31,14 @@ export interface CreditPlan {
   features: string[];
 }
 
+const FREE_PLAN_CREDITS = 200;
+
+const getNextResetDate = (): string => {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return next.toISOString();
+};
+
 class AICreditsManager {
   private static instance: AICreditsManager;
   private usage: CreditUsage[] = [];
@@ -42,6 +50,7 @@ class AICreditsManager {
   
   private constructor() {
     this.loadStoredData();
+    this.ensureFreePlan();
     this.setupUsageMonitoring();
   }
 
@@ -63,6 +72,46 @@ class AICreditsManager {
       }
     } catch (error) {
       errorTracker.trackError('Failed to load AI credits data', error);
+    }
+  }
+
+  private ensureFreePlan() {
+    this.checkAndResetMonthly();
+
+    if (!this.currentPlan) {
+      this.currentPlan = {
+        totalCredits: FREE_PLAN_CREDITS,
+        usedCredits: 0,
+        remainingCredits: FREE_PLAN_CREDITS,
+        resetDate: getNextResetDate(),
+        planType: 'free',
+        features: ['improve-text', 'check-grammar', 'enhance-bullet', 'ats-analysis'],
+      };
+      this.saveData();
+      logger.info('AI Credits Free Plan Initialized', { totalCredits: FREE_PLAN_CREDITS });
+    }
+  }
+
+  private checkAndResetMonthly() {
+    if (!this.currentPlan) return;
+
+    const now = new Date();
+    const resetDate = new Date(this.currentPlan.resetDate);
+
+    if (now >= resetDate) {
+      this.currentPlan = {
+        totalCredits: FREE_PLAN_CREDITS,
+        usedCredits: 0,
+        remainingCredits: FREE_PLAN_CREDITS,
+        resetDate: getNextResetDate(),
+        planType: this.currentPlan.planType,
+        features: this.currentPlan.features,
+      };
+      this.usage = [];
+      this.alerts = [];
+      this.saveData();
+      this.listeners.forEach(listener => listener(FREE_PLAN_CREDITS));
+      logger.info('AI Credits Monthly Reset', { newCredits: FREE_PLAN_CREDITS });
     }
   }
 
@@ -308,18 +357,19 @@ class AICreditsManager {
   // Estimate credits needed for operations
   estimateCredits(operation: CreditUsage['operation'], textLength?: number): number {
     const baseCosts = {
-      'improve-text': 5,
-      'check-grammar': 3,
-      'enhance-bullet': 4,
-      'ats-analysis': 10,
+      'improve-text': 2,
+      'check-grammar': 1,
+      'enhance-bullet': 2,
+      'ats-analysis': 5,
     };
 
-    let baseCost = baseCosts[operation] || 5;
+    let baseCost = baseCosts[operation] || 2;
     
     // Adjust cost based on text length (if provided)
-    if (textLength) {
-      const lengthMultiplier = Math.max(1, Math.ceil(textLength / 500));
-      baseCost *= lengthMultiplier;
+    // Soft multiplier: only adds +1 credit per 1000 chars beyond the first 500
+    if (textLength && textLength > 500) {
+      const extraChunks = Math.ceil((textLength - 500) / 1000);
+      baseCost += extraChunks;
     }
 
     return baseCost;

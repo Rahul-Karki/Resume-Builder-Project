@@ -46,7 +46,7 @@ const baseEnvSchema = z.object({
   BULLMQ_REDIS_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(""),
-  USE_MEMORY_ONLY_CACHE: booleanFromEnv.default(false),
+  USE_MEMORY_ONLY_CACHE: booleanFromEnv.default(true),
   REDIS_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(5000),
   REDIS_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).default(300),
   REDIS_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(900000),

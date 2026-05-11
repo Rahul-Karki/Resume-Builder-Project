@@ -18,9 +18,12 @@ const startServer = async () => {
   await createAllIndexes();
   await ensureDefaultTemplatesInBackend();
   const cacheProvider = getCacheProvider();
-  void warmupCacheBackend().catch((error) => {
-    logger.error({ error }, "Cache warmup failed");
-  });
+  // Skip cache warmup when using memory-only cache — avoids wasting a Redis/Upstash PING
+  if (cacheProvider !== "none") {
+    void warmupCacheBackend().catch((error) => {
+      logger.error({ error }, "Cache warmup failed");
+    });
+  }
   void ensureResumeQueueReady().catch((error) => {
     logger.error({ error }, "Resume queue connection failed during startup");
   });

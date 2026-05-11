@@ -1,6 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
-import { checkRedisHealth } from "../utils/redis";
+import { checkRedisHealth, getCacheProvider } from "../utils/redis";
 import { logger } from "../observability";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
 import WorkerHeartbeat from "../models/WorkerHeartbeat";
@@ -27,15 +27,19 @@ const checkMongoHealth = async () => {
 };
 
 const sendHealthResponse = async (_req: express.Request, res: express.Response) => {
+  const cacheProvider = getCacheProvider();
+  // Skip Redis health ping when using memory-only cache — saves a command on every health check
+  const shouldCheckRedis = cacheProvider !== "none";
+
   const [mongoHealthy, redisHealthy] = await Promise.all([
     checkMongoHealth(),
-    checkRedisHealth(),
+    shouldCheckRedis ? checkRedisHealth() : Promise.resolve(true),
   ]);
 
   // Mongo is the only hard dependency. Redis has in-memory fallbacks.
   const status = !mongoHealthy ? "unhealthy" : !redisHealthy ? "degraded" : "ok";
 
-  if (!redisHealthy) {
+  if (!redisHealthy && shouldCheckRedis) {
     logger.warn(
       { mongoHealthy, redisHealthy },
       "Health check: Redis unavailable — using in-memory fallbacks",
@@ -45,7 +49,9 @@ const sendHealthResponse = async (_req: express.Request, res: express.Response) 
   res.status(mongoHealthy ? 200 : 503).json({
     status,
     mongo: mongoHealthy ? "up" : "down",
-    redis: redisHealthy ? "up" : "down (in-memory fallback active)",
+    redis: shouldCheckRedis
+      ? (redisHealthy ? "up" : "down (in-memory fallback active)")
+      : "up (in-memory cache)",
   });
 };
 

@@ -173,7 +173,7 @@ export const improveResumeText = async (payload: AiSectionRequest) => {
       { operation, textLength: payload.text.length }
     );
     
-    await aiCreditsManager.recordUsage(operation, payload.text.length, { textLength: payload.text.length, section: payload.section });
+    await aiCreditsManager.recordUsage(operation, estimatedCredits, { textLength: payload.text.length, section: payload.section });
     logger.logApiRequest('POST', '/ai/improve-text', response.status, undefined);
     
     return response.data as AiRewriteResult;
@@ -204,7 +204,7 @@ export const checkResumeGrammar = async (payload: AiSectionRequest) => {
       { operation, textLength: payload.text.length }
     );
     
-    await aiCreditsManager.recordUsage(operation, payload.text.length, { textLength: payload.text.length, section: payload.section });
+    await aiCreditsManager.recordUsage(operation, estimatedCredits, { textLength: payload.text.length, section: payload.section });
     logger.logApiRequest('POST', '/ai/check-grammar', response.status, undefined);
     
     return response.data as AiGrammarResult;
@@ -235,7 +235,7 @@ export const enhanceResumeBullet = async (payload: AiSectionRequest) => {
       { operation, textLength: payload.text.length }
     );
     
-    await aiCreditsManager.recordUsage(operation, payload.text.length, { textLength: payload.text.length, section: payload.section });
+    await aiCreditsManager.recordUsage(operation, estimatedCredits, { textLength: payload.text.length, section: payload.section });
     logger.logApiRequest('POST', '/ai/enhance-bullet', response.status, undefined);
     
     return response.data as AiRewriteResult;
@@ -272,7 +272,7 @@ export const queueAtsAnalysis = async (resumeId: string, payload: {
       { operation, resumeId, reportType: payload.reportType }
     );
     
-    await aiCreditsManager.recordUsage(operation, 0, { resumeId, reportType: payload.reportType });
+    await aiCreditsManager.recordUsage(operation, estimatedCredits, { resumeId, reportType: payload.reportType });
     logger.logApiRequest('POST', `/resumes/${resumeId}/analyze-ats`, response.status, undefined);
     
     return response.data as AtsAnalysisQueueResponse;
