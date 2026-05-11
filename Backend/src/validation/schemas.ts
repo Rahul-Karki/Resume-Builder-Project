@@ -141,12 +141,16 @@ const aiTextSchema = z.object({
   tone: aiToneSchema.optional(),
   context: plainText(1200).optional(),
   targetRole: plainText(160).optional(),
+  forceRefresh: z.boolean().optional(),
+  variationSeed: plainText(60).optional(),
 }).strict();
 
 const aiGrammarSchema = z.object({
   text: plainText(4000).pipe(z.string().min(1).max(4000)),
   section: z.enum(["summary", "experience", "education", "skills", "projects", "certifications", "languages"]),
   context: plainText(1200).optional(),
+  forceRefresh: z.boolean().optional(),
+  variationSeed: plainText(60).optional(),
 }).strict();
 
 const atsAnalysisRequestSchema = z.object({

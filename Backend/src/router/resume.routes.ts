@@ -19,6 +19,7 @@ import {
 import { createRedisCacheMiddleware } from "../middleware/redisCache";
 import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
 import { validateRequest } from "../middleware/validateRequest";
+import { creditDeductionMiddleware } from "../middleware/creditDeduction";
 import {
   createResumeSchema,
   exportPresetSchema,
@@ -64,7 +65,13 @@ router.post("/download-resume", validateRequest({ body: downloadResumeSchema }),
 router.get("/queue-metrics", getResumeQueueMetrics);
 router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
 router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
-router.post("/:id/analyze-ats", validateRequest({ params: objectIdParamSchema, body: atsAnalysisRequestSchema }), resumeMutationLimiter, analyzeAts);
+router.post(
+  "/:id/analyze-ats",
+  validateRequest({ params: objectIdParamSchema, body: atsAnalysisRequestSchema }),
+  resumeMutationLimiter,
+  creditDeductionMiddleware({ operation: "ats-analysis" }),
+  analyzeAts,
+);
 router.get("/:id/ats-analysis/latest", validateRequest({ params: objectIdParamSchema }), getLatestAtsAnalysis);
 router.get("/:id/ats-analysis/:jobId", validateRequest({ params: atsAnalysisLookupSchema.extend({ id: objectIdParamSchema.shape.id }) }), getAtsAnalysisByJobId);
 

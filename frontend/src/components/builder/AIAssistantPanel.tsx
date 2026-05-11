@@ -21,6 +21,16 @@ type FocusTarget = {
 
 const compact = (value: string) => value.replace(/\s+/g, " ").trim();
 
+const BLOCKED_PERSONAL_FIELDS = new Set([
+  "name",
+  "email",
+  "phone",
+  "location",
+  "linkedin",
+  "github",
+  "portfolio",
+]);
+
 const getPersonalFieldText = (resume: ReturnType<typeof useResumeBuilderStore.getState>["resume"], field?: string) => {
   const personal = resume.personalInfo;
   switch (field) {
@@ -47,6 +57,9 @@ const getFocusTarget = (
   const toneContext = resume.personalInfo.title || resume.title;
 
   if (focusedField?.kind === "personal") {
+    if (focusedField.field && BLOCKED_PERSONAL_FIELDS.has(focusedField.field)) {
+      return null;
+    }
     const text = compact(getPersonalFieldText(resume, focusedField.field));
     return {
       text, section: "summary" as const, context: toneContext, label: focusedField.label,
@@ -442,6 +455,12 @@ export function AIAssistantPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const target = useMemo(() => getFocusTarget(resume, ui.focusedField, ui.activeSection, store), [resume, ui.focusedField, ui.activeSection, store]);
+  const blockedReason = useMemo(() => {
+    if (ui.focusedField?.kind === "personal" && ui.focusedField.field && BLOCKED_PERSONAL_FIELDS.has(ui.focusedField.field)) {
+      return "AI suggestions are not available for contact fields.";
+    }
+    return null;
+  }, [ui.focusedField]);
 
   useEffect(() => {
     setRewrite(null);
@@ -463,23 +482,37 @@ export function AIAssistantPanel() {
   }, []);
 
   const handleImprove = useCallback(() => {
-    if (!target) return;
+    if (!target || blockedReason) return;
     setLoading(true); setError(null);
-    const payload = { text: target.text, section: target.section, tone, context: target.context, targetRole: resume.personalInfo.title || resume.title };
+    const payload = {
+      text: target.text,
+      section: target.section,
+      tone,
+      context: target.context,
+      targetRole: resume.personalInfo.title || resume.title,
+      forceRefresh: Boolean(rewrite),
+      variationSeed: rewrite ? String(Date.now()) : undefined,
+    };
     const request = target.section === "experience" || target.section === "projects" ? enhanceResumeBullet(payload) : improveResumeText(payload);
     request.then((result) => { setRewrite(result); setLastUpdatedAt(new Date().toISOString()); })
       .catch((err) => setError(err instanceof Error ? err.message : "AI suggestions failed"))
       .finally(() => setLoading(false));
-  }, [target, tone, resume.personalInfo.title, resume.title]);
+  }, [target, blockedReason, tone, resume.personalInfo.title, resume.title, rewrite]);
 
   const handleGrammar = useCallback(() => {
-    if (!target) return;
+    if (!target || blockedReason) return;
     setLoading(true); setError(null);
-    checkResumeGrammar({ text: target.text, section: target.section, context: target.context })
+    checkResumeGrammar({
+      text: target.text,
+      section: target.section,
+      context: target.context,
+      forceRefresh: Boolean(grammar),
+      variationSeed: grammar ? String(Date.now()) : undefined,
+    })
       .then((result) => { setGrammar(result); setLastUpdatedAt(new Date().toISOString()); })
       .catch((err) => setError(err instanceof Error ? err.message : "Grammar check failed"))
       .finally(() => setLoading(false));
-  }, [target]);
+  }, [target, blockedReason, grammar]);
 
   // Collapsed state - just show the header
   if (!isExpanded) {
@@ -531,7 +564,7 @@ export function AIAssistantPanel() {
               <Lightbulb size={20} />
             </div>
             <div className="ai-empty-text">
-              Click on any text field in your resume to get AI-powered writing suggestions
+              {blockedReason ?? "Click on any text field in your resume to get AI-powered writing suggestions"}
             </div>
           </div>
         )}
@@ -554,11 +587,11 @@ export function AIAssistantPanel() {
 
             {/* Action buttons */}
             <div className="ai-actions">
-              <button className="ai-btn-primary" onClick={handleImprove} disabled={loading}>
+              <button className="ai-btn-primary" onClick={handleImprove} disabled={loading || Boolean(blockedReason)}>
                 {loading ? <Loader2 size={12} className="ai-spin" /> : <RefreshCw size={12} />} 
                 Improve
               </button>
-              <button className="ai-btn-secondary" onClick={handleGrammar} disabled={loading}>
+              <button className="ai-btn-secondary" onClick={handleGrammar} disabled={loading || Boolean(blockedReason)}>
                 <PenTool size={12} /> Grammar
               </button>
               <span className="ai-status">
@@ -575,7 +608,12 @@ export function AIAssistantPanel() {
             )}
 
             {/* Error */}
-            {error && (
+            {blockedReason && (
+              <div className="ai-error">
+                <AlertCircle size={12} /> {blockedReason}
+              </div>
+            )}
+            {error && !blockedReason && (
               <div className="ai-error">
                 <AlertCircle size={12} /> {error}
               </div>

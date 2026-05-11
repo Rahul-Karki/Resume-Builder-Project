@@ -33,6 +33,20 @@ export interface CreditPlan {
 
 const FREE_PLAN_CREDITS = 200;
 
+const getPlanCredits = (plan: CreditPlan['planType']) => {
+  switch (plan) {
+    case 'basic':
+      return 1000;
+    case 'premium':
+      return 5000;
+    case 'enterprise':
+      return 20000;
+    case 'free':
+    default:
+      return FREE_PLAN_CREDITS;
+  }
+};
+
 const getNextResetDate = (): string => {
   const now = new Date();
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -258,6 +272,23 @@ class AICreditsManager {
     this.currentPlan = plan;
     this.saveData();
     logger.info('AI Credits Plan Updated', { planType: plan.planType, totalCredits: plan.totalCredits });
+  }
+
+  syncFromServer(credits: { remaining: number; resetAt?: string; plan?: CreditPlan['planType'] } | null | undefined) {
+    if (!credits) return;
+    const planType = credits.plan ?? this.currentPlan?.planType ?? 'free';
+    const totalCredits = getPlanCredits(planType);
+    const remaining = Math.max(0, credits.remaining ?? 0);
+    this.currentPlan = {
+      totalCredits,
+      usedCredits: Math.max(0, totalCredits - remaining),
+      remainingCredits: remaining,
+      resetDate: credits.resetAt ?? getNextResetDate(),
+      planType,
+      features: ['improve-text', 'check-grammar', 'enhance-bullet', 'ats-analysis'],
+    };
+    this.saveData();
+    this.listeners.forEach(listener => listener(remaining));
   }
 
   getCurrentCredits(): number {

@@ -660,7 +660,7 @@ const getCurrentUser = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await User.findById(userId).select("name email avatar role authProvider");
+    const user = await User.findById(userId).select("name email avatar role authProvider aiCreditsRemaining aiCreditsResetAt aiCreditsPlan");
 
     if (!user) {
       logger.warn({ userId }, "Get current user not found");
@@ -676,6 +676,11 @@ const getCurrentUser = async (req: Request, res: Response) => {
         email: user.email,
         avatar: user.avatar || user.name?.trim()?.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "ME",
         role: user.role,
+        aiCredits: {
+          remaining: user.aiCreditsRemaining ?? 0,
+          resetAt: user.aiCreditsResetAt,
+          plan: user.aiCreditsPlan ?? "free",
+        },
       },
     });
   } catch (error) {

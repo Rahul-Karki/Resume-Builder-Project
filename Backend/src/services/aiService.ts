@@ -26,6 +26,7 @@ type AiPromptContext = {
   context?: string;
   targetRole?: string;
   userId?: string;
+  variationSeed?: string;
 };
 
 type AtsPromptContext = {
@@ -476,6 +477,7 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
     text: sliceText(context.text, 2500),
     context: sliceText(context.context, 1000),
     targetRole: sliceText(context.targetRole, 160),
+    variationSeed: sliceText(context.variationSeed, 60),
     outputShape: { suggestions: ["..."], variations: ["..."], summary: "..." },
   });
 
@@ -496,6 +498,7 @@ export const checkGrammar = async (context: AiPromptContext): Promise<Structured
     section: context.section,
     text: sliceText(context.text, 2500),
     context: sliceText(context.context, 1000),
+    variationSeed: sliceText(context.variationSeed, 60),
     outputShape: { issues: ["..."], correctedText: "..." },
   });
 
@@ -517,6 +520,7 @@ export const enhanceBullet = async (context: AiPromptContext): Promise<Structure
     section: context.section,
     text: sliceText(context.text, 2000),
     context: sliceText(context.context, 1000),
+    variationSeed: sliceText(context.variationSeed, 60),
     outputShape: { suggestions: ["..."], variations: ["..."], summary: "..." },
   });
 

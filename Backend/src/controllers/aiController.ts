@@ -17,8 +17,8 @@ import { MemoryLRUCache } from "../utils/memoryCache";
 const aiResponseCache = new MemoryLRUCache(100);
 const AI_CACHE_TTL_SECONDS = 300;
 
-const createAiCacheKey = (type: string, text: string, section: string, tone: string, context?: string): string => {
-  const raw = `${type}:${text}:${section}:${tone}:${context ?? ""}`;
+const createAiCacheKey = (type: string, text: string, section: string, tone: string, context?: string, variationSeed?: string): string => {
+  const raw = `${type}:${text}:${section}:${tone}:${context ?? ""}:${variationSeed ?? ""}`;
   return `ai:${type}:${crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16)}`;
 };
 
@@ -68,18 +68,22 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
     const tone = getTone(req.body?.tone);
     const context = typeof req.body?.context === "string" ? req.body.context : undefined;
     const targetRole = typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined;
+    const forceRefresh = Boolean(req.body?.forceRefresh);
+    const variationSeed = typeof req.body?.variationSeed === "string" ? req.body.variationSeed : undefined;
 
     // Check in-memory cache first
-    const cacheKey = createAiCacheKey("improve", text, section, tone, context);
-    const cached = aiResponseCache.get(cacheKey);
-    if (cached) {
-      logger.debug({ requestId, userId, cacheKey }, "AI improve-text cache hit");
-      markSpanSuccess(span);
-      res.status(200).json(JSON.parse(cached));
-      return;
+    const cacheKey = createAiCacheKey("improve", text, section, tone, context, variationSeed);
+    if (!forceRefresh) {
+      const cached = aiResponseCache.get(cacheKey);
+      if (cached) {
+        logger.debug({ requestId, userId, cacheKey }, "AI improve-text cache hit");
+        markSpanSuccess(span);
+        res.status(200).json(JSON.parse(cached));
+        return;
+      }
     }
 
-    const result = await improveText({ text, section, tone, context, targetRole, userId });
+    const result = await improveText({ text, section, tone, context, targetRole, userId, variationSeed });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -122,7 +126,9 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
     // Cache the response for future identical requests
-    try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
+    if (!forceRefresh) {
+      try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
+    }
     res.status(200).json(responseData);
   } catch (error) {
     const latencyMs = Date.now() - startTime;
@@ -158,18 +164,22 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
     const text = String(req.body?.text ?? "");
     const section = String(req.body?.section ?? "summary");
     const context = typeof req.body?.context === "string" ? req.body.context : undefined;
+    const forceRefresh = Boolean(req.body?.forceRefresh);
+    const variationSeed = typeof req.body?.variationSeed === "string" ? req.body.variationSeed : undefined;
 
     // Check in-memory cache first
-    const cacheKey = createAiCacheKey("grammar", text, section, "default", context);
-    const cached = aiResponseCache.get(cacheKey);
-    if (cached) {
-      logger.debug({ requestId, userId, cacheKey }, "AI check-grammar cache hit");
-      markSpanSuccess(span);
-      res.status(200).json(JSON.parse(cached));
-      return;
+    const cacheKey = createAiCacheKey("grammar", text, section, "default", context, variationSeed);
+    if (!forceRefresh) {
+      const cached = aiResponseCache.get(cacheKey);
+      if (cached) {
+        logger.debug({ requestId, userId, cacheKey }, "AI check-grammar cache hit");
+        markSpanSuccess(span);
+        res.status(200).json(JSON.parse(cached));
+        return;
+      }
     }
 
-    const result = await checkGrammar({ text, section, context, userId });
+    const result = await checkGrammar({ text, section, context, userId, variationSeed });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -213,7 +223,9 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
     // Cache the response for future identical requests
-    try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
+    if (!forceRefresh) {
+      try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
+    }
     res.status(200).json(responseData);
   } catch (error) {
     const latencyMs = Date.now() - startTime;
@@ -251,18 +263,22 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
     const tone = getTone(req.body?.tone);
     const context = typeof req.body?.context === "string" ? req.body.context : undefined;
     const targetRole = typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined;
+    const forceRefresh = Boolean(req.body?.forceRefresh);
+    const variationSeed = typeof req.body?.variationSeed === "string" ? req.body.variationSeed : undefined;
 
     // Check in-memory cache first
-    const cacheKey = createAiCacheKey("bullet", text, section, tone, context);
-    const cached = aiResponseCache.get(cacheKey);
-    if (cached) {
-      logger.debug({ requestId, userId, cacheKey }, "AI enhance-bullet cache hit");
-      markSpanSuccess(span);
-      res.status(200).json(JSON.parse(cached));
-      return;
+    const cacheKey = createAiCacheKey("bullet", text, section, tone, context, variationSeed);
+    if (!forceRefresh) {
+      const cached = aiResponseCache.get(cacheKey);
+      if (cached) {
+        logger.debug({ requestId, userId, cacheKey }, "AI enhance-bullet cache hit");
+        markSpanSuccess(span);
+        res.status(200).json(JSON.parse(cached));
+        return;
+      }
     }
 
-    const result = await enhanceBullet({ text, section, tone, context, targetRole, userId });
+    const result = await enhanceBullet({ text, section, tone, context, targetRole, userId, variationSeed });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -305,7 +321,9 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
     // Cache the response for future identical requests
-    try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
+    if (!forceRefresh) {
+      try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
+    }
     res.status(200).json(responseData);
   } catch (error) {
     const latencyMs = Date.now() - startTime;

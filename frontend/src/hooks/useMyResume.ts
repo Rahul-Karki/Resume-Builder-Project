@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { ResumeDocument, SavedResume, User } from "@/types/resume-types";
 import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
+import { aiCreditsManager } from "@/utils/aiCredits";
 
 const sectionKeys = ["experience", "education", "skills", "projects", "certifications"] as const;
 
@@ -114,12 +115,14 @@ export function useMyResumes() {
       const currentUser = userResponse.data?.user;
 
       if (currentUser) {
+        aiCreditsManager.syncFromServer(currentUser.aiCredits);
         setUser({
           id: String(currentUser.id ?? "me"),
           name: currentUser.name ?? "My Account",
           email: currentUser.email ?? "",
           avatar: currentUser.avatar ?? "ME",
-          plan: "free",
+          plan: currentUser.aiCredits?.plan ?? "free",
+          aiCredits: currentUser.aiCredits,
         });
       }
 

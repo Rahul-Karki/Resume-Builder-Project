@@ -27,8 +27,8 @@ export const deduplicationMiddleware = (options: DeduplicationOptions = {}) => {
     const userId = req.user?.id || "anonymous";
     
     try {
-      // Skip deduplication for non-AI routes or if cache is disabled
-      if (!isAiRequest(req) || finalOptions.ttlSeconds <= 0) {
+      // Skip deduplication for non-AI routes, cache disabled, or explicit refresh
+      if (!isAiRequest(req) || finalOptions.ttlSeconds <= 0 || Boolean(req.body?.forceRefresh)) {
         return next();
       }
       
@@ -118,9 +118,13 @@ const createDeduplicationKey = (req: Request, scope: string): string => {
   const text = String(req.body?.text || "");
   const section = String(req.body?.section || "");
   const operation = req.path.split('/').pop() || "unknown";
+  const tone = String(req.body?.tone ?? "");
+  const context = String(req.body?.context ?? "");
+  const targetRole = String(req.body?.targetRole ?? "");
+  const extra = String(req.body?.variationSeed ?? "");
   
   // Create hash of request content for consistent keying
-  const contentHash = createTextHash(`${operation}:${section}:${text}`);
+  const contentHash = createTextHash(`${operation}:${section}:${tone}:${context}:${targetRole}:${extra}:${text}`);
   
   return `dedup:${scope}:${userId}:${contentHash}`;
 };

@@ -125,6 +125,8 @@ export type AiSectionRequest = {
   tone?: AiTone;
   context?: string;
   targetRole?: string;
+  forceRefresh?: boolean;
+  variationSeed?: string;
 };
 
 export type AtsAnalysisQueueResponse = {

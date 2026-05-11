@@ -3,6 +3,7 @@ import { logger } from "../observability";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { AuthError } from "../errors/AppError";
 import { calculateEstimatedCredits } from "../utils/creditCalculator"
+import User from "../models/User";
 
 export interface CreditDeductionOptions {
   operation: 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
@@ -41,8 +42,10 @@ export const creditDeductionMiddleware = (options: CreditDeductionOptions) => {
         throw new AuthError("User not authenticated", { code: "AUTH_REQUIRED" });
       }
 
+      const bodyText = typeof req.body?.text === "string" ? req.body.text : "";
+      const textLength = options.textLength ?? bodyText.length;
       // Calculate estimated credits based on operation and text length
-      const estimatedCredits = calculateEstimatedCredits(options.operation, options.textLength);
+      const estimatedCredits = calculateEstimatedCredits(options.operation, textLength);
       
       // Get user's remaining credits (this would be implemented in a user service)
       const remainingCredits = await getUserRemainingCredits(userId);
@@ -118,13 +121,25 @@ export const creditDeductionMiddleware = (options: CreditDeductionOptions) => {
  * This would be implemented with your user service.
  */
 const getUserRemainingCredits = async (userId: string): Promise<number> => {
-  // TODO: Implement actual database query to get user credits
-  // For now, return a placeholder value
-  // Example: const user = await User.findById(userId);
-  // return user?.aiCreditsRemaining || 0;
-  
-  // Placeholder implementation - replace with actual database logic
-  return 200; // Default free plan amount
+  const user = await User.findById(userId).select("aiCreditsRemaining aiCreditsResetAt aiCreditsPlan");
+  if (!user) {
+    throw new AuthError("User not found", { code: "USER_NOT_FOUND" });
+  }
+
+  const now = new Date();
+  const resetAt = user.aiCreditsResetAt ? new Date(user.aiCreditsResetAt) : null;
+  if (!resetAt || resetAt <= now) {
+    const plan = user.aiCreditsPlan || "free";
+    const resetCredits = getPlanCredits(plan);
+    const nextResetAt = getNextCreditsResetAt(now);
+    user.aiCreditsRemaining = resetCredits;
+    user.aiCreditsResetAt = nextResetAt;
+    user.aiCreditsPlan = plan;
+    await user.save();
+    return resetCredits;
+  }
+
+  return Math.max(0, user.aiCreditsRemaining || 0);
 };
 
 /**
@@ -132,12 +147,27 @@ const getUserRemainingCredits = async (userId: string): Promise<number> => {
  * This would be implemented with your user service.
  */
 const deductUserCredits = async (userId: string, amount: number): Promise<void> => {
-  // TODO: Implement actual database update to deduct credits
-  // Example: await User.findByIdAndUpdate(userId, { $inc: { aiCreditsRemaining: -amount } });
-  
-  logger.info({
-    userId,
-    amount,
-    action: "credit_deduction",
-  }, "Credits deducted (placeholder implementation)");
+  if (amount <= 0) return;
+
+  await User.findByIdAndUpdate(userId, {
+    $inc: { aiCreditsRemaining: -Math.abs(amount) },
+  });
+
+  logger.info({ userId, amount, action: "credit_deduction" }, "Credits deducted");
 };
+
+const getPlanCredits = (plan: string | undefined) => {
+  switch (plan) {
+    case "basic":
+      return 1000;
+    case "premium":
+      return 5000;
+    case "enterprise":
+      return 20000;
+    case "free":
+    default:
+      return 200;
+  }
+};
+
+const getNextCreditsResetAt = (now: Date) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));

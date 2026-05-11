@@ -326,4 +326,15 @@ export type {
 } from "../../../shared/src/ai";
 
 export type SortOption = "updatedAt" | "createdAt" | "title" | "completion";
-export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; }
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  plan: "free" | "pro" | "basic" | "premium" | "enterprise";
+  aiCredits?: {
+    remaining: number;
+    resetAt?: string;
+    plan?: "free" | "basic" | "premium" | "enterprise";
+  };
+}

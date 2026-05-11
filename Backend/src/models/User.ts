@@ -11,7 +11,15 @@ export interface IUser extends Document {
   avatar: string;
   googleId?: string;
   authProvider: string[];
+  aiCreditsRemaining: number;
+  aiCreditsResetAt: Date;
+  aiCreditsPlan: "free" | "basic" | "premium" | "enterprise";
 }
+
+const getNextCreditsResetAt = () => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+};
 
 const UserSchema: Schema = new Schema<IUser>(
   {
@@ -70,6 +78,23 @@ const UserSchema: Schema = new Schema<IUser>(
       type: [String],
       enum: ["local", "google"],
       default: [],
+    },
+
+    aiCreditsRemaining: {
+      type: Number,
+      default: 200,
+      min: 0,
+    },
+
+    aiCreditsResetAt: {
+      type: Date,
+      default: getNextCreditsResetAt,
+    },
+
+    aiCreditsPlan: {
+      type: String,
+      enum: ["free", "basic", "premium", "enterprise"],
+      default: "free",
     },
   },
   { timestamps: true }
