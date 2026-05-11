@@ -258,17 +258,27 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
   const analyzeLock = React.useRef(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const lastHeaderClick = React.useRef(0);
 
   const fallbackKeywords = useMemo(() => buildSkillKeywords(resume), [resume]);
 
   useEffect(() => { setJobTitle(resume.personalInfo.title || resume.title); }, [resume.personalInfo.title, resume.title]);
 
   useEffect(() => {
-    if (!resumeId) return;
-    getLatestAtsAnalysis(resumeId)
-      .then((response) => { setAnalysis(response.analysis); setLastUpdatedAt(response.analysis.analyzedAt ?? null); })
-      .catch(() => { /* no previous analysis */ });
-  }, [resumeId]);
+    if (!resumeId || !isExpanded) return;
+    let active = true;
+    (async () => {
+      try {
+        const response = await getLatestAtsAnalysis(resumeId);
+        if (!active) return;
+        setAnalysis(response.analysis);
+        setLastUpdatedAt(response.analysis.analyzedAt ?? null);
+      } catch {
+        /* no previous analysis */
+      }
+    })();
+    return () => { active = false; };
+  }, [resumeId, isExpanded]);
 
   useEffect(() => {
     if (!queuedJobId || !resumeId) return undefined;
@@ -344,10 +354,17 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
 
   // Collapsed state
   if (!isExpanded) {
+    const handleExpandClick = () => {
+      const now = Date.now();
+      if (now - lastHeaderClick.current < 300) return; // ignore rapid double clicks
+      lastHeaderClick.current = now;
+      setIsExpanded(true);
+    };
+
     return (
       <div className="ats-container">
         <style>{css}</style>
-        <div className="ats-header-collapsed" onClick={() => setIsExpanded(true)}>
+        <div className="ats-header-collapsed" onClick={handleExpandClick}>
           <div className="ats-header-left">
             <div className="ats-header-icon">
               <FileSearch size={13} />
