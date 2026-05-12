@@ -168,8 +168,22 @@ export const improveResumeText = async (payload: AiSectionRequest) => {
       () => api.post("/ai/improve-text", payload, { timeout: 20000 }),
       { operation, textLength: payload.text.length }
     );
+
+    const deducted = Number(response.headers?.["x-ai-credits-deducted"] ?? 0) || 0;
+    const remaining = response.headers?.["x-ai-credits-remaining"];
+    const resetAt = response.headers?.["x-ai-credits-reset-at"];
+    const plan = response.headers?.["x-ai-credits-plan"];
+    if (remaining !== undefined) {
+      aiCreditsManager.syncFromServer({
+        remaining: Number(remaining) || 0,
+        resetAt: typeof resetAt === "string" ? resetAt : undefined,
+        plan: (plan as any) || undefined,
+      });
+    }
     
-    await aiCreditsManager.recordUsage(operation, estimatedCredits, { textLength: payload.text.length, section: payload.section });
+    if (deducted > 0) {
+      await aiCreditsManager.recordUsage(operation, deducted, { textLength: payload.text.length, section: payload.section });
+    }
     logger.logApiRequest('POST', '/ai/improve-text', response.status, undefined);
     
     return response.data as AiRewriteResult;
@@ -193,8 +207,22 @@ export const checkResumeGrammar = async (payload: AiSectionRequest) => {
       () => api.post("/ai/check-grammar", payload, { timeout: 20000 }),
       { operation, textLength: payload.text.length }
     );
+
+    const deducted = Number(response.headers?.["x-ai-credits-deducted"] ?? 0) || 0;
+    const remaining = response.headers?.["x-ai-credits-remaining"];
+    const resetAt = response.headers?.["x-ai-credits-reset-at"];
+    const plan = response.headers?.["x-ai-credits-plan"];
+    if (remaining !== undefined) {
+      aiCreditsManager.syncFromServer({
+        remaining: Number(remaining) || 0,
+        resetAt: typeof resetAt === "string" ? resetAt : undefined,
+        plan: (plan as any) || undefined,
+      });
+    }
     
-    await aiCreditsManager.recordUsage(operation, estimatedCredits, { textLength: payload.text.length, section: payload.section });
+    if (deducted > 0) {
+      await aiCreditsManager.recordUsage(operation, deducted, { textLength: payload.text.length, section: payload.section });
+    }
     logger.logApiRequest('POST', '/ai/check-grammar', response.status, undefined);
     
     return response.data as AiGrammarResult;
@@ -218,8 +246,22 @@ export const enhanceResumeBullet = async (payload: AiSectionRequest) => {
       () => api.post("/ai/enhance-bullet", payload, { timeout: 20000 }),
       { operation, textLength: payload.text.length }
     );
+
+    const deducted = Number(response.headers?.["x-ai-credits-deducted"] ?? 0) || 0;
+    const remaining = response.headers?.["x-ai-credits-remaining"];
+    const resetAt = response.headers?.["x-ai-credits-reset-at"];
+    const plan = response.headers?.["x-ai-credits-plan"];
+    if (remaining !== undefined) {
+      aiCreditsManager.syncFromServer({
+        remaining: Number(remaining) || 0,
+        resetAt: typeof resetAt === "string" ? resetAt : undefined,
+        plan: (plan as any) || undefined,
+      });
+    }
     
-    await aiCreditsManager.recordUsage(operation, estimatedCredits, { textLength: payload.text.length, section: payload.section });
+    if (deducted > 0) {
+      await aiCreditsManager.recordUsage(operation, deducted, { textLength: payload.text.length, section: payload.section });
+    }
     logger.logApiRequest('POST', '/ai/enhance-bullet', response.status, undefined);
     
     return response.data as AiRewriteResult;

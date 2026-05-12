@@ -32,7 +32,7 @@ export interface CreditPlan {
 }
 
 const FREE_PLAN_CREDITS = 200;
-const UNLIMITED_AI_CREDITS = true;
+const UNLIMITED_AI_CREDITS = String((import.meta as any).env?.VITE_UNLIMITED_AI_CREDITS ?? "").toLowerCase() === "true";
 
 const getPlanCredits = (plan: CreditPlan['planType']) => {
   switch (plan) {

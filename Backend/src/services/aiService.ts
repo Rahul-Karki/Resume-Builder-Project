@@ -471,7 +471,7 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
 export const improveText = async (context: AiPromptContext): Promise<StructuredAiResult<AiRewriteResult>> => {
   const fallback = buildRewriteFallback(context);
   const userPrompt = JSON.stringify({
-    task: "Improve a resume section without changing meaning or auto-applying edits.",
+    task: "Improve a resume section to be clearer, more ATS-friendly, and professionally written WITHOUT adding new facts.",
     tone: normalizeTone(context.tone),
     section: context.section,
     text: sliceText(context.text, 2500),
@@ -482,7 +482,21 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
   });
 
   return runStructuredAi<AiRewriteResult>(
-    "You are a resume writing assistant. Return JSON only with suggestions, variations, and a short summary. Never overwrite user text automatically.",
+    [
+      "You are a senior resume writing assistant.",
+      "Return JSON only with keys: suggestions (array), variations (array), summary (string).",
+      "Each suggestions[i] MUST be an object: {id, originalText, suggestionText, reason, impact}.",
+      "Hard rules:",
+      "- Do NOT invent experience, tools, employers, degrees, achievements, or numbers.",
+      "- Preserve all numbers, dates, company names, job titles, proper nouns, and acronyms unless the user text is clearly wrong (then only fix obvious spelling).",
+      "- NEVER modify or rewrite personal identifiers: name, email, phone, location, URLs/links (LinkedIn/GitHub/portfolio), or usernames/handles.",
+      "- If the input contains an email/URL/phone, keep it exactly unchanged in suggestionText.",
+      "- Keep meaning the same; improve clarity, grammar, and ATS keyword alignment where appropriate.",
+      "- Prefer active voice, strong verbs, and concise phrasing.",
+      "- Do not include markdown, backticks, or commentary outside JSON.",
+      "Quality bar:",
+      "- suggestions: 1-3 high-quality alternatives; variations: 2-4 short variants; summary: one sentence describing what improved.",
+    ].join("\n"),
     userPrompt,
     fallback,
     undefined,
@@ -494,7 +508,7 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
 export const checkGrammar = async (context: AiPromptContext): Promise<StructuredAiResult<AiGrammarResult>> => {
   const fallback = buildGrammarFallback(context.text);
   const userPrompt = JSON.stringify({
-    task: "Check grammar and spelling in this resume section. Return JSON only.",
+    task: "Check grammar and spelling in this resume text. Return JSON only. Do not rewrite content beyond grammar/spelling fixes.",
     section: context.section,
     text: sliceText(context.text, 2500),
     context: sliceText(context.context, 1000),
@@ -503,7 +517,18 @@ export const checkGrammar = async (context: AiPromptContext): Promise<Structured
   });
 
   return runStructuredAi<AiGrammarResult>(
-    "You are a grammar checker for resumes. Return JSON only. Focus on spelling, clarity, and concise professional language.",
+    [
+      "You are a strict grammar and spelling checker for resumes.",
+      "Return JSON only with keys: issues (array), correctedText (string).",
+      "Each issues[i] MUST be an object: {id, originalText, suggestionText, reason, severity}.",
+      "Hard rules:",
+      "- Only fix grammar, spelling, punctuation, and casing. Do NOT change meaning.",
+      "- Preserve proper nouns, company names, tech terms, acronyms, and formatting such as bullet-like fragments.",
+      "- NEVER change emails, phone numbers, URLs, or usernames/handles. Keep them exactly as-is.",
+      "- If the text is just a single word/phrase (e.g., a language name like 'English') or is an email/URL, return issues: [] and correctedText identical.",
+      "- Do not add or remove metrics, dates, or claims.",
+      "- Do not output markdown or non-JSON content.",
+    ].join("\n"),
     userPrompt,
     fallback,
     undefined,
@@ -515,7 +540,7 @@ export const checkGrammar = async (context: AiPromptContext): Promise<Structured
 export const enhanceBullet = async (context: AiPromptContext): Promise<StructuredAiResult<AiRewriteResult>> => {
   const fallback = buildBulletFallback(context);
   const userPrompt = JSON.stringify({
-    task: "Rewrite a resume bullet to be stronger, concise, and ATS-friendly.",
+    task: "Rewrite a single resume bullet to be stronger, concise, and ATS-friendly WITHOUT adding new facts.",
     tone: normalizeTone(context.tone),
     section: context.section,
     text: sliceText(context.text, 2000),
@@ -525,7 +550,19 @@ export const enhanceBullet = async (context: AiPromptContext): Promise<Structure
   });
 
   return runStructuredAi<AiRewriteResult>(
-    "You are a senior resume writer. Return JSON only. Prefer action verbs, measurable impact, and professional phrasing.",
+    [
+      "You are a senior resume writer.",
+      "Return JSON only with keys: suggestions (array), variations (array), summary (string).",
+      "Each suggestions[i] MUST be an object: {id, originalText, suggestionText, reason, impact}.",
+      "Hard rules:",
+      "- Keep it one bullet (no multiple bullets, no paragraphs).",
+      "- Do NOT add new tools, metrics, dates, certifications, or achievements not present in the input.",
+      "- Preserve all numbers and units exactly (%, $, time, counts).",
+      "- Remove weak phrasing (worked on/helped/responsible for) when possible without changing meaning.",
+      "- Prefer: Action verb + what + how + measurable impact (only if impact exists in input).",
+      "- Do not mention personal contact info; keep any URLs/emails unchanged if present.",
+      "- Do not output markdown or non-JSON.",
+    ].join("\n"),
     userPrompt,
     fallback,
     undefined,
@@ -768,7 +805,17 @@ export const analyzeResumeForAts = async (context: AtsPromptContext & { jobId?: 
   const userPrompt = JSON.stringify(buildAtsPromptPayload(context));
 
   const structured = await runStructuredAi<AtsAnalysisReport>(
-    "You are an ATS resume analyzer. Return JSON only. Do not invent scores; base them on the provided resume and keyword evidence.",
+    [
+      "You are an ATS resume analyzer.",
+      "Return JSON only and follow the requested outputShape.",
+      "Hard rules:",
+      "- Base scores strictly on the provided resume content and keyword evidence.",
+      "- Do NOT invent missing sections, employers, education, skills, or achievements.",
+      "- grammarIssues and rewriteSuggestions must reference only text that exists in the resume payload.",
+      "- When suggesting keywords, prefer the provided keywords list; do not add unrelated buzzwords.",
+      "Quality bar:",
+      "- Provide actionable, specific suggestions (what to change + where) without fabricating facts.",
+    ].join("\n"),
     userPrompt,
     fallback,
     undefined,

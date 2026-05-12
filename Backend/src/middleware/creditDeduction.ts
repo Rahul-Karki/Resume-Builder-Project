@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from "express";
+import { calculateEstimatedCredits, type AiOperation } from "../utils/creditCalculator";
+import { compactText } from "../../../shared/src/ai";
 
 export interface CreditDeductionOptions {
-  operation: 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
+  operation: AiOperation;
   textLength?: number;
 }
 
@@ -27,7 +29,28 @@ declare global {
  */
 export const creditDeductionMiddleware = (options: CreditDeductionOptions) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    void options;
+    try {
+      const userId = req.user?.id;
+      if (!userId) return next();
+
+      const rawText = options.operation === "ats-analysis"
+        ? compactText(req.body?.jobDescription ?? "") + "\n" + JSON.stringify(req.body?.resume ?? {})
+        : compactText(req.body?.text ?? "");
+
+      const inferredLength = options.textLength ?? rawText.length;
+      const estimatedCredits = calculateEstimatedCredits(options.operation, inferredLength);
+
+      req.creditsUsed = estimatedCredits;
+      req.creditContext = {
+        userId,
+        operation: options.operation,
+        estimatedCredits,
+        remainingCredits: -1,
+      };
+    } catch {
+      // Estimation errors should never break the request.
+    }
+
     return next();
   };
 };

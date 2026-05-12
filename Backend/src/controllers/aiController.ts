@@ -9,6 +9,9 @@ import type { AiTone } from "../../../shared/src/ai";
 import { calculateAICost } from "../utils/tokenCounter";
 import { trackAiRequest, trackValidationError } from "../observability/aiMetrics";
 import { MemoryLRUCache } from "../utils/memoryCache";
+import { env } from "../config/env";
+import { assertAiCreditsAvailable, deductAiCredits, refreshAiCreditsIfNeeded } from "../utils/aiCredits";
+import type { AiOperation } from "../utils/creditCalculator";
 
 /**
  * In-memory AI response cache. Prevents redundant API calls for identical text inputs.
@@ -54,6 +57,57 @@ const getCostProvider = (provider: string | undefined): "openai" | "gemini" => {
   return provider === "openai" ? "openai" : "gemini";
 };
 
+const aiProvidersConfigured = () => {
+  if (env.AI_PROVIDER === "openai") return Boolean(env.OPENAI_API_KEY);
+  if (env.AI_PROVIDER === "gemini") return Boolean(env.GEMINI_API_KEY);
+  return Boolean(env.OPENAI_API_KEY || env.GEMINI_API_KEY);
+};
+
+const setAiResponseHeaders = (res: Response, headers: {
+  cached: boolean;
+  fallback?: boolean;
+  provider?: string;
+  model?: string;
+  creditsEstimated?: number;
+  creditsDeducted?: number;
+  creditsRemaining?: number;
+  creditsResetAt?: Date;
+  creditsPlan?: string;
+}) => {
+  res.setHeader("x-ai-cached", headers.cached ? "1" : "0");
+  if (headers.fallback !== undefined) res.setHeader("x-ai-fallback", headers.fallback ? "1" : "0");
+  if (headers.provider) res.setHeader("x-ai-provider", headers.provider);
+  if (headers.model) res.setHeader("x-ai-model", headers.model);
+  if (typeof headers.creditsEstimated === "number") res.setHeader("x-ai-credits-estimated", String(headers.creditsEstimated));
+  if (typeof headers.creditsDeducted === "number") res.setHeader("x-ai-credits-deducted", String(headers.creditsDeducted));
+  if (typeof headers.creditsRemaining === "number") res.setHeader("x-ai-credits-remaining", String(headers.creditsRemaining));
+  if (headers.creditsResetAt) res.setHeader("x-ai-credits-reset-at", new Date(headers.creditsResetAt).toISOString());
+  if (headers.creditsPlan) res.setHeader("x-ai-credits-plan", headers.creditsPlan);
+};
+
+const enforceCreditsIfNeeded = async (operation: AiOperation, req: Request, userId: string) => {
+  if (!env.AI_CREDITS_ENFORCED) return;
+  if (!aiProvidersConfigured()) return;
+  const estimatedCredits = req.creditContext?.estimatedCredits ?? 0;
+  await assertAiCreditsAvailable(userId, estimatedCredits);
+  (req as Request & { _aiCreditsEstimated?: number; _aiOperation?: AiOperation })._aiCreditsEstimated = estimatedCredits;
+  (req as Request & { _aiCreditsEstimated?: number; _aiOperation?: AiOperation })._aiOperation = operation;
+};
+
+const maybeDeductCredits = async (req: Request, userId: string, shouldDeduct: boolean) => {
+  if (!env.AI_CREDITS_ENFORCED) return { deducted: 0, user: null as any };
+
+  const estimatedCredits = (req as Request & { _aiCreditsEstimated?: number })._aiCreditsEstimated ?? req.creditContext?.estimatedCredits ?? 0;
+
+  if (!shouldDeduct) {
+    const user = await refreshAiCreditsIfNeeded(userId);
+    return { deducted: 0, user };
+  }
+
+  const user = await deductAiCredits(userId, estimatedCredits);
+  return { deducted: estimatedCredits, user };
+};
+
 export const improveTextHandler: RequestHandler = async (req, res) => {
   const requestId = getRequestId(req);
   const span = startControllerSpan("ai.improveText", req);
@@ -78,10 +132,17 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
       if (cached) {
         logger.debug({ requestId, userId, cacheKey }, "AI improve-text cache hit");
         markSpanSuccess(span);
+        setAiResponseHeaders(res, {
+          cached: true,
+          creditsEstimated: req.creditContext?.estimatedCredits,
+          creditsDeducted: 0,
+        });
         res.status(200).json(JSON.parse(cached));
         return;
       }
     }
+
+    await enforceCreditsIfNeeded("improve-text", req, userId);
 
     const result = await improveText({ text, section, tone, context, targetRole, userId, variationSeed });
 
@@ -123,6 +184,20 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
     );
 
     markSpanSuccess(span);
+
+    const { deducted, user } = await maybeDeductCredits(req, userId, !(result._fallback || false));
+    setAiResponseHeaders(res, {
+      cached: false,
+      fallback: result._fallback || false,
+      provider: result._provider,
+      model: result._model,
+      creditsEstimated: req.creditContext?.estimatedCredits,
+      creditsDeducted: deducted,
+      creditsRemaining: user?.aiCreditsRemaining,
+      creditsResetAt: user?.aiCreditsResetAt,
+      creditsPlan: user?.aiCreditsPlan,
+    });
+
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
     // Cache the response for future identical requests
@@ -174,10 +249,17 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
       if (cached) {
         logger.debug({ requestId, userId, cacheKey }, "AI check-grammar cache hit");
         markSpanSuccess(span);
+        setAiResponseHeaders(res, {
+          cached: true,
+          creditsEstimated: req.creditContext?.estimatedCredits,
+          creditsDeducted: 0,
+        });
         res.status(200).json(JSON.parse(cached));
         return;
       }
     }
+
+    await enforceCreditsIfNeeded("check-grammar", req, userId);
 
     const result = await checkGrammar({ text, section, context, userId, variationSeed });
 
@@ -220,6 +302,20 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
     );
 
     markSpanSuccess(span);
+
+    const { deducted, user } = await maybeDeductCredits(req, userId, !(result._fallback || false));
+    setAiResponseHeaders(res, {
+      cached: false,
+      fallback: result._fallback || false,
+      provider: result._provider,
+      model: result._model,
+      creditsEstimated: req.creditContext?.estimatedCredits,
+      creditsDeducted: deducted,
+      creditsRemaining: user?.aiCreditsRemaining,
+      creditsResetAt: user?.aiCreditsResetAt,
+      creditsPlan: user?.aiCreditsPlan,
+    });
+
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
     // Cache the response for future identical requests
@@ -273,10 +369,17 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
       if (cached) {
         logger.debug({ requestId, userId, cacheKey }, "AI enhance-bullet cache hit");
         markSpanSuccess(span);
+        setAiResponseHeaders(res, {
+          cached: true,
+          creditsEstimated: req.creditContext?.estimatedCredits,
+          creditsDeducted: 0,
+        });
         res.status(200).json(JSON.parse(cached));
         return;
       }
     }
+
+    await enforceCreditsIfNeeded("enhance-bullet", req, userId);
 
     const result = await enhanceBullet({ text, section, tone, context, targetRole, userId, variationSeed });
 
@@ -318,6 +421,20 @@ export const enhanceBulletHandler: RequestHandler = async (req, res) => {
     );
 
     markSpanSuccess(span);
+
+    const { deducted, user } = await maybeDeductCredits(req, userId, !(result._fallback || false));
+    setAiResponseHeaders(res, {
+      cached: false,
+      fallback: result._fallback || false,
+      provider: result._provider,
+      model: result._model,
+      creditsEstimated: req.creditContext?.estimatedCredits,
+      creditsDeducted: deducted,
+      creditsRemaining: user?.aiCreditsRemaining,
+      creditsResetAt: user?.aiCreditsResetAt,
+      creditsPlan: user?.aiCreditsPlan,
+    });
+
     // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
     // Cache the response for future identical requests

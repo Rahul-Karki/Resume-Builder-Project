@@ -282,7 +282,7 @@ async function downloadResume(
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ResumeBuilder() {
-  const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
+  const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume, updatePersonalInfo } = useResumeBuilderStore();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -308,6 +308,29 @@ export default function ResumeBuilder() {
 
     initFromTemplate(templateId);
   }, []);
+
+  // Prefill immutable personal info from the authenticated user.
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const response = await api.get("/auth/me");
+        const user = response.data?.user;
+        if (!user || cancelled) return;
+
+        const nextName = String(user.name ?? "").trim();
+        const nextEmail = String(user.email ?? "").trim();
+
+        if (!resume.personalInfo.name?.trim() && nextName) updatePersonalInfo("name", nextName);
+        if (!resume.personalInfo.email?.trim() && nextEmail) updatePersonalInfo("email", nextEmail);
+      } catch {
+        // ignore: builder should still function without this call
+      }
+    };
+
+    void run();
+    return () => { cancelled = true; };
+  }, [resume.personalInfo.name, resume.personalInfo.email, updatePersonalInfo]);
 
   // Ctrl+S to save
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

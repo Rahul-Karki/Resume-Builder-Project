@@ -91,15 +91,18 @@ const getFocusTarget = (
   if (focusedField?.kind === "projects") {
     const entry = resume.sections.projects.find((item) => item.id === focusedField.entityId);
     if (entry) {
-      const text = focusedField.field === "description" ? compact(entry.description)
-        : focusedField.index !== undefined ? compact(entry.bullets[focusedField.index] ?? "")
-        : focusedField.field === "tech" ? compact(entry.tech)
-        : focusedField.field === "link" ? compact(entry.link) : compact(entry.name);
+      if (!(focusedField.field === "description" || focusedField.index !== undefined)) {
+        return null;
+      }
+      const text = focusedField.field === "description"
+        ? compact(entry.description)
+        : focusedField.index !== undefined
+          ? compact(entry.bullets[focusedField.index] ?? "")
+          : compact(entry.description);
       return {
         text, section: "projects" as const, context: entry.name, label: focusedField.label,
         applySuggestion: (suggestion: string) => {
           if (focusedField.field === "description") { store.updateProject(entry.id, "description", suggestion); return; }
-          if (focusedField.field === "tech" || focusedField.field === "link" || focusedField.field === "name") { store.updateProject(entry.id, focusedField.field, suggestion); return; }
           if (focusedField.index !== undefined) { store.updateProjectBullet(entry.id, focusedField.index, suggestion); }
         },
       } satisfies FocusTarget;
@@ -107,50 +110,19 @@ const getFocusTarget = (
   }
 
   if (focusedField?.kind === "education") {
-    const entry = resume.sections.education.find((item) => item.id === focusedField.entityId);
-    if (entry) {
-      const text = compact(String((entry as unknown as Record<string, unknown>)[focusedField.field ?? "institution"] ?? entry.institution));
-      return {
-        text, section: "education" as const, context: entry.institution, label: focusedField.label,
-        applySuggestion: (suggestion: string) => { if (focusedField.field) store.updateEducation(entry.id, focusedField.field as keyof typeof entry, suggestion); },
-      } satisfies FocusTarget;
-    }
+    return null;
   }
 
   if (focusedField?.kind === "skills") {
-    const entry = resume.sections.skills.find((item) => item.id === focusedField.entityId);
-    if (entry) {
-      const text = focusedField.field === "items" ? compact(entry.items.join(", ")) : compact(entry.category);
-      return {
-        text, section: "skills" as const, context: entry.category, label: focusedField.label,
-        applySuggestion: (suggestion: string) => {
-          if (focusedField.field === "items") { const items = suggestion.split(/[,\n]/).map((item) => compact(item)).filter(Boolean); store.updateSkillGroup(entry.id, "items", items.length > 0 ? items : entry.items); return; }
-          store.updateSkillGroup(entry.id, "category", suggestion);
-        },
-      } satisfies FocusTarget;
-    }
+    return null;
   }
 
   if (focusedField?.kind === "certification") {
-    const entry = resume.sections.certifications.find((item) => item.id === focusedField.entityId);
-    if (entry) {
-      const text = compact(String((entry as unknown as Record<string, unknown>)[focusedField.field ?? "name"] ?? entry.name));
-      return {
-        text, section: "certifications" as const, context: entry.issuer, label: focusedField.label,
-        applySuggestion: (suggestion: string) => { if (focusedField.field) store.updateCertification(entry.id, focusedField.field as keyof typeof entry, suggestion); },
-      } satisfies FocusTarget;
-    }
+    return null;
   }
 
   if (focusedField?.kind === "language") {
-    const entry = resume.sections.languages.find((item) => item.id === focusedField.entityId);
-    if (entry) {
-      const text = compact(String((entry as unknown as Record<string, unknown>)[focusedField.field ?? "language"] ?? entry.language));
-      return {
-        text, section: "languages" as const, context: entry.language, label: focusedField.label,
-        applySuggestion: (suggestion: string) => { if (focusedField.field) store.updateLanguage(entry.id, focusedField.field as keyof typeof entry, suggestion); },
-      } satisfies FocusTarget;
-    }
+    return null;
   }
 
   if (section === "personal") {
@@ -189,16 +161,7 @@ const getFocusTarget = (
   }
 
   if (section === "skills") {
-    const entry = [...resume.sections.skills].reverse().find((item) => compact(item.category) || item.items.length > 0);
-    if (!entry) return null;
-    return {
-      text: compact([entry.category, entry.items.join(", ")].filter(Boolean).join(" - ")),
-      section: "skills" as const, context: entry.category,
-      applySuggestion: (suggestion: string) => {
-        const items = suggestion.split(/[,\n]/).map((item) => compact(item)).filter(Boolean);
-        store.updateSkillGroup(entry.id, "items", items.length > 0 ? items : entry.items);
-      },
-    } satisfies FocusTarget;
+    return null;
   }
 
   return null;

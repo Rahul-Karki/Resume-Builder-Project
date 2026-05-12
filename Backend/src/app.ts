@@ -52,6 +52,18 @@ export const createApp = () => {
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "X-CSRF-Token"],
+    exposedHeaders: [
+      "X-CSRF-Token",
+      "x-ai-cached",
+      "x-ai-fallback",
+      "x-ai-provider",
+      "x-ai-model",
+      "x-ai-credits-estimated",
+      "x-ai-credits-deducted",
+      "x-ai-credits-remaining",
+      "x-ai-credits-reset-at",
+      "x-ai-credits-plan",
+    ],
   };
 
   app.use(helmet({

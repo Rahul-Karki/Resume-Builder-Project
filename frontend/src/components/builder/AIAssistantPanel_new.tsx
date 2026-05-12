@@ -443,6 +443,35 @@ export function AIAssistantPanel() {
 
   const target = useMemo(() => getFocusTarget(resume, ui.focusedField, ui.activeSection, store), [resume, ui.focusedField, ui.activeSection, store]);
 
+  const eligibility = useMemo(() => {
+    const focused = ui.focusedField;
+    if (!focused || !target) {
+      return { allowImprove: false, allowGrammar: false, reason: "Select a text field to use AI." };
+    }
+
+    const hasText = target.text && target.text.length >= 5;
+    if (!hasText) {
+      return { allowImprove: false, allowGrammar: false, reason: "Add some text first." };
+    }
+
+    if (focused.kind === "personal") {
+      if (focused.field === "summary") return { allowImprove: true, allowGrammar: true, reason: null as string | null };
+      return { allowImprove: false, allowGrammar: false, reason: "AI is disabled for contact fields (name/email/phone/links)." };
+    }
+
+    if (focused.kind === "experience") {
+      if (focused.field === "description" || focused.index !== undefined) return { allowImprove: true, allowGrammar: true, reason: null as string | null };
+      return { allowImprove: false, allowGrammar: false, reason: "AI is enabled only for experience description/bullets." };
+    }
+
+    if (focused.kind === "projects") {
+      if (focused.field === "description" || focused.index !== undefined) return { allowImprove: true, allowGrammar: true, reason: null as string | null };
+      return { allowImprove: false, allowGrammar: false, reason: "AI is enabled only for project description/bullets." };
+    }
+
+    return { allowImprove: false, allowGrammar: false, reason: "AI is disabled for this field." };
+  }, [ui.focusedField, target]);
+
   useEffect(() => {
     setRewrite(null);
     setGrammar(null);
@@ -464,22 +493,24 @@ export function AIAssistantPanel() {
 
   const handleImprove = useCallback(() => {
     if (!target) return;
+    if (!eligibility.allowImprove) { setError(eligibility.reason || "AI is disabled for this field."); return; }
     setLoading(true); setError(null);
     const payload = { text: target.text, section: target.section, tone, context: target.context, targetRole: resume.personalInfo.title || resume.title };
     const request = target.section === "experience" || target.section === "projects" ? enhanceResumeBullet(payload) : improveResumeText(payload);
     request.then((result) => { setRewrite(result); setLastUpdatedAt(new Date().toISOString()); })
       .catch((err) => setError(err instanceof Error ? err.message : "AI suggestions failed"))
       .finally(() => setLoading(false));
-  }, [target, tone, resume.personalInfo.title, resume.title]);
+  }, [target, eligibility.allowImprove, eligibility.reason, tone, resume.personalInfo.title, resume.title]);
 
   const handleGrammar = useCallback(() => {
     if (!target) return;
+    if (!eligibility.allowGrammar) { setError(eligibility.reason || "AI is disabled for this field."); return; }
     setLoading(true); setError(null);
     checkResumeGrammar({ text: target.text, section: target.section, context: target.context })
       .then((result) => { setGrammar(result); setLastUpdatedAt(new Date().toISOString()); })
       .catch((err) => setError(err instanceof Error ? err.message : "Grammar check failed"))
       .finally(() => setLoading(false));
-  }, [target]);
+  }, [target, eligibility.allowGrammar, eligibility.reason]);
 
   // Collapsed state - just show the header
   if (!isExpanded) {
@@ -554,17 +585,23 @@ export function AIAssistantPanel() {
 
             {/* Action buttons */}
             <div className="ai-actions">
-              <button className="ai-btn-primary" onClick={handleImprove} disabled={loading}>
+              <button className="ai-btn-primary" onClick={handleImprove} disabled={loading || !eligibility.allowImprove}>
                 {loading ? <Loader2 size={12} className="ai-spin" /> : <RefreshCw size={12} />} 
                 Improve
               </button>
-              <button className="ai-btn-secondary" onClick={handleGrammar} disabled={loading}>
+              <button className="ai-btn-secondary" onClick={handleGrammar} disabled={loading || !eligibility.allowGrammar}>
                 <PenTool size={12} /> Grammar
               </button>
               <span className="ai-status">
                 {loading ? "Working..." : lastUpdatedAt ? "Updated" : "Ready"}
               </span>
             </div>
+
+            {eligibility.reason && !error && (
+              <div className="ai-error" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)", color: "#888" }}>
+                <AlertCircle size={12} /> {eligibility.reason}
+              </div>
+            )}
 
             {/* Loading skeleton */}
             {loading && !rewrite && !grammar && (
