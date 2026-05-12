@@ -142,7 +142,7 @@ export interface ResumeDocument {
 
 // ─── Builder UI State ──────────────────────────────────────────────────────────
 
-export type EditorTab = "content" | "style" | "sections";
+export type EditorTab = "content" | "style" | "sections" | "ats" | "ai";
 export type ActiveSection =
   | "personal"
   | "experience"
@@ -275,3 +275,29 @@ export interface TemplateMeta {
 }
 export type SortOption = "updatedAt" | "createdAt" | "title" | "completion";
 export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; }
+
+// ─── ATS Analysis Types ────────────────────────────────────────────────────────
+
+export interface AtsSuggestion {
+  id: string;
+  path: string;
+  originalText: string;
+  suggestionText: string;
+  reason: string;
+  impact: "low" | "medium" | "high";
+}
+
+export interface AtsAnalysisResult {
+  _id: string;
+  resumeId: string;
+  scoreOverall: number;
+  sectionScores: {
+    summary: number;
+    experience: number;
+    skills: number;
+    education: number;
+    formatting: number;
+  };
+  missingKeywords: string[];
+  rewriteSuggestions: AtsSuggestion[];
+}
