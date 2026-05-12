@@ -12,6 +12,39 @@ const buildSkillKeywords = (resume = useResumeBuilderStore.getState().resume) =>
   return Array.from(new Set(skills.map((item) => compact(item).toLowerCase()).filter(Boolean))).slice(0, 20);
 };
 
+const buildQuickWins = (analysis: AtsAnalysisReport | null) => {
+  if (!analysis) return [];
+
+  const quickWins: string[] = [];
+  const missingKeywords = analysis.keywordAnalysis.missingKeywords.slice(0, 5);
+
+  if (missingKeywords.length > 0) {
+    quickWins.push(`Add these missing keywords to Skills or Experience: ${missingKeywords.join(", ")}`);
+  }
+
+  if (analysis.sectionScores.summary < 70) {
+    quickWins.push("Rewrite the Professional Summary with job-title keywords and 1-2 measurable outcomes.");
+  }
+
+  if (analysis.sectionScores.skills < 70) {
+    quickWins.push("Expand the Skills section with the most important JD terms and keep the wording exact.");
+  }
+
+  if (analysis.sectionScores.experience < 70) {
+    quickWins.push("Turn weak bullets into action + impact statements using numbers, scope, or outcomes.");
+  }
+
+  if (analysis.sectionScores.projects < 60) {
+    quickWins.push("Add or refresh one project that proves the top JD skills in a real context.");
+  }
+
+  if (analysis.formattingChecks.some((check) => !check.passed)) {
+    quickWins.push("Fix the formatting checks marked FIX to improve ATS parsing reliability.");
+  }
+
+  return quickWins.slice(0, 5);
+};
+
 type Props = { expanded?: boolean };
 
 const css = `
@@ -261,6 +294,7 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
   const lastHeaderClick = React.useRef(0);
 
   const fallbackKeywords = useMemo(() => buildSkillKeywords(resume), [resume]);
+  const quickWins = useMemo(() => buildQuickWins(analysis), [analysis]);
 
   useEffect(() => { setJobTitle(resume.personalInfo.title || resume.title); }, [resume.personalInfo.title, resume.title]);
 
@@ -544,6 +578,22 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
                     </div>
                   </div>
                 )}
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ fontSize: 10, color: "#666", fontWeight: 600, textTransform: "uppercase", marginBottom: 6 }}>
+                    How to increase score
+                  </div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {quickWins.length > 0
+                      ? quickWins.map((win, index) => (
+                          <div key={win} className="ats-issue-card" style={{ marginBottom: 0, padding: 8 }}>
+                            <div className="ats-issue-reason">Quick win {index + 1}</div>
+                            <div className="ats-issue-text">{win}</div>
+                          </div>
+                        ))
+                      : <div style={{ color: "#666", fontSize: 11 }}>No obvious quick wins left. Refine the wording and re-run analysis after edits.</div>
+                    }
+                  </div>
+                </div>
               </div>
 
               {/* Formatting Checks */}
@@ -560,8 +610,8 @@ export function ATSAnalysisPanel({ expanded = true }: Props) {
               {/* Suggestions */}
               {(analysis.grammarIssues.length > 0 || analysis.rewriteSuggestions.length > 0) && (
                 <div className="ats-block">
-                  <div className="ats-block-title"><Edit3 size={12} /> Suggestions ({analysis.grammarIssues.length + analysis.rewriteSuggestions.length})</div>
-                  {[...analysis.grammarIssues, ...analysis.rewriteSuggestions].slice(0, 3).map((item) => (
+                  <div className="ats-block-title"><Edit3 size={12} /> Rewrite Suggestions ({analysis.grammarIssues.length + analysis.rewriteSuggestions.length})</div>
+                  {[...analysis.grammarIssues, ...analysis.rewriteSuggestions].slice(0, 5).map((item) => (
                     <div key={item.id} className="ats-issue-card">
                       <div className="ats-issue-reason">{item.reason}</div>
                       <div className="ats-issue-text">{item.suggestionText}</div>
