@@ -7,6 +7,8 @@ import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
 import { AtsPanel } from "@/components/builder/AtsPanel";
 import { AiAssistPanel } from "@/components/builder/AiAssistPanel";
+import { AIAssistantPanel } from "@/components/builder/AIAssistantPanel";
+import { ATSAnalysisPanel } from "@/components/builder/ATSAnalysisPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
@@ -208,7 +210,17 @@ const normalizeDownloadUrl = (downloadUrl: string) => {
   if (downloadUrl.startsWith("/api/")) {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
     const backendBase = apiBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-    return `${backendBase}${downloadUrl}`;
+    const normalizedUrl = `${backendBase}${downloadUrl}`;
+    
+    // Log for debugging
+    console.log('[Download] Normalizing URL:', {
+      downloadUrl,
+      apiBaseUrl,
+      backendBase,
+      normalizedUrl
+    });
+    
+    return normalizedUrl;
   }
 
   return downloadUrl;
@@ -216,6 +228,8 @@ const normalizeDownloadUrl = (downloadUrl: string) => {
 
 const openPdfInNewTab = (downloadUrl: string) => {
   const url = normalizeDownloadUrl(downloadUrl);
+  console.log('[Download] Opening PDF in new tab:', url);
+  
   // Open PDF directly in browser's native viewer
   // Browser detects Content-Type: application/pdf and activates native PDF viewer
   // User gets zoom, print, and native save/download controls
@@ -250,11 +264,15 @@ async function downloadResume(
 ) {
   onStatus?.("Queuing PDF export...");
 
+  console.log('[Download] Starting download process:', { resumeId, preset });
+
   const queueResponse = await queueResumeDownload(
     resumeId
       ? { resumeId, preset }
       : { resume, preset },
   );
+
+  console.log('[Download] Queue response:', queueResponse);
 
   const initialDownloadUrl = queueResponse.resultUrl || queueResponse.downloadUrl;
 
@@ -271,6 +289,8 @@ async function downloadResume(
   onStatus?.("Generating PDF...");
   const completedJob = await waitForResumeDownload(queueResponse.jobId, onStatus);
   const downloadUrl = completedJob.resultUrl || initialDownloadUrl;
+
+  console.log('[Download] Job completed:', { completedJob, downloadUrl });
 
   if (!downloadUrl) {
     throw new Error("Resume download finished without a download URL.");
@@ -359,14 +379,17 @@ export default function ResumeBuilder() {
 
   const handleDownload = () => {
     if (!canDownload || isExporting) {
+      console.log('[Download] Download blocked:', { canDownload, isExporting, isEditingExistingResume, resumeId: resume.id ?? resume._id, ui });
       return;
     }
     setIsExporting(true);
     setExportError(null);
     setExportStatus("Preparing export...");
     const resumeId = resume.id ?? resume._id;
+    console.log('[Download] Starting download with resumeId:', resumeId);
     void downloadResume(resume, ui.exportPreset, resumeId, setExportStatus)
       .catch((error) => {
+        console.error('[Download] Error:', error);
         const message = error instanceof Error ? error.message : "Resume download failed. Please try again.";
         setExportError(message);
         setExportStatus(message);
@@ -499,7 +522,7 @@ export default function ResumeBuilder() {
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               {ui.activeTab === "content"  && (
                 <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-                  <AIAssistantPanel />
+                  <AiAssistPanel />
                   <div style={{ flex: 1, overflow: "auto" }}>
                     <EditorPanel />
                   </div>
@@ -591,7 +614,8 @@ export default function ResumeBuilder() {
 
           {/* ─── RIGHT PANEL: Live Preview ─── */}
           <div style={{ flex: 1, minHeight: isMobile ? "50vh" : "auto", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
-            <ATSAnalysisPanel />
+            {/* ATS Analysis Panel - temporarily commented out due to missing implementation */}
+            {/* <ATSAnalysisPanel /> */}
             {/* Preview panel with inner ID for export */}
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <div id="resume-preview-inner" style={{ display: "none" }}>
