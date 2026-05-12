@@ -84,7 +84,7 @@ function Input({
 }
 
 // TextArea with focus state handler
-function TextArea({ 
+function FocusedTextArea({ 
   value, 
   onChange, 
   onFocus, 
@@ -364,10 +364,13 @@ function PersonalSection() {
           <span style={label}>Professional Summary</span>
           <InlineEnhanceTip text={p.summary} context="summary" />
         </div>
-        <textarea value={p.summary} onChange={e => updatePersonalInfo("summary", e.target.value)}
-          rows={5} placeholder="Senior engineer with 7+ years building scalable systems…" style={ta}
-          onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
-          onBlur={e => e.currentTarget.style.borderColor = "#252525"}
+        <FocusedTextArea
+          value={p.summary}
+          onChange={v => updatePersonalInfo("summary", v)}
+          onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "summary", label: "Professional Summary" })}
+          placeholder="Operations leader with 7+ years improving service quality, team coordination, and client satisfaction across fast-paced environments."
+          rows={5}
+          hint={`${p.summary.length} characters · Aim for 2–4 impactful sentences`}
         />
       </div>
     </div>
