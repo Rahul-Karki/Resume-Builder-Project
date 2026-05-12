@@ -1,23 +1,23 @@
-import React, { useEffect, useCallback, useRef, useState } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
 import { EditorPanel } from "@/components/builder/editorPanel";
 import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
-import { ATSAnalysisPanel } from "@/components/builder/ATSAnalysisPanel";
-import { AIAssistantPanel } from "@/components/builder/AIAssistantPanel";
+import { AtsPanel } from "@/components/builder/AtsPanel";
+import { AiAssistPanel } from "@/components/builder/AiAssistPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
-import { FileText, Palette, LayoutGrid } from "lucide-react";
-
-const TABS: { id: EditorTab; label: string; icon: React.ReactNode; description: string }[] = [
-  { id: "content",  label: "Content",  icon: <FileText size={14} />, description: "Fill in your resume information" },
-  { id: "style",    label: "Style",    icon: <Palette size={14} />, description: "Customize colors, fonts & layout" },
-  { id: "sections", label: "Sections", icon: <LayoutGrid size={14} />, description: "Show/hide and reorder sections" },
+const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
+  { id: "content",  label: "Content",  icon: "◉", description: "Fill in your resume information" },
+  { id: "style",    label: "Style",    icon: "◈", description: "Customize colors, fonts & layout" },
+  { id: "sections", label: "Sections", icon: "◧", description: "Show/hide and reorder sections" },
+  { id: "ai",       label: "AI Assist", icon: "✦", description: "AI writing tips and enhancement tools" },
+  { id: "ats",      label: "ATS",      icon: "◎", description: "Check your ATS compatibility score" },
 ];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────
@@ -511,6 +511,8 @@ export default function ResumeBuilder() {
                   <SectionsTab />
                 </div>
               )}
+              {ui.activeTab === "ai" && <AiAssistPanel />}
+              {ui.activeTab === "ats" && <AtsPanel />}
             </div>
 
             {/* Bottom status bar */}

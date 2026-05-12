@@ -8,7 +8,17 @@ import {
   getResumeDownloadJobStatus,
   getResumeQueueMetrics,
 } from "../controllers/resumeDownloadController";
-import { getExportPreset } from "../controllers/resumeEnhancementController";
+import {
+  getExportPreset,
+  analyzeAts,
+  applyAtsSuggestion,
+  listResumeVersions,
+  compareResumeVersions,
+  restoreResumeVersion,
+  createRoleTailoredVariant,
+  getAtsAnalysisByJobId,
+  getLatestAtsAnalysis,
+} from "../controllers/resumeEnhancementController";
 import {
   createResume as baseCreateResume,
   deleteResume as baseDeleteResume,
@@ -30,11 +40,6 @@ import {
   atsAnalysisRequestSchema,
   atsAnalysisLookupSchema,
 } from "../validation/schemas";
-import {
-  analyzeAts,
-  getAtsAnalysisByJobId,
-  getLatestAtsAnalysis,
-} from "../controllers/resumeEnhancementController";
 
 const router = express.Router();
 
@@ -97,5 +102,12 @@ router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateRe
 router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
 
 router.post("/:id/export-pdf", validateRequest({ params: objectIdParamSchema, body: exportPresetSchema }), resumeExportLimiter, getExportPreset);
+
+router.post("/:id/ats-analysis", analyzeAts);
+router.post("/:id/apply-suggestion", applyAtsSuggestion);
+router.get("/:id/versions", listResumeVersions);
+router.post("/:id/compare-versions", compareResumeVersions);
+router.post("/:id/restore-version/:versionNo", restoreResumeVersion);
+router.post("/:id/variant", createRoleTailoredVariant);
 
 export default router;
