@@ -2,6 +2,16 @@ import React, { useState } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry } from "@/types/resume-types";
 
+/* ─── CSS Animations ─────────────────────────────────────────────────────────── */
+const css = `
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(200,245,90,0); } 50% { box-shadow: 0 0 0 4px rgba(200,245,90,0.08); } }
+  .editor-fade-in { animation: fadeSlideIn 0.25s ease-out; }
+  .editor-card { animation: fadeSlideIn 0.2s ease-out; }
+  .editor-input:focus { border-color: rgba(200,245,90,0.4) !important; background: #1A1A1A !important; box-shadow: 0 0 0 3px rgba(200,245,90,0.08) !important; }
+  .editor-textarea:focus { border-color: rgba(200,245,90,0.4) !important; background: #1A1A1A !important; box-shadow: 0 0 0 3px rgba(200,245,90,0.08) !important; }
+`;
+
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
   width: "100%", 
@@ -74,6 +84,7 @@ function Input({
       }}
       onBlur={() => setIsFocused(false)}
       placeholder={placeholder}
+      className="editor-input"
       style={{
         ...inp,
         ...(isFocused ? inpFocus : {}),
@@ -113,6 +124,7 @@ function FocusedTextArea({
         onBlur={() => setIsFocused(false)}
         placeholder={placeholder}
         rows={rows}
+        className="editor-textarea"
         style={{
           ...ta,
           ...(isFocused ? inpFocus : {}),
@@ -191,7 +203,7 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ background: "#141414", border: "1px solid #252525", borderRadius: 10, overflow: "hidden", marginBottom: 8 }}>
+    <div className="editor-card" style={{ background: "#141414", border: "1px solid #252525", borderRadius: 10, overflow: "hidden", marginBottom: 8 }}>
       <div style={{ display: "flex", alignItems: "center", padding: "10px 12px", cursor: "pointer" }} onClick={() => setOpen(o => !o)}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#C8C7C0" }}>{title || <span style={{ color: "#444" }}>Untitled</span>}</div>
@@ -297,9 +309,9 @@ function Inp({ label: l, value, onChange, placeholder, type = "text" }: {
 }) {
   return fieldGroup(<>
     <span style={label}>{l}</span>
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={inp}
-      onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
-      onBlur={e => e.currentTarget.style.borderColor = "#252525"}
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="editor-input" style={inp}
+      onFocus={e => { e.currentTarget.style.borderColor = "rgba(200,245,90,0.4)"; e.currentTarget.style.background = "#1A1A1A"; }}
+      onBlur={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.background = "#141414"; }}
     />
   </>);
 }
@@ -310,9 +322,9 @@ function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
   return fieldGroup(<>
     <span style={label}>{l}</span>
     <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      rows={rows} style={ta}
-      onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
-      onBlur={e => e.currentTarget.style.borderColor = "#252525"}
+      rows={rows} className="editor-textarea" style={ta}
+      onFocus={e => { e.currentTarget.style.borderColor = "rgba(200,245,90,0.4)"; e.currentTarget.style.background = "#1A1A1A"; }}
+      onBlur={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.background = "#141414"; }}
     />
   </>);
 }
@@ -387,16 +399,16 @@ function ExperienceSection() {
       {experience.map((e: WorkEntry, idx: number) => (
         <EntryCard key={e.id} title={e.role || "New Role"} subtitle={e.company} onRemove={() => removeExperience(e.id)} defaultOpen={idx === experience.length - 1}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10, marginTop: 4 }}>
-            <div><span style={label}>Job Title</span><input value={e.role} onChange={v => updateExperience(e.id, "role", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "role", label: "Job Title" })} placeholder="Operations Supervisor" style={inp} /></div>
-            <div><span style={label}>Company</span><input value={e.company} onChange={v => updateExperience(e.id, "company", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "company", label: "Company" })} placeholder="BrightPath Services" style={inp} /></div>
+            <div><span style={label}>Job Title</span><input value={e.role} onChange={v => updateExperience(e.id, "role", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "role", label: "Job Title" })} placeholder="Operations Supervisor" className="editor-input" style={inp} /></div>
+            <div><span style={label}>Company</span><input value={e.company} onChange={v => updateExperience(e.id, "company", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "company", label: "Company" })} placeholder="BrightPath Services" className="editor-input" style={inp} /></div>
           </div>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>Location</span>
-            <input value={e.location} onChange={v => updateExperience(e.id, "location", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "location", label: "Location" })} placeholder="San Francisco, CA" style={inp} />
+            <input value={e.location} onChange={v => updateExperience(e.id, "location", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "location", label: "Location" })} placeholder="San Francisco, CA" className="editor-input" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
-            <div><span style={label}>Start Date</span><input value={e.start} onChange={v => updateExperience(e.id, "start", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "start", label: "Start Date" })} placeholder="Mar 2021" style={inp} /></div>
-            <div><span style={label}>End Date</span><input value={e.end} onChange={v => updateExperience(e.id, "end", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "end", label: "End Date" })} placeholder="Present" disabled={e.current} style={{ ...inp, opacity: e.current ? 0.4 : 1 }} /></div>
+            <div><span style={label}>Start Date</span><input value={e.start} onChange={v => updateExperience(e.id, "start", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "start", label: "Start Date" })} placeholder="Mar 2021" className="editor-input" style={inp} /></div>
+            <div><span style={label}>End Date</span><input value={e.end} onChange={v => updateExperience(e.id, "end", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "end", label: "End Date" })} placeholder="Present" disabled={e.current} style={{ ...inp, opacity: e.current ? 0.4 : 1 }} className="editor-input" /></div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 2 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                 <input type="checkbox" checked={e.current} onChange={v => updateExperience(e.id, "current", v.target.checked)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "current", label: "Current Role" })} />
@@ -418,11 +430,12 @@ function ExperienceSection() {
               <textarea
                 value={e.description}
                 onChange={v => updateExperience(e.id, "description", v.target.value)}
-                onFocus={(ev) => { ev.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "description", label: "Experience Summary" }); }}
+                onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(200,245,90,0.4)"; ev.currentTarget.style.background = "#1A1A1A"; setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "description", label: "Experience Summary" }); }}
                 rows={4}
                 placeholder="Summarize your impact, scope of work, and service outcomes in a concise paragraph..."
+                className="editor-textarea"
                 style={ta}
-                onBlur={ev => { ev.currentTarget.style.borderColor = "#252525"; }}
+                onBlur={ev => { ev.currentTarget.style.borderColor = "#2A2A2A"; ev.currentTarget.style.background = "#141414"; }}
               />
             </div>
           ) : (
@@ -437,6 +450,7 @@ function ExperienceSection() {
                       onChange={v => updateBullet(e.id, i, v.target.value)}
                       placeholder="Describe a quantifiable achievement…"
                       rows={2}
+                      className="editor-textarea"
                       style={{ ...ta, flex: 1, minHeight: 44 }}
                     />
                     <button onClick={() => removeBullet(e.id, i)}
@@ -468,15 +482,15 @@ function EducationSection() {
         <EntryCard key={e.id} title={e.institution || "New School"} subtitle={e.degree && e.field ? `${e.degree} ${e.field}` : ""} onRemove={() => removeEducation(e.id)} defaultOpen={idx === resume.sections.education.length - 1}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Institution</span>
-            <input value={e.institution} onChange={v => updateEducation(e.id, "institution", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "institution", label: "Institution" })} placeholder="State University of New York" style={inp} />
+            <input value={e.institution} onChange={v => updateEducation(e.id, "institution", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "institution", label: "Institution" })} placeholder="State University of New York" className="editor-input" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <div><span style={label}>Degree</span><input value={e.degree} onChange={v => updateEducation(e.id, "degree", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "degree", label: "Degree" })} placeholder="B.A." style={inp} /></div>
-            <div><span style={label}>Field of Study</span><input value={e.field} onChange={v => updateEducation(e.id, "field", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "field", label: "Field of Study" })} placeholder="Business Administration" style={inp} /></div>
+            <div><span style={label}>Degree</span><input value={e.degree} onChange={v => updateEducation(e.id, "degree", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "degree", label: "Degree" })} placeholder="B.A." className="editor-input" style={inp} /></div>
+            <div><span style={label}>Field of Study</span><input value={e.field} onChange={v => updateEducation(e.id, "field", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "field", label: "Field of Study" })} placeholder="Business Administration" className="editor-input" style={inp} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div><span style={label}>Graduation Year</span><input value={e.year} onChange={v => updateEducation(e.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "year", label: "Graduation Year" })} placeholder="2020" style={inp} /></div>
-            <div><span style={label}>GPA (optional)</span><input value={e.cgpa} onChange={v => updateEducation(e.id, "cgpa", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "cgpa", label: "GPA" })} placeholder="3.8" style={inp} /></div>
+            <div><span style={label}>Graduation Year</span><input value={e.year} onChange={v => updateEducation(e.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "year", label: "Graduation Year" })} placeholder="2020" className="editor-input" style={inp} /></div>
+            <div><span style={label}>GPA (optional)</span><input value={e.cgpa} onChange={v => updateEducation(e.id, "cgpa", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "cgpa", label: "GPA" })} placeholder="3.8" className="editor-input" style={inp} /></div>
           </div>
         </EntryCard>
       ))}
@@ -523,7 +537,7 @@ function SkillsSection() {
         <EntryCard key={sk.id} title={sk.category || "Skill Category"} subtitle={`${sk.items.length} items`} onRemove={() => removeSkillGroup(sk.id)}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Category Name</span>
-            <input value={sk.category} onChange={v => updateSkillGroup(sk.id, "category", v.target.value)} onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: sk.id, field: "category", label: "Category Name" })} placeholder="Operations / Service / Software" style={inp} />
+            <input value={sk.category} onChange={v => updateSkillGroup(sk.id, "category", v.target.value)} onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: sk.id, field: "category", label: "Category Name" })} placeholder="Operations / Service / Software" className="editor-input" style={inp} />
           </div>
           <div>
             <span style={label}>Skills (comma-separated)</span>
@@ -539,6 +553,7 @@ function SkillsSection() {
                 }
               }}
               placeholder="CRM, Scheduling, Conflict Resolution, Excel"
+              className="editor-input"
               style={inp}
             />
             {/* Tag preview */}
@@ -566,11 +581,11 @@ function ProjectsSection() {
         <EntryCard key={pr.id} title={pr.name || "New Project"} subtitle={pr.tech} onRemove={() => removeProject(pr.id)} defaultOpen={idx === resume.sections.projects.length - 1}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Project Name</span>
-            <input value={pr.name} onChange={v => updateProject(pr.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "name", label: "Project Name" })} placeholder="Service Recovery Playbook" style={inp} />
+            <input value={pr.name} onChange={v => updateProject(pr.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "name", label: "Project Name" })} placeholder="Service Recovery Playbook" className="editor-input" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-            <div><span style={label}>Focus Area</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "tech", label: "Focus Area" })} placeholder="Process Design, Training, Reporting" style={inp} /></div>
-            <div><span style={label}>Reference Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "link", label: "Reference Link" })} placeholder="organization.org/program" style={inp} /></div>
+            <div><span style={label}>Focus Area</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "tech", label: "Focus Area" })} placeholder="Process Design, Training, Reporting" className="editor-input" style={inp} /></div>
+            <div><span style={label}>Reference Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "link", label: "Reference Link" })} placeholder="organization.org/program" className="editor-input" style={inp} /></div>
           </div>
           <div style={{ marginBottom: 10 }}>
             <span style={label}>Description Format</span>
@@ -583,8 +598,8 @@ function ProjectsSection() {
           {pr.contentMode === "paragraph" ? (
             <div>
               <span style={label}>Description</span>
-              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)} onFocus={(ev) => { ev.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "description", label: "Description" }); }}
-                rows={3} placeholder="Briefly describe the initiative, who it supported, and the outcome it improved." style={ta} />
+              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)} onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(200,245,90,0.4)"; ev.currentTarget.style.background = "#1A1A1A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "description", label: "Description" }); }}
+                rows={3} placeholder="Briefly describe the initiative, who it supported, and the outcome it improved." className="editor-textarea" style={ta} />
             </div>
           ) : (
             <div>
@@ -595,11 +610,12 @@ function ProjectsSection() {
                   <textarea
                     value={b}
                     onChange={v => updateProjectBullet(pr.id, i, v.target.value)}
-                    onFocus={(ev) => { ev.currentTarget.style.borderColor = "#3A3A3A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "bullet", index: i, label: `Project Bullet ${i + 1}` }); }}
+                    onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(200,245,90,0.4)"; ev.currentTarget.style.background = "#1A1A1A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "bullet", index: i, label: `Project Bullet ${i + 1}` }); }}
                     placeholder="Highlight one project outcome or feature..."
                     rows={2}
+                    className="editor-textarea"
                     style={{ ...ta, flex: 1, minHeight: 44 }}
-                    onBlur={ev => { ev.currentTarget.style.borderColor = "#252525"; }}
+                    onBlur={ev => { ev.currentTarget.style.borderColor = "#2A2A2A"; ev.currentTarget.style.background = "#141414"; }}
                   />
                   <button
                     onClick={() => removeProjectBullet(pr.id, i)}
@@ -632,11 +648,11 @@ function CertificationsSection() {
         <EntryCard key={c.id} title={c.name || "New Certification"} subtitle={c.issuer} onRemove={() => removeCertification(c.id)}>
           <div style={{ marginBottom: 10, marginTop: 4 }}>
             <span style={label}>Certification Name</span>
-            <input value={c.name} onChange={v => updateCertification(c.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "name", label: "Certification Name" })} placeholder="Certified Administrative Professional" style={inp} />
+            <input value={c.name} onChange={v => updateCertification(c.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "name", label: "Certification Name" })} placeholder="Certified Administrative Professional" className="editor-input" style={inp} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            <div><span style={label}>Issuing Body</span><input value={c.issuer} onChange={v => updateCertification(c.id, "issuer", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "issuer", label: "Issuing Body" })} placeholder="IAAP" style={inp} /></div>
-            <div><span style={label}>Year</span><input value={c.year} onChange={v => updateCertification(c.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "year", label: "Year" })} placeholder="2023" style={inp} /></div>
+            <div><span style={label}>Issuing Body</span><input value={c.issuer} onChange={v => updateCertification(c.id, "issuer", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "issuer", label: "Issuing Body" })} placeholder="IAAP" className="editor-input" style={inp} /></div>
+            <div><span style={label}>Year</span><input value={c.year} onChange={v => updateCertification(c.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "year", label: "Year" })} placeholder="2023" className="editor-input" style={inp} /></div>
           </div>
         </EntryCard>
       ))}
@@ -653,7 +669,7 @@ function LanguagesSection() {
       {resume.sections.languages.map((l: LanguageEntry) => (
         <EntryCard key={l.id} title={l.language || "New Language"} subtitle={l.proficiency} onRemove={() => removeLanguage(l.id)}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
-            <div><span style={label}>Language</span><input value={l.language} onChange={v => updateLanguage(l.id, "language", v.target.value)} onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: l.id, field: "language", label: "Language" })} placeholder="Mandarin" style={inp} /></div>
+            <div><span style={label}>Language</span><input value={l.language} onChange={v => updateLanguage(l.id, "language", v.target.value)} onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: l.id, field: "language", label: "Language" })} placeholder="Mandarin" className="editor-input" style={inp} /></div>
             <div>
               <span style={label}>Proficiency</span>
               <select value={l.proficiency} onChange={v => updateLanguage(l.id, "proficiency", v.target.value)} onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: l.id, field: "proficiency", label: "Proficiency" })}
@@ -745,6 +761,7 @@ export function EditorPanel() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
+      <style>{css}</style>
       {/* Section Nav */}
       <div style={{ padding: "10px 10px 0", borderBottom: "1px solid #1E1E1E" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, paddingBottom: 10 }}>

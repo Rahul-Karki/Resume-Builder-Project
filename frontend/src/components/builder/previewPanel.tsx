@@ -162,4 +162,3 @@ export function PreviewPanel({ onDownload, canDownload, isExporting = false, exp
     </div>
   );
 }
-
