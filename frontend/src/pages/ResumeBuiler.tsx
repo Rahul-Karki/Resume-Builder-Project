@@ -39,25 +39,15 @@ function SectionsTab() {
   };
 
   return (
-    <div style={{ padding: "16px", fontFamily: "'Outfit', sans-serif" }}>
-      <div style={{ 
-        padding: "12px 14px", 
-        background: "linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.02) 100%)", 
-        border: "1px solid rgba(200,245,90,0.15)", 
-        borderRadius: 10, 
-        marginBottom: 16, 
-        fontSize: 12, 
-        color: "#888", 
-        lineHeight: 1.5,
-        display: "flex",
-        alignItems: "center",
-        gap: 8
-      }}>
-        <GripVertical size={14} style={{ color: "#C8F55A" }} />
-        Drag sections to reorder. Click the eye icon to show/hide.
+    <div className="p-4 lg:p-5 font-['Outfit']">
+      {/* Info banner */}
+      <div className="mb-4 p-3 lg:p-4 bg-linear-to-r from-[#c8f55a]/12 to-[#c8f55a]/3 border border-[#c8f55a]/20 rounded-xl text-xs lg:text-sm text-white/75 leading-relaxed flex items-start gap-3">
+        <GripVertical size={14} className="text-[#c8f55a] shrink-0 mt-0.5" />
+        <span>Drag sections to reorder. Click the eye icon to show/hide.</span>
       </div>
       
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Sections list */}
+      <div className="space-y-2">
         {resume.sectionOrder.map((sectionKey, idx) => {
           const meta = SECTION_LABELS[sectionKey];
           const visible = resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility];
@@ -85,88 +75,54 @@ function SectionsTab() {
                 setDragging(null);
                 setDragOver(null);
               }}
-              style={{
-                display: "flex", 
-                alignItems: "center", 
-                gap: 12, 
-                padding: "14px 16px",
-                background: isDragging ? "rgba(200,245,90,0.05)" : isDragOver ? "rgba(200,245,90,0.08)" : "#141414", 
-                border: `1px solid ${isDragOver ? "rgba(200,245,90,0.3)" : "#252525"}`, 
-                borderRadius: 12,
-                cursor: "grab", 
-                userSelect: "none",
-                opacity: isDragging ? 0.5 : 1,
-                transform: isDragOver ? "translateY(2px)" : "none",
-                transition: "all 0.2s ease",
-                boxShadow: isDragOver ? "0 4px 12px rgba(0,0,0,0.3)" : "none",
-              }}
+              className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-all duration-200 cursor-grab select-none ${
+                isDragging
+                  ? "opacity-50 bg-[#c8f55a]/5"
+                  : isDragOver
+                    ? "border-[#c8f55a]/30 bg-[#c8f55a]/8 shadow-md translate-y-0.5"
+                    : "border-[#252525] bg-[#141414] hover:border-[#3a3a3a]"
+              }`}
             >
-              <div style={{ color: visible ? "#555" : "#333", flexShrink: 0, cursor: "grab" }}>
-                <GripVertical size={18} />
+              {/* Drag Handle */}
+              <div className={`shrink-0 ${visible ? "text-white/60" : "text-white/30"}`}>
+                <GripVertical size={16} />
               </div>
               
-              <div style={{ 
-                width: 32, 
-                height: 32, 
-                borderRadius: 8, 
-                background: visible ? "rgba(200,245,90,0.1)" : "#1A1A1A",
-                border: `1px solid ${visible ? "rgba(200,245,90,0.2)" : "#2A2A2A"}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: visible ? "#C8F55A" : "#555",
-                flexShrink: 0,
-                transition: "all 0.2s ease"
-              }}>
+              {/* Section Icon */}
+              <div className={`h-8 w-8 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                visible
+                  ? "border-[#c8f55a]/20 bg-[#c8f55a]/10 text-[#c8f55a]"
+                  : "border-[#2a2a2a] bg-[#1a1a1a] text-white/40"
+              }`}>
                 {SECTION_ICONS[sectionKey]}
               </div>
               
-              <div style={{ flex: 1 }}>
-                <div style={{ 
-                  fontSize: 14, 
-                  fontWeight: 600, 
-                  color: visible ? "#C8C7C0" : "#555",
-                  transition: "color 0.2s ease"
-                }}>
+              {/* Section Info */}
+              <div className="flex-1 min-w-0">
+                <div className={`text-sm font-semibold transition-colors ${visible ? "text-white" : "text-white/50"}`}>
                   {meta?.label}
                 </div>
-                <div style={{ fontSize: 11, color: visible ? "#666" : "#444", marginTop: 2 }}>
+                <div className={`text-xs leading-tight mt-1 transition-colors ${visible ? "text-white/50" : "text-white/30"}`}>
                   {meta?.desc}
                 </div>
               </div>
               
-              <span style={{ 
-                fontSize: 11, 
-                color: "#444", 
-                fontFamily: "monospace",
-                background: "#1A1A1A",
-                padding: "2px 8px",
-                borderRadius: 4,
-                border: "1px solid #2A2A2A"
-              }}>
+              {/* Index Badge */}
+              <span className="text-xs font-semibold text-white/40 bg-[#1a1a1a] px-2 py-1 rounded-md border border-[#2a2a2a] shrink-0">
                 {idx + 1}
               </span>
               
-              {/* Toggle Button */}
+              {/* Toggle Visibility Button */}
               <button
                 onClick={() => toggleSectionVisibility(sectionKey as any)}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  border: "1px solid #2A2A2A",
-                  background: visible ? "rgba(200,245,90,0.1)" : "#1A1A1A",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: visible ? "#C8F55A" : "#555",
-                  transition: "all 0.2s ease",
-                  flexShrink: 0,
-                }}
+                className={`h-9 w-9 rounded-lg border flex items-center justify-center shrink-0 transition-all hover:scale-105 ${
+                  visible
+                    ? "border-[#c8f55a]/20 bg-[#c8f55a]/10 text-[#c8f55a] hover:border-[#c8f55a]/40"
+                    : "border-[#2a2a2a] bg-[#1a1a1a] text-white/40 hover:border-[#3a3a3a]"
+                }`}
                 title={visible ? "Hide section" : "Show section"}
               >
-                {visible ? <Eye size={16} /> : <EyeOff size={16} />}
+                {visible ? <Eye size={14} /> : <EyeOff size={14} />}
               </button>
             </div>
           );
@@ -443,7 +399,7 @@ export default function ResumeBuilder() {
   return (
     <>
       <style>{css}</style>
-      <div style={{ display: "flex", flexDirection: "column", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#0A0A0A", overflow: isMobile ? "visible" : "hidden" }}>
+      <div className="flex flex-col h-screen bg-[#0a0a0a] text-[#f1efe8] overflow-hidden">
         {/* Top Toolbar */}
         <BuilderToolbar
           onDownload={handleDownload}
@@ -453,36 +409,31 @@ export default function ResumeBuilder() {
           exportStatus={exportStatus}
         />
 
+        {/* Export Status Bar */}
         {isExporting && (
-          <div style={{ position: "sticky", top: 0, zIndex: 55, background: "linear-gradient(90deg, rgba(200,245,90,0.16), rgba(200,245,90,0.05))", borderBottom: "1px solid rgba(200,245,90,0.18)", color: "#E7F7B2", padding: "10px 16px", fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid rgba(231,247,178,0.3)", borderTopColor: "#E7F7B2", animation: "spin 0.8s linear infinite" }} />
+          <div className="sticky top-0 z-55 bg-linear-to-r from-[#c8f55a]/16 to-[#c8f55a]/5 border-b border-[#c8f55a]/18 text-[#e7f7b2] px-4 py-2.5 text-xs font-bold font-['Outfit']">
+            <div className="flex items-center gap-3">
+              <span className="inline-block w-2.5 h-2.5 rounded-full border-2 border-[#e7f7b2]/30 border-t-[#e7f7b2] animate-spin" />
               <span>{exportStatus ?? "Preparing export..."}</span>
             </div>
           </div>
         )}
 
+        {/* Export Error Toast */}
         {exportError && (
-          <div style={{
-            position: "fixed", top: 64, right: isMobile ? 12 : 20, left: isMobile ? 12 : "auto", background: "#7F1D1D", color: "#FCA5A5",
-            padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-            fontFamily: "'Outfit', sans-serif", zIndex: 101, border: "1px solid #991B1B",
-          }}>
+          <div className={`fixed top-20 ${isMobile ? "left-3 right-3" : "right-5"} bg-red-900 text-red-200 px-4 py-3 rounded-lg text-xs font-semibold font-['Outfit'] z-101 border border-red-800 shadow-lg`}>
             {exportError}
           </div>
         )}
 
-        {/* Error toast */}
+        {/* Save Error Toast */}
         {ui.saveError && (
-          <div style={{
-            position: "fixed", top: 64, right: isMobile ? 12 : 20, left: isMobile ? 12 : "auto", background: "#7F1D1D", color: "#FCA5A5",
-            padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-            fontFamily: "'Outfit', sans-serif", zIndex: 100, border: "1px solid #991B1B",
-          }}>
+          <div className={`fixed top-20 ${isMobile ? "left-3 right-3" : "right-5"} bg-red-900 text-red-200 px-4 py-3 rounded-lg text-xs font-semibold font-['Outfit'] z-100 border border-red-800 shadow-lg`}>
             ⚠ {ui.saveError}
           </div>
         )}
 
+        {/* Main Workspace */}
         <BuilderWorkspaceChrome
           activeTabContent={activeTabContent}
           onDownload={handleDownload}
