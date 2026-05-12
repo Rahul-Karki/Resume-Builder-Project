@@ -2,25 +2,15 @@ import React, { useEffect, useCallback, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { BuilderToolbar } from "@/components/builder/BuilderToolbar";
+import { BuilderWorkspaceChrome } from "@/components/builder/BuilderWorkspaceChrome";
 import { EditorPanel } from "@/components/builder/editorPanel";
 import { StylePanel } from "@/components/builder/stylePanel";
 import { PreviewPanel } from "@/components/builder/previewPanel";
-import { AtsPanel } from "@/components/builder/AtsPanel";
-import { AiAssistPanel } from "@/components/builder/AiAssistPanel";
 import { AIAssistantPanel } from "@/components/builder/AIAssistantPanel";
 import { ATSAnalysisPanel } from "@/components/builder/ATSAnalysisPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
 import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
-
-// ─── Tab definitions ──────────────────────────────────────────────────────────
-const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
-  { id: "content",  label: "Content",  icon: "◉", description: "Fill in your resume information" },
-  { id: "style",    label: "Style",    icon: "◈", description: "Customize colors, fonts & layout" },
-  { id: "sections", label: "Sections", icon: "◧", description: "Show/hide and reorder sections" },
-  { id: "ai",       label: "AI Assist", icon: "✦", description: "AI writing tips and enhancement tools" },
-  { id: "ats",      label: "ATS",      icon: "◎", description: "Check your ATS compatibility score" },
-];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────
 import { GripVertical, Eye, EyeOff, Briefcase, GraduationCap, Wrench, FolderGit, Award, Languages } from "lucide-react";
@@ -407,6 +397,35 @@ export default function ResumeBuilder() {
     return () => window.removeEventListener("resize", updateViewport);
   }, []);
 
+  const activeTabContent = (() => {
+    switch (ui.activeTab) {
+      case "content":
+        return <EditorPanel />;
+      case "style":
+        return <StylePanel />;
+      case "sections":
+        return <SectionsTab />;
+      case "ai":
+        return <AIAssistantPanel />;
+      case "ats":
+        return <ATSAnalysisPanel />;
+      default:
+        return <EditorPanel />;
+    }
+  })();
+
+  const previewContent = (
+    <>
+      <div id="resume-preview-inner" style={{ display: "none" }}>
+        {/* Hidden 1:1 clone for PDF export — same renderer, no scaling */}
+        <div style={{ all: "initial", display: "block", width: "100%", height: "100%" }}>
+          <ResumeRenderer resume={resume} />
+        </div>
+      </div>
+      <PreviewPanel onDownload={handleDownload} canDownload={canDownload} isExporting={isExporting} exportStatus={exportStatus} />
+    </>
+  );
+
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=EB+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@300;400;700&family=Lora:wght@400;600&family=Source+Serif+4:wght@300;400;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -464,170 +483,14 @@ export default function ResumeBuilder() {
           </div>
         )}
 
-        {/* Main 3-column layout */}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden", flexDirection: isMobile ? "column" : "row" }}>
-
-          {/* ─── LEFT PANEL: Editor / Style / Sections ─── */}
-          <div style={{
-            width: isMobile ? "100%" : 360, maxHeight: isMobile ? "50vh" : "none", flexShrink: 0, display: "flex", flexDirection: "column",
-            background: "#0F0F0F", borderRight: isMobile ? "none" : "1px solid #1E1E1E", borderBottom: isMobile ? "1px solid #1E1E1E" : "none",
-          }}>
-            {/* Tab switcher */}
-            <div style={{
-              display: "flex", 
-              borderBottom: "1px solid #1E1E1E",
-              padding: "8px 12px 0", 
-              background: "#0A0A0A",
-              gap: 4,
-            }}>
-              {TABS.map(tab => {
-                const isActive = ui.activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    title={tab.description}
-                    style={{
-                      flex: 1, 
-                      padding: "10px 12px", 
-                      background: isActive ? "rgba(200,245,90,0.08)" : "transparent", 
-                      border: "none",
-                      borderRadius: "8px 8px 0 0",
-                      borderBottom: `2px solid ${isActive ? "#C8F55A" : "transparent"}`,
-                      color: isActive ? "#C8F55A" : "#666",
-                      fontSize: 12, 
-                      fontWeight: isActive ? 700 : 600, 
-                      cursor: "pointer", 
-                      fontFamily: "'Outfit', sans-serif",
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      gap: 6,
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    <span style={{ 
-                      opacity: isActive ? 1 : 0.7,
-                      transition: "opacity 0.2s ease"
-                    }}>
-                      {tab.icon}
-                    </span>
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Panel content */}
-            <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              {ui.activeTab === "content"  && (
-                <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-                  <AiAssistPanel />
-                  <div style={{ flex: 1, overflow: "auto" }}>
-                    <EditorPanel />
-                  </div>
-                </div>
-              )}
-              {ui.activeTab === "style"   && <StylePanel />}
-              {ui.activeTab === "sections" && (
-                <div style={{ overflowY: "auto", flex: 1 }}>
-                  <SectionsTab />
-                </div>
-              )}
-              {ui.activeTab === "ai" && <AiAssistPanel />}
-              {ui.activeTab === "ats" && <AtsPanel />}
-            </div>
-
-            {/* Bottom status bar */}
-            <div style={{
-              borderTop: "1px solid #1A1A1A", 
-              padding: "10px 16px",
-              display: "flex", 
-              alignItems: "center", 
-              gap: 12,
-              fontFamily: "'Outfit', sans-serif",
-              background: "#0A0A0A",
-            }}>
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 6,
-                fontSize: 11, 
-                color: "#555",
-                background: "#141414",
-                padding: "4px 10px",
-                borderRadius: 6,
-                border: "1px solid #252525"
-              }}>
-                <span style={{ color: "#C8F55A", fontWeight: 600 }}>⌘S</span>
-                <span>to save</span>
-              </div>
-              
-              <div style={{ flex: 1 }} />
-              
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 12,
-                fontSize: 11, 
-                color: "#666" 
-              }}>
-                <span style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 4,
-                  background: "#141414",
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  border: "1px solid #252525"
-                }}>
-                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.experience.length}</span>
-                  <span>exp</span>
-                </span>
-                <span style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 4,
-                  background: "#141414",
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  border: "1px solid #252525"
-                }}>
-                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.skills.length}</span>
-                  <span>skills</span>
-                </span>
-                <span style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: 4,
-                  background: "#141414",
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  border: "1px solid #252525"
-                }}>
-                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.education.length}</span>
-                  <span>edu</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* ─── RIGHT PANEL: Live Preview ─── */}
-          <div style={{ flex: 1, minHeight: isMobile ? "50vh" : "auto", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
-            {/* ATS Analysis Panel - temporarily commented out due to missing implementation */}
-            {/* <ATSAnalysisPanel /> */}
-            {/* Preview panel with inner ID for export */}
-            <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              <div id="resume-preview-inner" style={{ display: "none" }}>
-                {/* Hidden 1:1 clone for PDF export — same renderer, no scaling */}
-                <div style={{ all: "initial", display: "block", width: "100%", height: "100%" }}>
-                  <ResumeRenderer resume={resume} />
-                </div>
-              </div>
-              <PreviewPanel onDownload={handleDownload} canDownload={canDownload} isExporting={isExporting} exportStatus={exportStatus} />
-            </div>
-          </div>
-        </div>
+        <BuilderWorkspaceChrome
+          activeTabContent={activeTabContent}
+          onDownload={handleDownload}
+          canDownload={canDownload}
+          isExporting={isExporting}
+          exportStatus={exportStatus}
+          previewContent={previewContent}
+        />
       </div>
     </>
   );
