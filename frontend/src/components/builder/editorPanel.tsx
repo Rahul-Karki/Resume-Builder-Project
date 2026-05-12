@@ -84,7 +84,7 @@ function Input({
 }
 
 // TextArea with focus state handler
-function TextArea({ 
+function FocusedTextArea({ 
   value, 
   onChange, 
   onFocus, 
@@ -268,7 +268,7 @@ function PersonalSection() {
       
       <div>
         <span style={label}>Professional Summary</span>
-        <TextArea
+        <FocusedTextArea
           value={p.summary}
           onChange={v => updatePersonalInfo("summary", v)}
           onFocus={() => setFocusedField({ section: "personal", kind: "personal", field: "summary", label: "Professional Summary" })}
