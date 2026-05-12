@@ -478,7 +478,25 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
     context: sliceText(context.context, 1000),
     targetRole: sliceText(context.targetRole, 160),
     variationSeed: sliceText(context.variationSeed, 60),
-    outputShape: { suggestions: ["..."], variations: ["..."], summary: "..." },
+    outputShape: {
+      suggestions: [
+        {
+          id: "string",
+          originalText: "original text exactly as provided",
+          suggestionText: "copy-paste-ready rewrite",
+          reason: "short explanation of why this is better",
+          impact: "low|medium|high",
+        },
+      ],
+      variations: ["2-4 alternate rewrites"],
+      summary: "one sentence describing the improvement",
+    },
+    guidance: [
+      "If the text is too generic, make it specific using the role/title/context already present in the input.",
+      "If the section is a summary, add role, years of experience if mentioned, 2-4 core skills, and one outcome if present.",
+      "If the section is experience or projects, keep the same facts but rewrite with stronger verbs and measurable outcomes.",
+      "If the section looks empty or placeholder-like, return a short fill-in template plus a realistic example based on the resume text.",
+    ],
   });
 
   return runStructuredAi<AiRewriteResult>(
@@ -493,6 +511,8 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
       "- If the input contains an email/URL/phone, keep it exactly unchanged in suggestionText.",
       "- Keep meaning the same; improve clarity, grammar, and ATS keyword alignment where appropriate.",
       "- Prefer active voice, strong verbs, and concise phrasing.",
+      "- If the input is a summary, return the strongest version as suggestionText and make the variations meaningfully different (not just synonym swaps).",
+      "- If the input is a weak bullet, include impact, scope, or outcome only when it already exists or can be rephrased from the text.",
       "- Do not include markdown, backticks, or commentary outside JSON.",
       "Quality bar:",
       "- suggestions: 1-3 high-quality alternatives; variations: 2-4 short variants; summary: one sentence describing what improved.",
@@ -513,7 +533,23 @@ export const checkGrammar = async (context: AiPromptContext): Promise<Structured
     text: sliceText(context.text, 2500),
     context: sliceText(context.context, 1000),
     variationSeed: sliceText(context.variationSeed, 60),
-    outputShape: { issues: ["..."], correctedText: "..." },
+    outputShape: {
+      issues: [
+        {
+          id: "string",
+          originalText: "exact problem text",
+          suggestionText: "corrected text only",
+          reason: "brief grammar/spelling reason",
+          severity: "low|medium|high",
+        },
+      ],
+      correctedText: "fully corrected text using only grammar/spelling fixes",
+    },
+    guidance: [
+      "Keep the tone and meaning intact.",
+      "If the input is just a short label, single word, email, or URL, return no issues and keep correctedText identical.",
+      "Do not over-correct domain terms, company names, acronyms, or code names.",
+    ],
   });
 
   return runStructuredAi<AiGrammarResult>(
@@ -527,6 +563,7 @@ export const checkGrammar = async (context: AiPromptContext): Promise<Structured
       "- NEVER change emails, phone numbers, URLs, or usernames/handles. Keep them exactly as-is.",
       "- If the text is just a single word/phrase (e.g., a language name like 'English') or is an email/URL, return issues: [] and correctedText identical.",
       "- Do not add or remove metrics, dates, or claims.",
+      "- If nothing is wrong, return issues: [] and correctedText equal to the original text.",
       "- Do not output markdown or non-JSON content.",
     ].join("\n"),
     userPrompt,
@@ -546,7 +583,25 @@ export const enhanceBullet = async (context: AiPromptContext): Promise<Structure
     text: sliceText(context.text, 2000),
     context: sliceText(context.context, 1000),
     variationSeed: sliceText(context.variationSeed, 60),
-    outputShape: { suggestions: ["..."], variations: ["..."], summary: "..." },
+    outputShape: {
+      suggestions: [
+        {
+          id: "string",
+          originalText: "exact original bullet",
+          suggestionText: "single bullet rewrite",
+          reason: "what changed and why it is stronger",
+          impact: "low|medium|high",
+        },
+      ],
+      variations: ["2-4 alternate bullets with different emphasis"],
+      summary: "one sentence describing the improvement",
+    },
+    guidance: [
+      "Use a strong action verb at the start.",
+      "If the original bullet has metrics, preserve them exactly.",
+      "If the original bullet lacks metrics, do not invent them; instead strengthen the scope, tools, or outcome already implied.",
+      "Prefer one sentence per suggestion and keep it resume-ready.",
+    ],
   });
 
   return runStructuredAi<AiRewriteResult>(
@@ -560,6 +615,7 @@ export const enhanceBullet = async (context: AiPromptContext): Promise<Structure
       "- Preserve all numbers and units exactly (%, $, time, counts).",
       "- Remove weak phrasing (worked on/helped/responsible for) when possible without changing meaning.",
       "- Prefer: Action verb + what + how + measurable impact (only if impact exists in input).",
+      "- If the bullet is already strong, make only small improvements for clarity and ATS keywords.",
       "- Do not mention personal contact info; keep any URLs/emails unchanged if present.",
       "- Do not output markdown or non-JSON.",
     ].join("\n"),
@@ -798,6 +854,13 @@ const buildAtsPromptPayload = (context: AtsPromptContext) => ({
     rewriteSuggestions: ["..."],
     summary: "...",
   },
+  guidance: [
+    "If a section is empty or missing, use rewriteSuggestions to provide a copy-paste template the user can add.",
+    "If a section is weak, use rewriteSuggestions to show before/after text grounded in the resume.",
+    "Prioritize exact JD keywords and the most obvious adjacent skills from the resume; do not invent buzzwords.",
+    "Make the summary sentence actionable: explain what to change first, not just what is wrong.",
+    "Keep the summary short but specific so it can be shown directly in the UI.",
+  ],
 });
 
 export const analyzeResumeForAts = async (context: AtsPromptContext & { jobId?: string; resumeId?: string }): Promise<AtsAnalysisReport> => {
@@ -813,6 +876,9 @@ export const analyzeResumeForAts = async (context: AtsPromptContext & { jobId?: 
       "- Do NOT invent missing sections, employers, education, skills, or achievements.",
       "- grammarIssues and rewriteSuggestions must reference only text that exists in the resume payload.",
       "- When suggesting keywords, prefer the provided keywords list; do not add unrelated buzzwords.",
+      "- If the resume is missing a section, treat that as a major weakness and provide a template-style rewriteSuggestion for it.",
+      "- If the resume has weak bullets, rewrite only the worst 1-3 bullets and make each one more specific and measurable without changing facts.",
+      "- Include the most useful missing keywords in the summary and rewrite suggestions, not only in the keyword lists.",
       "Quality bar:",
       "- Provide actionable, specific suggestions (what to change + where) without fabricating facts.",
     ].join("\n"),

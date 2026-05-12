@@ -307,15 +307,16 @@ const getTemplateBaseVisibility = (templateId: string) => ({
   ...(TEMPLATE_SECTION_VISIBILITY_PRESETS[templateId] ?? defaultSectionVisibility),
 });
 
-const resolveTemplateConfig = async (templateId: string) => {
-  const normalizedTemplateId = normalizeResumeTemplateId(templateId);
-  const baseStyle = getTemplateBaseStyle(normalizedTemplateId);
-  const baseVisibility = getTemplateBaseVisibility(normalizedTemplateId);
+const resolveTemplateStyle = (templateId: string) => getTemplateBaseStyle(templateId);
+const resolveTemplateVisibility = (templateId: string) => getTemplateBaseVisibility(templateId);
+
+const resolveTemplateConfig = (templateId: string) => {
+  let normalizedTemplateId = normalizeResumeTemplateId(templateId);
+  let baseStyle = resolveTemplateStyle(normalizedTemplateId);
+  let baseVisibility = resolveTemplateVisibility(normalizedTemplateId);
 
   try {
-    const response = await api.get("/templates");
-    const templates = Array.isArray(response.data?.data) ? response.data.data : [];
-    const matchedTemplate = templates.find((template: any) => template?.layoutId === normalizedTemplateId);
+    const matchedTemplate = localTemplateCatalog.find((template) => template.id === normalizedTemplateId);
 
     if (!matchedTemplate) {
       return {
@@ -778,11 +779,6 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       try {
         const { resume } = get();
         const payload = toResumePayload(resume);
-
-        if (!hasResumeContent(resume)) {
-          set(s => ({ ui: { ...s.ui, isSaving: false, saveError: "Please enter information before saving your resume." } }));
-          return;
-        }
 
         const response = resume.id
           ? await api.put(`/resumes/${resume.id}`, payload)
