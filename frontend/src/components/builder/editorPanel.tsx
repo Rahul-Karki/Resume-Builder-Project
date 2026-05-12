@@ -111,6 +111,73 @@ function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
+// ─── Inline AI Enhance Button ──────────────────────────────────────────────────
+
+const ACTION_VERBS = [
+  "Led", "Built", "Designed", "Implemented", "Optimized", "Improved", "Launched",
+  "Created", "Managed", "Delivered", "Automated", "Developed", "Scaled", "Reduced",
+  "Increased", "Collaborated", "Architected", "Streamlined", "Spearheaded", "Engineered",
+];
+
+function getEnhancementTip(text: string, context: "summary" | "bullet"): string | null {
+  if (!text.trim()) return null;
+
+  if (context === "summary") {
+    if (text.length < 80) return "Tip: Expand your summary to 2-4 impactful sentences (120-400 chars). Include your title, years of experience, and top achievements.";
+    if (/\b(I am|I'm|I have|my)\b/i.test(text)) return "Tip: Remove first-person pronouns. Instead of 'I am a developer', write 'Full-stack developer with 5+ years…'";
+    if (!/\d/.test(text)) return "Tip: Add quantifiable metrics to your summary, e.g. '7+ years experience', 'serving 10M+ users'.";
+    return null;
+  }
+
+  const firstWord = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+  const isActionVerb = ACTION_VERBS.some((v) => v.toLowerCase() === firstWord);
+  const hasMetric = /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b/i.test(text);
+
+  if (!isActionVerb && !hasMetric) return "Tip: Start with an action verb (Led, Built, Optimized…) and add a measurable result (e.g., 'reduced latency by 40%').";
+  if (!isActionVerb) return `Tip: Start with a strong action verb instead of '${text.trim().split(/\s+/)[0]}'. Try: ${ACTION_VERBS[Math.floor(Math.random() * 6)]}, ${ACTION_VERBS[Math.floor(Math.random() * 6) + 6]}…`;
+  if (!hasMetric) return "Tip: Quantify the impact — add numbers, percentages, or dollar amounts (e.g., '20% improvement', '$50K savings').";
+  return null;
+}
+
+function InlineEnhanceTip({ text, context }: { text: string; context: "summary" | "bullet" }) {
+  const [visible, setVisible] = useState(false);
+  const tip = getEnhancementTip(text, context);
+
+  if (!tip) return null;
+
+  return (
+    <div style={{ position: "relative", display: "inline-block" }}>
+      <button
+        type="button"
+        onClick={() => setVisible(!visible)}
+        title="AI writing tip"
+        style={{
+          background: visible ? "rgba(200,245,90,0.12)" : "none",
+          border: `1px solid ${visible ? "rgba(200,245,90,0.3)" : "#2A2A2A"}`,
+          borderRadius: 4, color: visible ? "#C8F55A" : "#555",
+          fontSize: 11, fontWeight: 700, padding: "2px 6px",
+          cursor: "pointer", fontFamily: "inherit", marginLeft: 6,
+          transition: "all 0.15s",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.borderColor = "rgba(200,245,90,0.3)"; }}
+        onMouseLeave={(e) => { if (!visible) { e.currentTarget.style.color = "#555"; e.currentTarget.style.borderColor = "#2A2A2A"; } }}
+      >
+        ✦ Enhance
+      </button>
+      {visible && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 20,
+          background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 8,
+          padding: "8px 10px", fontSize: 11, color: "#C8F55A", lineHeight: 1.5,
+          maxWidth: 280, boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        }}>
+          {tip}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Field components ──────────────────────────────────────────────────────────
 function Inp({ label: l, value, onChange, placeholder, type = "text" }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
@@ -178,7 +245,10 @@ function PersonalSection() {
         </div>
       </div>
       <div>
-        <span style={label}>Professional Summary</span>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <span style={label}>Professional Summary</span>
+          <InlineEnhanceTip text={p.summary} context="summary" />
+        </div>
         <textarea value={p.summary} onChange={e => updatePersonalInfo("summary", e.target.value)}
           rows={5} placeholder="Senior engineer with 7+ years building scalable systems…" style={ta}
           onFocus={e => e.currentTarget.style.borderColor = "#3A3A3A"}
@@ -240,17 +310,20 @@ function ExperienceSection() {
             <div>
               <span style={label}>Bullet Points (Achievements)</span>
               {e.bullets.map((b, i) => (
-                <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "flex-start" }}>
-                  <span style={{ color: "#555", paddingTop: 8, flexShrink: 0, fontSize: 14 }}>›</span>
-                  <textarea
-                    value={b}
-                    onChange={v => updateBullet(e.id, i, v.target.value)}
-                    placeholder="Describe a quantifiable achievement…"
-                    rows={2}
-                    style={{ ...ta, flex: 1, minHeight: 44 }}
-                  />
-                  <button onClick={() => removeBullet(e.id, i)}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 8, flexShrink: 0 }}>✕</button>
+                <div key={i} style={{ marginBottom: 6 }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+                    <span style={{ color: "#555", paddingTop: 8, flexShrink: 0, fontSize: 14 }}>›</span>
+                    <textarea
+                      value={b}
+                      onChange={v => updateBullet(e.id, i, v.target.value)}
+                      placeholder="Describe a quantifiable achievement…"
+                      rows={2}
+                      style={{ ...ta, flex: 1, minHeight: 44 }}
+                    />
+                    <button onClick={() => removeBullet(e.id, i)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 8, flexShrink: 0 }}>✕</button>
+                  </div>
+                  {b.trim().length > 0 && <div style={{ marginLeft: 20, marginTop: 2 }}><InlineEnhanceTip text={b} context="bullet" /></div>}
                 </div>
               ))}
               <button onClick={() => addBullet(e.id)} style={{

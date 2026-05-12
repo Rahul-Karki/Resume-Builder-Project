@@ -3,6 +3,12 @@ import { authMiddleware } from "../middleware/authMiddleware";
 import { env } from "../config/env";
 import {
   getExportPreset,
+  analyzeAts,
+  applyAtsSuggestion,
+  listResumeVersions,
+  compareResumeVersions,
+  restoreResumeVersion,
+  createRoleTailoredVariant,
 } from "../controllers/resumeEnhancementController";
 import {
   createResume as baseCreateResume,
@@ -49,5 +55,12 @@ router.put("/:id", validateRequest({ body: updateResumeSchema }), baseUpdateResu
 router.delete("/:id", baseDeleteResume);
 
 router.post("/:id/export-pdf", validateRequest({ body: exportPresetSchema }), getExportPreset);
+
+router.post("/:id/ats-analysis", analyzeAts);
+router.post("/:id/apply-suggestion", applyAtsSuggestion);
+router.get("/:id/versions", listResumeVersions);
+router.post("/:id/compare-versions", compareResumeVersions);
+router.post("/:id/restore-version/:versionNo", restoreResumeVersion);
+router.post("/:id/variant", createRoleTailoredVariant);
 
 export default router;
