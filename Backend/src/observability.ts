@@ -18,6 +18,8 @@ import { env } from "./config/env";
 
 const metricsRegistry = new Registry();
 
+export { metricsRegistry };
+
 if (env.ENABLE_METRICS) {
   collectDefaultMetrics({
     register: metricsRegistry,
@@ -45,7 +47,7 @@ const serviceVersion = env.SERVICE_VERSION;
 const environment = env.NODE_ENV;
 
 const otlpEndpoint = env.GRAFANA_OTLP_ENDPOINT || env.OTEL_EXPORTER_OTLP_ENDPOINT;
-const otlpInstanceId = env.OTLP_INSTANCE_ID || env.OPTL_INSTANCE_ID;
+const otlpInstanceId = env.OTEL_INSTANCE_ID;
 const grafanaApiToken = env.GRAFANA_API_TOKEN;
 
 const otlpAuthHeader =
@@ -218,6 +220,38 @@ const lokiStream = {
   },
 };
 
+const redactCommandArgs = (record: Record<string, unknown>) => {
+  const command = record.command;
+
+  if (command && typeof command === "object") {
+    const commandRecord = { ...(command as Record<string, unknown>) };
+    if (Array.isArray(commandRecord.args)) {
+      commandRecord.args = `[redacted:${commandRecord.args.length}]`;
+    }
+    record.command = commandRecord;
+  }
+
+  return record;
+};
+
+const sanitizeErrorForLogs = (value: unknown) => {
+  if (value instanceof Error) {
+    const errorRecord: Record<string, unknown> = {
+      type: value.name,
+      message: value.message,
+      stack: value.stack,
+      ...(value as unknown as Record<string, unknown>),
+    };
+    return redactCommandArgs(errorRecord);
+  }
+
+  if (value && typeof value === "object") {
+    return redactCommandArgs({ ...(value as Record<string, unknown>) });
+  }
+
+  return value;
+};
+
 const loggerOptions: LoggerOptions = {
   level: env.LOG_LEVEL,
   base: {
@@ -239,6 +273,10 @@ const loggerOptions: LoggerOptions = {
         severity: label.toUpperCase(),
       };
     },
+  },
+  serializers: {
+    error: sanitizeErrorForLogs,
+    err: sanitizeErrorForLogs,
   },
 };
 
@@ -378,7 +416,7 @@ export const initializeObservability = () => {
     tracerProvider = new NodeTracerProvider({ resource: sharedResource });
     tracerProvider.register();
     logger.warn(
-      "OTLP tracing exporter not configured. Set GRAFANA_OTLP_ENDPOINT + OTLP_INSTANCE_ID + GRAFANA_API_TOKEN.",
+      "OTLP tracing exporter not configured. Set GRAFANA_OTLP_ENDPOINT + OTEL_INSTANCE_ID (or OTLP_INSTANCE_ID) + GRAFANA_API_TOKEN.",
     );
   }
 

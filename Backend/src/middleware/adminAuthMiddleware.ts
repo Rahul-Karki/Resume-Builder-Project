@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import User from "../models/User";   // your existing User model
 import { parseCookies } from "../utils/cookieParser";
 import { env } from "../config/env";
+import { AuthError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +41,7 @@ function extractToken(req: Request): string | null {
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
   const token = extractToken(req);
   if (!token) {
-    return res.status(401).json({ error: "Authentication required." });
+    return sendErrorResponse(res, new AuthError("Authentication required.", { code: "AUTH_REQUIRED" }));
   }
 
   try {
@@ -47,13 +49,13 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     const userId = payload.userId ?? payload.id;
 
     if (!userId) {
-      return res.status(401).json({ error: "Invalid token payload." });
+      return sendErrorResponse(res, new AuthError("Invalid token payload.", { code: "AUTH_REQUIRED" }));
     }
 
     const user = await User.findById(userId).select("name role").lean();
 
     if (!user) {
-      return res.status(401).json({ error: "User not found." });
+      return sendErrorResponse(res, new AuthError("User not found.", { code: "AUTH_REQUIRED" }));
     }
 
     req.user = { id: String(user._id), role: user.role, name: user.name };
@@ -67,13 +69,14 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
-    return res.status(401).json({ error: "Authentication required." });
+    return sendErrorResponse(res, new AuthError("Authentication required.", { code: "AUTH_REQUIRED" }));
   }
   if (!["admin", "superadmin"].includes(req.user.role)) {
-    return res.status(403).json({
-      error: "Admin access required.",
-      hint:  "Your account does not have admin privileges.",
-    });
+    return sendErrorResponse(res, new AuthError("Admin access required.", {
+      statusCode: 403,
+      code: "FORBIDDEN",
+      details: { hint: "Your account does not have admin privileges." },
+    }));
   }
   next();
 }
@@ -82,7 +85,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user || req.user.role !== "superadmin") {
-    return res.status(403).json({ error: "Superadmin access required." });
+    return sendErrorResponse(res, new AuthError("Superadmin access required.", { statusCode: 403, code: "FORBIDDEN" }));
   }
   next();
 }

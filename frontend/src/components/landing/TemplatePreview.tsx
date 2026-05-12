@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { JSX } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
 
 // ─── TemplatesPreview.tsx ─────────────────────────────────────────────────────
@@ -12,7 +12,9 @@ type LandingTemplate = {
   name: string;
   tag: string;
   category: string;
+  thumbnailUrl?: string;
   accent: string;
+  bg: string;
   primary: string;
   secondary: string;
   desc: string;
@@ -20,29 +22,64 @@ type LandingTemplate = {
 
 const FALLBACK_TEMPLATES: LandingTemplate[] = [
   {
-    id: "classic", name: "Classic", tag: "Timeless", category: "Professional",
+    id: "classic", name: "Classic", tag: "Timeless", category: "non-tech",
     accent: "#1a1a1a", bg: "#FAF8F5", primary: "#1a1a1a", secondary: "#555",
     desc: "Trusted serif layout for finance, law & academia.",
   },
   {
-    id: "executive", name: "Executive", tag: "Corporate", category: "Leadership",
+    id: "executive", name: "Executive", tag: "Corporate", category: "non-tech",
     accent: "#1B2B4B", bg: "#EEF1F7", primary: "#1B2B4B", secondary: "#3A5A8A",
     desc: "Navy header with strong hierarchy for leadership roles.",
   },
   {
-    id: "modern", name: "Modern", tag: "Tech-Ready", category: "Technical",
+    id: "modern", name: "Modern", tag: "Tech-Ready", category: "tech",
     accent: "#0F766E", bg: "#F0FDFB", primary: "#0F766E", secondary: "#134E4A",
     desc: "Teal accent rule and skill chips for tech roles.",
   },
   {
-    id: "compact", name: "Compact", tag: "One-Page", category: "Senior",
+    id: "compact", name: "Compact", tag: "One-Page", category: "non-tech",
     accent: "#111111", bg: "#F8F8F8", primary: "#111", secondary: "#444",
     desc: "Dense label-column layout for senior candidates.",
   },
   {
-    id: "sidebar", name: "Sidebar", tag: "Structured", category: "Creative",
+    id: "sidebar", name: "Sidebar", tag: "Structured", category: "tech",
     accent: "#1E293B", bg: "#fff", primary: "#1E293B", secondary: "#94A3B8",
     desc: "Dark sidebar with two-column structure.",
+  },
+  {
+    id: "scholarly", name: "Scholarly", tag: "Academic", category: "non-tech",
+    accent: "#1a1a1a", bg: "#fff", primary: "#1a1a1a", secondary: "#4a4a4a",
+    desc: "Centered academic layout with classic section rhythm.",
+  },
+  {
+    id: "research", name: "Research", tag: "Detailed", category: "non-tech",
+    accent: "#1f1f1f", bg: "#fff", primary: "#1f1f1f", secondary: "#555",
+    desc: "Research-forward hierarchy for content-dense resumes.",
+  },
+  {
+    id: "chronological", name: "Chronological", tag: "ATS Core", category: "non-tech",
+    accent: "#1F2937", bg: "#FCFCFB", primary: "#1F2937", secondary: "#6B7280",
+    desc: "Reverse-chronological ATS format focused on career progression.",
+  },
+  {
+    id: "functional", name: "Functional", tag: "Skills-First", category: "non-tech",
+    accent: "#334155", bg: "#F8FAFC", primary: "#334155", secondary: "#64748B",
+    desc: "Skills-first ATS-safe structure for pivots and return-to-work.",
+  },
+  {
+    id: "combination", name: "Combination", tag: "Hybrid", category: "non-tech",
+    accent: "#0B3C5D", bg: "#F8FAFF", primary: "#0B3C5D", secondary: "#64748B",
+    desc: "Hybrid ATS format balancing measurable outcomes and strengths.",
+  },
+  {
+    id: "traditional-assistant", name: "Traditional Assistant", tag: "Admin", category: "non-tech",
+    accent: "#1E3A8A", bg: "#F8FAFF", primary: "#1E3A8A", secondary: "#64748B",
+    desc: "Administrative-assistant inspired ATS layout for office roles.",
+  },
+  {
+    id: "community-impact", name: "Community Impact", tag: "Volunteer", category: "non-tech",
+    accent: "#166534", bg: "#F0FDF4", primary: "#166534", secondary: "#6B7280",
+    desc: "ATS-ready format for volunteer, NGO and public-service profiles.",
   },
 ];
 
@@ -159,12 +196,52 @@ function SidebarThumb({ p, s }: { p: string; s: string }) {
   );
 }
 
+function ScholarlyThumb({ p, s }: { p: string; s: string }) {
+  return (
+    <>
+      <rect width="240" height="310" fill="#fff" />
+      <rect x="48" y="14" width="144" height="11" rx="2" fill={p} opacity="0.82" />
+      <rect x="32" y="29" width="176" height="2" rx="1" fill={s} opacity="0.36" />
+      {[42, 49, 56].map((y, i) => <rect key={y} x="20" y={y} width={[200, 184, 196][i]} height="1.8" rx="1" fill={p} opacity="0.12" />)}
+      {[72, 108, 146, 184, 222, 258].map((y) => (
+        <g key={y}>
+          <rect x="20" y={y} width="54" height="3.4" rx="1" fill={p} opacity="0.56" />
+          <rect x="20" y={y + 6} width="200" height="0.75" fill={s} opacity="0.28" />
+          <rect x="20" y={y + 10} width="188" height="1.8" rx="1" fill={p} opacity="0.13" />
+          <rect x="20" y={y + 15} width="198" height="1.8" rx="1" fill={p} opacity="0.10" />
+        </g>
+      ))}
+    </>
+  );
+}
+
+function ResearchThumb({ p, s }: { p: string; s: string }) {
+  return (
+    <>
+      <rect width="240" height="310" fill="#fff" />
+      <rect x="20" y="14" width="102" height="10" rx="2" fill={p} opacity="0.82" />
+      <rect x="20" y="28" width="120" height="2" rx="1" fill={s} opacity="0.34" />
+      <rect x="144" y="14" width="76" height="2" rx="1" fill={s} opacity="0.44" />
+      <rect x="144" y="20" width="76" height="2" rx="1" fill={s} opacity="0.34" />
+      {[44, 82, 132, 182, 228, 270].map((y) => (
+        <g key={y}>
+          <rect x="20" y={y} width="58" height="3.4" rx="1" fill={p} opacity="0.56" />
+          <rect x="20" y={y + 6} width="200" height="0.75" fill={s} opacity="0.25" />
+          {[0, 1, 2].map((li) => <rect key={li} x="24" y={y + 10 + li * 7} width={[188, 170, 194][li]} height="1.8" rx="1" fill={p} opacity="0.11" />)}
+        </g>
+      ))}
+    </>
+  );
+}
+
 const THUMB_MAP: Record<string, (p: string, s: string) => JSX.Element> = {
   classic:   (p, s) => <ClassicThumb   p={p} s={s} />,
   executive: (p, s) => <ExecutiveThumb p={p} s={s} />,
   modern:    (p, s) => <ModernThumb    p={p} s={s} />,
   compact:   (p, s) => <CompactThumb   p={p} s={s} />,
   sidebar:   (p, s) => <SidebarThumb   p={p} s={s} />,
+  scholarly: (p, s) => <ScholarlyThumb p={p} s={s} />,
+  research:  (p, s) => <ResearchThumb  p={p} s={s} />,
 };
 
 const renderThumb = (id: string, primary: string, secondary: string) => {
@@ -172,7 +249,19 @@ const renderThumb = (id: string, primary: string, secondary: string) => {
   return renderer(primary, secondary);
 };
 
+const mergeTemplates = (apiTemplates: LandingTemplate[]): LandingTemplate[] => {
+  const byId = new Map<string, LandingTemplate>();
+  apiTemplates.forEach((template) => byId.set(template.id, template));
+  FALLBACK_TEMPLATES.forEach((template) => {
+    if (!byId.has(template.id)) {
+      byId.set(template.id, template);
+    }
+  });
+  return Array.from(byId.values());
+};
+
 export function TemplatesPreview() {
+  const navigate = useNavigate();
   const [hovered, setHovered] = useState<string | null>(null);
   const [templates, setTemplates] = useState<LandingTemplate[]>(FALLBACK_TEMPLATES);
   const [isMobile, setIsMobile] = useState(false);
@@ -219,7 +308,8 @@ export function TemplatesPreview() {
             id: String(row.layoutId ?? "classic"),
             name: String(row.name ?? "Template"),
             tag: String(row.tag ?? "General"),
-            category: String(row.category ?? "Professional"),
+            category: row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech",
+            thumbnailUrl: String(row.thumbnailUrl ?? ""),
             accent,
             primary: row.cssVars?.headingColor ?? accent,
             secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
@@ -227,8 +317,8 @@ export function TemplatesPreview() {
           };
         });
 
-        if (!mounted || mapped.length === 0) return;
-        setTemplates(mapped);
+        if (!mounted) return;
+        setTemplates(mergeTemplates(mapped));
         setLoadingTemplates(false);
         return;
       } catch {
@@ -253,6 +343,10 @@ export function TemplatesPreview() {
     const el = rowRef.current;
     if (!el) return;
     el.scrollBy({ left: dir === "right" ? 340 : -340, behavior: "smooth" });
+  };
+
+  const handlePreviewTemplate = (templateId: string) => {
+    navigate(`/templates?preview=${encodeURIComponent(templateId)}`);
   };
 
   return (
@@ -320,7 +414,8 @@ export function TemplatesPreview() {
                       id: String(row.layoutId ?? "classic"),
                       name: String(row.name ?? "Template"),
                       tag: String(row.tag ?? "General"),
-                      category: String(row.category ?? "Professional"),
+                      category: row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech",
+                      thumbnailUrl: String(row.thumbnailUrl ?? ""),
                       accent,
                       primary: row.cssVars?.headingColor ?? accent,
                       secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
@@ -328,9 +423,7 @@ export function TemplatesPreview() {
                     };
                   });
 
-                  if (mapped.length > 0) {
-                    setTemplates(mapped);
-                  }
+                  setTemplates(mergeTemplates(mapped));
                 } catch {
                   setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
                 } finally {
@@ -375,6 +468,7 @@ export function TemplatesPreview() {
           return (
             <div
               key={t.id}
+              onClick={() => handlePreviewTemplate(t.id)}
               onMouseEnter={() => setHovered(t.id)}
               onMouseLeave={() => setHovered(null)}
               style={{
@@ -398,9 +492,13 @@ export function TemplatesPreview() {
                     boxShadow: "0 10px 40px rgba(0,0,0,0.7)",
                     transform: isHov ? "scale(1.04)" : "scale(1)", transition: "transform 0.3s ease",
                   }}>
-                    <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%", display: "block" }} xmlns="http://www.w3.org/2000/svg">
-                      {renderThumb(t.id, t.primary, t.secondary)}
-                    </svg>
+                    {t.thumbnailUrl ? (
+                      <img src={t.thumbnailUrl} alt={t.name} style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+                    ) : (
+                      <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%", display: "block" }} xmlns="http://www.w3.org/2000/svg">
+                        {renderThumb(t.id, t.primary, t.secondary)}
+                      </svg>
+                    )}
                   </div>
                 </div>
 
@@ -418,7 +516,7 @@ export function TemplatesPreview() {
                     transition: "all 0.22s",
                     fontFamily: "'Outfit', sans-serif",
                   }}>
-                    Use This Template →
+                    Preview →
                   </div>
                 </div>
 

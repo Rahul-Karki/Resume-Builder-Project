@@ -1,28 +1,24 @@
+import crypto from "crypto";
 import { Request, RequestHandler, Response } from "express";
 import Resume from "../models/Resume";
 import AtsAnalysis from "../models/AtsAnalysis";
 import ResumeVersion from "../models/ResumeVersion";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
+import { createAtsAnalysisJobId, enqueueAtsAnalysisJob } from "../queue/atsQueue";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache } from "../middleware/redisCache";
-
-const ACTION_VERBS = new Set([
-  "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
-  "automated", "developed", "scaled", "reduced", "increased", "collaborated", "architected", "streamlined",
-]);
-
-const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|latency|revenue|conversion|sla)\b/i.test(text);
-
-const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+import { AuthError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
+import { compactText } from "../../../shared/src/ai";
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
 
   if (!userId) {
-    res.status(401).json({ message: "Unauthorized" });
+    sendErrorResponse(res, new AuthError("Unauthorized", { code: "AUTH_REQUIRED" }));
     return null;
   }
 
@@ -50,114 +46,6 @@ const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") =>
   if (!template?._id) return;
 
   await (TemplateUsage as any).recordUse(String(template._id), layoutId, type);
-};
-
-const buildAtsAnalysis = (resume: any, keywords: string[]) => {
-  const summary = String(resume.personalInfo?.summary ?? "");
-  const experience = Array.isArray(resume.sections?.experience) ? resume.sections.experience : [];
-  const skills = Array.isArray(resume.sections?.skills) ? resume.sections.skills : [];
-  const education = Array.isArray(resume.sections?.education) ? resume.sections.education : [];
-
-  const corpus = [
-    summary,
-    ...experience.flatMap((entry: any) => [entry.role, entry.company, ...(entry.bullets ?? [])]),
-    ...skills.flatMap((entry: any) => [entry.category, ...(entry.items ?? [])]),
-    ...education.flatMap((entry: any) => [entry.institution, entry.degree, entry.field]),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  const missingKeywords = keywords.filter((keyword) => {
-    const regex = new RegExp(`\\b${escapeRegex(keyword.toLowerCase())}\\b`, "i");
-    return !regex.test(corpus);
-  });
-
-  const totalBullets = experience.reduce((acc: number, entry: any) => acc + (entry.bullets ?? []).length, 0);
-  const strongBullets = experience.reduce((acc: number, entry: any) => {
-    const bullets: string[] = entry.bullets ?? [];
-    const score = bullets.filter((bullet) => {
-      const firstWord = bullet.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
-      return ACTION_VERBS.has(firstWord) && hasMetric(bullet);
-    }).length;
-    return acc + score;
-  }, 0);
-
-  const keywordCoverageScore = keywords.length === 0
-    ? 100
-    : Math.round(((keywords.length - missingKeywords.length) / keywords.length) * 100);
-
-  const summaryScore = Math.min(100, Math.round((summary.trim().length / 180) * 100));
-  const experienceScore = totalBullets === 0 ? 30 : Math.round((strongBullets / totalBullets) * 100);
-  const skillsScore = Math.min(100, (skills.length > 0 ? 40 : 0) + Math.min(60, skills.reduce((a: number, s: any) => a + (s.items?.length ?? 0), 0) * 6));
-  const educationScore = education.length > 0 ? 85 : 45;
-  const formattingScore = resume.sectionOrder?.length ? 90 : 70;
-
-  const scoreOverall = Math.round(
-    (summaryScore * 0.2)
-      + (experienceScore * 0.3)
-      + (skillsScore * 0.2)
-      + (educationScore * 0.1)
-      + (keywordCoverageScore * 0.15)
-      + (formattingScore * 0.05),
-  );
-
-  const rewriteSuggestions: Array<{
-    id: string;
-    path: string;
-    originalText: string;
-    suggestionText: string;
-    reason: string;
-    impact: "low" | "medium" | "high";
-  }> = [];
-
-  if (summary.trim().length < 120) {
-    rewriteSuggestions.push({
-      id: `sum_${Date.now()}`,
-      path: "personalInfo.summary",
-      originalText: summary,
-      suggestionText: `${summary.trim()} Focus on quantified outcomes, core domain strengths, and role-relevant keywords.`,
-      reason: "Summary is short for ATS relevance and recruiter scanability.",
-      impact: "high",
-    });
-  }
-
-  experience.forEach((entry: any, expIndex: number) => {
-    const bullets: string[] = entry.bullets ?? [];
-    bullets.forEach((bullet, bulletIndex) => {
-      const firstWord = bullet.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
-      const missingVerb = !ACTION_VERBS.has(firstWord);
-      const missingNumbers = !hasMetric(bullet);
-
-      if (!missingVerb && !missingNumbers) return;
-
-      const suggestionText = `${missingVerb ? "Led" : firstWord.charAt(0).toUpperCase() + firstWord.slice(1)} ${bullet.replace(/^\w+\s*/i, "")} ${missingNumbers ? "resulting in measurable impact (e.g., 20% improvement)." : ""}`.trim();
-
-      rewriteSuggestions.push({
-        id: `exp_${expIndex}_${bulletIndex}`,
-        path: `sections.experience[${expIndex}].bullets[${bulletIndex}]`,
-        originalText: bullet,
-        suggestionText,
-        reason: missingVerb
-          ? "Start bullets with strong action verbs."
-          : "Add metrics to quantify impact.",
-        impact: missingNumbers ? "high" : "medium",
-      });
-    });
-  });
-
-  return {
-    scoreOverall: Math.max(0, Math.min(100, scoreOverall)),
-    sectionScores: {
-      summary: summaryScore,
-      experience: experienceScore,
-      skills: skillsScore,
-      education: educationScore,
-      formatting: formattingScore,
-    },
-    missingKeywords,
-    rewriteSuggestions: rewriteSuggestions.slice(0, 20),
-  };
 };
 
 const setPathValue = (target: any, path: string, value: string) => {
@@ -197,31 +85,141 @@ export const analyzeAts: RequestHandler = async (req, res) => {
     }
 
     const bodyKeywords = Array.isArray(req.body?.keywords)
-      ? req.body.keywords.filter((value: unknown) => typeof value === "string").map((value: string) => value.trim().toLowerCase()).filter(Boolean)
+      ? req.body.keywords.filter((value: unknown) => typeof value === "string").map((value: string) => compactText(value).toLowerCase()).filter(Boolean)
       : [];
 
     const jobTitle = typeof req.body?.jobTitle === "string" ? req.body.jobTitle : "";
-    const keywords = Array.from(new Set([...getRoleKeywords(jobTitle), ...bodyKeywords]));
+    const jobDescription = typeof req.body?.jobDescription === "string" ? req.body.jobDescription : "";
+    const tone = typeof req.body?.tone === "string" ? req.body.tone : undefined;
+    const reportType = req.body?.reportType === "job-description-match" ? "job-description-match" : "resume-analysis";
+    const keywords = Array.from(new Set([
+      ...getRoleKeywords(jobTitle),
+      ...bodyKeywords,
+      ...(compactText(jobDescription).length > 0 ? compactText(jobDescription).split(/\s+/).filter((word) => word.length > 6).slice(0, 10) : []),
+    ]));
 
-    const analysis = buildAtsAnalysis(resume.toObject(), keywords);
+    const analysisId = crypto.randomUUID();
+    const jobId = createAtsAnalysisJobId({
+      userId,
+      resumeId: String(resume._id),
+      analysisId,
+      resume: resume.toObject() as unknown as Record<string, unknown>,
+      jobTitle,
+      jobDescription,
+      keywords,
+      tone,
+      reportType,
+    });
 
-    const saved = await AtsAnalysis.findOneAndUpdate(
-      { resumeId: resume._id, userId },
+    await AtsAnalysis.findOneAndUpdate(
+      { jobId, userId },
       {
+        jobId,
         resumeId: resume._id,
         userId,
-        ...analysis,
+        status: "pending",
+        reportType,
+        jobTitle,
+        jobDescription,
+        targetKeywords: keywords,
+        overallScore: 0,
+        matchScore: 0,
+        sectionScores: {
+          summary: 0,
+          experience: 0,
+          skills: 0,
+          education: 0,
+          formatting: 0,
+          projects: 0,
+        },
+        keywordAnalysis: {
+          missingKeywords: keywords,
+          repeatedKeywords: [],
+          weakKeywords: [],
+          atsFriendlyKeywords: [],
+          matchedKeywords: [],
+        },
+        grammarIssues: [],
+        formattingChecks: [],
+        rewriteSuggestions: [],
+        summary: "ATS analysis queued.",
+        lastError: "",
       },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
-    logger.info({ userId, resumeId: req.params.id }, "ATS analysis generated");
+    const queuedJob = await enqueueAtsAnalysisJob({
+      analysisId,
+      userId,
+      resumeId: String(resume._id),
+      resume: resume.toObject() as unknown as Record<string, unknown>,
+      jobTitle,
+      jobDescription,
+      keywords,
+      tone,
+      reportType,
+      requestId: req.traceId ?? req.correlationId,
+    });
+
+    logger.info({ userId, resumeId: req.params.id, jobId: queuedJob.id }, "ATS analysis queued");
     markSpanSuccess(span);
-    res.status(200).json({ analysis: saved });
+    res.status(202).json({
+      message: "ATS analysis queued",
+      jobId: queuedJob.id,
+      analysisId,
+      statusUrl: `/api/resumes/${encodeURIComponent(String(req.params.id))}/ats-analysis/${encodeURIComponent(String(queuedJob.id))}`,
+      latestUrl: `/api/resumes/${encodeURIComponent(String(req.params.id))}/ats-analysis/latest`,
+    });
   } catch (error) {
     markSpanError(span, error as Error, "Failed to analyze ATS score");
     logger.error({ error, resumeId: req.params.id }, "Failed to analyze ATS score");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const getLatestAtsAnalysis: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.getLatestAtsAnalysis", req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const analysis = await AtsAnalysis.findOne({ resumeId: req.params.id, userId }).sort({ createdAt: -1 }).lean();
+    if (!analysis) {
+      res.status(404).json({ message: "ATS analysis not found" });
+      return;
+    }
+
+    markSpanSuccess(span);
+    res.status(200).json({ analysis });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to fetch ATS analysis");
+    logger.error({ error, resumeId: req.params.id }, "Failed to fetch ATS analysis");
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const getAtsAnalysisByJobId: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeEnhancement.getAtsAnalysisByJobId", req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const analysis = await AtsAnalysis.findOne({ resumeId: req.params.id, userId, jobId: req.params.jobId }).lean();
+    if (!analysis) {
+      res.status(404).json({ message: "ATS analysis not found" });
+      return;
+    }
+
+    markSpanSuccess(span);
+    res.status(200).json({ analysis });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to fetch ATS analysis status");
+    logger.error({ error, resumeId: req.params.id, jobId: req.params.jobId }, "Failed to fetch ATS analysis status");
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -254,12 +252,17 @@ export const applyAtsSuggestion: RequestHandler = async (req, res) => {
     }
 
     const mutable = resume.toObject();
+    if (!suggestion.path) {
+      res.status(400).json({ message: "Suggestion path is missing" });
+      return;
+    }
+
     setPathValue(mutable, suggestion.path, suggestion.suggestionText);
 
     const updated = await Resume.findOneAndUpdate(
       { _id: req.params.id, userId },
       mutable,
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
 
     if (!updated) {
@@ -277,7 +280,7 @@ export const applyAtsSuggestion: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to apply ATS suggestion");
     logger.error({ error, resumeId: req.params.id }, "Failed to apply ATS suggestion");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -306,7 +309,7 @@ export const listResumeVersions: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to list resume versions");
     logger.error({ error, resumeId: req.params.id }, "Failed to list resume versions");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -371,7 +374,7 @@ export const compareResumeVersions: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to compare resume versions");
     logger.error({ error, resumeId: req.params.id }, "Failed to compare resume versions");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -405,7 +408,7 @@ export const restoreResumeVersion: RequestHandler = async (req, res) => {
     const restored = await Resume.findOneAndUpdate(
       { _id: req.params.id, userId },
       snapshot,
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
 
     if (!restored) {
@@ -425,7 +428,7 @@ export const restoreResumeVersion: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to restore resume version");
     logger.error({ error, resumeId: req.params.id }, "Failed to restore resume version");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -489,7 +492,7 @@ export const createRoleTailoredVariant: RequestHandler = async (req, res) => {
   } catch (error) {
     markSpanError(span, error as Error, "Failed to create role-tailored variant");
     logger.error({ error, resumeId: req.params.id }, "Failed to create role-tailored variant");
-    res.status(500).json({ message: "Server error" });
+    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }

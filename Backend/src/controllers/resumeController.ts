@@ -1,11 +1,17 @@
 import { Request, Response, RequestHandler } from "express";
 import Resume from "../models/Resume";
+import AtsAnalysis from "../models/AtsAnalysis";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache } from "../middleware/redisCache";
+import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
+import { recordResumeCreated, recordResumeDeleted } from "../utils/businessMetrics";
+import { AuthError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
+import mongoose from "mongoose";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -20,7 +26,7 @@ const getUserId = (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     if (!userId) {
-        res.status(401).json({ message: "Unauthorized" });
+        sendErrorResponse(res, new AuthError("Unauthorized", { code: "AUTH_REQUIRED" }));
         return null;
     }
 
@@ -29,6 +35,17 @@ const getUserId = (req: Request, res: Response) => {
 
 const resumeCacheScope = (userId: string) => `resumes-user:${userId}`;
 
+const normalizeResumeResponse = <T extends { templateId?: unknown; toObject?: () => Record<string, unknown> }>(resume: T) => {
+    const plainResume = typeof resume.toObject === "function"
+        ? resume.toObject()
+        : { ...resume };
+
+    return {
+        ...plainResume,
+        templateId: normalizeResumeTemplateId(plainResume.templateId),
+    };
+};
+
 const getAllResumes: RequestHandler = async (req, res) => {
     const span = startControllerSpan("resume.getAllResumes", req);
     try {
@@ -36,14 +53,50 @@ const getAllResumes: RequestHandler = async (req, res) => {
         if (!userId) return;
 
         const resumes = await Resume.find({ userId }).sort({ updatedAt: -1 });
+        
+        // Fetch latest ATS scores for all resumes in parallel
+        const resumeIds = resumes.map(r => r._id.toString());
+        const atsScores = await Promise.all(
+            resumeIds.map(async (resumeId) => {
+                const analysis = await AtsAnalysis.findOne({ 
+                    resumeId: new mongoose.Types.ObjectId(resumeId), 
+                    userId: new mongoose.Types.ObjectId(userId),
+                    status: "completed"
+                })
+                    .sort({ analyzedAt: -1 })
+                    .select("overallScore status analyzedAt")
+                    .lean();
+                return {
+                    resumeId,
+                    atsScore: analysis?.overallScore ?? null,
+                    atsStatus: analysis?.status ?? null,
+                    atsAnalyzedAt: analysis?.analyzedAt ?? null
+                };
+            })
+        );
+        
+        // Create a map for quick lookup
+        const atsScoreMap = new Map(atsScores.map(item => [item.resumeId, item]));
+        
+        // Normalize resumes and include ATS score
+        const normalizedResumes = resumes.map((resume) => {
+            const plainResume = normalizeResumeResponse(resume);
+            const atsData = atsScoreMap.get(resume._id.toString());
+            return {
+                ...plainResume,
+                atsScore: atsData?.atsScore ?? null,
+                atsStatus: atsData?.atsStatus ?? null,
+                atsAnalyzedAt: atsData?.atsAnalyzedAt ?? null
+            };
+        });
 
-        logger.info({ userId, count: resumes.length }, "Fetched resumes");
+        logger.info({ userId, count: normalizedResumes.length }, "Fetched resumes");
         markSpanSuccess(span);
-        res.status(200).json({ resumes });
+        res.status(200).json({ resumes: normalizedResumes });
     } catch (error) {
         markSpanError(span, error as Error, "Failed to fetch resumes");
         logger.error({ error }, "Failed to fetch resumes");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -64,11 +117,11 @@ const getResumeById: RequestHandler = async (req, res) => {
 
         logger.info({ userId, resumeId: req.params.id }, "Fetched resume by id");
         markSpanSuccess(span);
-        res.status(200).json({ resume });
+        res.status(200).json({ resume: normalizeResumeResponse(resume) });
     } catch (error) {
         markSpanError(span, error as Error, "Failed to fetch resume by id");
         logger.error({ error, resumeId: req.params.id }, "Failed to fetch resume by id");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -80,8 +133,13 @@ const createResume: RequestHandler = async (req, res) => {
         const userId = getUserId(req, res);
         if (!userId) return;
 
-        const resume = await Resume.create({
+        const payload = {
             ...req.body,
+            templateId: normalizeResumeTemplateId(req.body?.templateId),
+        };
+
+        const resume = await Resume.create({
+            ...payload,
             userId,
         });
 
@@ -91,14 +149,15 @@ const createResume: RequestHandler = async (req, res) => {
 
         res.status(201).json({
             message: "Resume saved successfully",
-            resume,
+            resume: normalizeResumeResponse(resume),
         });
+        recordResumeCreated(String(resume.templateId));
         logger.info({ userId, resumeId: resume._id.toString() }, "Resume created");
         markSpanSuccess(span);
     } catch (error) {
         markSpanError(span, error as Error, "Failed to create resume");
         logger.error({ error }, "Failed to create resume");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -110,10 +169,15 @@ const updateResume: RequestHandler = async (req, res) => {
         const userId = getUserId(req, res);
         if (!userId) return;
 
+        const payload = {
+            ...req.body,
+            templateId: req.body?.templateId === undefined ? undefined : normalizeResumeTemplateId(req.body.templateId),
+        };
+
         const resume = await Resume.findOneAndUpdate(
             { _id: req.params.id, userId },
-            { ...req.body, userId },
-            { new: true, runValidators: true },
+            { ...payload, userId },
+            { returnDocument: 'after', runValidators: true },
         );
 
         if (!resume) {
@@ -127,14 +191,14 @@ const updateResume: RequestHandler = async (req, res) => {
 
         res.status(200).json({
             message: "Resume updated successfully",
-            resume,
+            resume: normalizeResumeResponse(resume),
         });
         logger.info({ userId, resumeId: req.params.id }, "Resume updated");
         markSpanSuccess(span);
     } catch (error) {
         markSpanError(span, error as Error, "Failed to update resume");
         logger.error({ error, resumeId: req.params.id }, "Failed to update resume");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }
@@ -154,13 +218,14 @@ const deleteResume: RequestHandler = async (req, res) => {
         }
 
         logger.info({ userId, resumeId: req.params.id }, "Resume deleted");
+        recordResumeDeleted();
         markSpanSuccess(span);
         await invalidateRedisCache([resumeCacheScope(userId)]);
         res.status(200).json({ message: "Resume deleted successfully" });
     } catch (error) {
         markSpanError(span, error as Error, "Failed to delete resume");
         logger.error({ error, resumeId: req.params.id }, "Failed to delete resume");
-        res.status(500).json({ message: "Server error" });
+        sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
     } finally {
         finishControllerSpan(span);
     }

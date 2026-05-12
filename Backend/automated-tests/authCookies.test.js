@@ -8,7 +8,7 @@ const {
   setAccessTokenCookie,
   setAuthCookies,
   setCsrfCookie,
-} = require("../dist/utils/authCookies");
+} = require("../dist/Backend/src/utils/authCookies");
 
 const createReq = (overrides = {}) => ({
   secure: false,
@@ -58,7 +58,7 @@ test("setCsrfCookie returns token and sets client-readable cookie", () => {
   assert.equal(res.cookies.length, 1);
   assert.equal(res.cookies[0].name, "csrfToken");
   assert.equal(res.cookies[0].value, csrfToken);
-  assert.equal(res.cookies[0].options.httpOnly, false);
+  assert.equal(res.cookies[0].options.httpOnly, true);
 });
 
 test("setAuthCookies sets access, refresh, and csrf cookies", () => {

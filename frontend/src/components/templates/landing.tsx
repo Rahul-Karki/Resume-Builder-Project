@@ -1,10 +1,11 @@
-import { JSX, useEffect, useState } from "react";
+import { JSX, useEffect, useMemo, useRef, useState } from "react";
 import { ResumeDocument, ResumeStyle, SectionVisibility } from "@/types/resume-types";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { sampleData } from "@/data/sampleData";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Logo } from "@/components/Logo";
 import { api } from "@/services/api";
-import { TemplateMeta } from "@/data/templateMeta";
+import { TemplateMeta, templates as localTemplateCatalog } from "@/data/templateMeta";
 
 type SlotKey = "summary" | "experience" | "education" | "skills" | "projects" | "certifications" | "languages";
 
@@ -22,9 +23,41 @@ const SLOT_FALLBACK_SECTIONS: ResumeDocument["sections"] = {
       ],
 };
 
+const mergeWithLocalTemplateCatalog = (apiTemplates: TemplateMeta[]): TemplateMeta[] => {
+  const byId = new Map<string, TemplateMeta>();
+  apiTemplates.forEach((template) => byId.set(template.id, template));
+
+  localTemplateCatalog.forEach((template) => {
+    if (byId.has(template.id)) return;
+
+    byId.set(template.id, {
+      id: template.id,
+      name: template.name,
+      tag: template.tag,
+      category: template.category,
+      audience: template.audience,
+      accent: template.accent,
+      font: template.font,
+      description: template.description,
+      isPremium: template.isPremium,
+      palette: template.palette,
+      cssVars: template.cssVars,
+      slots: template.slots,
+    });
+  });
+
+  return Array.from(byId.values());
+};
+
 const buildPreviewSample = (template: TemplateMeta): ResumeDocument => {
   const stylePatch = template.cssVars ?? {};
   const slotsPatch = template.slots ?? {};
+  const socialPatch = template.category === "tech"
+    ? {
+        github: "https://github.com/maya-thompson",
+        portfolio: "https://maya-thompson.dev",
+      }
+    : {};
 
   const slotState: Record<SlotKey, boolean> = {
     summary: slotsPatch.summary ?? true,
@@ -41,6 +74,7 @@ const buildPreviewSample = (template: TemplateMeta): ResumeDocument => {
     templateId: template.id,
     personalInfo: {
       ...sampleData.personalInfo,
+      ...socialPatch,
       summary: slotState.summary ? sampleData.personalInfo.summary : "",
     },
     sections: {
@@ -151,7 +185,7 @@ function ThumbnailSVG({ template }: { template: TemplateMeta }) {
         <rect x="14" y="78" width="48" height="5" rx="2" fill="#CBD5E1" opacity="0.7" />
         <rect x="18" y="87" width="40" height="3" rx="1" fill="#94A3B8" opacity="0.5" />
         <rect x="10" y="100" width="56" height="0.75" fill="#334155" />
-        {[108, 116, 124, 132, 140].map((y) => <rect key={y} x="10" y={y} width={44 + Math.floor(Math.random() * 12)} height="2.5" rx="1" fill="#475569" opacity="0.55" />)}
+        {[48, 54, 44, 52, 46].map((width, index) => <rect key={index} x="10" y={108 + index * 8} width={width} height="2.5" rx="1" fill="#475569" opacity="0.55" />)}
         <rect x="10" y="154" width="56" height="0.75" fill="#334155" />
         <rect x="10" y="162" width="56" height="3" rx="1" fill="#64748B" opacity="0.4" />
         {[170, 178, 186, 194, 202, 210].map((y) => <rect key={y} x="10" y={y} width={24 + (y % 16)} height="8" rx="4" fill="#334155" />)}
@@ -166,6 +200,38 @@ function ThumbnailSVG({ template }: { template: TemplateMeta }) {
         <rect x="88" y="82" width="144" height="0.75" fill="#1E293B" opacity="0.2" />
         {[88, 100, 114, 128, 142, 158, 172, 186, 200, 214, 228, 242, 256, 270, 284].map((y, i) => (
           <rect key={y} x="88" y={y} width={[136, 120, 128, 112, 136, 122, 128, 114, 132, 110, 124, 116, 130, 112, 128][i] ?? 120} height="2" rx="0.5" fill="#334155" opacity="0.18" />
+        ))}
+      </svg>
+    ),
+    scholarly: (
+      <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%" }}>
+        <rect width="240" height="310" fill="#FFFFFF" />
+        <rect x="48" y="14" width="144" height="11" rx="2" fill="#1a1a1a" opacity="0.82" />
+        <rect x="32" y="29" width="176" height="2" rx="1" fill="#4a4a4a" opacity="0.36" />
+        {[42, 49, 56].map((y, i) => <rect key={y} x="20" y={y} width={[200, 184, 196][i]} height="1.8" rx="1" fill="#1a1a1a" opacity="0.12" />)}
+        {[72, 108, 146, 184, 222, 258].map((y) => (
+          <g key={y}>
+            <rect x="20" y={y} width="54" height="3.4" rx="1" fill="#1a1a1a" opacity="0.56" />
+            <rect x="20" y={y + 6} width="200" height="0.75" fill="#4a4a4a" opacity="0.28" />
+            <rect x="20" y={y + 10} width="188" height="1.8" rx="1" fill="#1a1a1a" opacity="0.13" />
+            <rect x="20" y={y + 15} width="198" height="1.8" rx="1" fill="#1a1a1a" opacity="0.10" />
+          </g>
+        ))}
+      </svg>
+    ),
+    research: (
+      <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%" }}>
+        <rect width="240" height="310" fill="#FFFFFF" />
+        <rect x="20" y="14" width="102" height="10" rx="2" fill="#1f1f1f" opacity="0.82" />
+        <rect x="20" y="28" width="120" height="2" rx="1" fill="#555" opacity="0.34" />
+        <rect x="144" y="14" width="76" height="2" rx="1" fill="#555" opacity="0.44" />
+        <rect x="144" y="20" width="76" height="2" rx="1" fill="#555" opacity="0.34" />
+        {[44, 82, 132, 182, 228, 270].map((y) => (
+          <g key={y}>
+            <rect x="20" y={y} width="58" height="3.4" rx="1" fill="#1f1f1f" opacity="0.56" />
+            <rect x="20" y={y + 6} width="200" height="0.75" fill="#555" opacity="0.25" />
+            {[0, 1, 2].map((li) => <rect key={li} x="24" y={y + 10 + li * 7} width={[188, 170, 194][li]} height="1.8" rx="1" fill="#1f1f1f" opacity="0.11" />)}
+          </g>
         ))}
       </svg>
     ),
@@ -202,11 +268,11 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     .tp-root { font-family: 'Outfit', sans-serif; background: #0E0E0E; color: #F0EFE8; min-height: 100vh; }
  
     /* NAV */
-    .tp-nav { position: sticky; top: 0; z-index: 50; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s; }
+    .tp-nav { position: sticky; top: 0; z-index: 50; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: flex-start; gap: 36px; transition: all 0.3s; }
     .tp-nav.scrolled { background: rgba(14,14,14,0.95); border-bottom: 1px solid #1F1F1F; backdrop-filter: blur(12px); }
     .tp-logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: #F0EFE8; letter-spacing: -0.5px; }
     .tp-logo em { font-style: italic; color: #C8F55A; }
-    .tp-nav-links { display: flex; gap: 32px; }
+    .tp-nav-links { display: flex; align-items: center; gap: 22px; }
     .tp-nav-link { font-size: 13px; color: #888; font-weight: 400; cursor: pointer; transition: color 0.2s; }
     .tp-nav-link:hover, .tp-nav-link.active { color: #F0EFE8; }
     .tp-nav-cta { padding: 8px 20px; background: #C8F55A; color: #0E0E0E; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s; }
@@ -323,7 +389,8 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     }
 
     @media (max-width: 480px) {
-      .tp-nav { height: auto; min-height: 56px; padding: 8px 12px; }
+      .tp-nav { height: auto; min-height: 56px; padding: 8px 12px; gap: 14px; }
+      .tp-nav-links { gap: 12px; }
       .tp-nav-cta { width: 100%; text-align: center; }
       .tp-hero-h1 { letter-spacing: -1.3px; }
       .tp-card-thumb { height: 280px; }
@@ -334,17 +401,38 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
 // ═══════════════════════════════════════════════════════════════
 export default function TemplatesPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const skeletonItems = Array.from({ length: 6 }, (_, index) => index);
   const [templates, setTemplates] = useState<TemplateMeta[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Loading templates...");
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [activeAudience, setActiveAudience] = useState<"All" | "Tech" | "Non-Tech">("All");
+  const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get("preview"));
+  const [activePreviewId, setActivePreviewId] = useState<string | null>(() => searchParams.get("preview"));
+  const [isPreviewSwitching, setIsPreviewSwitching] = useState<boolean>(() => Boolean(searchParams.get("preview")));
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const initialPreviewParam = searchParams.get("preview");
+  const previewSwitchTimerRef = useRef<number | null>(null);
+  const previewSwitchRafRef = useRef<number | null>(null);
  
-  const previewTemplate = templates.find(t => t.id === previewId);
+  const previewTemplate = templates.find(t => t.id === activePreviewId);
+  const previewSample = useMemo(() => {
+    if (!previewTemplate) return null;
+    return buildPreviewSample(previewTemplate);
+  }, [previewTemplate]);
+
+  const clearPreviewSwitchHandles = () => {
+    if (previewSwitchRafRef.current !== null) {
+      window.cancelAnimationFrame(previewSwitchRafRef.current);
+      previewSwitchRafRef.current = null;
+    }
+    if (previewSwitchTimerRef.current !== null) {
+      window.clearTimeout(previewSwitchTimerRef.current);
+      previewSwitchTimerRef.current = null;
+    }
+  };
 
   const fetchTemplatesWithRetry = async () => {
     const retryDelaysMs = [0, 1500, 3000, 5000];
@@ -366,8 +454,7 @@ export default function TemplatesPage() {
         const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
 
         const mapped: TemplateMeta[] = rows.map((row: any) => {
-          const rawCategory = String(row.category ?? "Professional");
-          const category = rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1);
+          const category = row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech";
           const accent = row.cssVars?.accentColor ?? "#1a1a1a";
           const font = String(row.cssVars?.bodyFont ?? "Outfit").split(",")[0].trim();
 
@@ -376,10 +463,12 @@ export default function TemplatesPage() {
             name: row.name ?? row.layoutId,
             tag: row.tag ?? "General",
             category,
+            audience: row.audience === "tech" ? "tech" : "non-tech",
             accent,
             font,
             description: row.description ?? "",
             isPremium: Boolean(row.isPremium),
+            thumbnailUrl: row.thumbnailUrl ?? "",
             palette: [
               row.cssVars?.backgroundColor ?? "#ffffff",
               accent,
@@ -390,7 +479,7 @@ export default function TemplatesPage() {
           };
         });
 
-        return mapped;
+        return mergeWithLocalTemplateCatalog(mapped);
       } catch (error) {
         lastError = error;
       }
@@ -408,8 +497,9 @@ export default function TemplatesPage() {
       const mapped = await fetchTemplatesWithRetry();
       setTemplates(mapped);
     } catch {
+      // If API fails completely, fall back to local templates
       setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
-      setTemplates([]);
+      setTemplates(mergeWithLocalTemplateCatalog([]));
     } finally {
       setLoadingTemplates(false);
     }
@@ -425,6 +515,19 @@ export default function TemplatesPage() {
     }
 
     navigate(destination);
+  };
+
+  const handlePreviewSelect = (templateId: string) => {
+    if (templateId === previewId) return;
+
+    clearPreviewSwitchHandles();
+    setIsPreviewSwitching(true);
+    setActivePreviewId(null);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("preview", templateId);
+    setSearchParams(nextParams, { replace: true });
+    setPreviewId(templateId);
   };
  
   useEffect(() => {
@@ -451,9 +554,140 @@ export default function TemplatesPage() {
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [previewId]);
+
+  useEffect(() => {
+    if (templates.length === 0) return;
+
+    // Keep modal selection synchronized with URL changes.
+    if (!initialPreviewParam) {
+      if (previewId) setPreviewId(null);
+      return;
+    }
+
+    const hasTemplate = templates.some((template) => template.id === initialPreviewParam);
+    if (hasTemplate && previewId !== initialPreviewParam) {
+      setPreviewId(initialPreviewParam);
+    }
+  }, [initialPreviewParam, previewId, templates]);
+
+  useEffect(() => {
+    if (!previewId || loadingTemplates || templates.length === 0) return;
+
+    const hasPreviewTemplate = templates.some((template) => template.id === previewId);
+    if (hasPreviewTemplate) return;
+
+    // Selected template was removed or unpublished; clear stale modal state and URL param.
+    setPreviewId(null);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("preview");
+    setSearchParams(nextParams, { replace: true });
+  }, [loadingTemplates, previewId, searchParams, setSearchParams, templates]);
+
+  useEffect(() => {
+    clearPreviewSwitchHandles();
+
+    if (!previewId) {
+      setActivePreviewId(null);
+      setIsPreviewSwitching(false);
+      return;
+    }
+
+    setIsPreviewSwitching(true);
+    setActivePreviewId(null);
+
+    previewSwitchRafRef.current = window.requestAnimationFrame(() => {
+      setActivePreviewId(previewId);
+      previewSwitchTimerRef.current = window.setTimeout(() => {
+        setIsPreviewSwitching(false);
+      }, 140);
+    });
+
+    return () => {
+      clearPreviewSwitchHandles();
+    };
+  }, [previewId]);
  
-  const categories = ["All", ...Array.from(new Set(templates.map(t => t.category)))];
-  const filtered = templates.filter(t => activeCategory === "All" || t.category === activeCategory);
+  const audienceFilters: Array<"All" | "Tech" | "Non-Tech"> = ["All", "Non-Tech", "Tech"];
+  const filtered = templates.filter((template) => {
+    if (activeAudience === "All") return true;
+    return activeAudience === "Tech" ? template.audience === "tech" : template.audience === "non-tech";
+  });
+  const categoryOrder: TemplateMeta["category"][] = ["non-tech", "tech"];
+  const categorySections = useMemo(() => {
+    const grouped = new Map<TemplateMeta["category"], TemplateMeta[]>();
+
+    filtered.forEach((template) => {
+      const items = grouped.get(template.category) ?? [];
+      items.push(template);
+      grouped.set(template.category, items);
+    });
+
+    return Array.from(grouped.entries())
+      .sort(([leftCategory], [rightCategory]) => {
+        const leftIndex = categoryOrder.indexOf(leftCategory);
+        const rightIndex = categoryOrder.indexOf(rightCategory);
+
+        if (leftIndex === -1 && rightIndex === -1) return leftCategory.localeCompare(rightCategory);
+        if (leftIndex === -1) return 1;
+        if (rightIndex === -1) return -1;
+        return leftIndex - rightIndex;
+      })
+      .map(([category, items]) => ({
+        category,
+        label: category === "tech" ? "Tech Templates" : "Non-Tech Templates",
+        items,
+      }));
+  }, [filtered]);
+
+  const renderTemplateCards = (items: TemplateMeta[], offset = 0) => (
+    items.map((t, idx) => (
+      <div
+        key={t.id}
+        className="tp-card"
+        style={{ animationDelay: `${(offset + idx) * 60}ms` }}
+        onMouseEnter={() => setHoveredId(t.id)}
+        onMouseLeave={() => setHoveredId(null)}
+      >
+        <div className="tp-card-thumb">
+          <div className="tp-card-thumb-inner">
+            <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
+              {t.thumbnailUrl ? (
+                <img src={t.thumbnailUrl} alt={t.name} style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+              ) : (
+                <ThumbnailSVG template={t} />
+              )}
+            </div>
+          </div>
+          <div className="tp-card-hover-overlay">
+            <button className="tp-card-preview-btn" onClick={() => handlePreviewSelect(t.id)}>
+              Preview Template →
+            </button>
+          </div>
+          {t.isPremium && (
+            <div className="tp-card-premium-badge" style={{ position: "absolute", top: 14, left: 14, background: "#F59E0B", color: "#0E0E0E", fontSize: "9.5px", fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>
+              ★ PRO
+            </div>
+          )}
+        </div>
+        <div className="tp-card-body">
+          <div className="tp-card-top">
+            <div className="tp-card-name">{t.name}</div>
+            <span className="tp-card-tag">{t.tag}</span>
+          </div>
+          <p className="tp-card-desc">{t.description}</p>
+          <div className="tp-card-footer">
+            <div className="tp-card-accent">
+              <div className="tp-card-swatch" style={{ background: t.accent }} />
+              <span className="tp-card-font">{t.font} · {t.category === "tech" ? "Tech" : "Non-Tech"}</span>
+            </div>
+            <button className="tp-card-use-btn" onClick={() => handlePreviewSelect(t.id)}>
+              Preview →
+            </button>
+          </div>
+        </div>
+      </div>
+    ))
+  );
  
   return (
     <>
@@ -461,8 +695,11 @@ export default function TemplatesPage() {
       <div className="tp-root">
         {/* NAV */}
         <nav className={`tp-nav${scrolled ? " scrolled" : ""}`}>
-          <div className="tp-logo">Resume<em>Studio</em></div>
-          < Link to="/resumes" className="tp-nav-cta">My Resume</Link>
+          <div className="tp-logo"><Logo /></div>
+          <div className="tp-nav-links">
+            <Link to="/templates" className="tp-nav-link active">Templates</Link>
+            <Link to="/resumes" className="tp-nav-link">My Resumes</Link>
+          </div>
         </nav>
  
         {/* HERO */}
@@ -485,9 +722,9 @@ export default function TemplatesPage() {
  
         {/* FILTER */}
         <div className="tp-filter">
-          {categories.map(cat => (
-            <button key={cat} className={`tp-filter-btn${activeCategory === cat ? " active" : ""}`} onClick={() => setActiveCategory(cat)}>
-              {cat}
+          {audienceFilters.map(filter => (
+            <button key={filter} className={`tp-filter-btn${activeAudience === filter ? " active" : ""}`} onClick={() => setActiveAudience(filter)}>
+              {filter}
             </button>
           ))}
         </div>
@@ -552,49 +789,18 @@ export default function TemplatesPage() {
             </div>
           )}
 
-          {filtered.map((t, idx) => (
-            <div
-              key={t.id}
-              className="tp-card"
-              style={{ animationDelay: `${idx * 60}ms` }}
-              onMouseEnter={() => setHoveredId(t.id)}
-              onMouseLeave={() => setHoveredId(null)}
-            >
-              <div className="tp-card-thumb">
-                <div className="tp-card-thumb-inner">
-                  <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
-                    <ThumbnailSVG template={t} />
-                  </div>
-                </div>
-                <div className="tp-card-hover-overlay">
-                  <button className="tp-card-preview-btn" onClick={() => setPreviewId(t.id)}>
-                    Preview Template →
-                  </button>
-                </div>
-                {t.isPremium && (
-                  <div className="tp-card-premium-badge" style={{ position: "absolute", top: 14, left: 14, background: "#F59E0B", color: "#0E0E0E", fontSize: "9.5px", fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>
-                    ★ PRO
-                  </div>
-                )}
+          {!loadingTemplates && activeAudience === "All" && categorySections.map((section, sectionIndex) => (
+            <div key={section.category} style={{ gridColumn: "1 / -1" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 999, border: "1px solid #2A2A2A", background: "#141414", color: section.category === "tech" ? "#7DD3FC" : "#C8F55A", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, marginTop: sectionIndex === 0 ? 4 : 20, marginBottom: -4 }}>
+                {section.label}
               </div>
-              <div className="tp-card-body">
-                <div className="tp-card-top">
-                  <div className="tp-card-name">{t.name}</div>
-                  <span className="tp-card-tag">{t.tag}</span>
-                </div>
-                <p className="tp-card-desc">{t.description}</p>
-                <div className="tp-card-footer">
-                  <div className="tp-card-accent">
-                    <div className="tp-card-swatch" style={{ background: t.accent }} />
-                    <span className="tp-card-font">{t.font}</span>
-                  </div>
-                  <button className="tp-card-use-btn" onClick={() => setPreviewId(t.id)}>
-                    Preview →
-                  </button>
-                </div>
+              <div className="tp-grid" style={{ padding: 0, marginTop: 14 }}>
+                {renderTemplateCards(section.items, 0)}
               </div>
             </div>
           ))}
+
+          {!loadingTemplates && activeAudience !== "All" && renderTemplateCards(filtered, 0)}
         </div>
  
         {/* ATS INFO */}
@@ -617,8 +823,20 @@ export default function TemplatesPage() {
         </div>
  
         {/* PREVIEW MODAL */}
-        {previewId && previewTemplate && (
-          <div className="tp-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setPreviewId(null); }}>
+        {previewId && (previewTemplate || loadingTemplates || isPreviewSwitching) && (
+          <div
+            className="tp-modal-overlay"
+            onClick={e => {
+              if (e.target !== e.currentTarget) return;
+              clearPreviewSwitchHandles();
+              setPreviewId(null);
+              setActivePreviewId(null);
+              setIsPreviewSwitching(false);
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete("preview");
+              setSearchParams(nextParams, { replace: true });
+            }}
+          >
             <div className="tp-modal-topbar">
               <div className="tp-modal-info">
                 {/* Template switcher strip */}
@@ -627,7 +845,7 @@ export default function TemplatesPage() {
                     <button
                       key={t.id}
                       className={`tp-modal-nav-btn${previewId === t.id ? " active" : ""}`}
-                      onClick={() => setPreviewId(t.id)}
+                      onClick={() => handlePreviewSelect(t.id)}
                       style={{ padding: "5px 14px" }}
                     >
                       {t.name}
@@ -636,42 +854,73 @@ export default function TemplatesPage() {
                 </div>
               </div>
               <div className="tp-modal-actions">
+                {previewTemplate ? (
+                  <button
+                    onClick={() => {
+                      if (!previewId) return;
+                      handleUseTemplate(previewId);
+                    }}
+                    className="tp-modal-use-btn"
+                    style={{ padding: "10px 24px" }}
+                  >
+                    <span>Use This Template</span>
+                    <span>→</span>
+                  </button>
+                ) : (
+                  <div className="tp-skeleton" style={{ width: 180, height: 42, borderRadius: 10 }} />
+                )}
                 <button
+                  className="tp-modal-close"
                   onClick={() => {
-                    if (!previewId) return;
-                    handleUseTemplate(previewId);
+                    clearPreviewSwitchHandles();
+                    setPreviewId(null);
+                    setActivePreviewId(null);
+                    setIsPreviewSwitching(false);
+                    const nextParams = new URLSearchParams(searchParams);
+                    nextParams.delete("preview");
+                    setSearchParams(nextParams, { replace: true });
                   }}
-                  className="tp-modal-use-btn"
-                  style={{ padding: "10px 24px" }}
                 >
-                  <span>Use This Template</span>
-                  <span>→</span>
+                  ×
                 </button>
-                <button className="tp-modal-close" onClick={() => setPreviewId(null)}>×</button>
               </div>
             </div>
  
             {/* Full resume render */}
             <div className="tp-modal-scroll">
-              {/* Template info strip */}
-              <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: 4, background: previewTemplate.accent }} />
-                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, color: "#888" }}>
-                    <strong style={{ color: "#F0EFE8" }}>{previewTemplate.name}</strong> — {previewTemplate.description}
-                  </span>
-                </div>
-                <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {["ATS Friendly", "Live Preview", "Export to PDF"].map(label => (
-                    <span key={label} style={{ fontSize: 10, fontWeight: 700, color: "#C8F55A", background: "rgba(200,245,90,0.1)", border: "1px solid rgba(200,245,90,0.2)", padding: "3px 10px", borderRadius: 20 }}>✓ {label}</span>
-                  ))}
-                </div>
-              </div>
- 
-              <div className="tp-modal-paper">
-                <ResumeRenderer resume={buildPreviewSample(previewTemplate)} />
-              </div>
-              <div className="tp-modal-bottom-padding" />
+              {previewTemplate && previewSample && !isPreviewSwitching ? (
+                <>
+                  {/* Template info strip */}
+                  <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 16, height: 16, borderRadius: 4, background: previewTemplate.accent }} />
+                      <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, color: "#888" }}>
+                        <strong style={{ color: "#F0EFE8" }}>{previewTemplate.name}</strong> — {previewTemplate.description}
+                      </span>
+                    </div>
+                    <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {["ATS Friendly", "Live Preview", "Export to PDF"].map(label => (
+                        <span key={label} style={{ fontSize: 10, fontWeight: 700, color: "#C8F55A", background: "rgba(200,245,90,0.1)", border: "1px solid rgba(200,245,90,0.2)", padding: "3px 10px", borderRadius: 20 }}>✓ {label}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="tp-modal-paper">
+                    <ResumeRenderer resume={previewSample} />
+                  </div>
+                  <div className="tp-modal-bottom-padding" />
+                </>
+              ) : (
+                <>
+                  <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px" }}>
+                    <div className="tp-skeleton" style={{ width: "60%", maxWidth: 520, height: 14 }} />
+                  </div>
+                  <div className="tp-modal-paper">
+                    <div className="tp-skeleton" style={{ width: "100%", minHeight: 860 }} />
+                  </div>
+                  <div className="tp-modal-bottom-padding" />
+                </>
+              )}
             </div>
           </div>
         )}

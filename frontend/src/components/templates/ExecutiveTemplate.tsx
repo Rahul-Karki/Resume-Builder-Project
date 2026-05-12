@@ -1,5 +1,6 @@
 import  { ResumeDocument, marginMap, spacingMap } from "../../types/resume-types"; 
 import {
+  ExternalLinkIcon,
   formatCertification,
   formatDateRange,
   formatProjectTech,
@@ -7,19 +8,27 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
-} from "./templateHelpers";
+  renderTextWithLinks,
+  toAbsoluteUrl,
+  toMailto,
+  toTel,  getSocialIconComponent,} from "./templateHelpers";
 
 export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
   const contactItems = [
-    p.email ? `✉ ${p.email}` : "",
-    p.phone ? `☎ ${p.phone}` : "",
-    p.location ? `⌖ ${p.location}` : "",
-    p.linkedin ? `⌘ ${p.linkedin}` : "",
-    p.portfolio ? `◈ ${p.portfolio}` : "",
-  ].filter(Boolean);
+    p.email ? { icon: "✉", label: p.email, href: toMailto(p.email) } : null,
+    p.phone ? { icon: "☎", label: p.phone, href: toTel(p.phone) } : null,
+    p.location ? { icon: "⌖", label: p.location, href: "" } : null,
+  ].filter(Boolean) as Array<{ icon: string; label: string; href: string }>;
+
+  const socialItems = [
+    p.linkedin ? { href: toAbsoluteUrl(p.linkedin), label: "LinkedIn", kind: "linkedin" as const } : null,
+    p.github ? { href: toAbsoluteUrl(p.github), label: "GitHub", kind: "github" as const } : null,
+    p.portfolio ? { href: toAbsoluteUrl(p.portfolio), label: "Website", kind: "portfolio" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; kind: "linkedin" | "github" | "portfolio" }>;
+
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Lato:wght@300;400;700&display=swap');
     .exec-wrap { font-family:'Lato',sans-serif; color:#1c1c1c; background:#fff; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
@@ -27,6 +36,12 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
     .exec-name { font-family:'Playfair Display',serif; font-size:30pt; font-weight:700; margin:0 0 8px; letter-spacing:0.3px; }
     .exec-title-bar { font-size:9.5pt; font-weight:300; letter-spacing:2px; text-transform:uppercase; color:#A8BDD8; margin-bottom:14px; }
     .exec-contact-bar { display:flex; flex-wrap:wrap; gap:6px 24px; font-size:9pt; color:#c8d8ec; }
+    .exec-link { color:inherit; text-decoration:none; }
+    .exec-link:hover { text-decoration:underline; }
+    .exec-meta { display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+    .exec-social { display:flex; gap:10px; color:#c8d8ec; }
+    .exec-social-link { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); }
+    .exec-social-link:hover { background:rgba(255,255,255,0.10); }
     .exec-body { padding:28px 52px 40px; flex:1; }
     .exec-body, .exec-body p, .exec-body span, .exec-body li, .exec-body div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .exec-section { margin-bottom:18px; }
@@ -54,9 +69,33 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
         <div className="exec-header" style={{ background: style.accentColor, padding: `36px ${pagePadding.split(" ")[1]} 28px` }}>
           <div className="exec-name" style={{ fontFamily: style.headingFont, textAlign: style.headerAlign }}>{p.name}</div>
           {p.title && <div className="exec-title-bar" style={{ color: style.mutedColor, textAlign: style.headerAlign }}>{p.title}</div>}
-          {contactItems.length > 0 && (
-            <div className="exec-contact-bar" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
-              {contactItems.map((item, i) => <span key={i}>{item}</span>)}
+          {(contactItems.length > 0 || socialItems.length > 0) && (
+            <div className="exec-meta" style={{ alignItems: style.headerAlign === "center" ? "center" : "flex-start" }}>
+              {contactItems.length > 0 && (
+                <div className="exec-contact-bar" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
+                  {contactItems.map((item, i) => (
+                    <span key={i}>
+                      {item.icon}{" "}
+                      {item.href ? (
+                        <a className="exec-link" href={item.href} target="_blank" rel="noreferrer">
+                          {item.label}
+                        </a>
+                      ) : (
+                        item.label
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {socialItems.length > 0 && (
+                <div className="exec-social" aria-label="Social links">
+                  {socialItems.map((item, i) => (
+                    <a key={i} className="exec-social-link" href={item.href} target="_blank" rel="noreferrer" aria-label={item.label} title={item.label}>
+                      {getSocialIconComponent(item.href, { width: 14, height: 14, kind: item.kind })}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -75,11 +114,11 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
                   <span className="exec-date" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
                 {isParagraphMode(e.contentMode) ? (
-                  getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#444", marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                  getExperienceParagraph(e) ? <div style={{ fontSize: "10pt", color: "#444", marginTop: 4 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
                 ) : (
                   getDisplayBullets(e.bullets).length > 0 && (
                     <ul className="exec-bullets">
-                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}
@@ -117,14 +156,21 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
             <div className="exec-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor, borderBottomColor: style.accentColor, borderBottomWidth: style.showDividers ? 2 : 0 }}>Projects</div>
             {s.projects.map((pr, i) => (
               <div className="exec-proj" key={i}>
-                <strong style={{ fontSize: "10pt" }}>{pr.name}</strong>
+                {pr.link ? (
+                  <a className="exec-link" href={toAbsoluteUrl(pr.link)} target="_blank" rel="noreferrer" style={{ fontSize: "10pt", fontWeight: 700 }}>
+                    {pr.name}
+                    <ExternalLinkIcon />
+                  </a>
+                ) : (
+                  <strong style={{ fontSize: "10pt" }}>{pr.name}</strong>
+                )}
                 <span style={{ fontSize: "9pt", color: "#666", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
                 {isParagraphMode(pr.contentMode) ? (
-                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 2 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
                 ) : (
                   getDisplayBullets(pr.bullets).length > 0 && (
                     <ul className="exec-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}

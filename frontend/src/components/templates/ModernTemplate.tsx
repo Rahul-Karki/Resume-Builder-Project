@@ -1,5 +1,6 @@
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
+  ExternalLinkIcon,
   formatCertification,
   formatDateRange,
   formatProjectTech,
@@ -7,11 +8,28 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
+  toAbsoluteUrl,
+  toMailto,
+  toTel,
+  getSocialIconComponent,
 } from "@/components/templates/templateHelpers";
 
 export function ModernTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
-  const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
+  const contactItems = [
+    p.email ? { label: p.email, href: toMailto(p.email) } : null,
+    p.phone ? { label: p.phone, href: toTel(p.phone) } : null,
+    p.location ? { label: p.location, href: "" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string }>;
+
+  const socialItems = [
+    p.linkedin ? { href: toAbsoluteUrl(p.linkedin), label: "LinkedIn", kind: "linkedin" as const } : null,
+    p.github ? { href: toAbsoluteUrl(p.github), label: "GitHub", kind: "github" as const } : null,
+    p.portfolio ? { href: toAbsoluteUrl(p.portfolio), label: "Website", kind: "portfolio" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; kind: "linkedin" | "github" | "portfolio" }>;
+
+
   const accent = style.accentColor;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
@@ -22,6 +40,11 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
     .mod-name { font-family:'DM Serif Display',serif; font-size:32pt; color:#0F1A14; margin:0 0 2px; }
     .mod-tagline { font-size:10pt; font-weight:300; color:#555; letter-spacing:0.5px; margin-bottom:10px; }
     .mod-contact { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:9pt; color:#444; margin-bottom:20px; }
+    .mod-link { color:inherit; text-decoration:none; }
+    .mod-link:hover { text-decoration:underline; }
+    .mod-social { display:flex; gap:10px; margin:6px 0 20px; color:#444; }
+    .mod-social-link { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:999px; }
+    .mod-social-link:hover { background:rgba(0,0,0,0.05); }
     .mod-section { margin-bottom:16px; border-left:3px solid ${accent}; padding-left:14px; }
     .mod-section-title { font-size:10pt; font-weight:600; color:${accent}; text-transform:uppercase; letter-spacing:1.8px; margin-bottom:8px; }
     .mod-summary { font-size:10pt; line-height:1.6; color:#333; font-weight:300; }
@@ -50,7 +73,24 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         {contactItems.length > 0 && (
           <div className="mod-contact" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
             {contactItems.map((item, i) => (
-              <span key={i}>{i > 0 ? ` · ${item}` : item}</span>
+              <span key={i}>
+                {i > 0 ? " · " : ""}
+                {item.href ? (
+                  <a className="mod-link" href={item.href} target="_blank" rel="noreferrer">{item.label}</a>
+                ) : (
+                  item.label
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {socialItems.length > 0 && (
+          <div className="mod-social" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
+            {socialItems.map((item, i) => (
+              <a key={i} className="mod-social-link" href={item.href} target="_blank" rel="noreferrer" aria-label={item.label} title={item.label}>
+                {getSocialIconComponent(item.href, { width: 14, height: 14, kind: item.kind })}
+              </a>
             ))}
           </div>
         )}
@@ -58,7 +98,7 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
         {p.summary && (
           <div className="mod-section" style={{ marginBottom: sectionGap }}>
             <div className="mod-section-title" style={{ color: style.accentColor }}>Summary</div>
-            <p className="mod-summary">{p.summary}</p>
+            <p className="mod-summary">{renderTextWithLinks(p.summary)}</p>
           </div>
         )}
  
@@ -75,11 +115,11 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
                   <div className="mod-meta" style={{ color: style.mutedColor }}>{formatDateRange(e.start, e.end, e.current)}</div>
                 </div>
                 {isParagraphMode(e.contentMode) ? (
-                  getExperienceParagraph(e) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 4 }}>{getExperienceParagraph(e)}</div> : null
+                  getExperienceParagraph(e) ? <div style={{ fontSize: "9.5pt", color: "#444", marginTop: 4 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
                 ) : (
                   getDisplayBullets(e.bullets).length > 0 && (
                     <ul className="mod-bullets">
-                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}
@@ -124,14 +164,21 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
             <div className="mod-section-title" style={{ color: style.accentColor }}>Projects</div>
             {s.projects.map((pr, i) => (
               <div className="mod-proj" key={i}>
-                <span className="mod-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>
+                {pr.link ? (
+                  <a className="mod-proj-name mod-link" style={{ color: style.headingColor }} href={toAbsoluteUrl(pr.link)} target="_blank" rel="noreferrer">
+                    {pr.name}
+                    <ExternalLinkIcon />
+                  </a>
+                ) : (
+                  <span className="mod-proj-name" style={{ color: style.headingColor }}>{pr.name}</span>
+                )}
                 <span style={{ color: "#888", fontSize: "9pt", marginLeft: 8 }}>{formatProjectTech(pr)}</span>
                 {isParagraphMode(pr.contentMode) ? (
-                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{getProjectParagraph(pr)}</div> : null
+                  getProjectParagraph(pr) ? <div style={{ fontSize: "9.5pt", color: "#444", fontWeight: 300, marginTop: 2 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
                 ) : (
                   getDisplayBullets(pr.bullets).length > 0 && (
                     <ul className="mod-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}

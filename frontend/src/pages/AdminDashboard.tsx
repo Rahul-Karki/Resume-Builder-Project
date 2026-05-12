@@ -175,11 +175,14 @@ export function AdminDashboard() {
         {/* Table header */}
         <div style={{ overflowX: "auto" }}>
         <div style={{
-          display: "grid", gridTemplateColumns: "32px 1fr 80px 80px 80px 80px",
+          display: "grid",
+          gridTemplateColumns: isMobile ? "32px 1fr 84px 80px 68px" : "32px 1fr 80px 80px 80px 80px",
           gap: 16, padding: "10px 16px",
-          background: "#0A0A0A", borderBottom: "1px solid #1A1A1A", minWidth: 560,
+          background: "#0A0A0A",
+          borderBottom: "1px solid #1A1A1A",
+          minWidth: isMobile ? "auto" : 560,
         }}>
-          {["#", "Template", "This Week", "This Month", "Trend", "14-day"].map(h => (
+          {(isMobile ? ["#", "Template", "This Week", "30d", "Trend"] : ["#", "Template", "This Week", "This Month", "Trend", "14-day"]).map(h => (
             <div key={h} style={{ fontSize: 9.5, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "0.8px", textAlign: h === "#" ? "center" : h === "This Week" || h === "This Month" || h === "Trend" || h === "14-day" ? "right" : "left", fontFamily: "'Outfit', sans-serif" }}>
               {h}
             </div>
@@ -189,9 +192,9 @@ export function AdminDashboard() {
         {analytics.length === 0 ? (
           <div style={{ padding: "40px", textAlign: "center", color: "#333", fontSize: 13 }}>No analytics data yet.</div>
         ) : (
-          <div style={{ minWidth: 560 }}>
+          <div style={{ minWidth: isMobile ? "auto" : 560 }}>
             {analytics.map((a, i) => (
-              <AnalyticsRow key={a.templateId} analytics={a} rank={i + 1} />
+              <AnalyticsRow key={a.templateId} analytics={a} rank={i + 1} compact={isMobile} />
             ))}
           </div>
         )}

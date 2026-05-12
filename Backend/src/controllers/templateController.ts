@@ -5,6 +5,8 @@ import Template from "../models/Template";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { invalidateRedisCache, redisCacheScopes } from "../middleware/redisCache";
+import { AppError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
 // ─── Helper: consistent response shape ────────────────────────────────────────
 
 const ok   = (res: Response, data: unknown, status = 200) => res.status(status).json({ ok: true,  data });
@@ -16,7 +18,7 @@ const invalidateTemplateCaches = async () => {
     redisCacheScopes.adminTemplates,
     redisCacheScopes.adminDashboard,
     redisCacheScopes.adminAnalytics,
-    "admin-templates-item",
+    redisCacheScopes.adminTemplatesItem,
   ]);
 };
 
@@ -28,20 +30,20 @@ const invalidateTemplateAnalyticsCaches = async () => {
 };
 
 // ─── GET /admin/templates ─────────────────────────────────────────────────────
-// Query params: ?status=published&category=technical
+// Query params: ?status=published&category=tech
 
 export async function listTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.listTemplates", req);
   try {
-    const { status, category } = req.query as Record<string, string>;
-    const templates = await TemplateService.getAll({ status, category });
-    logger.info({ status, category, count: templates.length }, "Templates listed");
+    const { status, category, audience } = req.query as Record<string, string>;
+    const templates = await TemplateService.getAll({ status, category, audience });
+    logger.info({ status, category, audience, count: templates.length }, "Templates listed");
     markSpanSuccess(span);
     return ok(res, templates);
   } catch (err: any) {
     markSpanError(span, err as Error, "List templates failed");
     logger.error({ error: err }, "List templates failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -52,15 +54,15 @@ export async function listTemplates(req: Request, res: Response) {
 export async function listPublicTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.listPublicTemplates", req);
   try {
-    const { category } = req.query as Record<string, string>;
-    const templates = await TemplateService.getAll({ status: "published", category });
-    logger.info({ category, count: templates.length }, "Public templates listed");
+    const { category, audience } = req.query as Record<string, string>;
+    const templates = await TemplateService.getAll({ status: "published", category, audience });
+    logger.info({ category, audience, count: templates.length }, "Public templates listed");
     markSpanSuccess(span);
     return ok(res, templates);
   } catch (err: any) {
     markSpanError(span, err as Error, "List public templates failed");
     logger.error({ error: err }, "List public templates failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -81,7 +83,7 @@ export async function getTemplate(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Get template failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Get template failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -96,8 +98,10 @@ export async function createTemplate(req: Request, res: Response) {
       layoutId:    req.body.layoutId,
       name:        req.body.name,
       description: req.body.description ?? "",
-      category:    req.body.category    ?? "professional",
+      category:    req.body.category    ?? req.body.audience ?? "non-tech",
+      audience:    req.body.audience    ?? req.body.category ?? "non-tech",
       tag:         req.body.tag         ?? "General",
+      tags:        req.body.tags        ?? (req.body.tag ? [req.body.tag] : []),
       isPremium:   req.body.isPremium   ?? false,
       sortOrder:   req.body.sortOrder   ?? 0,
       cssVars:     req.body.cssVars     ?? {},
@@ -118,8 +122,8 @@ export async function createTemplate(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Create template failed");
     logger.error({ error: err }, "Create template failed");
-    if (err.code === 11000) return fail(res, "A template with this layoutId already exists.", 409);
-    return fail(res, err.message, 500);
+    if (err.code === 11000) return sendErrorResponse(res, new AppError("A template with this layoutId already exists.", { statusCode: 409, code: "CONFLICT", expose: true }));
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -142,7 +146,7 @@ export async function updateTemplate(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Update template failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Update template failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -168,7 +172,7 @@ export async function setTemplateStatus(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Set template status failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Set template status failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -190,7 +194,7 @@ export async function togglePremium(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Toggle premium failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Toggle premium failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -212,7 +216,7 @@ export async function deleteTemplate(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Delete template failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Delete template failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -233,7 +237,7 @@ export async function reorderTemplates(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Reorder templates failed");
     logger.error({ error: err, userId: req.user?.id }, "Reorder templates failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -251,7 +255,7 @@ export async function getDashboardStats(req: Request, res: Response) {
   } catch (err: any) {
     markSpanError(span, err as Error, "Get dashboard stats failed");
     logger.error({ error: err }, "Get dashboard stats failed");
-    return fail(res, err.message, 500);
+    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }

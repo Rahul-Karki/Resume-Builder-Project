@@ -1,22 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { api } from "@/services/api";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
+import { templates as localTemplateCatalog } from "@/data/templateMeta";
+import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 type TemplateOption = {
   layoutId: string;
   name: string;
   status?: string;
   sortOrder?: number;
+  audience?: "tech" | "non-tech";
 };
 
 interface Props {
   onDownload: () => void;
   canDownload: boolean;
   isEditingExistingResume?: boolean;
+  isExporting?: boolean;
+  exportStatus?: string | null;
 }
 
-export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResume = false }: Props) {
-  const { resume, ui, saveResume, initFromTemplate, setTitle } = useResumeBuilderStore();
+export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResume = false, isExporting = false, exportStatus = null }: Props) {
+  const { resume, ui, saveResume, initFromTemplate, applyTemplateUpgrade, setTitle } = useResumeBuilderStore();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(resume.title);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -45,11 +50,27 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
             name: String(row.name ?? row.layoutId ?? "Template"),
             status: row.status,
             sortOrder: typeof row.sortOrder === "number" ? row.sortOrder : 0,
+            audience: row.audience === "tech" ? "tech" : "non-tech",
           }))
           .filter((template: TemplateOption) => template.layoutId);
 
+        const mergedByLayoutId = new Map<string, TemplateOption>();
+        mapped.forEach((template) => mergedByLayoutId.set(template.layoutId, template));
+        localTemplateCatalog.forEach((templateMeta) => {
+          if (mergedByLayoutId.has(templateMeta.id)) return;
+          mergedByLayoutId.set(templateMeta.id, {
+            layoutId: templateMeta.id,
+            name: templateMeta.name,
+            status: "published",
+            sortOrder: 999,
+            audience: templateMeta.audience,
+          });
+        });
+
+        const merged = Array.from(mergedByLayoutId.values());
+
         if (active) {
-          setTemplates(mapped.sort((a: TemplateOption, b: TemplateOption) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+          setTemplates(merged.sort((a: TemplateOption, b: TemplateOption) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
         }
       } catch {
         if (active) {
@@ -69,16 +90,15 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
     };
   }, []);
 
-  useEffect(() => {
-    if (isEditingExistingResume) {
-      setShowTemplates(false);
-    }
-  }, [isEditingExistingResume]);
-
-  const currentTemplateLabel = templates.find((template) => template.layoutId === resume.templateId)?.name
-    ?? resume.templateId
+  const normalizedTemplateId = normalizeResumeTemplateId(resume.templateId);
+  const currentTemplateLabel = templates.find((template) => template.layoutId === normalizedTemplateId)?.name
+    ?? normalizedTemplateId
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (character) => character.toUpperCase());
+  const groupedTemplates = {
+    tech: templates.filter((template) => template.audience === "tech"),
+    "non-tech": templates.filter((template) => template.audience !== "tech"),
+  };
 
   const handleSave = async () => {
     await saveResume();
@@ -97,101 +117,187 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
       fontFamily: "'Outfit', sans-serif", position: "relative", zIndex: 40,
       flexShrink: 0,
     }}>
-      {/* Logo */}
       <div style={{ fontWeight: 800, fontSize: 15, color: "#F0EFE8", letterSpacing: "-0.3px", flexShrink: 0 }}>
         Resume<span style={{ color: "#C8F55A" }}>Studio</span>
       </div>
 
       <div style={{ width: 1, height: 24, background: "#2A2A2A", flexShrink: 0 }} />
 
-      {/* Resume Title */}
       {editingTitle ? (
-        <input
-          autoFocus
-          value={titleDraft}
-          onChange={e => setTitleDraft(e.target.value)}
-          onBlur={handleTitleCommit}
-          onKeyDown={e => e.key === "Enter" && handleTitleCommit()}
-          style={{
-            background: "#1A1A1A", border: "1px solid #3A3A3A", borderRadius: 6,
-            color: "#F0EFE8", fontSize: 13, fontWeight: 600, padding: "4px 10px",
-            outline: "none", fontFamily: "inherit", width: 200,
-          }}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <input
+            autoFocus
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={handleTitleCommit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleTitleCommit();
+              if (e.key === "Escape") setEditingTitle(false);
+            }}
+            style={{
+              background: "#1A1A1A", border: "1px solid #C8F55A", borderRadius: 6,
+              color: "#F0EFE8", fontSize: 13, fontWeight: 600, padding: "6px 12px",
+              outline: "none", fontFamily: "inherit", width: 220,
+            }}
+          />
+          <span style={{ fontSize: 11, color: "#666" }}>Press Enter to save</span>
+        </div>
       ) : (
-        <button
-          onClick={() => {
-            setTitleDraft(resume.title);
-            setEditingTitle(true);
-          }}
-          title="Click to rename"
-          style={{
-            background: "none", border: "none", color: "#888", fontSize: 13,
-            fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
-            padding: "4px 8px", borderRadius: 6, maxWidth: isMobile ? 140 : 200,
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-            transition: "color 0.15s", opacity: 1,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = "#F0EFE8")}
-          onMouseLeave={e => (e.currentTarget.style.color = "#888")}
-        >
-          ✎ {resume.title}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ 
+            fontSize: 13, 
+            fontWeight: 600, 
+            color: "#F0EFE8",
+            maxWidth: isMobile ? 140 : 200,
+            whiteSpace: "nowrap", 
+            overflow: "hidden", 
+            textOverflow: "ellipsis",
+          }}>
+            {resume.title}
+          </span>
+          <button
+            onClick={() => {
+              setTitleDraft(resume.title);
+              setEditingTitle(true);
+            }}
+            title="Rename resume"
+            style={{
+              background: "transparent", 
+              border: "1px solid #2A2A2A", 
+              borderRadius: 6,
+              color: "#666", 
+              fontSize: 11,
+              fontWeight: 500, 
+              cursor: "pointer", 
+              fontFamily: "inherit",
+              padding: "4px 10px",
+              transition: "all 0.2s ease",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#C8F55A";
+              e.currentTarget.style.color = "#C8F55A";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "#2A2A2A";
+              e.currentTarget.style.color = "#666";
+            }}
+          >
+            ✎ Rename
+          </button>
+        </div>
       )}
 
-      {/* Dirty indicator */}
       {ui.isDirty && !ui.isSaved && (
-        <span style={{ fontSize: 10, color: "#F59E0B", fontWeight: 600, flexShrink: 0 }}>● Unsaved</span>
+        <span style={{ 
+          fontSize: 10, 
+          color: "#F59E0B", 
+          fontWeight: 600, 
+          flexShrink: 0,
+          background: "rgba(245,158,11,0.1)",
+          padding: "4px 10px",
+          borderRadius: 6,
+          border: "1px solid rgba(245,158,11,0.2)",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
+          Unsaved
+        </span>
       )}
       {ui.isSaved && (
-        <span style={{ fontSize: 10, color: "#4ADE80", fontWeight: 600, flexShrink: 0 }}>✓ Saved</span>
+        <span style={{ 
+          fontSize: 10, 
+          color: "#4ADE80", 
+          fontWeight: 600, 
+          flexShrink: 0,
+          background: "rgba(74,222,128,0.1)",
+          padding: "4px 10px",
+          borderRadius: 6,
+          border: "1px solid rgba(74,222,128,0.2)",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ADE80" }} />
+          Saved
+        </span>
       )}
 
-      {/* Template switcher */}
       <div style={{ position: "relative", marginLeft: 4 }}>
         <button
-          onClick={() => {
-            if (isEditingExistingResume) return;
-            setShowTemplates(!showTemplates);
-          }}
-          title={isEditingExistingResume ? "Template is locked in edit mode" : "Switch template"}
-          disabled={isEditingExistingResume}
+          onClick={() => setShowTemplates(!showTemplates)}
+          title={isEditingExistingResume ? "Upgrade this resume to the latest template version" : "Switch template"}
           style={{
             background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 7,
             color: "#C8C7C0", fontSize: 12, fontWeight: 600, padding: isMobile ? "8px 10px" : "5px 12px",
-            cursor: isEditingExistingResume ? "not-allowed" : "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
-            opacity: isEditingExistingResume ? 0.6 : 1,
+            cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           }}
         >
-          ◈ {currentTemplateLabel}
-          <span style={{ fontSize: 10, opacity: 0.5 }}>▾</span>
+          {isEditingExistingResume ? `Template: ${currentTemplateLabel}` : currentTemplateLabel}
+          <span style={{ fontSize: 10, opacity: 0.5 }}>v</span>
         </button>
-        {showTemplates && !isEditingExistingResume && (
+        {showTemplates && (
           <>
             <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={() => setShowTemplates(false)} />
             <div style={{
               position: "absolute", top: "calc(100% + 6px)", left: 0, background: "#161616",
               border: "1px solid #2A2A2A", borderRadius: 10, overflow: "hidden",
-              zIndex: 50, minWidth: 160, boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+              zIndex: 50, minWidth: 200, boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
             }}>
               {templatesLoading ? (
                 <div style={{ padding: "10px 14px", color: "#666", fontSize: 13 }}>Loading templates...</div>
               ) : templates.length > 0 ? (
-                templates.map((template) => (
-                  <button
-                    key={template.layoutId}
-                    onClick={() => { void initFromTemplate(template.layoutId); setShowTemplates(false); }}
-                    style={{
-                      display: "block", width: "100%", textAlign: "left",
-                      padding: "9px 14px", background: resume.templateId === template.layoutId ? "#222" : "transparent",
-                      border: "none", color: resume.templateId === template.layoutId ? "#F0EFE8" : "#888",
-                      fontSize: 13, fontWeight: resume.templateId === template.layoutId ? 700 : 400,
-                      cursor: "pointer", fontFamily: "inherit",
-                    }}
-                  >
-                    {resume.templateId === template.layoutId ? "✓ " : "  "}{template.name}
-                  </button>
-                ))
+                <>
+                  {isEditingExistingResume && (
+                    <div style={{ padding: "10px 14px", color: "#666", fontSize: 12, borderBottom: "1px solid #222" }}>
+                      Keep your content and apply the latest template defaults.
+                    </div>
+                  )}
+                  {(["non-tech", "tech"] as const).map((groupKey) => (
+                    groupedTemplates[groupKey].length > 0 ? (
+                      <div key={groupKey}>
+                        <div style={{ padding: "8px 14px", color: "#555", fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", borderTop: "1px solid #222" }}>
+                          {groupKey === "tech" ? "Tech Templates" : "Non-Tech Templates"}
+                        </div>
+                        {groupedTemplates[groupKey].map((template) => {
+                          const isCurrentTemplate = normalizedTemplateId === template.layoutId;
+                          const label = isEditingExistingResume
+                            ? isCurrentTemplate
+                              ? `Refresh ${template.name}`
+                              : `Switch to ${template.name}`
+                            : template.name;
+
+                          return (
+                            <button
+                              key={template.layoutId}
+                              onClick={() => {
+                                if (isEditingExistingResume) {
+                                  void applyTemplateUpgrade(template.layoutId);
+                                } else {
+                                  void initFromTemplate(template.layoutId);
+                                }
+                                setShowTemplates(false);
+                              }}
+                              style={{
+                                display: "block", width: "100%", textAlign: "left",
+                                padding: "9px 14px", background: isCurrentTemplate ? "#222" : "transparent",
+                                border: "none", color: isCurrentTemplate ? "#F0EFE8" : "#888",
+                                fontSize: 13, fontWeight: isCurrentTemplate ? 700 : 400,
+                                cursor: "pointer", fontFamily: "inherit",
+                              }}
+                            >
+                              {isCurrentTemplate ? "Current: " : ""}{label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null
+                  ))}
+                </>
               ) : (
                 <div style={{ padding: "10px 14px", color: "#666", fontSize: 13 }}>No templates found.</div>
               )}
@@ -200,27 +306,25 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
         )}
       </div>
 
-      {/* Spacer */}
       <div style={{ flex: 1, minWidth: isMobile ? "100%" : "auto" }} />
 
       {!isMobile && <div style={{ width: 1, height: 24, background: "#2A2A2A" }} />}
 
-      {/* Actions */}
       <button
         onClick={onDownload}
-        disabled={!canDownload}
-        title={canDownload ? "Download as PDF" : "Save resume first to enable download"}
+        disabled={!canDownload || isExporting}
+        title={isExporting ? (exportStatus ?? "Preparing PDF export") : canDownload ? "Download as PDF" : "Save resume first to enable download"}
         style={{
           background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 7,
           color: canDownload ? "#C8C7C0" : "#555", fontSize: 13, fontWeight: 600, padding: isMobile ? "10px 14px" : "7px 14px",
-          cursor: canDownload ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
+          cursor: canDownload && !isExporting ? "pointer" : "not-allowed", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           flexShrink: 0,
           width: isMobile ? "calc(50% - 5px)" : "auto",
           justifyContent: "center",
-          opacity: canDownload ? 1 : 0.7,
+          opacity: canDownload && !isExporting ? 1 : 0.7,
         }}
       >
-        ↓ Download PDF
+        {isExporting ? "Exporting..." : "Download PDF"}
       </button>
 
       <button
@@ -236,7 +340,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           display: "flex", alignItems: "center", gap: 6,
         }}
       >
-        {ui.isSaving ? "Saving…" : "Save Resume"}
+        {ui.isSaving ? "Saving..." : "Save Resume"}
       </button>
     </header>
   );

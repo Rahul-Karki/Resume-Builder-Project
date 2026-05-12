@@ -1,0 +1,98 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./Backend
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: './Backend/package-lock.json'
+        
+    - run: npm ci
+    
+    - name: Run Build
+      run: npm run build
+      
+    - name: Run Automated Tests
+      env:
+        NODE_ENV: test
+        PORT: 5000
+        MONGO_URI: mongodb://localhost:27017/test-db
+        REDIS_URL: redis://localhost:6379
+        JWT_ACCESS_SECRET: test-access-secret
+        JWT_REFRESH_SECRET: test-refresh-secret
+        FRONTEND_URL: http://localhost:5173
+      run: npm test
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+        
+    - run: npm ci
+    
+    - name: Lint
+      run: npm run lint
+      
+    - name: Build
+      run: npm run build
+
+  test-worker:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./worker
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: './worker/package-lock.json'
+        
+    - run: npm ci
+    
+    - name: Build Worker
+      run: npm run build

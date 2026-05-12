@@ -7,6 +7,7 @@ export interface PersonalInfo {
   phone: string;
   location: string;
   linkedin: string;
+  github: string;
   portfolio: string;
   summary: string;
 }
@@ -131,6 +132,7 @@ export interface ResumeDocument {
   targetRole?: string;
   title: string;
   templateId: string;
+  templateCategory?: "tech" | "non-tech";
   personalInfo: PersonalInfo;
   sections: ResumeSections;
   style: ResumeStyle;
@@ -138,6 +140,9 @@ export interface ResumeDocument {
   sectionVisibility: SectionVisibility;
   createdAt?: string;
   updatedAt?: string;
+  atsScore?: number | null;
+  atsStatus?: string | null;
+  atsAnalyzedAt?: string | null;
 }
 
 // ─── Builder UI State ──────────────────────────────────────────────────────────
@@ -169,12 +174,29 @@ export interface ResumeVersionMeta {
 export interface BuilderUIState {
   activeTab: EditorTab;
   activeSection: ActiveSection;
+  focusedField: FocusedEditorField | null;
   previewScale: PreviewScale;
   exportPreset: ExportPreset;
   isSaving: boolean;
   isSaved: boolean;
   isDirty: boolean;
   saveError: string | null;
+}
+
+export interface FocusedEditorField {
+  section: ActiveSection;
+  label: string;
+  kind:
+    | "personal"
+    | "experience"
+    | "education"
+    | "skills"
+    | "projects"
+    | "certification"
+    | "language";
+  entityId?: string;
+  field?: string;
+  index?: number;
 }
 
 // ─── Default Values ────────────────────────────────────────────────────────────
@@ -204,6 +226,7 @@ export const defaultPersonalInfo: PersonalInfo = {
   phone: "",
   location: "",
   linkedin: "",
+  github: "",
   portfolio: "",
   summary: "",
 };
@@ -259,20 +282,49 @@ export const spacingMap: Record<SectionSpacing, number> = {
   loose:   32,
 };
 
-export type TemplateId = "classic" | "executive" | "modern" | "compact" | "sidebar";
+export type TemplateId =
+  | "classic"
+  | "executive"
+  | "modern"
+  | "compact"
+  | "sidebar"
+  | "scholarly"
+  | "research"
+  | "chronological"
+  | "functional"
+  | "combination"
+  | "traditional-assistant"
+  | "community-impact";
 
 export interface SavedResume {
   id: string; title: string; templateId: string;
   updatedAt: string; createdAt: string; completionScore: number;
   personalInfo: { name: string; title: string; email: string; location: string; };
   sectionCounts: { experience: number; education: number; skills: number; projects: number; certifications: number; };
+  atsScore: number | null;
+  atsStatus: string | null;
+  atsAnalyzedAt: string | null;
 }
 
 export interface TemplateMeta {
-  id: TemplateId; name: string; tag: string; category: string;
+  id: TemplateId; name: string; tag: string; category: string; audience: "tech" | "non-tech";
   description: string; isPremium: boolean; accent: string;
   palette: { bg: string; primary: string; secondary: string; sidebar?: string; };
 }
+
+export type {
+  AiGrammarIssue,
+  AiGrammarResult,
+  AiRewriteResult,
+  AiSuggestion,
+  AiTone,
+  AtsAnalysisReport,
+  AtsFormattingCheck,
+  AtsGrammarFinding,
+  AtsKeywordAnalysis,
+  AtsScoreBreakdown,
+} from "../../../shared/src/ai";
+
 export type SortOption = "updatedAt" | "createdAt" | "title" | "completion";
 export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; }
 

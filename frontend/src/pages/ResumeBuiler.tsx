@@ -9,7 +9,7 @@ import { AtsPanel } from "@/components/builder/AtsPanel";
 import { AiAssistPanel } from "@/components/builder/AiAssistPanel";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { EditorTab, ResumeDocument } from "@/types/resume-types";
-import { getResumeExportPreset } from "@/services/api";
+import { api, getResumeDownloadJobStatus, queueResumeDownload } from "@/services/api";
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
 const TABS: { id: EditorTab; label: string; icon: string; description: string }[] = [
@@ -21,9 +21,21 @@ const TABS: { id: EditorTab; label: string; icon: string; description: string }[
 ];
 
 // ─── Section reorder panel (shown in "sections" tab) ─────────────────────────
+import { GripVertical, Eye, EyeOff, Briefcase, GraduationCap, Wrench, FolderGit, Award, Languages } from "lucide-react";
+
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+  experience: <Briefcase size={16} />,
+  education: <GraduationCap size={16} />,
+  skills: <Wrench size={16} />,
+  projects: <FolderGit size={16} />,
+  certifications: <Award size={16} />,
+  languages: <Languages size={16} />,
+};
+
 function SectionsTab() {
   const { resume, toggleSectionVisibility, reorderSections } = useResumeBuilderStore();
   const [dragging, setDragging] = React.useState<number | null>(null);
+  const [dragOver, setDragOver] = React.useState<number | null>(null);
 
   const SECTION_LABELS: Record<string, { label: string; desc: string }> = {
     experience:     { label: "Experience",    desc: "Work history and achievements" },
@@ -35,137 +47,247 @@ function SectionsTab() {
   };
 
   return (
-    <div style={{ padding: "14px", fontFamily: "'Outfit', sans-serif" }}>
-      <div style={{ padding: "10px 12px", background: "#141414", border: "1px solid #252525", borderRadius: 10, marginBottom: 16, fontSize: 12, color: "#555", lineHeight: 1.5 }}>
-        Drag rows to reorder. Toggle the switch to show or hide a section from your resume.
+    <div style={{ padding: "16px", fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ 
+        padding: "12px 14px", 
+        background: "linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.02) 100%)", 
+        border: "1px solid rgba(200,245,90,0.15)", 
+        borderRadius: 10, 
+        marginBottom: 16, 
+        fontSize: 12, 
+        color: "#888", 
+        lineHeight: 1.5,
+        display: "flex",
+        alignItems: "center",
+        gap: 8
+      }}>
+        <GripVertical size={14} style={{ color: "#C8F55A" }} />
+        Drag sections to reorder. Click the eye icon to show/hide.
       </div>
-      {resume.sectionOrder.map((sectionKey, idx) => {
-        const meta = SECTION_LABELS[sectionKey];
-        const visible = resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility];
-        return (
-          <div
-            key={sectionKey}
-            draggable
-            onDragStart={() => setDragging(idx)}
-            onDragOver={e => e.preventDefault()}
-            onDrop={() => {
-              if (dragging !== null && dragging !== idx) {
-                reorderSections(dragging, idx);
-                setDragging(null);
-              }
-            }}
-            onDragEnd={() => setDragging(null)}
-            style={{
-              display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-              background: "#141414", border: "1px solid #252525", borderRadius: 10,
-              marginBottom: 6, cursor: "grab", userSelect: "none",
-              opacity: dragging === idx ? 0.4 : 1,
-              transition: "all 0.15s",
-            }}
-          >
-            <span style={{ color: "#333", fontSize: 18, lineHeight: 1, flexShrink: 0 }}>⠿</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: visible ? "#C8C7C0" : "#444" }}>{meta?.label}</div>
-              <div style={{ fontSize: 11, color: "#444", marginTop: 1 }}>{meta?.desc}</div>
-            </div>
-            <span style={{ fontSize: 11, color: "#444", fontFamily: "monospace" }}>#{idx + 1}</span>
-            {/* Toggle */}
+      
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {resume.sectionOrder.map((sectionKey, idx) => {
+          const meta = SECTION_LABELS[sectionKey];
+          const visible = resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility];
+          const isDragging = dragging === idx;
+          const isDragOver = dragOver === idx;
+          
+          return (
             <div
-              onClick={() => toggleSectionVisibility(sectionKey as any)}
+              key={sectionKey}
+              draggable
+              onDragStart={() => setDragging(idx)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(idx);
+              }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={() => {
+                if (dragging !== null && dragging !== idx) {
+                  reorderSections(dragging, idx);
+                }
+                setDragging(null);
+                setDragOver(null);
+              }}
+              onDragEnd={() => {
+                setDragging(null);
+                setDragOver(null);
+              }}
               style={{
-                width: 44, height: 24, borderRadius: 12, cursor: "pointer", flexShrink: 0,
-                background: visible ? "#C8F55A" : "#1E1E1E",
-                border: `1px solid ${visible ? "#C8F55A" : "#2A2A2A"}`,
-                position: "relative", transition: "all 0.2s",
+                display: "flex", 
+                alignItems: "center", 
+                gap: 12, 
+                padding: "14px 16px",
+                background: isDragging ? "rgba(200,245,90,0.05)" : isDragOver ? "rgba(200,245,90,0.08)" : "#141414", 
+                border: `1px solid ${isDragOver ? "rgba(200,245,90,0.3)" : "#252525"}`, 
+                borderRadius: 12,
+                cursor: "grab", 
+                userSelect: "none",
+                opacity: isDragging ? 0.5 : 1,
+                transform: isDragOver ? "translateY(2px)" : "none",
+                transition: "all 0.2s ease",
+                boxShadow: isDragOver ? "0 4px 12px rgba(0,0,0,0.3)" : "none",
               }}
             >
-              <div style={{
-                position: "absolute", top: 3, width: 16, height: 16, borderRadius: "50%",
-                background: visible ? "#0E0E0E" : "#3A3A3A",
-                left: visible ? 23 : 3, transition: "left 0.2s",
-              }} />
+              <div style={{ color: visible ? "#555" : "#333", flexShrink: 0, cursor: "grab" }}>
+                <GripVertical size={18} />
+              </div>
+              
+              <div style={{ 
+                width: 32, 
+                height: 32, 
+                borderRadius: 8, 
+                background: visible ? "rgba(200,245,90,0.1)" : "#1A1A1A",
+                border: `1px solid ${visible ? "rgba(200,245,90,0.2)" : "#2A2A2A"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: visible ? "#C8F55A" : "#555",
+                flexShrink: 0,
+                transition: "all 0.2s ease"
+              }}>
+                {SECTION_ICONS[sectionKey]}
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <div style={{ 
+                  fontSize: 14, 
+                  fontWeight: 600, 
+                  color: visible ? "#C8C7C0" : "#555",
+                  transition: "color 0.2s ease"
+                }}>
+                  {meta?.label}
+                </div>
+                <div style={{ fontSize: 11, color: visible ? "#666" : "#444", marginTop: 2 }}>
+                  {meta?.desc}
+                </div>
+              </div>
+              
+              <span style={{ 
+                fontSize: 11, 
+                color: "#444", 
+                fontFamily: "monospace",
+                background: "#1A1A1A",
+                padding: "2px 8px",
+                borderRadius: 4,
+                border: "1px solid #2A2A2A"
+              }}>
+                {idx + 1}
+              </span>
+              
+              {/* Toggle Button */}
+              <button
+                onClick={() => toggleSectionVisibility(sectionKey as any)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  border: "1px solid #2A2A2A",
+                  background: visible ? "rgba(200,245,90,0.1)" : "#1A1A1A",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: visible ? "#C8F55A" : "#555",
+                  transition: "all 0.2s ease",
+                  flexShrink: 0,
+                }}
+                title={visible ? "Hide section" : "Show section"}
+              >
+                {visible ? <Eye size={16} /> : <EyeOff size={16} />}
+              </button>
             </div>
-          </div>
-        );
-      })}
-
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ─── PDF Download (browser print approach) ────────────────────────────────────
-async function downloadResume(resume: ResumeDocument, preset: "web" | "standard" | "print", resumeId?: string) {
-  if (resumeId) {
-    try {
-      await getResumeExportPreset(resumeId, preset);
-    } catch {
-      // Keep browser export available even if preset endpoint fails.
-    }
+const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 5000;
+const RESUME_DOWNLOAD_MAX_POLLS = 60;
+
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const sanitizeFileName = (value: string) =>
+  Array.from(value)
+    .map((char) => (char.charCodeAt(0) < 32 || /[<>:"/\\|?*]/.test(char) ? "-" : char))
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim() || "resume";
+
+const buildDownloadFileName = (resume: ResumeDocument, preset: string) => `${sanitizeFileName(resume.title || "resume")}-${preset}.pdf`;
+
+const normalizeDownloadUrl = (downloadUrl: string) => {
+  // If already absolute URL, use as-is
+  if (/^https?:\/\//i.test(downloadUrl)) {
+    return downloadUrl;
   }
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
+  // If relative path starting with /api, prepend backend domain
+  if (downloadUrl.startsWith("/api/")) {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+    const backendBase = apiBaseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    return `${backendBase}${downloadUrl}`;
+  }
 
-  // Import fonts and render resume HTML
-  const content = document.getElementById("resume-preview-inner");
-  if (!content) return;
+  return downloadUrl;
+};
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>${resume.title} (${preset})</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&family=Nunito:wght@600;700;800&family=Nunito+Sans:wght@300;400;700&family=Lora:wght@400;600&family=Outfit:wght@300;400;500;600&family=Source+Serif+4:wght@300;400;600&display=swap" rel="stylesheet">
-      <style>
-        @page { size: A4; margin: 0; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { width: 210mm; height: 297mm; }
-        body {
-          overflow: hidden;
-          print-color-adjust: exact;
-          -webkit-print-color-adjust: exact;
-        }
-        .pdf-page {
-          width: 210mm;
-          height: 297mm;
-          min-height: 297mm;
-          overflow: hidden;
-        }
-        .pdf-page > * {
-          width: 100% !important;
-          height: 100% !important;
-          min-height: 100% !important;
-        }
-        @media print {
-          html, body, .pdf-page {
-            width: 210mm;
-            height: 297mm;
-            min-height: 297mm;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="pdf-page">${content.innerHTML}</div>
-    </body>
-    </html>
-  `);
+const openPdfInNewTab = (downloadUrl: string) => {
+  const url = normalizeDownloadUrl(downloadUrl);
+  // Open PDF directly in browser's native viewer
+  // Browser detects Content-Type: application/pdf and activates native PDF viewer
+  // User gets zoom, print, and native save/download controls
+  // Backend serves with Content-Disposition: inline for browser preview
+  window.open(url, "_blank");
+};
 
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 800);
+const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
+  for (let attempt = 1; attempt <= RESUME_DOWNLOAD_MAX_POLLS; attempt += 1) {
+    const status = await getResumeDownloadJobStatus(jobId);
+
+    if (status.status === "completed") {
+      return status;
+    }
+
+    if (status.status === "failed") {
+      throw new Error(status.lastError || "Resume download failed");
+    }
+
+    onStatus?.(`Generating PDF... (${attempt}/${RESUME_DOWNLOAD_MAX_POLLS})`);
+    await sleep(RESUME_DOWNLOAD_POLL_INTERVAL_MS);
+  }
+
+  throw new Error("Resume download is taking longer than expected. Please try again later.");
+};
+
+async function downloadResume(
+  resume: ResumeDocument,
+  preset: "web" | "standard" | "print",
+  resumeId?: string,
+  onStatus?: (status: string) => void,
+) {
+  onStatus?.("Queuing PDF export...");
+
+  const queueResponse = await queueResumeDownload(
+    resumeId
+      ? { resumeId, preset }
+      : { resume, preset },
+  );
+
+  const initialDownloadUrl = queueResponse.resultUrl || queueResponse.downloadUrl;
+
+  if (queueResponse.status === "failed") {
+    throw new Error(queueResponse.message || "Resume download failed");
+  }
+
+  if (queueResponse.status === "completed" && initialDownloadUrl) {
+    onStatus?.("Opening PDF...");
+    openPdfInNewTab(initialDownloadUrl);
+    return;
+  }
+
+  onStatus?.("Generating PDF...");
+  const completedJob = await waitForResumeDownload(queueResponse.jobId, onStatus);
+  const downloadUrl = completedJob.resultUrl || initialDownloadUrl;
+
+  if (!downloadUrl) {
+    throw new Error("Resume download finished without a download URL.");
+  }
+
+  onStatus?.("Opening PDF...");
+  openPdfInNewTab(downloadUrl);
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ResumeBuilder() {
-  const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume } = useResumeBuilderStore();
+  const { resume, ui, setActiveTab, saveResume, initFromTemplate, loadResume, updatePersonalInfo } = useResumeBuilderStore();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const searchParams = new URLSearchParams(window.location.search);
   const isEditingExistingResume = Boolean(searchParams.get("resume"));
   const canDownload = isEditingExistingResume
@@ -186,6 +308,29 @@ export default function ResumeBuilder() {
 
     initFromTemplate(templateId);
   }, []);
+
+  // Prefill immutable personal info from the authenticated user.
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const response = await api.get("/auth/me");
+        const user = response.data?.user;
+        if (!user || cancelled) return;
+
+        const nextName = String(user.name ?? "").trim();
+        const nextEmail = String(user.email ?? "").trim();
+
+        if (!resume.personalInfo.name?.trim() && nextName) updatePersonalInfo("name", nextName);
+        if (!resume.personalInfo.email?.trim() && nextEmail) updatePersonalInfo("email", nextEmail);
+      } catch {
+        // ignore: builder should still function without this call
+      }
+    };
+
+    void run();
+    return () => { cancelled = true; };
+  }, [resume.personalInfo.name, resume.personalInfo.email, updatePersonalInfo]);
 
   // Ctrl+S to save
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -213,11 +358,23 @@ export default function ResumeBuilder() {
   }, [ui.isDirty]);
 
   const handleDownload = () => {
-    if (!canDownload) {
+    if (!canDownload || isExporting) {
       return;
     }
+    setIsExporting(true);
+    setExportError(null);
+    setExportStatus("Preparing export...");
     const resumeId = resume.id ?? resume._id;
-    void downloadResume(resume, ui.exportPreset, resumeId);
+    void downloadResume(resume, ui.exportPreset, resumeId, setExportStatus)
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : "Resume download failed. Please try again.";
+        setExportError(message);
+        setExportStatus(message);
+      })
+      .finally(() => {
+        setIsExporting(false);
+        window.setTimeout(() => setExportStatus(null), 1500);
+      });
   };
 
   useEffect(() => {
@@ -238,6 +395,7 @@ export default function ResumeBuilder() {
     ::-webkit-scrollbar-thumb:hover { background: #3A3A3A; }
     input, textarea, select { box-sizing: border-box; }
     input:focus, textarea:focus, select:focus { outline: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   `;
 
   return (
@@ -249,7 +407,28 @@ export default function ResumeBuilder() {
           onDownload={handleDownload}
           canDownload={canDownload}
           isEditingExistingResume={isEditingExistingResume}
+          isExporting={isExporting}
+          exportStatus={exportStatus}
         />
+
+        {isExporting && (
+          <div style={{ position: "sticky", top: 0, zIndex: 55, background: "linear-gradient(90deg, rgba(200,245,90,0.16), rgba(200,245,90,0.05))", borderBottom: "1px solid rgba(200,245,90,0.18)", color: "#E7F7B2", padding: "10px 16px", fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid rgba(231,247,178,0.3)", borderTopColor: "#E7F7B2", animation: "spin 0.8s linear infinite" }} />
+              <span>{exportStatus ?? "Preparing export..."}</span>
+            </div>
+          </div>
+        )}
+
+        {exportError && (
+          <div style={{
+            position: "fixed", top: 64, right: isMobile ? 12 : 20, left: isMobile ? 12 : "auto", background: "#7F1D1D", color: "#FCA5A5",
+            padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+            fontFamily: "'Outfit', sans-serif", zIndex: 101, border: "1px solid #991B1B",
+          }}>
+            {exportError}
+          </div>
+        )}
 
         {/* Error toast */}
         {ui.saveError && (
@@ -272,32 +451,60 @@ export default function ResumeBuilder() {
           }}>
             {/* Tab switcher */}
             <div style={{
-              display: "flex", borderBottom: "1px solid #1E1E1E",
-              padding: "0 8px", background: "#0A0A0A",
+              display: "flex", 
+              borderBottom: "1px solid #1E1E1E",
+              padding: "8px 12px 0", 
+              background: "#0A0A0A",
+              gap: 4,
             }}>
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  title={tab.description}
-                  style={{
-                    flex: 1, padding: "12px 8px", background: "none", border: "none",
-                    borderBottom: `2px solid ${ui.activeTab === tab.id ? "#C8F55A" : "transparent"}`,
-                    color: ui.activeTab === tab.id ? "#C8F55A" : "#555",
-                    fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit', sans-serif",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <span style={{ fontSize: 11 }}>{tab.icon}</span>
-                  {tab.label}
-                </button>
-              ))}
+              {TABS.map(tab => {
+                const isActive = ui.activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    title={tab.description}
+                    style={{
+                      flex: 1, 
+                      padding: "10px 12px", 
+                      background: isActive ? "rgba(200,245,90,0.08)" : "transparent", 
+                      border: "none",
+                      borderRadius: "8px 8px 0 0",
+                      borderBottom: `2px solid ${isActive ? "#C8F55A" : "transparent"}`,
+                      color: isActive ? "#C8F55A" : "#666",
+                      fontSize: 12, 
+                      fontWeight: isActive ? 700 : 600, 
+                      cursor: "pointer", 
+                      fontFamily: "'Outfit', sans-serif",
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center", 
+                      gap: 6,
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <span style={{ 
+                      opacity: isActive ? 1 : 0.7,
+                      transition: "opacity 0.2s ease"
+                    }}>
+                      {tab.icon}
+                    </span>
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Panel content */}
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              {ui.activeTab === "content"  && <EditorPanel />}
+              {ui.activeTab === "content"  && (
+                <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+                  <AIAssistantPanel />
+                  <div style={{ flex: 1, overflow: "auto" }}>
+                    <EditorPanel />
+                  </div>
+                </div>
+              )}
               {ui.activeTab === "style"   && <StylePanel />}
               {ui.activeTab === "sections" && (
                 <div style={{ overflowY: "auto", flex: 1 }}>
@@ -310,27 +517,90 @@ export default function ResumeBuilder() {
 
             {/* Bottom status bar */}
             <div style={{
-              borderTop: "1px solid #1A1A1A", padding: "8px 14px",
-              display: "flex", alignItems: "center", gap: 8,
+              borderTop: "1px solid #1A1A1A", 
+              padding: "10px 16px",
+              display: "flex", 
+              alignItems: "center", 
+              gap: 12,
               fontFamily: "'Outfit', sans-serif",
+              background: "#0A0A0A",
             }}>
-              <span style={{ fontSize: 10, color: "#333" }}>⌘S to save</span>
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 6,
+                fontSize: 11, 
+                color: "#555",
+                background: "#141414",
+                padding: "4px 10px",
+                borderRadius: 6,
+                border: "1px solid #252525"
+              }}>
+                <span style={{ color: "#C8F55A", fontWeight: 600 }}>⌘S</span>
+                <span>to save</span>
+              </div>
+              
               <div style={{ flex: 1 }} />
-              <span style={{ fontSize: 10, color: "#2A2A2A" }}>
-                {resume.sections.experience.length} exp · {resume.sections.skills.length} skill groups · {resume.sections.education.length} edu
-              </span>
+              
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 12,
+                fontSize: 11, 
+                color: "#666" 
+              }}>
+                <span style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 4,
+                  background: "#141414",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #252525"
+                }}>
+                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.experience.length}</span>
+                  <span>exp</span>
+                </span>
+                <span style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 4,
+                  background: "#141414",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #252525"
+                }}>
+                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.skills.length}</span>
+                  <span>skills</span>
+                </span>
+                <span style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 4,
+                  background: "#141414",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid #252525"
+                }}>
+                  <span style={{ color: "#C8F55A", fontWeight: 600 }}>{resume.sections.education.length}</span>
+                  <span>edu</span>
+                </span>
+              </div>
             </div>
           </div>
 
           {/* ─── RIGHT PANEL: Live Preview ─── */}
           <div style={{ flex: 1, minHeight: isMobile ? "50vh" : "auto", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+            <ATSAnalysisPanel />
             {/* Preview panel with inner ID for export */}
             <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <div id="resume-preview-inner" style={{ display: "none" }}>
                 {/* Hidden 1:1 clone for PDF export — same renderer, no scaling */}
-                <ResumeRenderer resume={resume} />
+                <div style={{ all: "initial", display: "block", width: "100%", height: "100%" }}>
+                  <ResumeRenderer resume={resume} />
+                </div>
               </div>
-              <PreviewPanel onDownload={handleDownload} canDownload={canDownload} />
+              <PreviewPanel onDownload={handleDownload} canDownload={canDownload} isExporting={isExporting} exportStatus={exportStatus} />
             </div>
           </div>
         </div>

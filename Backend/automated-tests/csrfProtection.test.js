@@ -6,7 +6,7 @@ require("./helpers/setupEnv");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const csrfProtectionPath = path.join(distRoot, "middleware", "csrfProtection.js");
 
 function createRes() {
@@ -83,7 +83,9 @@ test("csrfProtection blocks unsafe requests with missing or mismatched tokens", 
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 403);
-  assert.deepEqual(res.jsonBody, { message: "CSRF validation failed" });
+  assert.equal(res.jsonBody.message, "CSRF validation failed");
+  assert.equal(res.jsonBody.code, "CSRF_VALIDATION_FAILED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
 });
 
 test("csrfProtection allows matching CSRF tokens", () => {

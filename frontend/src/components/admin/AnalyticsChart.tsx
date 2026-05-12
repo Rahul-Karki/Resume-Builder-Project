@@ -96,14 +96,19 @@ export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
 }
 
 // ─── Usage Table Row Sparkline Card ────────────────────────────────────────────
-export function AnalyticsRow({ analytics, rank }: { analytics: TemplateAnalytics; rank: number }) {
+export function AnalyticsRow({ analytics, rank, compact = false }: { analytics: TemplateAnalytics; rank: number; compact?: boolean }) {
   const trendColor = analytics.trend === "up" ? "#4ADE80" : analytics.trend === "down" ? "#F87171" : "#555";
   const trendIcon  = analytics.trend === "up" ? "↑" : analytics.trend === "down" ? "↓" : "→";
   const counts     = analytics.daily.slice(-14).map((d) => (Number.isFinite(d.count) ? d.count : 0));
 
+  const columns = compact
+    ? "32px 1fr 84px 80px 68px"
+    : "32px 1fr 80px 80px 80px 80px";
+
   return (
     <div style={{
-      display: "grid", gridTemplateColumns: "32px 1fr 80px 80px 80px 80px",
+      display: "grid",
+      gridTemplateColumns: columns,
       alignItems: "center", gap: 16,
       padding: "12px 16px",
       borderBottom: "1px solid #111",
@@ -120,17 +125,27 @@ export function AnalyticsRow({ analytics, rank }: { analytics: TemplateAnalytics
         <div style={{ fontSize: 14, fontWeight: 700, color: "#F0EFE8" }}>{analytics.weeklyUses.toLocaleString()}</div>
         <div style={{ fontSize: 10, color: "#333" }}>this week</div>
       </div>
-      <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#888" }}>{analytics.monthlyUses.toLocaleString()}</div>
-        <div style={{ fontSize: 10, color: "#333" }}>this month</div>
-      </div>
+      {!compact && (
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#888" }}>{analytics.monthlyUses.toLocaleString()}</div>
+          <div style={{ fontSize: 10, color: "#333" }}>this month</div>
+        </div>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: trendColor }}>{trendIcon}</span>
         <span style={{ fontSize: 11, color: trendColor, textTransform: "capitalize" }}>{analytics.trend}</span>
       </div>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Sparkline data={counts} color="#C8F55A" width={80} height={28} />
-      </div>
+      {!compact && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Sparkline data={counts} color="#C8F55A" width={80} height={28} />
+        </div>
+      )}
+      {compact && (
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#888" }}>{analytics.monthlyUses.toLocaleString()}</div>
+          <div style={{ fontSize: 10, color: "#333" }}>30d</div>
+        </div>
+      )}
     </div>
   );
 }

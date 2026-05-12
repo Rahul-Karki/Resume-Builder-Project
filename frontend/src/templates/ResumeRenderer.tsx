@@ -1,9 +1,19 @@
 import React from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
+import { ClassicTemplate as ClassicTemplateView } from "@/components/templates/ClassicTemplate";
 import { CompactTemplate } from "@/components/templates/CompactTemplate";
 import { ExecutiveTemplate } from "@/components/templates/ExecutiveTemplate";
 import { ModernTemplate } from "@/components/templates/ModernTemplate";
 import { SidebarTemplate } from "@/components/templates/SidebarTemplate";
+import { ScholarlyTemplate } from "@/components/templates/ScholarlyTemplate";
+import { ResearchTemplate } from "@/components/templates/ResearchTemplate";
+import { ChronologicalTemplate } from "@/components/templates/ChronologicalTemplate";
+import { FunctionalTemplate } from "@/components/templates/FunctionalTemplate";
+import { CombinationTemplate } from "@/components/templates/CombinationTemplate";
+import { TraditionalAssistantTemplate } from "@/components/templates/TraditionalAssistantTemplate";
+import { CommunityImpactTemplate } from "@/components/templates/CommunityImpactTemplate";
+import { ExternalLinkIcon, renderTextWithLinks, toAbsoluteUrl } from "@/components/templates/templateHelpers";
+import { isTechResumeTemplate, normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 
 interface Props {
   resume: ResumeDocument;
@@ -81,22 +91,22 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
           </h1>
         )}
         {p.title && <div style={{ fontSize: "11pt", color: style.accentColor, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>}
-        {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).length > 0 && (
+        {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", fontSize: "9pt", color: style.mutedColor, justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
-            {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).map((value, index) => (
+            {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).map((value, index) => (
               <span key={index}>{value}</span>
             ))}
           </div>
         )}
       </div>
 
-      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.portfolio || p.summary || sectionOrder.some((key) => sectionVisibility[key])) && (
+      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.summary || sectionOrder.some((key) => sectionVisibility[key])) && (
         <hr style={{ border: "none", borderTop: `1.5px solid ${style.headingColor}`, marginBottom: spacingMap[style.sectionSpacing] }} />
       )}
 
       {p.summary && (
         <div style={{ marginBottom: sectionGap, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor }}>
-          {p.summary}
+          {renderTextWithLinks(p.summary)}
         </div>
       )}
 
@@ -125,7 +135,7 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
                   {entry.contentMode === "paragraph" ? (
                     entry.description.trim() ? (
                       <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>
-                        {entry.description}
+                        {renderTextWithLinks(entry.description)}
                       </div>
                     ) : null
                   ) : nonEmptyBullets(entry.bullets).length > 0 ? (
@@ -133,7 +143,7 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
                       {nonEmptyBullets(entry.bullets).map((bullet, bulletIndex) => (
                         <li key={bulletIndex} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
-                          <span>{bullet}</span>
+                          <span>{renderTextWithLinks(bullet)}</span>
                         </li>
                       ))}
                     </ul>
@@ -185,20 +195,23 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
               s.projects.map((project) => (
                 <div key={project.id} style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontWeight: 700, color: style.headingColor, fontSize: style.fontSize }}>{project.name}</span>
+                    <span style={{ fontWeight: 700, color: style.headingColor, fontSize: style.fontSize, display: "inline-flex", alignItems: "center" }}>
+                      {project.name}
+                      {project.link ? <ExternalLinkIcon /> : null}
+                    </span>
                     {project.tech && <span style={{ fontSize: "9pt", color: style.mutedColor }}>· {project.tech}</span>}
-                    {project.link && <span style={{ fontSize: "9pt", color: style.accentColor }}>{project.link}</span>}
+                    {project.link && <a href={toAbsoluteUrl(project.link)} target="_blank" rel="noreferrer" style={{ fontSize: "9pt", color: style.accentColor }}>{project.link}</a>}
                   </div>
                   {project.contentMode === "paragraph" ? (
                     project.description.trim() ? (
-                      <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{project.description}</div>
+                      <div style={{ fontSize: style.fontSize, color: style.textColor, marginTop: 2, lineHeight: style.lineHeight }}>{renderTextWithLinks(project.description)}</div>
                     ) : null
                   ) : nonEmptyBullets(project.bullets).length > 0 ? (
                     <ul style={{ margin: "4px 0 0 0", padding: 0, listStyle: "none" }}>
                       {nonEmptyBullets(project.bullets).map((bullet, bulletIndex) => (
                         <li key={bulletIndex} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
                           <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
-                          <span>{bullet}</span>
+                          <span>{renderTextWithLinks(bullet)}</span>
                         </li>
                       ))}
                     </ul>
@@ -245,6 +258,21 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
   );
 }
 
+function getRenderableResume(resume: ResumeDocument): ResumeDocument {
+  if (resume.templateCategory === "tech" || isTechResumeTemplate(resume.templateId)) {
+    return resume;
+  }
+
+  return {
+    ...resume,
+    personalInfo: {
+      ...resume.personalInfo,
+      github: "",
+      portfolio: "",
+    },
+  };
+}
+
 // ─── Classic Template ──────────────────────────────────────────────────────────
 function ClassicTemplate({ resume }: Props) {
   const { personalInfo: p, sections: s, style, sectionOrder, sectionVisibility } = resume;
@@ -286,7 +314,7 @@ function ClassicTemplate({ resume }: Props) {
                 {nonEmptyBullets(e.bullets).map((b, i) => (
                   <li key={i} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
-                    <span>{b}</span>
+                    <span>{renderTextWithLinks(b)}</span>
                   </li>
                 ))}
               </ul>
@@ -328,7 +356,7 @@ function ClassicTemplate({ resume }: Props) {
             <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <span style={{ fontWeight: 700, color: style.headingColor, fontSize: style.fontSize }}>{pr.name}</span>
               {pr.tech && <span style={{ fontSize: "9pt", color: style.mutedColor }}>· {pr.tech}</span>}
-              {pr.link && <span style={{ fontSize: "9pt", color: style.accentColor }}>{pr.link}</span>}
+              {pr.link && <span style={{ fontSize: "9pt", color: style.accentColor, display: "inline-flex", alignItems: "center" }}>{pr.link}<ExternalLinkIcon /></span>}
             </div>
             {pr.contentMode === "paragraph" ? (
               pr.description.trim() ? (
@@ -339,7 +367,7 @@ function ClassicTemplate({ resume }: Props) {
                 {nonEmptyBullets(pr.bullets).map((b, i) => (
                   <li key={i} style={{ marginBottom: 3, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor, display: "flex", alignItems: "flex-start", gap: 8 }}>
                     <span aria-hidden style={{ color: style.accentColor, lineHeight: style.lineHeight }}>{style.bulletStyle}</span>
-                    <span>{b}</span>
+                    <span>{renderTextWithLinks(b)}</span>
                   </li>
                 ))}
               </ul>
@@ -386,23 +414,23 @@ function ClassicTemplate({ resume }: Props) {
           </h1>
         )}
         {p.title && <div style={{ fontSize: "11pt", color: style.accentColor, fontWeight: 500, marginBottom: 6 }}>{p.title}</div>}
-        {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).length > 0 && (
+        {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 12px", fontSize: "9pt", color: style.mutedColor, justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
-            {[p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean).map((v, i) => (
+            {[p.email, p.phone, p.location, p.linkedin].filter(Boolean).map((v, i) => (
               <span key={i}>{v}</span>
             ))}
           </div>
         )}
       </div>
 
-      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.portfolio || p.summary || sectionOrder.some((key) => sectionVisibility[key] && sectionMap[key])) && (
+      {style.showDividers && (p.name || p.title || p.email || p.phone || p.location || p.linkedin || p.summary || sectionOrder.some((key) => sectionVisibility[key] && sectionMap[key])) && (
         <hr style={{ border: "none", borderTop: `1.5px solid ${style.headingColor}`, marginBottom: spacingMap[style.sectionSpacing] }} />
       )}
 
       {/* Summary */}
       {p.summary && (
         <div style={{ marginBottom: sectionGap, fontSize: style.fontSize, lineHeight: style.lineHeight, color: style.textColor }}>
-          {p.summary}
+          {renderTextWithLinks(p.summary)}
         </div>
       )}
 
@@ -414,19 +442,27 @@ function ClassicTemplate({ resume }: Props) {
 
 // ─── Template Router ───────────────────────────────────────────────────────────
 const ClassicTemplateAdapter = ({ data }: { data: ResumeDocument }) => (
-  <GenericTemplate resume={data} />
+  <ClassicTemplateView data={data} />
 );
 
 export function ResumeRenderer({ resume, forExport = false }: Props) {
+  const renderableResume = getRenderableResume(resume);
   const templatesById: Record<string, React.ComponentType<{ data: ResumeDocument }>> = {
     classic: ClassicTemplateAdapter,
     executive: ExecutiveTemplate,
     modern: ModernTemplate,
     compact: CompactTemplate,
     sidebar: SidebarTemplate,
+    scholarly: ScholarlyTemplate,
+    research: ResearchTemplate,
+    chronological: ChronologicalTemplate,
+    functional: FunctionalTemplate,
+    combination: CombinationTemplate,
+    "traditional-assistant": TraditionalAssistantTemplate,
+    "community-impact": CommunityImpactTemplate,
   };
 
-  const SelectedTemplate = templatesById[resume.templateId] ?? ClassicTemplateAdapter;
+  const SelectedTemplate = templatesById[normalizeResumeTemplateId(renderableResume.templateId)] ?? ClassicTemplateAdapter;
   return (
     <div
       style={{
@@ -438,7 +474,7 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
         overflow: forExport ? "hidden" : "visible",
       }}
     >
-      <SelectedTemplate data={resume} />
+      <SelectedTemplate data={renderableResume} />
     </div>
   );
 }

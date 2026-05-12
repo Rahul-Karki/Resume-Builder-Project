@@ -6,35 +6,50 @@ import Home from "./pages/Home"
 import Templates from "./pages/Templates"
 import ResumeBuilder from "./pages/ResumeBuiler"
 import MyResumePage from "./pages/MyResumePage"
+import ResumePreviewPage from "./pages/ResumePreviewPage"
 import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
+import { AdminDashboard } from "./pages/AdminDashboard"
+import { AdminTemplates } from "./pages/AdminTemplates"
+import { AdminQueues } from "./pages/AdminQueues"
 import Unauthorized from "./pages/Unauthorized"
 import NotFound from "./pages/NotFound"
+import { ErrorBoundary } from "./components/ErrorBoundary"
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Home />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/reset-password" element={<ForgotPassword />} />
-        <Route path ="/templates" element={<Templates />} />
-        <Route path="/builder" element={<ResumeBuilder />} />
-        <Route path="/resumes" element={<MyResumePage />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route
-          path="/admin"
-          element={
-            <RequireRole allowedRoles={["admin"]}>
-              <AdminLayout />
-            </RequireRole>
-          }
-        >
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error("App-level error:", error, errorInfo);
+      }}
+    >
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/reset-password" element={<ForgotPassword />} />
+          <Route path ="/templates" element={<Templates />} />
+          <Route path="/builder" element={<ResumeBuilder />} />
+          <Route path="/resumes" element={<MyResumePage />} />
+          <Route path="/resume/preview/:id" element={<ResumePreviewPage />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route
+            path="/admin"
+            element={
+              <RequireRole allowedRoles={["admin"]}>
+                <AdminLayout />
+              </RequireRole>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="templates" element={<AdminTemplates />} />
+            <Route path="queues" element={<AdminQueues />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

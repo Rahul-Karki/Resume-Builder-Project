@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { ResumeDocument, SavedResume, User } from "@/types/resume-types";
+import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
+import { aiCreditsManager } from "@/utils/aiCredits";
 
 const sectionKeys = ["experience", "education", "skills", "projects", "certifications"] as const;
 
@@ -42,6 +44,7 @@ export function calculateCompletionScore(resume: ResumeDocument): number {
     personalInfo.phone,
     personalInfo.location,
     personalInfo.linkedin,
+    personalInfo.github,
     personalInfo.portfolio,
     personalInfo.summary,
   ].filter(Boolean).length;
@@ -51,7 +54,7 @@ export function calculateCompletionScore(resume: ResumeDocument): number {
   const totalEntries = sectionCounts.reduce((sum, count) => sum + count, 0);
 
   const score = Math.round(
-    (personalFields / 8) * 45 +
+    (personalFields / 9) * 45 +
       (filledSectionKinds / sectionKeys.length) * 35 +
       Math.min(totalEntries, 10) * 2,
   );
@@ -73,7 +76,7 @@ export function mapResumeDocumentToSavedResume(resume: ResumeDocument): SavedRes
   return {
     id: getResumeId(resume),
     title: resume.title || personalInfo.title || "Untitled Resume",
-    templateId: resume.templateId || "classic",
+    templateId: normalizeResumeTemplateId(resume.templateId),
     updatedAt: resume.updatedAt || resume.createdAt || new Date().toISOString(),
     createdAt: resume.createdAt || resume.updatedAt || new Date().toISOString(),
     completionScore: calculateCompletionScore(resume),
@@ -84,6 +87,9 @@ export function mapResumeDocumentToSavedResume(resume: ResumeDocument): SavedRes
       location: personalInfo.location || "",
     },
     sectionCounts,
+    atsScore: resume.atsScore ?? null,
+    atsStatus: resume.atsStatus ?? null,
+    atsAnalyzedAt: resume.atsAnalyzedAt ?? null,
   };
 }
 
@@ -109,12 +115,14 @@ export function useMyResumes() {
       const currentUser = userResponse.data?.user;
 
       if (currentUser) {
+        aiCreditsManager.syncFromServer(currentUser.aiCredits);
         setUser({
           id: String(currentUser.id ?? "me"),
           name: currentUser.name ?? "My Account",
           email: currentUser.email ?? "",
           avatar: currentUser.avatar ?? "ME",
-          plan: "free",
+          plan: currentUser.aiCredits?.plan ?? "free",
+          aiCredits: currentUser.aiCredits,
         });
       }
 

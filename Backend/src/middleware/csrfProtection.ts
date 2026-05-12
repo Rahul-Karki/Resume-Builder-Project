@@ -1,10 +1,13 @@
 import crypto from "crypto";
 import { NextFunction, Request, Response } from "express";
 import { parseCookies } from "../utils/cookieParser";
+import { logCsrfFailure } from "../utils/securityLogger";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const CSRF_EXEMPT_PATHS = new Set([
   "/api/refresh",
+  "/api/csrf",
   "/api/auth/signup",
   "/api/auth/login",
   "/api/auth/google-login",
@@ -36,7 +39,12 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
   const csrfHeader = req.header("x-csrf-token");
 
   if (!csrfCookie || !csrfHeader || !secureCompare(csrfCookie, csrfHeader)) {
-    return res.status(403).json({ message: "CSRF validation failed" });
+    logCsrfFailure(req);
+    return sendErrorResponse(res, new Error("CSRF validation failed"), {
+      statusCode: 403,
+      code: "CSRF_VALIDATION_FAILED",
+      message: "CSRF validation failed",
+    });
   }
 
   return next();

@@ -1,80 +1,35 @@
 import "./instrumentation";
-import express from "express";
 import connectDB from "./config/db";
 import { env } from "./config/env";
-import cors from "cors";
-import helmet from "helmet";
-import { csrfProtection } from "./middleware/csrfProtection";
+import { flushBackendSentry, initializeBackendSentry } from "./config/sentry";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
-
-const app = express();
-app.set("trust proxy", 1);
-app.disable("x-powered-by");
-
-const configuredOrigins = [
-  env.FRONTEND_URL,
-  ...env.FRONTEND_URLS,
-]
-  .map((origin) => origin?.trim())
-  .filter((origin): origin is string => Boolean(origin));
-
-app.use(express.json());
-app.use(requestLogger);
-
-
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-
-    if (configuredOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error("Origin not allowed by CORS policy"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "X-CSRF-Token"],
-};
-
-app.use(helmet({
-  frameguard: { action: "deny" },
-  referrerPolicy: { policy: "no-referrer" },
-  crossOriginResourcePolicy: { policy: "same-site" },
-}));
-app.use(cors(corsOptions));
-app.use(csrfProtection);
-app.use(metricsMiddleware);
-
-if (env.ENABLE_METRICS) {
-  app.get(env.METRICS_PATH, metricsHandler);
-}
-
-import authRoutes from "./router/auth.routes";
-import refreshRoutes from "./router/refresh.route";
-import resumeRoutes from "./router/resume.routes";
-import adminRoutes from "./router/admin.routes";
-import templateRoutes from "./router/template.routes";
-import healthRoutes from "./router/health.routes";
-
-app.use("/api/auth",authRoutes);
-app.use("/api",refreshRoutes);
-app.use("/api/resumes", resumeRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/templates", templateRoutes);
-app.use("/health", healthRoutes);
+import { closeAtsQueue, ensureAtsQueueReady } from "./queue/atsQueue";
+import { closeResumeQueue, ensureResumeQueueReady } from "./queue/resumeQueue";
+import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
+import { createAllIndexes } from "./config/indexes";
+import app from "./app";
+initializeBackendSentry();
 
 const PORT = env.PORT;
 
 const startServer = async () => {
   await connectDB();
+  await createAllIndexes();
+  await ensureDefaultTemplatesInBackend();
   const cacheProvider = getCacheProvider();
-  void warmupCacheBackend();
+  // Skip cache warmup when using memory-only cache — avoids wasting a Redis/Upstash PING
+  if (cacheProvider !== "none") {
+    void warmupCacheBackend().catch((error) => {
+      logger.error({ error }, "Cache warmup failed");
+    });
+  }
+  void ensureResumeQueueReady().catch((error) => {
+    logger.error({ error }, "Resume queue connection failed during startup");
+  });
+  void ensureAtsQueueReady().catch((error) => {
+    logger.error({ error }, "ATS queue connection failed during startup");
+  });
 
   const server = app.listen(PORT, () => {
     logger.info(
@@ -89,12 +44,40 @@ const startServer = async () => {
     );
   });
 
+  let isShuttingDown = false;
+
   const shutdown = async (signal: string) => {
+    // Prevent multiple shutdown attempts
+    if (isShuttingDown) {
+      logger.warn({ signal }, "Shutdown already in progress");
+      return;
+    }
+
+    isShuttingDown = true;
     logger.info({ signal }, "Shutting down server");
+
+    // Stop accepting new connections
     server.close(async () => {
-      await closeRedisClient();
-      process.exit(0);
+      try {
+        await closeRedisClient();
+        await closeResumeQueue();
+        await closeAtsQueue();
+        logger.info("Shutdown completed successfully");
+        process.exit(0);
+      } catch (error) {
+        logger.error({ error }, "Error during shutdown");
+        process.exit(1);
+      }
     });
+
+    // Force shutdown after timeout (default 30s)
+    const shutdownTimeout = setTimeout(() => {
+      logger.error("Graceful shutdown timeout, forcing exit");
+      process.exit(1);
+    }, 30000);
+
+    // Clear timeout if shutdown completes
+    server.once("close", () => clearTimeout(shutdownTimeout));
   };
 
   process.once("SIGINT", () => {
@@ -106,5 +89,18 @@ const startServer = async () => {
   });
 };
 
-void startServer();
+process.on("unhandledRejection", (reason) => {
+  logger.error({ reason }, "Unhandled promise rejection");
+    void flushBackendSentry();
+});
+
+process.on("uncaughtException", (error) => {
+  logger.error({ error }, "Uncaught exception");
+    void flushBackendSentry();
+});
+
+void startServer().catch((error) => {
+  logger.error({ error }, "Server startup failed");
+  process.exit(1);
+});
 

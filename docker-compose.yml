@@ -1,16 +1,18 @@
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Backend/Dockerfile
     container_name: backend2
     restart: unless-stopped
     ports:
       - "5000:5000"
     env_file:
-      - ./backend/.env
+      - ./Backend/.env
     environment:
       - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379/0
+      - BULLMQ_REDIS_URL=redis://redis:6379/0
     networks:
       - app-network
     depends_on:
@@ -35,6 +37,25 @@ services:
       - app-network
     depends_on:
       - backend
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: worker2
+    restart: unless-stopped
+    env_file:
+      - ./worker/.env
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017/resume_builder
+      - BULLMQ_REDIS_URL=redis://redis:6379/0
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    networks:
+      - app-network
+    depends_on:
+      - mongo
+      - redis
 
   mongo:
     image: mongo:7

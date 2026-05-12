@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { parseCookies } = require("../dist/utils/cookieParser");
+const { parseCookies } = require("../dist/Backend/src/utils/cookieParser");
 
 test("parseCookies returns empty object when cookie header is missing", () => {
   assert.deepEqual(parseCookies(undefined), {});

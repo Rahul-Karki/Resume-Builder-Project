@@ -12,6 +12,16 @@ import { clearAuthCookies, setAuthCookies } from "../utils/authCookies";
 import { env } from "../config/env";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
+import { logLoginAttempt, logLogout, logSuspiciousActivity } from "../utils/securityLogger";
+import { AuthError, NotFoundError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
+import {
+  recordUserSignup,
+  recordLogin,
+  recordLoginFailure,
+  recordSuspiciousActivity,
+} from "../utils/businessMetrics";
+import { sendSuccess, sendCreated, sendBadRequest, sendUnauthorized, sendServerError } from "../utils/apiResponse";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
@@ -19,17 +29,22 @@ const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
 const MAX_RESET_RESEND_ATTEMPTS = 3;
 const frontendBaseUrl = env.FRONTEND_URL;
 
+const getAuthProviders = (user: { authProvider?: string[] }) => Array.isArray(user.authProvider) ? user.authProvider : [];
+
+const hasLinkedProvider = (user: { authProvider?: string[] }, provider: "local" | "google") => getAuthProviders(user).includes(provider);
+
 const logout = async (req: Request, res: Response) => {
   const span = startControllerSpan("auth.logout", req);
   try {
     clearAuthCookies(req, res);
+    logLogout(req);
     logger.info({ route: req.originalUrl }, "User logged out");
     markSpanSuccess(span);
-    return res.status(200).json({ message: "Logged out successfully" });
+    return sendSuccess(res, { message: "Logged out successfully" });
   } catch (error) {
     markSpanError(span, error as Error, "Logout failed");
     logger.error({ error }, "Logout failed");
-    return res.status(500).json({ message: "Server error" });
+    return sendServerError(res, "Logout failed", "SERVER_ERROR");
   } finally {
     finishControllerSpan(span);
   }
@@ -42,18 +57,14 @@ const registerUser = async (req: Request, res: Response) => {
 
     if (!name || !password || !email) {
       logger.warn({ route: req.originalUrl }, "Register validation failed");
-      return res.status(400).json({
-        message: "Enter all mandatory fields",
-      });
+      return sendBadRequest(res, "Enter all mandatory fields");
     }
 
     const check = await User.findOne({ email });
 
     if (check) {
       logger.warn({ email }, "Register rejected because user exists");
-      return res.status(400).json({
-        message: "User already exists",
-      });
+      return sendBadRequest(res, "User already exists");
     }
 
     const saltRounds = 10;
@@ -75,25 +86,24 @@ const registerUser = async (req: Request, res: Response) => {
 
     const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
-    res.status(201).json({
-      csrfToken,
+    recordUserSignup({ email: user.email, provider: "local" });
+
+    logger.info({ userId: user._id.toString(), email: user.email }, "User registered");
+    markSpanSuccess(span);
+    
+    return sendCreated(res, {
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
       }
-    });
-    // response is send to frontend
-    logger.info({ userId: user._id.toString(), email: user.email }, "User registered");
-    markSpanSuccess(span);
+    }, csrfToken);
 
   } catch (error) {
     markSpanError(span, error as Error, "User registration failed");
     logger.error({ error }, "User registration failed");
-    res.status(500).json({
-      message: "server error",
-    });
+    return sendServerError(res, "Registration failed", "SERVER_ERROR");
   } finally {
     finishControllerSpan(span);
   }
@@ -106,9 +116,9 @@ const login = async (req: Request, res: Response) => {
     // 1. Validate input
     if (!email || !password) {
       logger.warn({ route: req.originalUrl }, "Login validation failed");
-      return res.status(400).json({
-        message: "Email and password are required",
-      });
+      recordSuspiciousActivity("login_missing_credentials");
+      logSuspiciousActivity(req, "Login without email or password");
+      return sendBadRequest(res, "Email and password are required");
     }
 
     // 2. Find user
@@ -116,27 +126,26 @@ const login = async (req: Request, res: Response) => {
 
     if (!user) {
       logger.warn({ email }, "Login failed: unknown user");
-      return res.status(401).json({
-        message: "Invalid email or password",
-      });
+      recordLoginFailure("user_not_found");
+      logLoginAttempt(req, email, false, "User not found");
+      return sendUnauthorized(res, "Invalid email or password");
     }
 
     if(!user.password) {
       logger.warn({ email }, "Login failed: password not set for account");
-      return res.status(400).json({
-        message: "This account does not have a password. Please login using Google.",
-      });
+      recordLoginFailure("no_password");
+      logLoginAttempt(req, email, false, "No password set");
+      return sendBadRequest(res, "This account does not have a password. Please login using Google.");
     }
-
 
     // 4. Compare password
     const isMatch = await bcrypt.compare(password, user.password!);
 
     if (!isMatch) {
       logger.warn({ email }, "Login failed: invalid password");
-      return res.status(401).json({
-        message: "Invalid email or password",
-      });
+      recordLoginFailure("invalid_password");
+      logLoginAttempt(req, email, false, "Invalid password");
+      return sendUnauthorized(res, "Invalid email or password");
     }
 
     // 5. Ensure local is in authProvider
@@ -154,25 +163,25 @@ const login = async (req: Request, res: Response) => {
 
     const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
+    recordLogin({ email: user.email });
+    logLoginAttempt(req, email, true);
+    logger.info({ userId: user._id.toString(), email: user.email }, "User login successful");
+    markSpanSuccess(span);
+
     // 7. Send response
-    res.status(200).json({
-      csrfToken,
+    return sendSuccess(res, {
       user: {
         id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
       },
-    });
-    logger.info({ userId: user._id.toString(), email: user.email }, "User login successful");
-    markSpanSuccess(span);
+    }, 200, csrfToken);
 
   } catch (error) {
     markSpanError(span, error as Error, "Login failed");
     logger.error({ error }, "Login failed");
-    res.status(500).json({
-      message: "Server error",
-    });
+    return sendServerError(res, "Login failed", "SERVER_ERROR");
   } finally {
     finishControllerSpan(span);
   }
@@ -274,9 +283,7 @@ const forgotPassword = async (req: Request, res: Response) => {
   } catch (error) {
     markSpanError(span, error as Error, "Forgot password failed");
     logger.error({ error }, "Forgot password failed");
-    return res.status(500).json({
-      message: "Server error",
-    });
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -341,9 +348,7 @@ const resetPassword = async (req: Request, res: Response) => {
   } catch (error) {
     markSpanError(span, error as Error, "Reset password failed");
     logger.error({ error }, "Reset password failed");
-    return res.status(500).json({
-      message: "Server error",
-    });
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -439,9 +444,7 @@ const resendResetLink = async (req: Request, res: Response) => {
   } catch (error) {
     markSpanError(span, error as Error, "Resend reset link failed");
     logger.error({ error }, "Resend reset link failed");
-    return res.status(500).json({
-      message: "Server error",
-    });
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -470,16 +473,21 @@ const googleLogin = async (req: Request, res: Response) => {
         googleId: payload.sub,
         authProvider: ["google"],
       });
-    } else {
-      // User exists - add google to authProvider if not already there
-      if (!Array.isArray(user.authProvider)) {
-        user.authProvider = [];
-      }
-      if (!user.authProvider.includes("google")) {
-        user.authProvider.push("google");
-        user.googleId = payload.sub;
-        await user.save();
-      }
+    } else if (user.googleId && user.googleId !== payload.sub) {
+      logger.warn({ email: payload.email, userId: user._id.toString() }, "Google login blocked due to mismatched linked account");
+      return sendErrorResponse(res, new AuthError("This Google account is already linked to a different profile.", {
+        statusCode: 409,
+        code: "OAUTH_LINK_CONFIRMATION_REQUIRED",
+      }));
+    } else if (!hasLinkedProvider(user, "google")) {
+      logger.warn({ email: payload.email, userId: user._id.toString() }, "Google login requires explicit link confirmation");
+      return sendErrorResponse(res, new AuthError("This account already uses a password. Link Google after confirming your password.", {
+        statusCode: 409,
+        code: "OAUTH_LINK_CONFIRMATION_REQUIRED",
+      }));
+    } else if (!user.googleId) {
+      user.googleId = payload.sub;
+      await user.save();
     }
 
     // 🔑 Generate tokens
@@ -492,13 +500,151 @@ const googleLogin = async (req: Request, res: Response) => {
     markSpanSuccess(span);
     return res.json({
       csrfToken,
-      user,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
       message: "Google login successful",
     });
   } catch (error) {
     markSpanError(span, error as Error, "Google login failed");
     logger.error({ error }, "Google login failed");
-    return res.status(500).json({ message: "Server error" });
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+const linkGoogleAccount = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.linkGoogleAccount", req);
+
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return sendErrorResponse(res, new AuthError("Authentication required", { code: "AUTH_REQUIRED" }));
+    }
+
+    const { token, password } = req.body;
+    const payload = await verifyGoogleToken(token);
+
+    if (!payload?.email || !payload.sub) {
+      return sendErrorResponse(res, new AuthError("Invalid Google token", { statusCode: 400, code: "VALIDATION_ERROR" }));
+    }
+
+    const user = await User.findById(userId).select("+password name email authProvider googleId role avatar");
+    if (!user) {
+      return sendErrorResponse(res, new NotFoundError("User not found"));
+    }
+
+    if (String(user.email).toLowerCase() !== String(payload.email).toLowerCase()) {
+      return sendErrorResponse(res, new AuthError("Google account email must match the signed-in account.", {
+        statusCode: 400,
+        code: "OAUTH_LINK_CONFIRMATION_REQUIRED",
+      }));
+    }
+
+    if (!user.password) {
+      return sendErrorResponse(res, new AuthError("Password confirmation is required to link Google.", {
+        statusCode: 403,
+        code: "AUTH_REQUIRED",
+      }));
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
+      return sendErrorResponse(res, new AuthError("Invalid password confirmation.", {
+        statusCode: 401,
+        code: "AUTH_REQUIRED",
+      }));
+    }
+
+    user.googleId = payload.sub;
+    user.authProvider = Array.from(new Set([...(Array.isArray(user.authProvider) ? user.authProvider : []), "google"]));
+    await user.save();
+
+    logger.info({ userId: user._id.toString(), email: user.email }, "Google provider linked");
+    markSpanSuccess(span);
+    return res.status(200).json({
+      message: "Google account linked successfully",
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    markSpanError(span, error as Error, "Link Google account failed");
+    logger.error({ error }, "Link Google account failed");
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+const unlinkOAuthProvider = async (req: Request, res: Response) => {
+  const span = startControllerSpan("auth.unlinkOAuthProvider", req);
+
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return sendErrorResponse(res, new AuthError("Authentication required", { code: "AUTH_REQUIRED" }));
+    }
+
+    const { provider, password } = req.body;
+    const user = await User.findById(userId).select("+password name email authProvider googleId role avatar");
+
+    if (!user) {
+      return sendErrorResponse(res, new NotFoundError("User not found"));
+    }
+
+    if (!user.password) {
+      return sendErrorResponse(res, new AuthError("Password confirmation is required to unlink providers.", {
+        statusCode: 403,
+        code: "AUTH_REQUIRED",
+      }));
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
+      return sendErrorResponse(res, new AuthError("Invalid password confirmation.", {
+        statusCode: 401,
+        code: "AUTH_REQUIRED",
+      }));
+    }
+
+    const nextProviders = getAuthProviders(user).filter((entry) => entry !== provider);
+
+    if (nextProviders.length === 0) {
+      return sendErrorResponse(res, new AuthError("At least one sign-in provider must remain linked.", {
+        statusCode: 409,
+        code: "OAUTH_LINK_CONFIRMATION_REQUIRED",
+      }));
+    }
+
+    user.authProvider = nextProviders;
+    if (provider === "google") {
+      user.googleId = undefined;
+    }
+
+    await user.save();
+    logger.info({ userId: user._id.toString(), provider }, "OAuth provider unlinked");
+    markSpanSuccess(span);
+    return res.status(200).json({
+      message: "OAuth provider unlinked successfully",
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    markSpanError(span, error as Error, "Unlink OAuth provider failed");
+    logger.error({ error }, "Unlink OAuth provider failed");
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
@@ -514,7 +660,7 @@ const getCurrentUser = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await User.findById(userId).select("name email avatar role authProvider");
+    const user = await User.findById(userId).select("name email avatar role authProvider aiCreditsRemaining aiCreditsResetAt aiCreditsPlan");
 
     if (!user) {
       logger.warn({ userId }, "Get current user not found");
@@ -530,16 +676,21 @@ const getCurrentUser = async (req: Request, res: Response) => {
         email: user.email,
         avatar: user.avatar || user.name?.trim()?.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "ME",
         role: user.role,
+        aiCredits: {
+          remaining: user.aiCreditsRemaining ?? 0,
+          resetAt: user.aiCreditsResetAt,
+          plan: user.aiCreditsPlan ?? "free",
+        },
       },
     });
   } catch (error) {
     markSpanError(span, error as Error, "Get current user failed");
     logger.error({ error }, "Get current user failed");
-    return res.status(500).json({ message: "Server error" });
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
   } finally {
     finishControllerSpan(span);
   }
 };
   
 
-export { registerUser, login, forgotPassword, resetPassword, resendResetLink , googleLogin, getCurrentUser, logout };
+export { registerUser, login, forgotPassword, resetPassword, resendResetLink , googleLogin, linkGoogleAccount, unlinkOAuthProvider, getCurrentUser, logout };

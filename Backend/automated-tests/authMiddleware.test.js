@@ -6,7 +6,7 @@ require("./helpers/setupEnv");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const authMiddlewarePath = path.join(distRoot, "middleware", "authMiddleware.js");
 const cookieParserPath = path.join(distRoot, "utils", "cookieParser.js");
 const userModelPath = path.join(distRoot, "models", "User.js");
@@ -69,7 +69,9 @@ test("authMiddleware returns 401 when no access token cookie is present", () => 
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(res.jsonBody, { message: "Unauthorized: No token provided" });
+  assert.equal(res.jsonBody.message, "Unauthorized: No token provided");
+  assert.equal(res.jsonBody.code, "AUTH_REQUIRED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
 });
 
 test("authMiddleware attaches the current user when the token is valid", async () => {
@@ -135,7 +137,9 @@ test("authMiddleware returns 401 when the user cannot be found", async () => {
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(res.jsonBody, { message: "Unauthorized: User not found" });
+  assert.equal(res.jsonBody.message, "Unauthorized: User not found");
+  assert.equal(res.jsonBody.code, "AUTH_REQUIRED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
 });
 
 test("authMiddleware returns 401 when token verification fails", () => {
@@ -159,5 +163,7 @@ test("authMiddleware returns 401 when token verification fails", () => {
 
   assert.equal(nextCalled, false);
   assert.equal(res.statusCode, 401);
-  assert.deepEqual(res.jsonBody, { message: "Unauthorized: Invalid token" });
+  assert.equal(res.jsonBody.message, "Unauthorized: Invalid token");
+  assert.equal(res.jsonBody.code, "AUTH_REQUIRED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
 });

@@ -1,5 +1,5 @@
 import express from "express"
-import { registerUser , login, forgotPassword, resetPassword, resendResetLink, googleLogin, getCurrentUser, logout } from "../controllers/authController"
+import { registerUser , login, forgotPassword, resetPassword, resendResetLink, googleLogin, linkGoogleAccount, unlinkOAuthProvider, getCurrentUser, logout } from "../controllers/authController"
 import { authMiddleware } from "../middleware/authMiddleware"
 import { validateRequest } from "../middleware/validateRequest";
 import { env } from "../config/env";
@@ -11,6 +11,8 @@ import {
 	authSignupSchema,
 	emptyObjectSchema,
 	googleLoginSchema,
+	oauthLinkSchema,
+	oauthUnlinkSchema,
 } from "../validation/schemas";
 
 const signupLimiter = createRedisRateLimitMiddleware({
@@ -58,6 +60,8 @@ router.post("/resend", passwordRecoveryLimiter, validateRequest({ body: authEmai
 
 
 router.post("/google-login", oauthLimiter, validateRequest({ body: googleLoginSchema }), googleLogin);
+router.post("/link-google", authMiddleware, validateRequest({ body: oauthLinkSchema }), linkGoogleAccount);
+router.post("/unlink-oauth", authMiddleware, validateRequest({ body: oauthUnlinkSchema }), unlinkOAuthProvider);
 router.post("/logout", validateRequest({ body: emptyObjectSchema }), authMiddleware, logout);
 router.get("/me", authMiddleware, getCurrentUser);
 

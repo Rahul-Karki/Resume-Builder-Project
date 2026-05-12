@@ -2,6 +2,7 @@ import crypto from "crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { appMetrics, logger } from "../observability";
 import { cacheGet, cacheSet, deleteByPattern, getCacheProvider } from "../utils/redis";
+import { CACHE_SCOPE_NAMES, buildCacheScope } from "../config/cacheScopes";
 
 const CACHE_NAMESPACE = "resume-builder:cache";
 
@@ -14,9 +15,9 @@ export type RedisCacheOptions = {
 
 const hashValue = (value: string) => crypto.createHash("sha1").update(value).digest("hex");
 
-const buildCacheKey = (scope: string, sourceKey: string) => `${CACHE_NAMESPACE}:${scope}:${hashValue(sourceKey)}`;
+const buildCacheKey = (scope: string, sourceKey: string) => `${CACHE_NAMESPACE}:${buildCacheScope(scope)}:${hashValue(sourceKey)}`;
 
-const buildCachePattern = (scope: string) => `${CACHE_NAMESPACE}:${scope}:*`;
+const buildCachePattern = (scope: string) => `${CACHE_NAMESPACE}:${buildCacheScope(scope)}:*`;
 
 export const createRedisCacheMiddleware = ({ scope, metricsScope, ttlSeconds, keyBuilder }: RedisCacheOptions): RequestHandler => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -36,13 +37,6 @@ export const createRedisCacheMiddleware = ({ scope, metricsScope, ttlSeconds, ke
     };
 
     const provider = getCacheProvider();
-
-    if (provider === "none") {
-      appMetrics.cacheMisses.add(1, { scope: scopeForMetrics });
-      markMiss("cache-backend-unavailable");
-      next();
-      return;
-    }
 
     let cached: string | null = null;
     try {
@@ -86,6 +80,8 @@ export const createRedisCacheMiddleware = ({ scope, metricsScope, ttlSeconds, ke
           if (!written) {
             logger.warn({ scope: resolvedScope }, "Cache write skipped or failed");
           }
+        }).catch((error) => {
+          logger.warn({ error, scope: resolvedScope }, "Cache write failed");
         });
       }
 
@@ -106,9 +102,4 @@ export const invalidateRedisCache = async (scopes: string[]): Promise<void> => {
   }
 };
 
-export const redisCacheScopes = {
-  publicTemplates: "public-templates",
-  adminTemplates: "admin-templates",
-  adminDashboard: "admin-dashboard",
-  adminAnalytics: "admin-analytics",
-} as const;
+export const redisCacheScopes = CACHE_SCOPE_NAMES;

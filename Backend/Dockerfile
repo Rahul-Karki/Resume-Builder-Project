@@ -3,26 +3,29 @@ FROM node:20 AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY Backend/package*.json ./Backend/
+COPY shared ./shared
 
-RUN npm install
+RUN cd Backend && npm install
 
-COPY . .
+COPY Backend ./Backend
 
-RUN npm run build
+RUN cd Backend && npm run build
 
 
 # runtime stage
 FROM node:20
 
-WORKDIR /app
+WORKDIR /app/Backend
 
-COPY package*.json ./
+COPY Backend/package*.json ./
 
 RUN npm install --omit=dev
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/Backend/dist ./dist
 
 EXPOSE 5000
 
-CMD ["node", "dist/server.js"]
+ENV NODE_OPTIONS="--require ./dist/Backend/src/instrumentation.js"
+
+CMD ["node", "dist/Backend/src/server.js"]

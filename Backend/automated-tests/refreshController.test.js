@@ -6,7 +6,7 @@ require("./helpers/setupEnv");
 
 const { loadWithMocks } = require("./helpers/mockModule");
 
-const distRoot = path.join(__dirname, "..", "dist");
+const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const refreshControllerPath = path.join(distRoot, "controllers", "refreshController.js");
 const generateTokenPath = path.join(distRoot, "utils", "generateToken.js");
 const cookieParserPath = path.join(distRoot, "utils", "cookieParser.js");
@@ -14,6 +14,7 @@ const authCookiesPath = path.join(distRoot, "utils", "authCookies.js");
 const envPath = path.join(distRoot, "config", "env.js");
 const observabilityPath = path.join(distRoot, "observability.js");
 const controllerObservabilityPath = path.join(distRoot, "utils", "controllerObservability.js");
+const errorResponsePath = path.join(distRoot, "utils", "errorResponse.js");
 
 function loadRefreshController(overrides = {}) {
   return loadWithMocks(refreshControllerPath, {
@@ -50,6 +51,16 @@ function loadRefreshController(overrides = {}) {
       markSpanSuccess: overrides.markSpanSuccess ?? (() => {}),
       markSpanError: overrides.markSpanError ?? (() => {}),
       finishControllerSpan: overrides.finishControllerSpan ?? (() => {}),
+    },
+    [errorResponsePath]: {
+      sendErrorResponse: (_res, _error, fallback = {}) => {
+        const message = fallback.message ?? (_error instanceof Error ? _error.message : "Server error");
+        return _res.status(fallback.statusCode ?? 500).json({
+          message,
+          code: fallback.code ?? "SERVER_ERROR",
+          traceId: "test-trace-id",
+        });
+      },
     },
     jsonwebtoken: {
       verify: overrides.verify ?? (() => ({ userId: "user-123" })),
@@ -112,7 +123,10 @@ test("refreshAccessToken returns 401 when refresh token cookie is missing", () =
 
   refreshAccessToken(req, res);
 
-  assert.equal(res.sendStatusCode, 401);
+  assert.equal(res.statusCode, 401);
+  assert.equal(res.jsonBody.message, "Authentication required");
+  assert.equal(res.jsonBody.code, "AUTH_REQUIRED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
   assert.equal(calls.verify, 0);
   assert.equal(calls.generateAccessToken, 0);
   assert.equal(calls.setAccessTokenCookie, 0);
@@ -179,5 +193,35 @@ test("refreshAccessToken returns 403 when refresh token verification fails", () 
 
   refreshAccessToken(req, res);
 
-  assert.equal(res.sendStatusCode, 403);
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.jsonBody.message, "Invalid refresh token");
+  assert.equal(res.jsonBody.code, "AUTH_REQUIRED");
+  assert.equal(typeof res.jsonBody.traceId, "string");
+});
+
+test("issueCsrfToken issues a csrf token and cookie", () => {
+  const setCsrfCalls = [];
+
+  const { issueCsrfToken } = loadRefreshController({
+    parseCookies: () => ({}),
+    setCsrfCookie: (req, res) => {
+      setCsrfCalls.push({ req, res });
+      return "csrf-token";
+    },
+  });
+
+  const req = {
+    headers: {},
+    originalUrl: "/api/csrf",
+  };
+  const res = createRes();
+
+  issueCsrfToken(req, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.jsonBody, {
+    message: "CSRF token issued",
+    csrfToken: "csrf-token",
+  });
+  assert.equal(setCsrfCalls.length, 1);
 });

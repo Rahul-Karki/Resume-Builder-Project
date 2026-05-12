@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 require("./helpers/setupEnv");
 
-const hashToken = require("../dist/utils/hashToken").default;
+const hashToken = require("../dist/Backend/src/utils/hashToken").default;
 
 test("hashToken returns deterministic 64-char sha256 hex", () => {
   const token = "reset-token-value";

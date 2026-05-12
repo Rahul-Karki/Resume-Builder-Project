@@ -1,7 +1,8 @@
 // ─── admin.types.ts ───────────────────────────────────────────────────────────
 
 export type TemplateStatus   = "draft" | "published" | "archived";
-export type TemplateCategory = "professional" | "corporate" | "technical" | "creative" | "academic";
+export type TemplateCategory = "tech" | "non-tech";
+export type TemplateAudience = "tech" | "non-tech";
 
 export interface CssVars {
   accentColor:     string;
@@ -32,7 +33,9 @@ export interface AdminTemplate {
   name:        string;
   description: string;
   category:    TemplateCategory;
+  audience:    TemplateAudience;
   tag:         string;
+  tags?:       string[];
   thumbnailUrl: string;
   status:      TemplateStatus;
   isPremium:   boolean;
@@ -85,11 +88,14 @@ export interface TemplateFormData {
   name:        string;
   description: string;
   category:    TemplateCategory;
+  audience:    TemplateAudience;
   tag:         string;
+  tags:        string[];
   isPremium:   boolean;
   sortOrder:   number;
   cssVars:     CssVars;
   slots:       Slots;
+  thumbnailUrl?: string;
 }
 
 export const DEFAULT_CSS_VARS: CssVars = {
@@ -119,8 +125,10 @@ export const DEFAULT_FORM: TemplateFormData = {
   layoutId:    "",
   name:        "",
   description: "",
-  category:    "professional",
+  category:    "non-tech",
+  audience:    "non-tech",
   tag:         "",
+  tags:        [],
   isPremium:   false,
   sortOrder:   0,
   cssVars:     { ...DEFAULT_CSS_VARS },
@@ -128,11 +136,13 @@ export const DEFAULT_FORM: TemplateFormData = {
 };
 
 export const CATEGORY_OPTIONS: { value: TemplateCategory; label: string }[] = [
-  { value: "professional", label: "Professional" },
-  { value: "corporate",    label: "Corporate"    },
-  { value: "technical",    label: "Technical"    },
-  { value: "creative",     label: "Creative"     },
-  { value: "academic",     label: "Academic"     },
+  { value: "non-tech", label: "Non-Tech" },
+  { value: "tech", label: "Tech" },
+];
+
+export const AUDIENCE_OPTIONS: { value: TemplateAudience; label: string }[] = [
+  { value: "non-tech", label: "Non-Tech" },
+  { value: "tech", label: "Tech" },
 ];
 
 export const FONT_OPTIONS = [
@@ -148,12 +158,15 @@ export const FONT_OPTIONS = [
 
 export const REGISTERED_LAYOUT_IDS = [
   "classic", "executive", "modern", "compact", "sidebar",
+  "scholarly", "research",
+  "chronological", "functional", "combination",
+  "traditional-assistant", "community-impact",
   "minimal", "timeline", "creative-v2",
 ];
 
 // ─── Sidebar nav ──────────────────────────────────────────────────────────────
 
-export type AdminPage = "dashboard" | "templates";
+export type AdminPage = "dashboard" | "templates" | "queues";
 
 export interface NavItem {
   id:    AdminPage;
@@ -164,4 +177,5 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { id: "dashboard",  label: "Dashboard",  icon: "◈" },
   { id: "templates",  label: "Templates",  icon: "◉" },
+  { id: "queues",     label: "Queues",     icon: "◎" },
 ];

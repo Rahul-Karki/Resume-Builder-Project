@@ -1,6 +1,8 @@
 import { createClient } from "redis";
 import { env } from "../config/env";
 import { logger } from "../observability";
+import { memoryCache } from "./memoryCache";
+import { memoryRateLimiter } from "./memoryRateLimit";
 
 type RedisClient = ReturnType<typeof createClient>;
 type CacheProvider = "redis" | "upstash" | "none";
@@ -11,7 +13,20 @@ let lastRedisFailureAt = 0;
 
 const REDIS_RETRY_COOLDOWN_MS = 30_000;
 
-const hasRedisConfiguration = Boolean(env.REDIS_URL);
+const isNativeRedisUrl = (value: string) => {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "redis:" || parsed.protocol === "rediss:";
+  } catch {
+    return false;
+  }
+};
+
+const hasRedisConfiguration = isNativeRedisUrl(env.REDIS_URL);
 const hasUpstashConfiguration = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
 
 const upstashBaseUrl = env.UPSTASH_REDIS_REST_URL.replace(/\/+$/, "");
@@ -29,24 +44,40 @@ const upstashCall = async (
   const endpoint = `${upstashBaseUrl}/${command}${suffix}`;
   const isWrite = new Set(["set", "del", "expire", "incr"]);
 
-  const response = await fetch(endpoint, {
-    method: isWrite.has(command) ? "POST" : "GET",
-    headers: {
-      Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-  });
+  const controller = new AbortController();
+  const timeoutMs = env.REDIS_CONNECT_TIMEOUT_MS || 5000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    const responseText = await response.text().catch(() => "");
-    throw new Error(`Upstash ${command.toUpperCase()} failed (${response.status}): ${responseText}`);
+  try {
+    const response = await fetch(endpoint, {
+      method: isWrite.has(command) ? "POST" : "GET",
+      headers: {
+        Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text().catch(() => "");
+      throw new Error(`Upstash ${command.toUpperCase()} failed (${response.status}): ${responseText}`);
+    }
+
+    const payload = (await response.json()) as { result?: unknown };
+    return payload.result ?? null;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const payload = (await response.json()) as { result?: unknown };
-  return payload.result ?? null;
 };
 
 export const getCacheProvider = (): CacheProvider => {
+  // When USE_MEMORY_ONLY_CACHE is true, skip Redis/Upstash for cache and
+  // rate-limit entirely. This saves thousands of commands per day on the
+  // Upstash free tier. BullMQ still uses Redis for job queues separately.
+  if (env.USE_MEMORY_ONLY_CACHE) {
+    return "none";
+  }
+
   if (hasRedisConfiguration) {
     return "redis";
   }
@@ -139,7 +170,10 @@ export const cacheGet = async (key: string): Promise<string | null> => {
   const provider = getCacheProvider();
 
   if (provider === "redis") {
-    return withRedis((client) => client.get(key));
+    const result = await withRedis((client) => client.get(key));
+    if (result !== null) return result;
+    // Fall through to in-memory
+    return memoryCache.get(key);
   }
 
   if (provider === "upstash") {
@@ -152,16 +186,20 @@ export const cacheGet = async (key: string): Promise<string | null> => {
 
       return value == null ? null : JSON.stringify(value);
     } catch (error) {
-      logger.warn({ error }, "Upstash read failed");
-      return null;
+      logger.warn({ error }, "Upstash read failed; falling back to in-memory cache");
+      return memoryCache.get(key);
     }
   }
 
-  return null;
+  // No Redis configured — use in-memory cache
+  return memoryCache.get(key);
 };
 
 export const cacheSet = async (key: string, value: string, ttlSeconds: number): Promise<boolean> => {
   const provider = getCacheProvider();
+
+  // Always write to in-memory cache regardless of provider
+  memoryCache.set(key, value, ttlSeconds);
 
   if (provider === "redis") {
     const result = await withRedis(async (client) => {
@@ -177,12 +215,12 @@ export const cacheSet = async (key: string, value: string, ttlSeconds: number): 
       await upstashCall("set", [key, value, "EX", ttlSeconds]);
       return true;
     } catch (error) {
-      logger.warn({ error }, "Upstash write failed");
-      return false;
+      logger.warn({ error }, "Upstash write failed; cached in-memory only");
+      return true; // Still cached in memory
     }
   }
 
-  return false;
+  return true; // Cached in memory
 };
 
 export const consumeRateLimit = async (
@@ -192,37 +230,53 @@ export const consumeRateLimit = async (
   const provider = getCacheProvider();
 
   if (provider === "redis") {
-    return withRedis(async (client) => {
-      const count = await client.incr(key);
-
-      if (count === 1) {
-        await client.expire(key, windowSeconds);
-      }
-
-      const ttlSeconds = await client.ttl(key);
+    const result = await withRedis(async (client) => {
+      // Use Lua script to combine INCR + EXPIRE + TTL into a single round-trip
+      const luaScript = `
+        local count = redis.call('INCR', KEYS[1])
+        if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+        local ttl = redis.call('TTL', KEYS[1])
+        return {count, ttl}
+      `;
+      const results = await client.eval(luaScript, {
+        keys: [key],
+        arguments: [String(windowSeconds)],
+      }) as [number, number];
+      const [count, ttlSeconds] = results;
       return { count, ttlSeconds };
     });
+
+    // Fall back to in-memory if Redis is down
+    if (!result) {
+      return memoryRateLimiter.consume(key, windowSeconds * 1000);
+    }
+
+    return result;
   }
 
   if (provider === "upstash") {
     try {
-      const countRaw = await upstashCall("incr", [key]);
+      // Single EVAL call replaces 3 separate commands (INCR + EXPIRE + TTL)
+      const luaScript = [
+        "local count = redis.call('INCR', KEYS[1])",
+        "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end",
+        "local ttl = redis.call('TTL', KEYS[1])",
+        "return {count, ttl}",
+      ].join("\n");
+
+      const result = await upstashCall("eval", [luaScript, "1", key, String(windowSeconds)]);
+      const [countRaw, ttlRaw] = Array.isArray(result) ? result : [0, 0];
       const count = Number(countRaw);
-
-      if (count === 1) {
-        await upstashCall("expire", [key, windowSeconds]);
-      }
-
-      const ttlRaw = await upstashCall("ttl", [key]);
       const ttlSeconds = Number(ttlRaw);
       return { count, ttlSeconds };
     } catch (error) {
-      logger.warn({ error }, "Upstash rate-limit operation failed");
-      return null;
+      logger.warn({ error }, "Upstash rate-limit failed; using in-memory fallback");
+      return memoryRateLimiter.consume(key, windowSeconds * 1000);
     }
   }
 
-  return null;
+  // No Redis — use in-memory rate limiter
+  return memoryRateLimiter.consume(key, windowSeconds * 1000);
 };
 
 export const deleteByPattern = async (pattern: string): Promise<number> => {
@@ -253,19 +307,11 @@ export const deleteByPattern = async (pattern: string): Promise<number> => {
   }
 
   if (provider === "upstash") {
-    try {
-      const keysRaw = await upstashCall("keys", [pattern]);
-      const keys = Array.isArray(keysRaw) ? keysRaw.map((key) => String(key)) : [];
-      if (!Array.isArray(keys) || keys.length === 0) {
-        return 0;
-      }
-
-      const deleted = await upstashCall("del", keys);
-      return Number(deleted) || 0;
-    } catch (error) {
-      logger.warn({ error }, "Upstash pattern delete failed");
-      return 0;
-    }
+    // Avoid expensive KEYS command on Upstash (O(N) scan + DEL = 2+ commands).
+    // Since cacheSet writes to both Upstash AND memoryCache, and cacheGet
+    // falls back to memoryCache on miss, invalidating in-memory is sufficient.
+    // Stale Upstash entries will simply expire via TTL.
+    return memoryCache.deleteByPattern(pattern);
   }
 
   return 0;
@@ -275,8 +321,7 @@ export const warmupCacheBackend = async (): Promise<boolean> => {
   const provider = getCacheProvider();
 
   if (provider === "redis") {
-    const client = await getRedisClient();
-    return Boolean(client);
+    return checkRedisHealth();
   }
 
   if (provider === "upstash") {
@@ -285,6 +330,38 @@ export const warmupCacheBackend = async (): Promise<boolean> => {
       return true;
     } catch (error) {
       logger.warn({ error }, "Upstash warmup ping failed");
+      return false;
+    }
+  }
+
+  return false;
+};
+
+export const checkRedisHealth = async (): Promise<boolean> => {
+  const provider = getCacheProvider();
+
+  if (provider === "redis") {
+    const client = await getRedisClient();
+
+    if (!client) {
+      return false;
+    }
+
+    try {
+      await client.ping();
+      return true;
+    } catch (error) {
+      logger.warn({ error }, "Redis health ping failed");
+      return false;
+    }
+  }
+
+  if (provider === "upstash") {
+    try {
+      await upstashCall("ping");
+      return true;
+    } catch (error) {
+      logger.warn({ error }, "Upstash health ping failed");
       return false;
     }
   }

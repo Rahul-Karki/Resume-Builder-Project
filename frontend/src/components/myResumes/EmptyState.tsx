@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { Thumb } from "./ResumeThumbnail";
 import { TemplateMeta } from "@/types/resume-types";
+import { templates as localTemplateCatalog } from "@/data/templateMeta";
 
 type PublicTemplate = {
   _id?: string;
@@ -9,6 +10,7 @@ type PublicTemplate = {
   name: string;
   description?: string;
   category?: string;
+  audience?: "tech" | "non-tech";
   tag?: string;
   isPremium?: boolean;
   cssVars?: {
@@ -30,7 +32,33 @@ type CardTemplate = {
   thumb: TemplateMeta;
 };
 
-const THUMB_IDS = ["classic", "executive", "modern", "compact", "sidebar"] as const;
+const THUMB_IDS = ["classic", "executive", "modern", "compact", "sidebar", "scholarly", "research"] as const;
+
+const mergePublicTemplates = (apiTemplates: PublicTemplate[]): PublicTemplate[] => {
+  const byLayoutId = new Map<string, PublicTemplate>();
+  apiTemplates.forEach((template) => byLayoutId.set(template.layoutId, template));
+
+  localTemplateCatalog.forEach((template) => {
+    if (byLayoutId.has(template.id)) return;
+
+    byLayoutId.set(template.id, {
+      layoutId: template.id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      tag: template.tag,
+      isPremium: template.isPremium,
+      cssVars: {
+        accentColor: template.accent,
+        backgroundColor: template.palette[0],
+        headingColor: template.palette[1],
+        mutedColor: template.palette[2],
+      },
+    });
+  });
+
+  return Array.from(byLayoutId.values());
+};
 
 export function EmptyState({ name, onPick }: { name: string; onPick: (id: string) => void }) {
   const [hov, setHov] = useState<string | null>(null);
@@ -46,11 +74,11 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
         const list = Array.isArray(response.data?.data) ? response.data.data : [];
 
         if (mounted) {
-          setTemplates(list);
+          setTemplates(mergePublicTemplates(list));
         }
       } catch {
         if (mounted) {
-          setTemplates([]);
+          setTemplates(mergePublicTemplates([]));
         }
       } finally {
         if (mounted) {
@@ -94,6 +122,7 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
             category: template.category || "General",
             description: template.description || "Build your resume with this template.",
             isPremium: Boolean(template.isPremium),
+            audience: template.audience || "non-tech",
             accent,
             palette: {
               bg,

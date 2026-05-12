@@ -1,10 +1,9 @@
 import express from "express";
-import { refreshAccessToken } from "../controllers/refreshController";
-import { validateRequest } from "../middleware/validateRequest";
-import { emptyObjectSchema } from "../validation/schemas";
+import { issueCsrfToken, refreshAccessToken } from "../controllers/refreshController";
 
 const router = express.Router();
 
+router.get("/csrf", issueCsrfToken);
 router.post("/refresh", refreshAccessToken);
 
 export default router;

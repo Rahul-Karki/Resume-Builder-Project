@@ -3,11 +3,13 @@ import { subscribeWithSelector } from "zustand/middleware";
 import {
   ResumeDocument, BuilderUIState, PersonalInfo, ResumeStyle,
   WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry,
-  ActiveSection, EditorTab, ExportPreset, PreviewScale, SectionVisibility,
+  ActiveSection, EditorTab, ExportPreset, PreviewScale, SectionVisibility, FocusedEditorField,
   defaultStyle, defaultPersonalInfo, defaultResumeSections,
   defaultSectionVisibility, defaultSectionOrder,
 } from "@/types/resume-types";
 import { api } from "@/services/api";
+import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
+import { templates as localTemplateCatalog } from "@/data/templateMeta";
 
 // ─── Helper: generate IDs ──────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -17,7 +19,7 @@ const hasResumeContent = (resume: ResumeDocument) => {
   const s = resume.sections;
 
   const personalFields = [
-    p.name, p.title, p.email, p.phone, p.location, p.linkedin, p.portfolio, p.summary,
+    p.name, p.title, p.email, p.phone, p.location, p.linkedin, p.github, p.portfolio, p.summary,
   ];
 
   return personalFields.some(value => value.trim().length > 0)
@@ -31,7 +33,7 @@ const hasResumeContent = (resume: ResumeDocument) => {
 
 const toResumePayload = (resume: ResumeDocument) => ({
   title: resume.title,
-  templateId: resume.templateId,
+  templateId: normalizeResumeTemplateId(resume.templateId),
   personalInfo: {
     name: resume.personalInfo.name,
     title: resume.personalInfo.title,
@@ -39,6 +41,7 @@ const toResumePayload = (resume: ResumeDocument) => ({
     phone: resume.personalInfo.phone,
     location: resume.personalInfo.location,
     linkedin: resume.personalInfo.linkedin,
+    github: resume.personalInfo.github,
     portfolio: resume.personalInfo.portfolio,
     summary: resume.personalInfo.summary,
   },
@@ -176,6 +179,7 @@ interface ResumeBuilderStore {
   // ── UI controls ────────────────────────────────────────────────────────────
   setActiveTab: (tab: EditorTab) => void;
   setActiveSection: (section: ActiveSection) => void;
+  setFocusedField: (field: FocusedEditorField | null) => void;
   setPreviewScale: (scale: PreviewScale) => void;
   setExportPreset: (preset: ExportPreset) => void;
 
@@ -183,6 +187,7 @@ interface ResumeBuilderStore {
   saveResume: () => Promise<void>;
   loadResume: (id: string, preloadedResume?: ResumeDocument) => Promise<void>;
   initFromTemplate: (templateId: string) => Promise<void>;
+  applyTemplateUpgrade: (templateId: string) => Promise<void>;
   markDirty: () => void;
 }
 
@@ -200,6 +205,7 @@ const initialResume: ResumeDocument = {
 const initialUI: BuilderUIState = {
   activeTab: "content",
   activeSection: "personal",
+  focusedField: null,
   previewScale: 0.5,
   exportPreset: "standard",
   isSaving: false,
@@ -243,6 +249,149 @@ const safeLineHeight = (value: unknown, fallback: ResumeStyle["lineHeight"]): Re
   return fallback;
 };
 
+const TEMPLATE_STYLE_PRESETS: Record<string, Partial<typeof defaultStyle>> = {
+  classic:   { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
+  executive: { accentColor: "#1B2B4B", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif" },
+  modern:    { accentColor: "#0F766E", bodyFont: "DM Sans, sans-serif", headingFont: "DM Sans, sans-serif" },
+  compact:   { accentColor: "#111111", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "9.5pt" },
+  sidebar:   { accentColor: "#1E293B", bodyFont: "Nunito Sans, sans-serif", headingFont: "Nunito Sans, sans-serif" },
+  scholarly: { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
+  research:  { accentColor: "#1f1f1f", bodyFont: "Source Serif 4, serif", headingFont: "Playfair Display, serif" },
+  chronological: { accentColor: "#1F2937", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "10pt" },
+  functional: { accentColor: "#334155", bodyFont: "Outfit, sans-serif", headingFont: "Outfit, sans-serif", fontSize: "10pt" },
+  combination: { accentColor: "#0B3C5D", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif", fontSize: "10pt" },
+  "traditional-assistant": { accentColor: "#1E3A8A", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "10pt" },
+  "community-impact": { accentColor: "#166534", bodyFont: "Lora, serif", headingFont: "Lora, serif", fontSize: "10pt", lineHeight: "1.6" },
+};
+
+const TEMPLATE_SECTION_VISIBILITY_PRESETS: Record<string, typeof defaultSectionVisibility> = {
+  classic:   { ...defaultSectionVisibility },
+  executive: { ...defaultSectionVisibility },
+  modern:    { ...defaultSectionVisibility },
+  compact:   { ...defaultSectionVisibility },
+  sidebar:   { ...defaultSectionVisibility },
+  scholarly: { ...defaultSectionVisibility },
+  research:  { ...defaultSectionVisibility },
+  chronological: { ...defaultSectionVisibility, projects: false, certifications: true },
+  functional: { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
+  combination: { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
+  "traditional-assistant": { ...defaultSectionVisibility, projects: false, certifications: true },
+  "community-impact": { ...defaultSectionVisibility, projects: false, certifications: true, languages: true },
+};
+
+const resolveTemplateCategory = (templateId: string, apiCategory?: string) => {
+  if (apiCategory === "tech" || apiCategory === "non-tech") {
+    return apiCategory;
+  }
+
+  const localTemplate = localTemplateCatalog.find((template) => template.id === templateId);
+  return localTemplate?.category ?? "non-tech";
+};
+
+const SECTION_KEYS: Array<keyof SectionVisibility> = [
+  "experience",
+  "education",
+  "skills",
+  "projects",
+  "certifications",
+  "languages",
+];
+
+const getTemplateBaseStyle = (templateId: string) => ({
+  ...defaultStyle,
+  ...(TEMPLATE_STYLE_PRESETS[templateId] ?? {}),
+});
+
+const getTemplateBaseVisibility = (templateId: string) => ({
+  ...(TEMPLATE_SECTION_VISIBILITY_PRESETS[templateId] ?? defaultSectionVisibility),
+});
+
+const resolveTemplateStyle = (templateId: string) => getTemplateBaseStyle(templateId);
+const resolveTemplateVisibility = (templateId: string) => getTemplateBaseVisibility(templateId);
+
+const resolveTemplateConfig = (templateId: string) => {
+  let normalizedTemplateId = normalizeResumeTemplateId(templateId);
+  let baseStyle = resolveTemplateStyle(normalizedTemplateId);
+  let baseVisibility = resolveTemplateVisibility(normalizedTemplateId);
+
+  try {
+    const matchedTemplate = localTemplateCatalog.find((template) => template.id === normalizedTemplateId);
+
+    if (!matchedTemplate) {
+      return {
+        templateId: normalizedTemplateId,
+        templateCategory: resolveTemplateCategory(normalizedTemplateId),
+        style: baseStyle,
+        sectionVisibility: baseVisibility,
+      };
+    }
+
+    const cssVars = matchedTemplate.cssVars ?? {};
+    const slots = matchedTemplate.slots ?? {};
+
+    const resolvedStyle: ResumeStyle = {
+      ...baseStyle,
+      accentColor: cssVars.accentColor ?? baseStyle.accentColor,
+      headingColor: cssVars.headingColor ?? baseStyle.headingColor,
+      textColor: cssVars.textColor ?? baseStyle.textColor,
+      mutedColor: cssVars.mutedColor ?? baseStyle.mutedColor,
+      borderColor: cssVars.borderColor ?? baseStyle.borderColor,
+      backgroundColor: cssVars.backgroundColor ?? baseStyle.backgroundColor,
+      bodyFont: safeFont(cssVars.bodyFont, baseStyle.bodyFont),
+      headingFont: safeFont(cssVars.headingFont, baseStyle.headingFont),
+      fontSize: safeFontSize(cssVars.fontSize, baseStyle.fontSize),
+      lineHeight: safeLineHeight(cssVars.lineHeight, baseStyle.lineHeight),
+    };
+
+    return {
+      templateId: normalizedTemplateId,
+      templateCategory: resolveTemplateCategory(normalizedTemplateId, matchedTemplate.category),
+      style: resolvedStyle,
+      sectionVisibility: {
+        ...baseVisibility,
+        experience: slots.experience ?? baseVisibility.experience,
+        education: slots.education ?? baseVisibility.education,
+        skills: slots.skills ?? baseVisibility.skills,
+        projects: slots.projects ?? baseVisibility.projects,
+        certifications: slots.certifications ?? baseVisibility.certifications,
+        languages: slots.languages ?? baseVisibility.languages,
+      },
+    };
+  } catch {
+    return {
+      templateId: normalizedTemplateId,
+      templateCategory: resolveTemplateCategory(normalizedTemplateId),
+      style: baseStyle,
+      sectionVisibility: baseVisibility,
+    };
+  }
+};
+
+const sectionHasContent = (resume: ResumeDocument, section: keyof SectionVisibility) => {
+  const value = resume.sections[section];
+  return Array.isArray(value) && value.length > 0;
+};
+
+const mergeTemplateVisibilityForExistingResume = (
+  resume: ResumeDocument,
+  templateVisibility: SectionVisibility,
+): SectionVisibility => {
+  const nextVisibility = { ...templateVisibility };
+
+  for (const section of SECTION_KEYS) {
+    if (resume.sectionVisibility[section]) {
+      nextVisibility[section] = true;
+      continue;
+    }
+
+    if (sectionHasContent(resume, section)) {
+      nextVisibility[section] = true;
+    }
+  }
+
+  return nextVisibility;
+};
+
 // ─── Store ─────────────────────────────────────────────────────────────────────
 export const useResumeBuilderStore = create<ResumeBuilderStore>()(
   subscribeWithSelector((set, get) => ({
@@ -267,7 +416,10 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
 
     resetStyle: () =>
       set(s => ({
-        resume: { ...s.resume, style: { ...defaultStyle } },
+        resume: {
+          ...s.resume,
+          style: { ...getTemplateBaseStyle(normalizeResumeTemplateId(s.resume.templateId)) },
+        },
         ui: { ...s.ui, isDirty: true, isSaved: false },
       })),
 
@@ -279,7 +431,11 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           location: "", current: false, contentMode: "bullets", description: "", bullets: [""],
         };
         return {
-          resume: { ...s.resume, sections: { ...s.resume.sections, experience: [...s.resume.sections.experience, newEntry] } },
+          resume: {
+            ...s.resume,
+            sections: { ...s.resume.sections, experience: [...s.resume.sections.experience, newEntry] },
+            sectionVisibility: { ...s.resume.sectionVisibility, experience: true },
+          },
           ui: { ...s.ui, isDirty: true, activeSection: "experience" },
         };
       }),
@@ -360,6 +516,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             education: [...s.resume.sections.education, { id: uid(), institution: "", degree: "", field: "", year: "", cgpa: "" }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, education: true },
         },
         ui: { ...s.ui, isDirty: true, activeSection: "education" },
       })),
@@ -389,6 +546,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             skills: [...s.resume.sections.skills, { id: uid(), category: "Skills", items: [] }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, skills: true },
         },
         ui: { ...s.ui, isDirty: true, activeSection: "skills" },
       })),
@@ -418,6 +576,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             projects: [...s.resume.sections.projects, { id: uid(), name: "", contentMode: "paragraph", description: "", bullets: [""], tech: "", link: "" }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, projects: true },
         },
         ui: { ...s.ui, isDirty: true, activeSection: "projects" },
       })),
@@ -493,6 +652,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
             ...s.resume.sections,
             certifications: [...s.resume.sections.certifications, { id: uid(), name: "", issuer: "", year: "" }],
           },
+          sectionVisibility: { ...s.resume.sectionVisibility, certifications: true },
         },
         ui: { ...s.ui, isDirty: true },
       })),
@@ -568,89 +728,46 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
     // ─── UI Controls ─────────────────────────────────────────────────────────
     setActiveTab: (tab) => set(s => ({ ui: { ...s.ui, activeTab: tab } })),
     setActiveSection: (section) => set(s => ({ ui: { ...s.ui, activeSection: section } })),
+    setFocusedField: (field) => set(s => ({ ui: { ...s.ui, focusedField: field } })),
     setPreviewScale: (scale) => set(s => ({ ui: { ...s.ui, previewScale: scale } })),
     setExportPreset: (preset) => set(s => ({ ui: { ...s.ui, exportPreset: preset } })),
 
     // ─── Init from template ───────────────────────────────────────────────────
     initFromTemplate: async (templateId) => {
-      const stylePresets: Record<string, Partial<typeof defaultStyle>> = {
-        classic:   { accentColor: "#1a1a1a", bodyFont: "EB Garamond, serif", headingFont: "EB Garamond, serif" },
-        executive: { accentColor: "#1B2B4B", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "Playfair Display, serif" },
-        modern:    { accentColor: "#0F766E", bodyFont: "DM Sans, sans-serif", headingFont: "DM Sans, sans-serif" },
-        compact:   { accentColor: "#111111", bodyFont: "IBM Plex Sans, sans-serif", headingFont: "IBM Plex Sans, sans-serif", fontSize: "9.5pt" },
-        sidebar:   { accentColor: "#1E293B", bodyFont: "Nunito Sans, sans-serif", headingFont: "Nunito Sans, sans-serif" },
-      };
-      const sectionVisibilityPresets = {
-        classic:   { ...defaultSectionVisibility },
-        executive: { ...defaultSectionVisibility },
-        modern:    { ...defaultSectionVisibility },
-        compact:   { ...defaultSectionVisibility },
-        sidebar:   { ...defaultSectionVisibility },
-      } as Record<string, typeof defaultSectionVisibility>;
-
-      const baseStyle = { ...defaultStyle, ...(stylePresets[templateId] ?? {}) };
-      const baseVisibility = { ...(sectionVisibilityPresets[templateId] ?? defaultSectionVisibility) };
-
-      try {
-        const response = await api.get("/templates");
-        const templates = Array.isArray(response.data?.data) ? response.data.data : [];
-        const matchedTemplate = templates.find((template: any) => template?.layoutId === templateId);
-
-        if (matchedTemplate) {
-          const cssVars = matchedTemplate.cssVars ?? {};
-          const slots = matchedTemplate.slots ?? {};
-
-          const resolvedStyle: ResumeStyle = {
-            ...baseStyle,
-            accentColor: cssVars.accentColor ?? baseStyle.accentColor,
-            headingColor: cssVars.headingColor ?? baseStyle.headingColor,
-            textColor: cssVars.textColor ?? baseStyle.textColor,
-            mutedColor: cssVars.mutedColor ?? baseStyle.mutedColor,
-            borderColor: cssVars.borderColor ?? baseStyle.borderColor,
-            backgroundColor: cssVars.backgroundColor ?? baseStyle.backgroundColor,
-            bodyFont: safeFont(cssVars.bodyFont, baseStyle.bodyFont),
-            headingFont: safeFont(cssVars.headingFont, baseStyle.headingFont),
-            fontSize: safeFontSize(cssVars.fontSize, baseStyle.fontSize),
-            lineHeight: safeLineHeight(cssVars.lineHeight, baseStyle.lineHeight),
-          };
-
-          set(() => ({
-            resume: {
-              ...initialResume,
-              templateId,
-              style: resolvedStyle,
-              sectionVisibility: {
-                ...baseVisibility,
-                experience: slots.experience ?? baseVisibility.experience,
-                education: slots.education ?? baseVisibility.education,
-                skills: slots.skills ?? baseVisibility.skills,
-                projects: slots.projects ?? baseVisibility.projects,
-                certifications: slots.certifications ?? baseVisibility.certifications,
-                languages: slots.languages ?? baseVisibility.languages,
-              },
-              sectionOrder: [...defaultSectionOrder],
-            },
-            ui: {
-              ...initialUI,
-            },
-          }));
-
-          return;
-        }
-      } catch {
-        // Fall back to local presets when templates API is unavailable.
-      }
+      const resolvedTemplate = await resolveTemplateConfig(templateId);
 
       set(() => ({
         resume: {
           ...initialResume,
-          templateId,
-          style: baseStyle,
-          sectionVisibility: baseVisibility,
+          templateId: resolvedTemplate.templateId,
+          templateCategory: resolvedTemplate.templateCategory,
+          style: resolvedTemplate.style,
+          sectionVisibility: resolvedTemplate.sectionVisibility,
           sectionOrder: [...defaultSectionOrder],
         },
         ui: {
           ...initialUI,
+        },
+      }));
+    },
+
+    applyTemplateUpgrade: async (templateId) => {
+      const resolvedTemplate = await resolveTemplateConfig(templateId);
+      const currentResume = get().resume;
+
+      set((s) => ({
+        resume: {
+          ...s.resume,
+          templateId: resolvedTemplate.templateId,
+          templateCategory: resolvedTemplate.templateCategory,
+          style: resolvedTemplate.style,
+          sectionVisibility: mergeTemplateVisibilityForExistingResume(currentResume, resolvedTemplate.sectionVisibility),
+        },
+        ui: {
+          ...s.ui,
+          isDirty: true,
+          isSaved: false,
+          saveError: null,
         },
       }));
     },
@@ -661,11 +778,6 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       try {
         const { resume } = get();
         const payload = toResumePayload(resume);
-
-        if (!hasResumeContent(resume)) {
-          set(s => ({ ui: { ...s.ui, isSaving: false, saveError: "Please enter information before saving your resume." } }));
-          return;
-        }
 
         const response = resume.id
           ? await api.put(`/resumes/${resume.id}`, payload)
@@ -690,6 +802,8 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           resume: {
             ...initialResume,
             ...preloadedResume,
+            templateId: normalizeResumeTemplateId(preloadedResume.templateId),
+            templateCategory: resolveTemplateCategory(normalizeResumeTemplateId(preloadedResume.templateId), preloadedResume.templateCategory),
             personalInfo: {
               ...defaultPersonalInfo,
               ...(preloadedResume.personalInfo ?? {}),
@@ -735,6 +849,8 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
           resume: {
             ...initialResume,
             ...loadedResume,
+            templateId: normalizeResumeTemplateId(loadedResume?.templateId),
+            templateCategory: resolveTemplateCategory(normalizeResumeTemplateId(loadedResume?.templateId), loadedResume?.templateCategory),
             personalInfo: {
               ...defaultPersonalInfo,
               ...(loadedResume?.personalInfo ?? {}),

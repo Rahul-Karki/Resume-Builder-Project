@@ -77,7 +77,8 @@ export function SignupForm({ ...props }: React.ComponentProps<"div">) {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
+    const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+    window.location.href = `${baseURL}/auth/google`;
   };
 
   return (

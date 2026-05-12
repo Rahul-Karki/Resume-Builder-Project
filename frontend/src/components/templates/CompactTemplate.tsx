@@ -1,5 +1,6 @@
 import { ResumeDocument, marginMap, spacingMap } from "../../types/resume-types";
 import {
+  ExternalLinkIcon,
   formatCertification,
   formatDateRange,
   formatProjectTech,
@@ -7,13 +8,29 @@ import {
   getExperienceParagraph,
   getProjectParagraph,
   isParagraphMode,
+  renderTextWithLinks,
+  toAbsoluteUrl,
+  toMailto,
+  toTel,
+  getSocialIconComponent,
 } from "./templateHelpers";
 
 export function CompactTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
-  const contactItems = [p.email, p.phone, p.location, p.linkedin, p.portfolio].filter(Boolean);
+  const contactItems = [
+    p.email ? { label: p.email, href: toMailto(p.email) } : null,
+    p.phone ? { label: p.phone, href: toTel(p.phone) } : null,
+    p.location ? { label: p.location, href: "" } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string }>;
+
+  const socialItems = [
+    p.linkedin ? { href: toAbsoluteUrl(p.linkedin), label: "LinkedIn", kind: "linkedin" as const } : null,
+    p.github ? { href: toAbsoluteUrl(p.github), label: "GitHub", kind: "github" as const } : null,
+    p.portfolio ? { href: toAbsoluteUrl(p.portfolio), label: "Website", kind: "portfolio" as const } : null,
+  ].filter(Boolean) as Array<{ href: string; label: string; kind: "linkedin" | "github" | "portfolio" }>;
+
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Serif:wght@400;600&display=swap');
     .comp-wrap { font-family:'IBM Plex Sans',sans-serif; color:#1a1a1a; background:#fff; padding:32px 44px; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; font-size:${style.fontSize}; line-height:${style.lineHeight}; display:flex; flex-direction:column; }
@@ -21,6 +38,11 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
     .comp-header { border-bottom:2px solid #111; padding-bottom:10px; margin-bottom:10px; }
     .comp-name { font-family:'IBM Plex Serif',serif; font-size:24pt; font-weight:600; margin:0 0 4px; }
     .comp-contact { display:flex; flex-wrap:wrap; gap:3px 12px; font-size:8.5pt; color:#444; }
+    .comp-link { color:inherit; text-decoration:none; }
+    .comp-link:hover { text-decoration:underline; }
+    .comp-social { display:flex; gap:10px; margin-top:6px; color:#444; }
+    .comp-social-link { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:999px; }
+    .comp-social-link:hover { background:rgba(0,0,0,0.05); }
     .comp-row { display:grid; grid-template-columns:100px 1fr; gap:0 16px; margin-bottom:10px; align-items:start; }
     .comp-label { font-size:8pt; font-weight:600; text-transform:uppercase; letter-spacing:1.2px; color:#555; padding-top:1px; }
     .comp-content {}
@@ -50,7 +72,24 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
           {contactItems.length > 0 && (
             <div className="comp-contact" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
               {contactItems.map((item, i) => (
-                <span key={i}>{i > 0 ? ` · ${item}` : item}</span>
+                <span key={i}>
+                  {i > 0 ? " · " : ""}
+                  {item.href ? (
+                    <a className="comp-link" href={item.href} target="_blank" rel="noreferrer">{item.label}</a>
+                  ) : (
+                    item.label
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {socialItems.length > 0 && (
+            <div className="comp-social" style={{ justifyContent: style.headerAlign === "center" ? "center" : "flex-start" }}>
+              {socialItems.map((item, i) => (
+                <a key={i} className="comp-social-link" href={item.href} target="_blank" rel="noreferrer" aria-label={item.label} title={item.label}>
+                  {getSocialIconComponent(item.href, { width: 14, height: 14, kind: item.kind })}
+                </a>
               ))}
             </div>
           )}
@@ -59,7 +98,7 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
         {p.summary && (
           <div className="comp-row" style={{ marginBottom: sectionGap }}>
             <div className="comp-label">Summary</div>
-            <div className="comp-summary">{p.summary}</div>
+            <div className="comp-summary">{renderTextWithLinks(p.summary)}</div>
           </div>
         )}
  
@@ -80,11 +119,11 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
                   <span className="comp-date">{formatDateRange(e.start, e.end, e.current)}</span>
                 </div>
                 {isParagraphMode(e.contentMode) ? (
-                  getExperienceParagraph(e) ? <div style={{ color: "#444", fontWeight: 300, marginTop: 2 }}>{getExperienceParagraph(e)}</div> : null
+                  getExperienceParagraph(e) ? <div style={{ color: "#444", fontWeight: 300, marginTop: 2 }}>{renderTextWithLinks(getExperienceParagraph(e))}</div> : null
                 ) : (
                   getDisplayBullets(e.bullets).length > 0 && (
                     <ul className="comp-bullets">
-                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(e.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}
@@ -137,14 +176,21 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
           <div>
             {s.projects.map((pr, i) => (
               <div className="comp-proj" key={i}>
-                <strong>{pr.name}</strong>
+                {pr.link ? (
+                  <a className="comp-link" href={toAbsoluteUrl(pr.link)} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>
+                    {pr.name}
+                    <ExternalLinkIcon />
+                  </a>
+                ) : (
+                  <strong>{pr.name}</strong>
+                )}
                 <span style={{ color: "#777", marginLeft: 6 }}>{formatProjectTech(pr)}</span>
                 {isParagraphMode(pr.contentMode) ? (
-                  getProjectParagraph(pr) ? <div style={{ color: "#444", fontWeight: 300 }}>{getProjectParagraph(pr)}</div> : null
+                  getProjectParagraph(pr) ? <div style={{ color: "#444", fontWeight: 300 }}>{renderTextWithLinks(getProjectParagraph(pr))}</div> : null
                 ) : (
                   getDisplayBullets(pr.bullets).length > 0 && (
                     <ul className="comp-bullets" style={{ marginTop: 2 }}>
-                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{b}</li>)}
+                      {getDisplayBullets(pr.bullets).map((b, j) => <li key={j}>{renderTextWithLinks(b)}</li>)}
                     </ul>
                   )
                 )}

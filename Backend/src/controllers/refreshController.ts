@@ -6,6 +6,8 @@ import { setAccessTokenCookie, setCsrfCookie } from "../utils/authCookies";
 import { env } from "../config/env";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
+import { sendErrorResponse } from "../utils/errorResponse";
+import { sendSuccess, sendUnauthorized, sendServerError } from "../utils/apiResponse";
 
 const refreshAccessToken = (req: Request, res: Response) => {
   const span = startControllerSpan("refresh.refreshAccessToken", req);
@@ -16,7 +18,7 @@ const refreshAccessToken = (req: Request, res: Response) => {
     logger.warn({ route: req.originalUrl }, "Refresh token missing");
     markSpanError(span, new Error("Refresh token missing"), "Refresh token missing");
     finishControllerSpan(span);
-    return res.sendStatus(401);
+    return sendErrorResponse(res, new Error("Authentication required"), { statusCode: 401, code: "AUTH_REQUIRED" });
   }
 
   try {
@@ -27,14 +29,31 @@ const refreshAccessToken = (req: Request, res: Response) => {
     const csrfToken = setCsrfCookie(req, res);
     logger.info({ userId: decoded.userId }, "Access token refreshed");
     markSpanSuccess(span);
-    return res.json({ message: "Token refreshed", csrfToken });
+    // Return legacy shape expected by clients/tests: `{ message, csrfToken }`
+    return res.status(200).json({ message: "Token refreshed", csrfToken });
   } catch (error) {
     markSpanError(span, error as Error, "Refresh token verification failed");
     logger.error({ error }, "Failed to refresh access token");
-    return res.sendStatus(403);
+    return sendErrorResponse(res, new Error("Invalid refresh token"), { statusCode: 403, code: "AUTH_REQUIRED" });
   } finally {
     finishControllerSpan(span);
   }
 };
 
-export { refreshAccessToken };
+const issueCsrfToken = (req: Request, res: Response) => {
+  const span = startControllerSpan("refresh.issueCsrfToken", req);
+
+  try {
+    const csrfToken = setCsrfCookie(req, res);
+    markSpanSuccess(span);
+    return res.status(200).json({ message: "CSRF token issued", csrfToken });
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to issue CSRF token");
+    logger.error({ error }, "Failed to issue CSRF token");
+    return sendServerError(res, "Failed to issue CSRF token", "SERVER_ERROR");
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export { issueCsrfToken, refreshAccessToken };
