@@ -368,7 +368,6 @@ function PersonalSection() {
       <div>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <span style={label}>Professional Summary</span>
-          <InlineEnhanceTip text={p.summary} context="summary" />
         </div>
         <FocusedTextArea
           value={p.summary}
