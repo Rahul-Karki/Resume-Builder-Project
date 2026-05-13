@@ -160,7 +160,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 1024);
+    const update = () => setIsMobile(window.innerWidth < 1280);
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -206,195 +206,6 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
     if (isMobile) setDrawerOpen(false);
   };
 
-  const sidebarBody = (
-    <div className="flex h-full min-h-0 flex-col bg-[#0b0b0b] text-[#e9e7df]">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/5 px-3 py-3 lg:px-3 lg:py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-[#c8f55a]/30 to-transparent text-[#c8f55a]">
-            <Sparkles size={16} />
-          </div>
-          {!sidebarCollapsed && (
-            <div className="min-w-0">
-              <div className="text-xs font-semibold leading-snug text-white">Studio</div>
-              <div className="text-[9px] text-white/35">Resume</div>
-            </div>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setSidebarCollapsed((value) => !value)}
-          className="hidden rounded-lg border border-white/10 bg-white/5 p-1.5 text-white/50 transition hover:border-[#c8f55a]/40 hover:bg-white/8 hover:text-[#c8f55a] lg:inline-flex"
-          aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-expanded={!sidebarCollapsed}
-        >
-          {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
-      </div>
-
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 lg:px-3">
-        {/* Progress Card */}
-        <div className="mb-4 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(200,245,90,0.12),rgba(255,255,255,0.02)_60%)] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md transition-all duration-300 hover:border-[#c8f55a]/30">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Progress</div>
-              <div className="mt-2 text-xl font-bold tracking-tight text-white">{progress}%</div>
-              <div className="text-[10px] text-white/40">{progressLabel}</div>
-            </div>
-            {!sidebarCollapsed && (
-              <div className="relative h-14 w-14 shrink-0">
-                <div className="absolute inset-0 rounded-full bg-[conic-gradient(#c8f55a_0%_var(--progress),rgba(255,255,255,0.05)_var(--progress)_100%)]" style={{ ["--progress" as string]: `${progress}%` }} />
-                <div className="absolute inset-1 rounded-full bg-[#0b0b0b]" />
-                <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-[#c8f55a]">{completed}/{checklist.length}</div>
-              </div>
-            )}
-          </div>
-
-          {!sidebarCollapsed && (
-            <>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-lg border border-white/6 bg-white/3 px-2.5 py-2">
-                  <div className="text-white/40 text-[9px] font-semibold">Fields</div>
-                  <div className="mt-1 font-bold text-white text-sm">{personalFieldsFilled}/7</div>
-                </div>
-                <div className="rounded-lg border border-white/6 bg-white/3 px-2.5 py-2">
-                  <div className="text-white/40 text-[9px] font-semibold">State</div>
-                  <div className="mt-1 font-bold text-white text-sm">{ui.isSaved ? "Synced" : ui.isSaving ? "Saving" : ui.isDirty ? "Unsaved" : "Idle"}</div>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => void saveResume()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#c8f55a] px-2.5 py-1.5 text-[10px] font-bold text-[#0a0a0a] shadow-[0_0_10px_rgba(200,245,90,0.2)] transition-all duration-300 hover:bg-[#d7fa74] hover:shadow-[0_0_20px_rgba(200,245,90,0.4)] hover:scale-105 active:scale-95"
-                >
-                  <CheckCircle2 size={12} />
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={onDownload}
-                  disabled={!canDownload || isExporting}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition-all duration-300 hover:border-[#c8f55a]/40 hover:bg-white/8 hover:text-[#c8f55a] hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-                >
-                  <Download size={12} />
-                  {isExporting ? "Exporting" : "Download"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTabChange("sections")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition-all duration-300 hover:border-[#c8f55a]/40 hover:bg-white/8 hover:text-[#c8f55a] hover:scale-105 active:scale-95"
-                >
-                  <LayoutGrid size={12} />
-                  Reorder
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* AI Shortcuts */}
-        {!sidebarCollapsed && (
-          <div className="mb-4 rounded-2xl border border-white/8 bg-white/2 p-3">
-            <div className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/35">
-              <Bot size={11} /> AI Tools
-            </div>
-            <div className="space-y-1.5">
-              {(Object.keys(AI_TOOL_META) as AiToolId[]).map((tool) => (
-                <button
-                  key={tool}
-                  type="button"
-                  onClick={() => activeTool(tool)}
-                  className="flex w-full items-start gap-2 rounded-lg border border-white/6 bg-[#121212] px-2.5 py-2 text-left text-[11px] transition hover:border-[#c8f55a]/30 hover:bg-[#141414]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-white/90">{AI_TOOL_META[tool].label}</div>
-                    <div className="mt-0.5 text-[9px] leading-tight text-white/40">{AI_TOOL_META[tool].helper}</div>
-                  </div>
-                  <ArrowRight size={11} className="mt-0.5 shrink-0 text-white/25" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Workflow Tabs */}
-        <div className="mb-4 rounded-2xl border border-white/8 bg-white/2 p-3">
-          <div className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/35">
-            <LayoutGrid size={11} /> {sidebarCollapsed ? "Tabs" : "Workflow"}
-          </div>
-          <div className="space-y-1">
-            {NAV_TABS.map((tab) => {
-              const active = ui.activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs transition-all duration-300 hover:scale-[1.02] active:scale-95 lg:justify-start ${active ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]" : "border-white/6 bg-[#121212] text-white/60 hover:border-white/20 hover:bg-[#1a1a1a]"}`}
-                  title={sidebarCollapsed ? tab.label : undefined}
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/6 bg-black/40 shrink-0">{tab.icon}</span>
-                  {!sidebarCollapsed && (
-                    <span className="min-w-0 flex-1 text-left">
-                      <span className="block text-xs font-semibold">{tab.label}</span>
-                      <span className="block text-[9px] text-white/35">{tab.description}</span>
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Sections Nav */}
-        <div className="mb-4 rounded-2xl border border-white/8 bg-white/2 p-3">
-          <div className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/35">
-            <Briefcase size={11} /> {sidebarCollapsed ? "Sec" : "Sections"}
-          </div>
-          <div className="space-y-1">
-            {SECTION_NAV.map((section) => {
-              const active = ui.activeSection === section.id;
-              return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => handleSectionChange(section.id)}
-                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs transition-all duration-300 hover:scale-[1.02] active:scale-95 lg:justify-start ${active ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]" : "border-white/6 bg-[#121212] text-white/60 hover:border-white/20 hover:bg-[#1a1a1a]"}`}
-                  title={sidebarCollapsed ? section.label : undefined}
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/6 bg-black/40 shrink-0">{section.icon}</span>
-                  {!sidebarCollapsed && <span className="text-xs font-semibold">{section.label}</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Status Checklist */}
-        {!sidebarCollapsed && (
-          <div className="rounded-2xl border border-white/8 bg-white/1 p-3">
-            <div className="mb-2.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/35">
-              <span>Status</span>
-              <span className="text-[#c8f55a]">{ui.isSaving ? "Saving" : ui.isSaved ? "Synced" : ui.isDirty ? "Unsaved" : "Idle"}</span>
-            </div>
-            <div className="space-y-1.5">
-              {checklist.slice(0, 4).map((item) => (
-                <div key={item.label} className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/1 px-2.5 py-1.5 text-[10px]">
-                  <span className={`shrink-0 text-xs ${item.passed ? "text-[#4ade80]" : "text-white/20"}`}>{item.passed ? "●" : "○"}</span>
-                  <span className="text-white/60">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className="relative flex min-h-screen overflow-hidden bg-[#0a0a0a] text-[#f1efe8]">
       {isMobile && !drawerOpen && (
@@ -409,48 +220,163 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
         </button>
       )}
 
+      {/* 1. Far Left Sidebar (Slim Nav) */}
       {!isMobile && (
-        <motion.aside
-          animate={{ width: sidebarCollapsed ? 80 : 340 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="relative hidden min-h-0 shrink-0 border-r border-white/5 bg-[#090909] lg:flex"
-        >
-          {sidebarBody}
-        </motion.aside>
+        <aside className="relative z-20 flex w-16 min-h-0 shrink-0 flex-col items-center border-r border-white/5 bg-[#0a0a0a] py-6">
+          <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-[#c8f55a]/20 to-transparent text-[#c8f55a]">
+            <Sparkles size={18} />
+          </div>
+          <div className="flex flex-col gap-4">
+            {SECTION_NAV.map((section) => {
+              const active = ui.activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => handleSectionChange(section.id)}
+                  title={section.label}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300 hover:scale-[1.05] active:scale-95 ${
+                    active
+                      ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]"
+                      : "border-transparent bg-transparent text-white/40 hover:bg-white/5 hover:text-white/80"
+                  }`}
+                >
+                  {section.icon}
+                </button>
+              );
+            })}
+          </div>
+          
+          <div className="mt-auto flex flex-col gap-4">
+            {NAV_TABS.filter(t => t.id !== "content" && t.id !== "sections").map(tab => {
+              const active = ui.activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  title={tab.label}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300 hover:scale-[1.05] active:scale-95 ${
+                    active
+                      ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]"
+                      : "border-transparent bg-transparent text-white/40 hover:bg-white/5 hover:text-white/80"
+                  }`}
+                >
+                  {tab.icon}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-3 lg:gap-4 lg:p-4">
-        {/* Editor & Preview Grid */}
-        <div className="grid min-h-0 flex-1 gap-3 lg:gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-          {/* Editor Panel */}
-          <div className="min-h-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 hover:shadow-[0_8px_32px_rgba(200,245,90,0.05)] hover:border-white/15">
-            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3 lg:px-5 lg:py-4">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-white/35">Editor</div>
-                <div className="mt-1 text-sm font-bold text-white">{NAV_TABS.find((tab) => tab.id === ui.activeTab)?.label ?? "Content"}</div>
-              </div>
-              <div className="text-[10px] text-white/40 truncate max-w-xs">{resume.title}</div>
+      {/* 2. Middle Left Sidebar (Editor) */}
+      {!isMobile && (
+        <aside className="relative z-10 flex w-[380px] min-h-0 shrink-0 flex-col border-r border-white/5 bg-[#0e0e0e]/95 backdrop-blur-xl">
+          <div className="flex items-center justify-between border-b border-white/5 px-6 py-5">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-white">
+                {ui.activeTab === "content" ? SECTION_NAV.find((s) => s.id === ui.activeSection)?.label || "Editor" : NAV_TABS.find(t => t.id === ui.activeTab)?.label}
+              </h2>
+              <p className="mt-1 text-[11px] text-white/40">
+                {ui.activeTab === "content" ? "Detail your professional journey" : "Customize your resume"}
+              </p>
             </div>
-            <div className="min-h-0 overflow-hidden">{activeTabContent}</div>
+            {ui.activeTab === "content" && (
+              <button 
+                onClick={() => handleTabChange("sections")}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition hover:bg-white/10 hover:text-white"
+              >
+                <LayoutGrid size={12} />
+                Reorder
+              </button>
+            )}
           </div>
+          <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+            {activeTabContent}
+          </div>
+        </aside>
+      )}
 
-          {/* Preview Panel */}
-          <div className="hidden min-h-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 hover:shadow-[0_8px_32px_rgba(200,245,90,0.05)] hover:border-white/15 lg:flex lg:flex-col">
-            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3 lg:px-5 lg:py-4">
-              <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-white/35">Live Preview</div>
-                <div className="mt-1 text-sm font-bold text-white">PDF-ready Canvas</div>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] text-white/40">
-                <CheckCircle2 size={12} className="text-[#4ade80]" />
-                <span className="truncate">{ui.isSaved ? "Synced" : "Pending"}</span>
-              </div>
-            </div>
-            <div className="min-h-0 overflow-hidden">{previewContent}</div>
+      {/* 3. Center (Preview) */}
+      <main className="flex min-w-0 flex-1 flex-col items-center bg-[radial-gradient(ellipse_at_top,#141414_0%,#0a0a0a_80%)] overflow-hidden lg:p-6">
+        <div className="flex w-full items-center justify-between mb-4 px-4 lg:px-0">
+          <div className="flex items-center gap-2">
+            <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"><Bot size={14}/></button>
           </div>
         </div>
-      </div>
+        <div className="w-full flex-1 overflow-hidden rounded-[20px] border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+          {previewContent}
+        </div>
+      </main>
+
+      {/* 4. Right Sidebar (Insights) */}
+      {!isMobile && (
+        <aside className="relative z-10 flex w-[340px] min-h-0 shrink-0 flex-col border-l border-white/5 bg-[#0e0e0e]/95 backdrop-blur-xl">
+          <div className="flex-1 overflow-y-auto p-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+            {/* Resume Strength */}
+            <h3 className="mb-4 text-sm font-bold text-white/90 tracking-wide">Resume Strength</h3>
+            <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs leading-relaxed text-white/60">
+                  Your resume is stronger than <strong className="text-white">{progress}%</strong> of applicants for {resume.personalInfo.title || "your role"}.
+                </div>
+                <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-[conic-gradient(#c8f55a_0%_var(--progress),rgba(255,255,255,0.05)_var(--progress)_100%)]" style={{ ["--progress" as string]: `${progress}%` }} />
+                  <div className="absolute inset-[3px] rounded-full bg-[#111]" />
+                  <div className="relative text-[11px] font-bold text-[#c8f55a]">{progress}%</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actionable Tips */}
+            <h3 className="mb-4 mt-8 text-[11px] font-bold uppercase tracking-widest text-white/40">Actionable Tips</h3>
+            <div className="flex flex-col gap-3">
+              {Object.entries(AI_TOOL_META).slice(0, 3).map(([key, tool], idx) => {
+                const colors = ["text-blue-400", "text-purple-400", "text-orange-400"];
+                const icons = [<CheckCircle2 size={14}/>, <Sparkles size={14}/>, <Award size={14}/>];
+                return (
+                  <div key={key} className="flex items-start gap-3 rounded-xl border border-white/5 bg-[#141414] p-3 transition hover:border-white/10 hover:bg-[#1a1a1a]">
+                    <div className={`mt-0.5 shrink-0 ${colors[idx]}`}>
+                      {icons[idx]}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white/90">{tool.label}</div>
+                      <div className="mt-1 text-[11px] leading-relaxed text-white/50">{tool.helper}. Improve your content formatting and layout to stand out.</div>
+                      <button onClick={() => activeTool(key as AiToolId)} className="mt-2 text-[10px] font-bold text-[#c8f55a] hover:underline">Apply Suggestion</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="mt-8 rounded-2xl border border-[#c8f55a]/10 bg-gradient-to-br from-[#c8f55a]/10 to-transparent p-4 relative overflow-hidden">
+               <div className="relative z-10">
+                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#c8f55a]">Template Insights</h3>
+                 <div className="mt-2 text-sm font-bold text-white">Pro Template</div>
+                 <div className="mt-1 text-[11px] text-white/60">Upgrade to unlock ATS-optimized formats.</div>
+               </div>
+            </div>
+          </div>
+
+          <div className="border-t border-white/5 p-5 bg-[#0a0a0a]">
+            <button
+              onClick={() => void saveResume()}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#c8f55a] py-3 text-[13px] font-bold text-[#0a0a0a] shadow-[0_0_15px_rgba(200,245,90,0.2)] transition hover:scale-[1.02] hover:bg-[#d7fa74] hover:shadow-[0_0_25px_rgba(200,245,90,0.4)] active:scale-95"
+            >
+              <Sparkles size={14} /> Finalize & Optimize
+            </button>
+            <div className="mt-3 flex gap-2">
+               <button
+                  type="button"
+                  onClick={onDownload}
+                  disabled={!canDownload || isExporting}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+               >
+                  <Download size={12} /> {isExporting ? "Exporting..." : "Download PDF"}
+               </button>
+            </div>
+          </div>
+        </aside>
+      )}
 
       {/* Mobile Drawer Overlay + Sidebar */}
       <AnimatePresence>
@@ -467,32 +393,31 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
               transition={{ duration: 0.2 }}
             />
             <motion.aside
-              className="fixed inset-y-0 left-0 z-50 w-[min(85vw,320px)] border-r border-white/8 bg-[#090909] shadow-2xl flex flex-col"
-              initial={{ x: -320 }}
+              className="fixed inset-y-0 left-0 z-50 w-[min(85vw,360px)] border-r border-white/8 bg-[#090909] shadow-2xl flex flex-col"
+              initial={{ x: -360 }}
               animate={{ x: 0 }}
-              exit={{ x: -320 }}
+              exit={{ x: -360 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             >
-              <div className="flex items-center justify-between border-b border-white/6 px-3 py-3">
+              <div className="flex items-center justify-between border-b border-white/6 px-4 py-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-linear-to-br from-[#c8f55a]/30 to-transparent text-[#c8f55a]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-[#c8f55a]/30 to-transparent text-[#c8f55a]">
                     <Sparkles size={16} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-white">Studio</div>
-                    <div className="text-[9px] text-white/35">Resume</div>
+                    <div className="text-sm font-bold text-white">Studio</div>
+                    <div className="text-[10px] text-white/35">Resume</div>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDrawerOpen(false)}
-                  className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-white/50 transition hover:bg-white/8"
-                  aria-label="Close sidebar"
+                  className="rounded-lg border border-white/10 bg-white/5 p-2 text-white/50 transition hover:bg-white/8"
                 >
-                  <X size={14} />
+                  <X size={16} />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto">{sidebarBody}</div>
+              <div className="flex-1 overflow-y-auto p-4">{activeTabContent}</div>
             </motion.aside>
           </>
         )}
