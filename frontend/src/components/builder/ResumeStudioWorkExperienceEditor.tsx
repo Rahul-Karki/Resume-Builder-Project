@@ -22,6 +22,14 @@ type FocusTarget = {
   applySuggestion: (value: string) => void;
 };
 
+type ContextActionKind = 'improve' | 'rewrite' | 'shorten' | 'ats';
+
+type InlineSuggestionState = {
+  kind: ContextActionKind;
+  label: string;
+  suggestion: string;
+};
+
 type TemplateOption = {
   layoutId: string;
   name: string;
@@ -160,6 +168,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     updateExperience,
     updateProject,
     updateProjectBullet,
+    updateSkillGroup,
   } = useResumeBuilderStore();
 
   const location = useLocation();
@@ -177,9 +186,15 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
+  const [inlineSuggestion, setInlineSuggestion] = useState<InlineSuggestionState | null>(null);
+  const [inlineAnchorRect, setInlineAnchorRect] = useState<DOMRect | null>(null);
+  const [inlineAnchorEl, setInlineAnchorEl] = useState<HTMLElement | null>(null);
+  const [isInlineVisible, setIsInlineVisible] = useState(false);
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
+  const editorPaneRef = useRef<HTMLDivElement | null>(null);
+  const inlineUiRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const updateViewport = () => setIsMobile(window.innerWidth < 768);
@@ -416,13 +431,40 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       }
     }
 
-    return null;
-  }, [resume.personalInfo.summary, resume.sections.experience, resume.sections.projects, ui.focusedField, updateBullet, updateExperience, updatePersonalInfo, updateProject, updateProjectBullet]);
+    if (focused.kind === 'skills' && focused.entityId) {
+      const skillGroup = resume.sections.skills.find((item) => item.id === focused.entityId);
+      if (!skillGroup) return null;
 
-  const runContextAction = async (kind: 'improve' | 'rewrite' | 'shorten' | 'ats') => {
+      if (focused.field === 'category') {
+        return {
+          label: 'Skill Category',
+          text: skillGroup.category,
+          applySuggestion: (value) => updateSkillGroup(skillGroup.id, 'category', value),
+        };
+      }
+
+      if (focused.field === 'items') {
+        return {
+          label: 'Skills',
+          text: skillGroup.items.join(', '),
+          applySuggestion: (value) => {
+            const items = value
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean);
+            updateSkillGroup(skillGroup.id, 'items', items);
+          },
+        };
+      }
+    }
+
+    return null;
+  }, [resume.personalInfo.summary, resume.sections.experience, resume.sections.projects, resume.sections.skills, ui.focusedField, updateBullet, updateExperience, updatePersonalInfo, updateProject, updateProjectBullet, updateSkillGroup]);
+
+  const requestContextSuggestion = useCallback(async (kind: ContextActionKind): Promise<string | null> => {
     if (!focusedTarget || !focusedTarget.text.trim()) {
-      setApiError('Focus a summary/experience/project text field with content to use AI actions.');
-      return;
+      setApiError('Focus a summary, experience, project, or skills field with content to use AI actions.');
+      return null;
     }
 
     setActionLoading(kind);
@@ -455,16 +497,125 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         response.variations.find((value) => value.trim().length > 0)
         || response.suggestions[0]?.suggestionText
         || focusedTarget.text;
-
-      focusedTarget.applySuggestion(suggestion);
-      setStatusMessage(`${focusedTarget.label} updated with AI ${kind}.`);
+      return suggestion;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'AI action failed.';
       setApiError(message);
+      return null;
     } finally {
       setActionLoading(null);
     }
-  };
+  }, [focusedTarget]);
+
+  const runContextAction = useCallback(async (kind: ContextActionKind) => {
+    const suggestion = await requestContextSuggestion(kind);
+    if (!suggestion || !focusedTarget) return;
+
+    setInlineSuggestion({
+      kind,
+      label: focusedTarget.label,
+      suggestion,
+    });
+    setStatusMessage(`Suggestion ready for ${focusedTarget.label}.`);
+  }, [focusedTarget, requestContextSuggestion]);
+
+  const applyInlineSuggestion = useCallback(() => {
+    if (!inlineSuggestion || !focusedTarget) return;
+    focusedTarget.applySuggestion(inlineSuggestion.suggestion);
+    setStatusMessage(`${focusedTarget.label} updated with AI ${inlineSuggestion.kind}.`);
+    setInlineSuggestion(null);
+  }, [focusedTarget, inlineSuggestion]);
+
+  const regenerateInlineSuggestion = useCallback(async () => {
+    if (!inlineSuggestion) return;
+    const suggestion = await requestContextSuggestion(inlineSuggestion.kind);
+    if (!suggestion) return;
+    setInlineSuggestion((prev) => (prev ? { ...prev, suggestion } : prev));
+  }, [inlineSuggestion, requestContextSuggestion]);
+
+  useEffect(() => {
+    const container = editorPaneRef.current;
+    if (!container || leftTab !== 'content') return;
+
+    const isEditableTarget = (target: EventTarget | null): target is HTMLElement => {
+      if (!(target instanceof HTMLElement)) return false;
+      if (!container.contains(target)) return false;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return false;
+      if (target instanceof HTMLInputElement && ['checkbox', 'radio', 'file'].includes(target.type)) return false;
+      return true;
+    };
+
+    const setAnchorFromElement = (element: HTMLElement | null) => {
+      if (!element) {
+        setInlineAnchorEl(null);
+        setInlineAnchorRect(null);
+        setIsInlineVisible(false);
+        return;
+      }
+
+      setInlineAnchorEl(element);
+      setInlineAnchorRect(element.getBoundingClientRect());
+      setIsInlineVisible(true);
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (!isEditableTarget(event.target)) return;
+      setAnchorFromElement(event.target);
+    };
+
+    const handlePointerOver = (event: Event) => {
+      if (!isEditableTarget(event.target)) return;
+      setAnchorFromElement(event.target);
+    };
+
+    container.addEventListener('focusin', handleFocusIn);
+    container.addEventListener('pointerover', handlePointerOver, true);
+
+    return () => {
+      container.removeEventListener('focusin', handleFocusIn);
+      container.removeEventListener('pointerover', handlePointerOver, true);
+    };
+  }, [leftTab]);
+
+  useEffect(() => {
+    if (!inlineAnchorEl) return;
+
+    const updatePosition = () => {
+      if (!inlineAnchorEl.isConnected) {
+        setInlineAnchorEl(null);
+        setInlineAnchorRect(null);
+        return;
+      }
+      setInlineAnchorRect(inlineAnchorEl.getBoundingClientRect());
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [inlineAnchorEl]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      if (inlineUiRef.current?.contains(target)) return;
+      if (editorPaneRef.current?.contains(target)) return;
+
+      setInlineSuggestion(null);
+      setIsInlineVisible(false);
+      setInlineAnchorEl(null);
+      setInlineAnchorRect(null);
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, []);
 
   const handleFinalizeAndOptimize = async () => {
     const descriptions = resume.sections.experience.map((entry) => getEntryDescription(entry).trim()).filter(Boolean);
@@ -563,6 +714,11 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     },
   ];
 
+  const inlineActionsVisible = leftTab === 'content' && !!focusedTarget && !!inlineAnchorRect && isInlineVisible;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const inlineActionsLeft = inlineAnchorRect ? Math.max(12, Math.min(inlineAnchorRect.right - 164, viewportWidth - 180)) : 12;
+  const inlineSuggestionLeft = inlineAnchorRect ? Math.max(12, Math.min(inlineAnchorRect.left, viewportWidth - 360)) : 12;
+
   return (
     <div className="h-screen overflow-hidden bg-[#09090b] text-[#F0EFE8] font-['Outfit']">
       <style>{`
@@ -639,27 +795,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             </div>
           </div>
 
-          {leftTab === 'content' && focusedTarget && (
-            <div className="px-3 py-2 border-b border-zinc-800/70 bg-zinc-900/40">
-              <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Focused Field: {focusedTarget.label}</div>
-              <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => void runContextAction('improve')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
-                  <Sparkles size={12} /> {actionLoading === 'improve' ? '...' : 'Improve'}
-                </button>
-                <button onClick={() => void runContextAction('rewrite')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
-                  <Wand2 size={12} /> {actionLoading === 'rewrite' ? '...' : 'Rewrite'}
-                </button>
-                <button onClick={() => void runContextAction('shorten')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
-                  <Scissors size={12} /> {actionLoading === 'shorten' ? '...' : 'Shorten'}
-                </button>
-                <button onClick={() => void runContextAction('ats')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
-                  <Target size={12} /> {actionLoading === 'ats' ? '...' : 'ATS Optimize'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto no-scrollbar">
+          <div ref={editorPaneRef} className="flex-1 overflow-y-auto no-scrollbar">
             {leftTab === 'content' && <EditorPanel />}
             {leftTab === 'style' && <StylePanel />}
             {leftTab === 'sections' && <SectionsTab />}
@@ -693,87 +829,141 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         <Bot size={16} /> AI Assistant
       </button>
 
-      {assistantOpen && (
-        <div className="fixed inset-0 z-50">
-          <button className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" aria-label="Close assistant" onClick={() => setAssistantOpen(false)} />
+      {inlineActionsVisible && (
+        <div ref={inlineUiRef} className="fixed inset-0 z-45 pointer-events-none" aria-live="polite">
+          <div
+            className="pointer-events-auto inline-flex items-center gap-1 rounded-xl border border-zinc-700/80 bg-zinc-950/95 px-1 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-all duration-200"
+            style={{
+              position: 'fixed',
+              top: Math.max(96, (inlineAnchorRect?.top ?? 0) - 42),
+              left: inlineActionsLeft,
+            }}
+          >
+            <button onClick={() => void runContextAction('improve')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
+              <Sparkles size={12} /> {actionLoading === 'improve' ? '...' : 'Improve'}
+            </button>
+            <button onClick={() => void runContextAction('rewrite')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
+              <Wand2 size={12} /> {actionLoading === 'rewrite' ? '...' : 'Rewrite'}
+            </button>
+            <button onClick={() => void runContextAction('shorten')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
+              <Scissors size={12} /> {actionLoading === 'shorten' ? '...' : 'Shorten'}
+            </button>
+            <button onClick={() => void runContextAction('ats')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
+              <Target size={12} /> {actionLoading === 'ats' ? '...' : 'ATS'}
+            </button>
+          </div>
 
-          {isMobile ? (
-            <div className="absolute inset-x-0 bottom-0 h-[78vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col animate-[slideUp_220ms_ease-out]">
-              <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between">
-                <div className="text-sm font-semibold">Assistant</div>
-                <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center"><X size={16} /></button>
-              </div>
-              <div className="p-3 border-b border-zinc-800/70">
-                <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
-                  {([
-                    ['tips', 'Tips'],
-                    ['ai', 'AI'],
-                    ['ats', 'ATS'],
-                  ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
-                    <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar p-4">
-                {assistantTab === 'tips' && (
-                  <div className="space-y-2.5">
-                    {compactInsights.map((insight, idx) => (
-                      <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
-                        <span className={insight.tone}>{insight.icon}</span>
-                        <span className="text-zinc-200">{insight.text}</span>
-                      </div>
-                    ))}
-                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
-                      {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
-                    </button>
-                  </div>
-                )}
-                {assistantTab === 'ai' && <AIAssistantPanel />}
-                {assistantTab === 'ats' && <ATSAnalysisPanel />}
-              </div>
-            </div>
-          ) : (
-            <div className="absolute right-0 top-0 h-full w-90 bg-[#0C0D11] border-l border-zinc-700/80 shadow-[-24px_0_60px_rgba(0,0,0,0.5)] flex flex-col">
-              <div className="p-3.5 border-b border-zinc-800/70 flex items-center justify-between">
-                <div className="text-sm font-semibold">Assistant</div>
-                <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center"><X size={16} /></button>
-              </div>
-
-              <div className="p-3 border-b border-zinc-800/70">
-                <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
-                  {([
-                    ['tips', 'Tips'],
-                    ['ai', 'AI'],
-                    ['ats', 'ATS'],
-                  ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
-                    <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300 hover:bg-zinc-800'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto no-scrollbar p-4">
-                {assistantTab === 'tips' && (
-                  <div className="space-y-2.5">
-                    {compactInsights.map((insight, idx) => (
-                      <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
-                        <span className={insight.tone}>{insight.icon}</span>
-                        <span className="text-zinc-200">{insight.text}</span>
-                      </div>
-                    ))}
-                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
-                      {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
-                    </button>
-                  </div>
-                )}
-                {assistantTab === 'ai' && <AIAssistantPanel />}
-                {assistantTab === 'ats' && <ATSAnalysisPanel />}
+          {inlineSuggestion && (
+            <div
+              className="pointer-events-auto fixed rounded-xl border border-zinc-700 bg-zinc-950/95 p-3 shadow-[0_14px_40px_rgba(0,0,0,0.55)] transition-all duration-200 w-[min(92vw,340px)]"
+              style={{
+                top: Math.min((inlineAnchorRect?.bottom ?? 120) + 10, window.innerHeight - 220),
+                left: inlineSuggestionLeft,
+              }}
+            >
+              <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-400">Improved {inlineSuggestion.label}</div>
+              <p className="text-xs text-zinc-100 leading-relaxed whitespace-pre-wrap">{inlineSuggestion.suggestion}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <button onClick={applyInlineSuggestion} className="rounded-lg bg-[#C8F55A] px-2.5 py-1 text-xs font-semibold text-zinc-950">Apply</button>
+                <button onClick={() => void regenerateInlineSuggestion()} className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200">Regenerate</button>
+                <button onClick={() => setInlineSuggestion(null)} className="ml-auto rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-400">Close</button>
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {isMobile ? (
+        <div className={`fixed inset-x-0 bottom-0 z-50 h-[74vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col transition-transform duration-250 ${assistantOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between">
+            <div className="text-sm font-semibold">AI Assistant</div>
+            <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center" aria-label="Close assistant"><X size={16} /></button>
+          </div>
+          <div className="p-3 border-b border-zinc-800/70">
+            <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
+              {([
+                ['tips', 'Tips'],
+                ['ai', 'AI'],
+                ['ats', 'ATS'],
+              ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
+                <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar p-4">
+            {assistantTab === 'tips' && (
+              <div className="space-y-2.5">
+                {compactInsights.map((insight, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
+                    <span className={insight.tone}>{insight.icon}</span>
+                    <span className="text-zinc-200">{insight.text}</span>
+                  </div>
+                ))}
+                <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
+                  {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
+                </button>
+                {optimizationReport && (
+                  <div className="mt-3 rounded-xl border border-zinc-700 bg-zinc-950/70 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Optimization Report</div>
+                      <button onClick={() => setOptimizationReport(null)} className="text-zinc-500 hover:text-zinc-200 text-xs">Close</button>
+                    </div>
+                    <pre className="text-xs text-zinc-100 whitespace-pre-wrap leading-relaxed">{optimizationReport}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+            {assistantTab === 'ai' && <AIAssistantPanel />}
+            {assistantTab === 'ats' && <ATSAnalysisPanel />}
+          </div>
+        </div>
+      ) : (
+        <div className={`fixed right-0 top-12 bottom-0 z-50 w-90 bg-[#0C0D11] border-l border-zinc-700/80 shadow-[-24px_0_60px_rgba(0,0,0,0.5)] flex flex-col transition-transform duration-250 ${assistantOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-3.5 border-b border-zinc-800/70 flex items-center justify-between">
+            <div className="text-sm font-semibold">AI Assistant</div>
+            <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center" aria-label="Close assistant"><X size={16} /></button>
+          </div>
+          <div className="p-3 border-b border-zinc-800/70">
+            <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
+              {([
+                ['tips', 'Tips'],
+                ['ai', 'AI'],
+                ['ats', 'ATS'],
+              ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
+                <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300 hover:bg-zinc-800'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar p-4">
+            {assistantTab === 'tips' && (
+              <div className="space-y-2.5">
+                {compactInsights.map((insight, idx) => (
+                  <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
+                    <span className={insight.tone}>{insight.icon}</span>
+                    <span className="text-zinc-200">{insight.text}</span>
+                  </div>
+                ))}
+                <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
+                  {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
+                </button>
+                {optimizationReport && (
+                  <div className="mt-3 rounded-xl border border-zinc-700 bg-zinc-950/70 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Optimization Report</div>
+                      <button onClick={() => setOptimizationReport(null)} className="text-zinc-500 hover:text-zinc-200 text-xs">Close</button>
+                    </div>
+                    <pre className="text-xs text-zinc-100 whitespace-pre-wrap leading-relaxed">{optimizationReport}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+            {assistantTab === 'ai' && <AIAssistantPanel />}
+            {assistantTab === 'ats' && <ATSAnalysisPanel />}
+          </div>
         </div>
       )}
 
@@ -798,26 +988,11 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto no-scrollbar">
+            <div ref={editorPaneRef} className="flex-1 overflow-y-auto no-scrollbar">
               {leftTab === 'content' && <EditorPanel />}
               {leftTab === 'style' && <StylePanel />}
               {leftTab === 'sections' && <SectionsTab />}
             </div>
-          </div>
-        </div>
-      )}
-
-      {optimizationReport && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-60 p-4">
-          <div className="bg-[#111111] border border-[#27272a] rounded-2xl max-w-xl w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Optimization Report</h3>
-              <button onClick={() => setOptimizationReport(null)} className="text-zinc-500 hover:text-zinc-100">✕</button>
-            </div>
-            <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#27272a] mb-5">
-              <pre className="text-sm text-zinc-100 whitespace-pre-wrap font-['Outfit'] leading-relaxed">{optimizationReport}</pre>
-            </div>
-            <button onClick={() => setOptimizationReport(null)} className="w-full py-2.5 rounded-xl bg-[#C8F55A] text-[#0A0A0A] font-semibold">Got it</button>
           </div>
         </div>
       )}
