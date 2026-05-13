@@ -236,7 +236,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-2 py-3 lg:px-3">
         {/* Progress Card */}
-        <div className="mb-4 rounded-2xl border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(200,245,90,0.1),rgba(255,255,255,0.01)_50%)] p-3 shadow-sm">
+        <div className="mb-4 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(200,245,90,0.12),rgba(255,255,255,0.02)_60%)] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.3)] backdrop-blur-md transition-all duration-300 hover:border-[#c8f55a]/30">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Progress</div>
@@ -269,7 +269,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                 <button
                   type="button"
                   onClick={() => void saveResume()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#c8f55a] px-2.5 py-1.5 text-[10px] font-bold text-[#0a0a0a] transition hover:bg-[#d7fa74] active:scale-95"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#c8f55a] px-2.5 py-1.5 text-[10px] font-bold text-[#0a0a0a] shadow-[0_0_10px_rgba(200,245,90,0.2)] transition-all duration-300 hover:bg-[#d7fa74] hover:shadow-[0_0_20px_rgba(200,245,90,0.4)] hover:scale-105 active:scale-95"
                 >
                   <CheckCircle2 size={12} />
                   Save
@@ -278,7 +278,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                   type="button"
                   onClick={onDownload}
                   disabled={!canDownload || isExporting}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition hover:border-[#c8f55a]/40 hover:bg-white/8 hover:text-[#c8f55a] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition-all duration-300 hover:border-[#c8f55a]/40 hover:bg-white/8 hover:text-[#c8f55a] hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
                 >
                   <Download size={12} />
                   {isExporting ? "Exporting" : "Download"}
@@ -286,7 +286,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                 <button
                   type="button"
                   onClick={() => handleTabChange("sections")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition hover:border-[#c8f55a]/40 hover:bg-white/8 hover:text-[#c8f55a]"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition-all duration-300 hover:border-[#c8f55a]/40 hover:bg-white/8 hover:text-[#c8f55a] hover:scale-105 active:scale-95"
                 >
                   <LayoutGrid size={12} />
                   Reorder
@@ -334,7 +334,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                   key={tab.id}
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
-                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs transition lg:justify-start ${active ? "border-[#c8f55a]/30 bg-[#c8f55a]/12 text-[#c8f55a]" : "border-white/6 bg-[#121212] text-white/60 hover:border-white/12 hover:bg-[#141414]"}`}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs transition-all duration-300 hover:scale-[1.02] active:scale-95 lg:justify-start ${active ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]" : "border-white/6 bg-[#121212] text-white/60 hover:border-white/20 hover:bg-[#1a1a1a]"}`}
                   title={sidebarCollapsed ? tab.label : undefined}
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/6 bg-black/40 shrink-0">{tab.icon}</span>
@@ -363,7 +363,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                   key={section.id}
                   type="button"
                   onClick={() => handleSectionChange(section.id)}
-                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs transition lg:justify-start ${active ? "border-[#c8f55a]/30 bg-[#c8f55a]/12 text-[#c8f55a]" : "border-white/6 bg-[#121212] text-white/60 hover:border-white/12 hover:bg-[#141414]"}`}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs transition-all duration-300 hover:scale-[1.02] active:scale-95 lg:justify-start ${active ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]" : "border-white/6 bg-[#121212] text-white/60 hover:border-white/20 hover:bg-[#1a1a1a]"}`}
                   title={sidebarCollapsed ? section.label : undefined}
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/6 bg-black/40 shrink-0">{section.icon}</span>
@@ -424,8 +424,8 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
         {/* Editor & Preview Grid */}
         <div className="grid min-h-0 flex-1 gap-3 lg:gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
           {/* Editor Panel */}
-          <div className="min-h-0 overflow-hidden rounded-[24px] border border-white/8 bg-[#0f0f0f] shadow-lg">
-            <div className="flex items-center justify-between border-b border-white/6 px-4 py-3 lg:px-5 lg:py-3">
+          <div className="min-h-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 hover:shadow-[0_8px_32px_rgba(200,245,90,0.05)] hover:border-white/15">
+            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3 lg:px-5 lg:py-4">
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-white/35">Editor</div>
                 <div className="mt-1 text-sm font-bold text-white">{NAV_TABS.find((tab) => tab.id === ui.activeTab)?.label ?? "Content"}</div>
@@ -436,8 +436,8 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
           </div>
 
           {/* Preview Panel */}
-          <div className="hidden min-h-0 overflow-hidden rounded-[24px] border border-white/8 bg-[#0f0f0f] shadow-lg lg:flex lg:flex-col">
-            <div className="flex items-center justify-between border-b border-white/6 px-4 py-3 lg:px-5 lg:py-3">
+          <div className="hidden min-h-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all duration-500 hover:shadow-[0_8px_32px_rgba(200,245,90,0.05)] hover:border-white/15 lg:flex lg:flex-col">
+            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3 lg:px-5 lg:py-4">
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-white/35">Live Preview</div>
                 <div className="mt-1 text-sm font-bold text-white">PDF-ready Canvas</div>

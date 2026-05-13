@@ -110,9 +110,9 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
   };
 
   return (
-    <header className="relative z-40 shrink-0 border-b border-white/8 bg-[linear-gradient(180deg,rgba(13,13,13,0.98),rgba(9,9,9,0.94))] font-['Outfit'] backdrop-blur-xl">
+    <header className="relative z-40 shrink-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(15,15,15,0.85),rgba(10,10,10,0.9))] font-['Outfit'] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
       <div className="mx-auto flex min-h-18 max-w-450 flex-wrap items-center gap-2 px-3 py-3 lg:flex-nowrap lg:gap-3 lg:px-5">
-        <div className="flex items-center gap-2.5 rounded-2xl border border-white/6 bg-white/3 px-3 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
+        <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all hover:bg-white/10 hover:border-[#c8f55a]/20">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#c8f55a]/12 text-[#c8f55a] ring-1 ring-[#c8f55a]/20">
             <span className="text-sm font-black">R</span>
           </div>
@@ -127,7 +127,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
         <div className="hidden h-8 w-px bg-white/10 lg:block" />
 
         {editingTitle ? (
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-2xl border border-white/6 bg-white/2 px-3 py-2 lg:flex-nowrap">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-2xl border border-[#c8f55a]/20 bg-[#c8f55a]/5 px-3 py-2 shadow-[0_0_15px_rgba(200,245,90,0.05)] lg:flex-nowrap">
             <input
               autoFocus
               value={titleDraft}
@@ -137,12 +137,12 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                 if (e.key === "Enter") handleTitleCommit();
                 if (e.key === "Escape") setEditingTitle(false);
               }}
-              className="min-w-0 flex-1 rounded-xl border border-[#c8f55a]/20 bg-[#111111] px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-white/25 focus:border-[#c8f55a]/50"
+              className="min-w-0 flex-1 rounded-xl border border-[#c8f55a]/30 bg-[#111111]/80 px-3 py-2 text-sm font-semibold text-white outline-none transition-all placeholder:text-white/25 focus:border-[#c8f55a]/60 focus:bg-[#151515] focus:shadow-[0_0_10px_rgba(200,245,90,0.1)]"
             />
             <span className="text-[10px] font-medium text-white/35">Enter to save</span>
           </div>
         ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-white/6 bg-white/2 px-3 py-2">
+          <div className="group flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-3 py-2 transition-all hover:border-white/15 hover:bg-white/10">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">Resume title</div>
               <div className="truncate text-sm font-semibold text-white/95">{resume.title}</div>
@@ -153,7 +153,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                 setEditingTitle(true);
               }}
               title="Rename resume"
-              className="inline-flex items-center gap-1 rounded-xl border border-white/8 bg-white/5 px-3 py-2 text-xs font-medium text-white/60 transition hover:border-[#c8f55a]/40 hover:bg-[#c8f55a]/8 hover:text-[#c8f55a]"
+              className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/60 opacity-80 transition-all group-hover:opacity-100 hover:border-[#c8f55a]/50 hover:bg-[#c8f55a]/10 hover:text-[#c8f55a] hover:scale-105 active:scale-95"
             >
               ✎
               <span className="hidden sm:inline">Rename</span>
@@ -257,7 +257,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
             onClick={onDownload}
             disabled={!canDownload || isExporting}
             title={isExporting ? (exportStatus ?? "Preparing PDF export") : canDownload ? "Download as PDF" : "Save resume first to enable download"}
-            className="inline-flex min-w-31 items-center justify-center rounded-2xl border border-white/8 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition hover:border-[#c8f55a]/35 hover:bg-[#c8f55a]/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-w-31 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition-all duration-300 hover:border-[#c8f55a]/40 hover:bg-[#c8f55a]/10 hover:text-white hover:scale-105 hover:shadow-[0_0_20px_rgba(200,245,90,0.15)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
           >
             {isExporting ? "Exporting..." : "Download PDF"}
           </button>
@@ -265,7 +265,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           <button
             onClick={handleSave}
             disabled={ui.isSaving}
-            className="inline-flex min-w-29.5 items-center justify-center rounded-2xl bg-[#c8f55a] px-4 py-2 text-sm font-extrabold text-[#0e0e0e] transition hover:bg-[#d7fa74] disabled:cursor-wait disabled:opacity-70"
+            className="inline-flex min-w-29.5 items-center justify-center rounded-2xl bg-[#c8f55a] px-4 py-2 text-sm font-extrabold text-[#0a0a0a] shadow-[0_0_15px_rgba(200,245,90,0.25)] transition-all duration-300 hover:bg-[#d7fa74] hover:shadow-[0_0_30px_rgba(200,245,90,0.5)] hover:scale-105 active:scale-95 disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100 disabled:hover:shadow-none"
           >
             {ui.isSaving ? "Saving..." : "Save Resume"}
           </button>

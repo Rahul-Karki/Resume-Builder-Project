@@ -16,22 +16,22 @@ const Row = ({ children, gap = 8 }: { children: React.ReactNode; gap?: number })
 const SectionBlock = ({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ borderBottom: "1px solid #1E1E1E" }}>
+    <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(20,20,20,0.4)", backdropFilter: "blur(8px)", marginBottom: 4, borderRadius: 8 }}>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
           width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "14px 18px", background: "none", border: "none", cursor: "pointer",
-          color: "#C8C7C0", fontFamily: "inherit", fontSize: 14, fontWeight: 600,
-          transition: "all 0.2s ease",
+          padding: "16px 20px", background: "none", border: "none", cursor: "pointer",
+          color: "#C8C7C0", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+          transition: "all 0.3s ease", borderRadius: 8,
         }}
-        onMouseEnter={e => e.currentTarget.style.color = "#F0EFE8"}
-        onMouseLeave={e => e.currentTarget.style.color = "#C8C7C0"}
+        onMouseEnter={e => { e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+        onMouseLeave={e => { e.currentTarget.style.color = "#C8C7C0"; e.currentTarget.style.background = "none"; }}
       >
         {title}
         <span style={{ fontSize: 12, color: "#555", transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}>▾</span>
       </button>
-      {open && <div style={{ padding: "6px 18px 20px" }}>{children}</div>}
+      {open && <div style={{ padding: "6px 20px 24px" }}>{children}</div>}
     </div>
   );
 };
@@ -88,13 +88,13 @@ export function StylePanel() {
     <div style={{ overflowY: "auto", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
 
       {/* Header */}
-      <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #1E1E1E", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8", letterSpacing: "-0.2px" }}>Style Customizer</div>
+      <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(20,20,20,0.6)", backdropFilter: "blur(12px)", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 10 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#F0EFE8", letterSpacing: "-0.2px" }}>Style Customizer</div>
         <button
           onClick={resetStyle}
-          style={{ fontSize: 12, color: "#555", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 500, transition: "color 0.15s ease" }}
-          onMouseEnter={e => e.currentTarget.style.color = "#C8F55A"}
-          onMouseLeave={e => e.currentTarget.style.color = "#555"}
+          style={{ fontSize: 12, color: "#888", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, transition: "all 0.2s ease" }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.borderColor = "#C8F55A"; e.currentTarget.style.background = "rgba(200,245,90,0.1)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
         >
           Reset
         </button>

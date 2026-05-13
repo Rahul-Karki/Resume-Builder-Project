@@ -4,21 +4,23 @@ import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, Lan
 
 /* ─── CSS Animations ─────────────────────────────────────────────────────────── */
 const css = `
-  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(200,245,90,0); } 50% { box-shadow: 0 0 0 4px rgba(200,245,90,0.08); } }
-  .editor-fade-in { animation: fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-  .editor-card { animation: fadeSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
-  .editor-input:focus { border-color: rgba(200,245,90,0.5) !important; background: #1A1A1A !important; box-shadow: 0 0 0 3px rgba(200,245,90,0.1) !important; }
-  .editor-textarea:focus { border-color: rgba(200,245,90,0.5) !important; background: #1A1A1A !important; box-shadow: 0 0 0 3px rgba(200,245,90,0.1) !important; }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(200,245,90,0); } 50% { box-shadow: 0 0 20px rgba(200,245,90,0.2); } }
+  .editor-fade-in { animation: fadeSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .editor-card { animation: fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; transition: all 0.3s ease; }
+  .editor-card:hover { border-color: rgba(255,255,255,0.15) !important; box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important; }
+  .editor-input:focus { border-color: rgba(200,245,90,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(200,245,90,0.15) !important; }
+  .editor-textarea:focus { border-color: rgba(200,245,90,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(200,245,90,0.15) !important; }
 `;
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
   width: "100%",
   padding: "12px 14px",
-  background: "#141414",
-  border: "1px solid #2A2A2A",
-  borderRadius: 10,
+  background: "rgba(20,20,20,0.6)",
+  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 12,
   color: "#C8C7C0",
   fontSize: 14,
   fontFamily: "'Outfit', sans-serif",
@@ -28,9 +30,9 @@ const inp: React.CSSProperties = {
 };
 
 const inpFocus: React.CSSProperties = {
-  borderColor: "rgba(200,245,90,0.5)",
-  background: "#1A1A1A",
-  boxShadow: "0 0 0 3px rgba(200,245,90,0.1)",
+  borderColor: "rgba(200,245,90,0.6)",
+  background: "rgba(26,26,26,0.9)",
+  boxShadow: "0 0 15px rgba(200,245,90,0.15)",
 };
 
 const ta: React.CSSProperties = {
@@ -204,8 +206,8 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="editor-card" style={{ background: "#141414", border: "1px solid #252525", borderRadius: 14, overflow: "hidden", marginBottom: 10, transition: "all 0.2s ease" }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "14px 16px", cursor: "pointer", transition: "background 0.15s ease" }} onClick={() => setOpen(o => !o)} onMouseEnter={e => e.currentTarget.style.background = "#1A1A1A"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+    <div className="editor-card" style={{ background: "rgba(20,20,20,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden", marginBottom: 14, transition: "all 0.3s ease" }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer", transition: "background 0.2s ease" }} onClick={() => setOpen(o => !o)} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#C8C7C0" }}>{title || <span style={{ color: "#444" }}>Untitled</span>}</div>
           {subtitle && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{subtitle}</div>}
@@ -226,13 +228,13 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
 function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      width: "100%", padding: "12px", borderRadius: 12, border: "1px dashed #2A2A2A",
-      background: "transparent", color: "#555", fontSize: 14, fontWeight: 600,
-      cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+      width: "100%", padding: "14px", borderRadius: 16, border: "1px dashed rgba(255,255,255,0.15)",
+      background: "rgba(255,255,255,0.02)", color: "#888", fontSize: 14, fontWeight: 700,
+      cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
     }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = "#C8F55A"; e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.background = "rgba(200,245,90,0.04)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#555"; e.currentTarget.style.background = "transparent"; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "#C8F55A"; e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.background = "rgba(200,245,90,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(200,245,90,0.1)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
       + {l}
     </button>
