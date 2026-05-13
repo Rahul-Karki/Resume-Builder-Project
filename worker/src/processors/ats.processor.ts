@@ -85,6 +85,29 @@ const normalizeKeywordPlacement = (value: unknown): AtsKeywordPlacement[] => {
     .filter((item) => Boolean(item.keyword));
 };
 
+const asStringArray = (value: unknown) => Array.isArray(value)
+  ? value.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
+  : [];
+
+const getNested = (value: unknown, key: string) => {
+  if (!value || typeof value !== "object") return undefined;
+  return (value as Record<string, unknown>)[key];
+};
+
+const toSectionFromArea = (area: string): AtsSectionKey => {
+  const normalized = compactText(area).toLowerCase();
+  if (normalized.includes("summary")) return "summary";
+  if (normalized.includes("experience")) return "experience";
+  if (normalized.includes("skills")) return "skills";
+  if (normalized.includes("education")) return "education";
+  if (normalized.includes("project")) return "projects";
+  if (normalized.includes("certification")) return "certifications";
+  if (normalized.includes("language")) return "languages";
+  return "experience";
+};
+
+const sectionPathForKey = (section: AtsSectionKey) => section === "summary" ? "personalInfo.summary" : `sections.${section}`;
+
 const providerIsConfigured = () => {
   if (env.AI_PROVIDER === "openai") return Boolean(env.OPENAI_API_KEY);
   if (env.AI_PROVIDER === "gemini") return Boolean(env.GEMINI_API_KEY);
@@ -180,31 +203,54 @@ const callGeminiJson = async (systemPrompt: string, userPrompt: string, signal: 
 };
 
 const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement => {
-  const jdKeywords = Array.isArray(value.jdKeywords)
-    ? value.jdKeywords.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
-    : [];
+  const keywordAnalysis = (getNested(value, "keyword_analysis") ?? getNested(value, "keywordAnalysis")) as Record<string, unknown> | undefined;
+  const jdKeywordBuckets = getNested(keywordAnalysis, "jd_keywords") as Record<string, unknown> | undefined;
 
-  const rewriteSuggestions: AiSuggestion[] = Array.isArray(value.rewriteSuggestions)
-    ? value.rewriteSuggestions
-      .filter((item) => item && typeof item === "object")
-      .map((item, index) => {
-        const record = item as Record<string, unknown>;
-        return {
-          id: typeof record.id === "string" && compactText(record.id) ? record.id : createSuggestionId("ai-ats", index),
-          originalText: compactText(record.originalText),
-          suggestionText: compactText(record.suggestionText),
-          reason: compactText(record.reason) || "ATS improvement suggestion",
-          impact: normalizeImpact(record.impact),
-          path: typeof record.path === "string" && compactText(record.path) ? compactText(record.path) : undefined,
-        };
-      })
-      .filter((item) => Boolean(item.suggestionText))
-    : [];
+  const jdKeywords = Array.from(new Set([
+    ...asStringArray(value.jdKeywords),
+    ...asStringArray(getNested(value, "jd_keywords")),
+    ...asStringArray(getNested(jdKeywordBuckets, "hard_skills")),
+    ...asStringArray(getNested(jdKeywordBuckets, "tools_technologies")),
+    ...asStringArray(getNested(jdKeywordBuckets, "industry_terms")),
+    ...asStringArray(getNested(jdKeywordBuckets, "action_verbs")),
+  ]));
+
+  const rawRewriteSuggestions = (Array.isArray(value.rewriteSuggestions) ? value.rewriteSuggestions : [])
+    .concat(Array.isArray(value.rewrite_suggestions) ? value.rewrite_suggestions : []);
+
+  const rewriteSuggestions: AiSuggestion[] = rawRewriteSuggestions
+    .filter((item) => item && typeof item === "object")
+    .map((item, index) => {
+      const record = item as Record<string, unknown>;
+      const section = toSectionFromArea(compactText(record.area));
+      const suggestionText = compactText(record.suggestionText)
+        || compactText(record.after)
+        || compactText(record.after_text)
+        || compactText(record.example_improved);
+      const originalText = compactText(record.originalText)
+        || compactText(record.before)
+        || compactText(record.before_text);
+      const reason = compactText(record.reason)
+        || compactText(record.why_it_hurts_ats)
+        || compactText(record.what_to_add_or_fix)
+        || "ATS improvement suggestion";
+      return {
+        id: typeof record.id === "string" && compactText(record.id) ? record.id : createSuggestionId("ai-ats", index),
+        originalText,
+        suggestionText,
+        reason,
+        impact: normalizeImpact(record.impact ?? (Number(record.expected_score_gain) >= 8 ? "high" : Number(record.expected_score_gain) >= 4 ? "medium" : "low")),
+        path: typeof record.path === "string" && compactText(record.path) ? compactText(record.path) : sectionPathForKey(section),
+      };
+    })
+    .filter((item) => Boolean(item.suggestionText));
 
   const perSectionSuggestions = SECTION_KEYS.reduce<AtsSectionSuggestions>((accumulator, section) => {
-    const rawSuggestions = value.perSectionSuggestions && typeof value.perSectionSuggestions === "object"
-      ? (value.perSectionSuggestions as Record<string, unknown>)[section]
-      : undefined;
+    const candidateObject = (value.perSectionSuggestions && typeof value.perSectionSuggestions === "object"
+      ? value.perSectionSuggestions
+      : (value.per_section_suggestions && typeof value.per_section_suggestions === "object" ? value.per_section_suggestions : undefined)) as Record<string, unknown> | undefined;
+
+    const rawSuggestions = candidateObject ? candidateObject[section] : undefined;
 
     const items = Array.isArray(rawSuggestions)
       ? rawSuggestions
@@ -215,7 +261,7 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
             suggestionText: compactText(item),
             reason: `${section} improvement suggestion`,
             impact: "medium" as const,
-            path: section === "summary" ? "personalInfo.summary" : `sections.${section}`,
+            path: sectionPathForKey(section),
           }))
           .filter((item) => Boolean(item.suggestionText))
       : [];
@@ -226,12 +272,6 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
 
     return accumulator;
   }, {});
-
-  const keywordGaps = Array.isArray(value.keywordGaps)
-    ? value.keywordGaps.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
-    : [];
-
-  const verdict = typeof value.verdict === "string" ? compactText(value.verdict) : "";
 
   const sectionScores = value.section_scores && typeof value.section_scores === "object"
     ? {
@@ -271,6 +311,59 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
       .filter((item) => Boolean(item.fix.why || item.fix.copyPasteTemplate || item.fix.example))
     : [];
 
+  sectionAudit.forEach((auditItem, index) => {
+    const section = normalizeSectionKey(String(auditItem.section));
+    if (!section) return;
+
+    const suggestions = perSectionSuggestions[section] ?? [];
+    const suggestionText = compactText(auditItem.fix.copyPasteTemplate)
+      || compactText(auditItem.fix.example)
+      || compactText(auditItem.fix.why);
+
+    if (suggestionText) {
+      suggestions.push({
+        id: createSuggestionId(`audit-${section}`, index),
+        originalText: "",
+        suggestionText,
+        reason: auditItem.fix.why || `${section} improvement suggestion`,
+        impact: normalizeImpact(auditItem.status === "missing" || auditItem.status === "empty" ? "high" : "medium"),
+        path: sectionPathForKey(section),
+      });
+      perSectionSuggestions[section] = suggestions;
+    }
+  });
+
+  const copyPasteSnippets = (getNested(value, "copy_paste_snippets") ?? getNested(value, "copyPasteSnippets")) as Record<string, unknown> | undefined;
+  const summaryOptions = asStringArray(getNested(copyPasteSnippets, "summary_options")).concat(asStringArray(getNested(copyPasteSnippets, "summaryOptions")));
+  if (summaryOptions.length > 0) {
+    const existing = perSectionSuggestions.summary ?? [];
+    summaryOptions.slice(0, 3).forEach((item, index) => {
+      existing.push({
+        id: createSuggestionId("snippet-summary", index),
+        originalText: "",
+        suggestionText: item,
+        reason: "Use this ATS-optimized summary option",
+        impact: "medium",
+        path: "personalInfo.summary",
+      });
+    });
+    perSectionSuggestions.summary = existing;
+  }
+
+  const skillsSectionSnippet = compactText(getNested(copyPasteSnippets, "skills_section") ?? getNested(copyPasteSnippets, "skillsSection"));
+  if (skillsSectionSnippet) {
+    const existing = perSectionSuggestions.skills ?? [];
+    existing.push({
+      id: createSuggestionId("snippet-skills", existing.length),
+      originalText: "",
+      suggestionText: skillsSectionSnippet,
+      reason: "Add ATS-friendly skills grouping",
+      impact: "medium",
+      path: "sections.skills",
+    });
+    perSectionSuggestions.skills = existing;
+  }
+
   const actionPlan = Array.isArray(value.action_plan)
     ? value.action_plan
       .filter((item) => item && typeof item === "object")
@@ -302,6 +395,16 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
     : undefined;
 
   const keywordPlacement = normalizeKeywordPlacement(value.keyword_placement ?? value.keywordPlacement);
+  const keywordGaps = Array.from(new Set([
+    ...asStringArray(value.keywordGaps),
+    ...asStringArray(value.keyword_gaps),
+    ...asStringArray(getNested(keywordAnalysis, "missing_keywords")),
+    ...asStringArray(getNested(keywordAnalysis, "missingKeywords")),
+  ]));
+
+  const verdict = compactText(value.verdict)
+    || compactText(value.summary)
+    || asStringArray(getNested(getNested(value, "diagnosis"), "top_problems")).slice(0, 2).join(" ");
 
   const grade = typeof value.grade === "string" ? compactText(value.grade) : "";
 
@@ -309,7 +412,7 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
     ? value.questionsForUser.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
     : Array.isArray(value.questions_for_user)
       ? value.questions_for_user.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
-    : [];
+      : [];
 
   return {
     grade: grade === "poor" || grade === "average" || grade === "good" || grade === "excellent" ? grade : undefined,
@@ -436,6 +539,38 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
           });
         }
       });
+
+      const hasAnySuggestions = Object.values(perSectionSuggestions).some((items) => (items?.length ?? 0) > 0);
+      if (!hasAnySuggestions) {
+        const keywordGapsForFallback = (enhancement.keywordGaps.length > 0 ? enhancement.keywordGaps : keywordResult.analysis.missingKeywords).slice(0, 3);
+
+        perSectionSuggestions.summary = [{
+          id: createSuggestionId("fallback-summary", 0),
+          originalText: "",
+          suggestionText: `Add a 3-4 line summary tailored to ${targetRole || "the target role"} and naturally include keywords like ${keywordGapsForFallback.join(", ") || "role, impact, and core tools"}.`,
+          reason: "A targeted summary improves ATS matching quickly.",
+          impact: "high",
+          path: "personalInfo.summary",
+        }];
+
+        perSectionSuggestions.experience = [{
+          id: createSuggestionId("fallback-experience", 0),
+          originalText: "",
+          suggestionText: "Rewrite weak bullets with action verb + task + measurable result. Include one metric in each of your top 3 bullets.",
+          reason: "Result-oriented bullets improve both ATS and recruiter scans.",
+          impact: "high",
+          path: "sections.experience",
+        }];
+
+        perSectionSuggestions.skills = [{
+          id: createSuggestionId("fallback-skills", 0),
+          originalText: "",
+          suggestionText: `Create grouped skills sections (Languages, Frameworks, Tools) and add missing keywords: ${keywordGapsForFallback.join(", ") || "job-specific tools"}.`,
+          reason: "Structured skills and missing keywords increase match score.",
+          impact: "medium",
+          path: "sections.skills",
+        }];
+      }
 
       const rewriteSuggestions: AiSuggestion[] = Array.from(suggestionById.values()).slice(0, 20);
       const keywordGaps = enhancement.keywordGaps.length > 0 ? enhancement.keywordGaps : keywordResult.analysis.missingKeywords.slice(0, 3);
