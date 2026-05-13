@@ -5,34 +5,23 @@ import { WorkEntry, LanguageEntry } from "@/types/resume-types";
 /* ─── CSS Animations ─────────────────────────────────────────────────────────── */
 const css = `
   @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 20px rgba(255,255,255,0.2); } }
   .editor-fade-in { animation: fadeSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .editor-card { animation: fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; transition: all 0.3s ease; }
-  .editor-card:hover { border-color: rgba(255,255,255,0.15) !important; box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important; }
-  .editor-input:focus { border-color: rgba(255,255,255,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(255,255,255,0.15) !important; }
-  .editor-textarea:focus { border-color: rgba(255,255,255,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(255,255,255,0.15) !important; }
+  .editor-card { animation: fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 `;
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
   width: "100%",
   padding: "12px 14px",
-  background: "rgba(20,20,20,0.6)",
-  backdropFilter: "blur(10px)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: 12,
   color: "#e4e4e7",
   fontSize: 14,
   fontFamily: "'Outfit', sans-serif",
   outline: "none",
   boxSizing: "border-box",
-  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
 };
 
 const inpFocus: React.CSSProperties = {
-  borderColor: "rgba(255,255,255,0.6)",
-  background: "rgba(26,26,26,0.9)",
-  boxShadow: "0 0 15px rgba(255,255,255,0.15)",
+  color: "#e4e4e7",
 };
 
 const ta: React.CSSProperties = {
