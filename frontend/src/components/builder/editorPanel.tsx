@@ -1105,13 +1105,17 @@ export function EditorPanel(): ReactNode {
               <button
                 key={key}
                 onClick={() => setActiveSection(key)}
+                aria-pressed={active}
                 style={{
                   padding: "8px 12px",
                   borderRadius: 10,
+                  border: active ? "1px solid rgba(160,128,144,0.65)" : "1px solid rgba(255,255,255,0.08)",
+                  background: active ? "linear-gradient(180deg, rgba(160,128,144,0.24), rgba(160,128,144,0.1))" : "rgba(255,255,255,0.01)",
+                  boxShadow: active ? "0 0 0 1px rgba(160,128,144,0.35), 0 8px 20px rgba(160,128,144,0.2)" : "none",
                   color: active ? "#f5f0f2" : "#e8dfe3",
                   cursor: "pointer",
                   fontSize: 13,
-                  fontWeight: 700,
+                  fontWeight: active ? 800 : 700,
                 }}
               >
                 {label}
