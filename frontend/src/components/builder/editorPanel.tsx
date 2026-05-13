@@ -135,8 +135,6 @@ const modeToggleWrap: React.CSSProperties = {
   gap: 4,
   padding: 4,
   borderRadius: 10,
-  border: "1px solid #27272a",
-  background: "#111",
 };
 
 function ContentModeToggle({
@@ -156,17 +154,13 @@ function ContentModeToggle({
             type="button"
             onClick={() => onChange(mode)}
             style={{
-              border: "1px solid",
-              borderColor: active ? "#FFFFFF" : "transparent",
               borderRadius: 8,
-              background: active ? "rgba(255,255,255,0.12)" : "transparent",
               color: active ? "#FFFFFF" : "#888",
               fontSize: 12,
               fontWeight: 600,
               textTransform: "capitalize",
               padding: "5px 12px",
               cursor: "pointer",
-              transition: "all 0.2s ease",
             }}
           >
             {mode}
@@ -184,16 +178,14 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="editor-card" style={{ background: "rgba(20,20,20,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden", marginBottom: 14, transition: "all 0.3s ease" }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer", transition: "background 0.2s ease" }} onClick={() => setOpen(o => !o)} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+    <div className="editor-card" style={{ overflow: "hidden", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer" }} onClick={() => setOpen(o => !o)}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{title || <span style={{ color: "#444" }}>Untitled</span>}</div>
           {subtitle && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{subtitle}</div>}
         </div>
         <button onClick={e => { e.stopPropagation(); onRemove(); }}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px", marginRight: 8, borderRadius: 6, transition: "all 0.15s ease" }}
-          onMouseEnter={e => { e.currentTarget.style.color = "#ff6b6b"; e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
-          onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.background = "transparent"; }}
+          style={{ cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px", marginRight: 8 }}
           title="Remove">✕</button>
         <span style={{ fontSize: 12, color: "#555", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}>▾</span>
       </div>
@@ -206,13 +198,11 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
 function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      width: "100%", padding: "14px", borderRadius: 16, border: "1px dashed rgba(255,255,255,0.15)",
-      background: "rgba(255,255,255,0.02)", color: "#888", fontSize: 14, fontWeight: 700,
-      cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+      width: "100%", padding: "14px",
+      color: "#888", fontSize: 14, fontWeight: 700,
+      cursor: "pointer", fontFamily: "inherit",
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
     }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(255,255,255,0.1)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
       + {l}
     </button>
@@ -253,24 +243,20 @@ function InlineEnhanceTip({ text }: { text: string }) {
         onClick={() => setVisible(!visible)}
         title="AI writing tip"
         style={{
-          background: visible ? "rgba(255,255,255,0.12)" : "none",
-          border: `1px solid ${visible ? "rgba(255,255,255,0.3)" : "#27272a"}`,
           borderRadius: 6, color: visible ? "#FFFFFF" : "#555",
           fontSize: 11, fontWeight: 700, padding: "3px 8px",
           cursor: "pointer", fontFamily: "inherit", marginLeft: 6,
-          transition: "all 0.15s ease",
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; }}
-        onMouseLeave={(e) => { if (!visible) { e.currentTarget.style.color = "#555"; e.currentTarget.style.borderColor = "#27272a"; } }}
+
       >
         ✦ Enhance
       </button>
       {visible && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 20,
-          background: "#18181b", border: "1px solid #27272a", borderRadius: 10,
+          borderRadius: 10,
           padding: "10px 12px", fontSize: 12, color: "#FFFFFF", lineHeight: 1.6,
-          maxWidth: 300, boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+          maxWidth: 300,
         }}>
           {tip}
         </div>
@@ -285,10 +271,7 @@ function Inp({ label: l, value, onChange, placeholder, type = "text" }: {
 }) {
   return fieldGroup(<>
     <span style={label}>{l}</span>
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="editor-input" style={inp}
-      onFocus={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "#18181b"; }}
-      onBlur={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.background = "#09090b"; }}
-    />
+    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="editor-input" style={inp} />
   </>);
 }
 
@@ -299,8 +282,6 @@ function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
     <span style={label}>{l}</span>
     <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
       rows={rows} className="editor-textarea" style={ta}
-      onFocus={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "#18181b"; }}
-      onBlur={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.background = "#09090b"; }}
     />
   </>);
 }
@@ -373,9 +354,6 @@ function AIEnhanceButton({ onClick, isLoading }: { onClick: () => void; isLoadin
       style={{
         width: "100%",
         padding: "10px 14px",
-        borderRadius: 10,
-        border: "1px solid rgba(232, 98, 42, 0.3)",
-        background: "rgba(232, 98, 42, 0.08)",
         color: "#e8622a",
         fontSize: 12,
         fontWeight: 600,
@@ -385,15 +363,13 @@ function AIEnhanceButton({ onClick, isLoading }: { onClick: () => void; isLoadin
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
-        transition: "all 0.2s ease",
         opacity: isLoading ? 0.6 : 1,
       }}
-      onMouseEnter={e => { if (!isLoading) { e.currentTarget.style.background = "rgba(232, 98, 42, 0.15)"; e.currentTarget.style.borderColor = "rgba(232, 98, 42, 0.5)"; } }}
-      onMouseLeave={e => { e.currentTarget.style.background = "rgba(232, 98, 42, 0.08)"; e.currentTarget.style.borderColor = "rgba(232, 98, 42, 0.3)"; }}
+
     >
       {isLoading ? (
         <>
-          <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(232, 98, 42, 0.2)", borderTopColor: "#e8622a", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <span style={{ display: "inline-block", width: 14, height: 14, animation: "spin 0.8s linear infinite" }} />
           Enhancing...
         </>
       ) : (
@@ -542,8 +518,6 @@ function ExperienceSection() {
           width: "100%",
           padding: "14px",
           borderRadius: 12,
-          border: "1px dashed rgba(255,255,255,0.15)",
-          background: "rgba(255,255,255,0.02)",
           color: "#888",
           fontSize: 13,
           fontWeight: 600,
@@ -553,10 +527,8 @@ function ExperienceSection() {
           alignItems: "center",
           justifyContent: "center",
           gap: 8,
-          transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = "#e8622a"; e.currentTarget.style.color = "#e8622a"; e.currentTarget.style.background = "rgba(232, 98, 42, 0.05)"; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -565,18 +537,18 @@ function ExperienceSection() {
       </button>
 
       {optimizationModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#121212', borderRadius: 24, padding: 24, maxWidth: 600, width: '100%', position: 'relative', border: '1px solid #1a1014' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ padding: 24, maxWidth: 600, width: '100%', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h3 style={{ fontSize: 18, color: '#f5f0f2', margin: 0 }}>Optimization Suggestion</h3>
-              <button onClick={() => setOptimizationModal(null)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>
+              <button onClick={() => setOptimizationModal(null)} style={{ color: '#888', cursor: 'pointer' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
-            <div style={{ background: "#1a1014", borderRadius: 12, padding: 16, border: "1px solid #2e1f28", marginBottom: 20 }}>
+            <div style={{ padding: 16, marginBottom: 20 }}>
               <pre style={{ fontSize: 13, color: "#f5f0f2", whiteSpace: "pre-wrap", fontFamily: "'Outfit', sans-serif", lineHeight: 1.6, margin: 0 }}>
                 {optimizationModal}
               </pre>
@@ -586,9 +558,6 @@ function ExperienceSection() {
               style={{
                 width: "100%",
                 padding: "10px",
-                borderRadius: 10,
-                border: "none",
-                background: "#e8622a",
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 600,
@@ -604,12 +573,12 @@ function ExperienceSection() {
 
       {/* Error Toast */}
       {apiError && (
-        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "rgba(220, 38, 38, 0.95)", color: "#fff", padding: "12px 20px", borderRadius: 12, display: "flex", alignItems: "center", gap: 10, zIndex: 100, border: "1px solid rgba(220, 38, 38, 0.5)", boxShadow: "0 10px 30px rgba(0,0,0,0.3)" }}>
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", color: "#fff", padding: "12px 20px", display: "flex", alignItems: "center", gap: 10, zIndex: 100 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <span style={{ fontSize: 13 }}>{apiError}</span>
-          <button onClick={() => setApiError(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)", marginLeft: 8 }}>
+          <button onClick={() => setApiError(null)} style={{ cursor: "pointer", color: "rgba(255,255,255,0.7)", marginLeft: 8 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -752,23 +721,13 @@ function ExperienceCard({
                   <button
                     onClick={() => onRemoveBullet(idx)}
                     style={{
-                      background: "none",
-                      border: "none",
                       cursor: "pointer",
                       color: "#444",
                       fontSize: 14,
                       padding: "4px 8px",
                       borderRadius: 6,
-                      transition: "all 0.15s ease",
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "#ff6b6b";
-                      e.currentTarget.style.background = "rgba(255,107,107,0.1)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "#444";
-                      e.currentTarget.style.background = "transparent";
-                    }}
+
                   >
                     ✕
                   </button>
@@ -989,7 +948,7 @@ function ProjectsSection() {
                   <button
                     type="button"
                     onClick={() => removeProjectBullet(entry.id, idx)}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px", borderRadius: 6 }}
+                    style={{ cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px" }}
                   >
                     ✕
                   </button>
@@ -1146,14 +1105,10 @@ export function EditorPanel(): ReactNode {
                 style={{
                   padding: "8px 12px",
                   borderRadius: 10,
-                  border: active ? "1px solid rgba(160,128,144,0.65)" : "1px solid rgba(255,255,255,0.08)",
-                  background: active ? "linear-gradient(180deg, rgba(160,128,144,0.24), rgba(160,128,144,0.1))" : "rgba(255,255,255,0.01)",
-                  boxShadow: active ? "0 0 0 1px rgba(160,128,144,0.35), 0 8px 20px rgba(160,128,144,0.2)" : "none",
                   color: active ? "#f5f0f2" : "#e8dfe3",
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: 700,
-                  transition: "all 0.2s ease",
                 }}
               >
                 {label}
