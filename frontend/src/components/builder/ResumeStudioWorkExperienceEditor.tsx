@@ -636,7 +636,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       </div>
 
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
-        <aside className="hidden md:flex w-[105px] shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar">
+        <aside className="hidden md:flex w-26.25 shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar">
           <div className="p-3 border-b border-zinc-800/70">
             <div className="flex gap-2 bg-transparent p-1 rounded-xl">
               {([
