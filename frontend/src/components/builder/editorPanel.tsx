@@ -1136,6 +1136,7 @@ export function EditorPanel(): ReactNode {
   } = useResumeBuilderStore();
 
   const sectionContent: Record<string, ReactNode> = {
+    personal: <PersonalSection />,
     experience: <ExperienceSection />,
     education: <EducationSection />,
     skills: <SkillsSection />,
@@ -1144,30 +1145,23 @@ export function EditorPanel(): ReactNode {
     languages: <LanguagesSection />,
   };
 
-  const [activeSection, setActiveSection] = useState<string | null>(() => {
-    const firstVisible = resume.sectionOrder.find((k) => resume.sectionVisibility[k]);
-    return firstVisible ?? null;
-  });
+  const [activeSection, setActiveSection] = useState<string>("personal");
 
   return (
     <div className="editor-fade-in" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{css}</style>
 
       <div style={{ flex: 1, overflowY: "auto" }} className="themed-scrollbar">
-        <div style={{ padding: "12px 14px 8px" }}>
-          <PersonalSection />
-        </div>
-
         {/* Section selector */}
-        <div style={{ padding: "8px 14px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          {resume.sectionOrder.map((key) => {
-            if (!resume.sectionVisibility[key]) return null;
-            const label = key.charAt(0).toUpperCase() + key.slice(1);
+        <div style={{ padding: "12px 14px 8px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          {(["personal", ...resume.sectionOrder] as const).map((key) => {
+            if (key !== "personal" && !resume.sectionVisibility[key]) return null;
+            const label = key === "personal" ? "Personal" : key.charAt(0).toUpperCase() + key.slice(1);
             const active = activeSection === key;
             return (
               <button
                 key={key}
-                onClick={() => setActiveSection((s) => (s === key ? null : key))}
+                onClick={() => setActiveSection(key)}
                 style={{
                   padding: "8px 12px",
                   borderRadius: 10,
@@ -1186,27 +1180,7 @@ export function EditorPanel(): ReactNode {
         </div>
 
         <div style={{ padding: "12px 14px", display: "grid", gap: 14 }}>
-          {activeSection ? (
-            <div style={{ minWidth: 0 }}>{sectionContent[activeSection]}</div>
-          ) : (
-            <>
-              <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-                {(["experience", "education", "skills"] as const).map((key) => (
-                  resume.sectionVisibility[key] ? (
-                    <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
-                  ) : null
-                ))}
-              </div>
-
-              <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-                {(["projects", "certifications", "languages"] as const).map((key) => (
-                  resume.sectionVisibility[key] ? (
-                    <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
-                  ) : null
-                ))}
-              </div>
-            </>
-          )}
+          <div style={{ minWidth: 0 }}>{sectionContent[activeSection]}</div>
         </div>
       </div>
     </div>
