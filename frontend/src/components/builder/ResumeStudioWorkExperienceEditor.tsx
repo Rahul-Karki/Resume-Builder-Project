@@ -564,8 +564,27 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     <div className="h-screen overflow-hidden bg-[#09090b] text-[#F0EFE8] font-['Outfit']">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap');
+
+        /* Hide default scrollbar when explicitly requested */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Themed thin scrollbar for editor panes and textareas */
+        .themed-scrollbar::-webkit-scrollbar { width: 10px; }
+        .themed-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .themed-scrollbar::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.14); border-radius: 9999px; border: 3px solid rgba(0,0,0,0); background-clip: padding-box; }
+        .themed-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.22); }
+        .themed-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(200,200,200,0.14) transparent; }
+
+        /* Small rounded native scrollbar for textareas specifically */
+        textarea.editor-textarea { scrollbar-width: thin; }
+        textarea.editor-textarea::-webkit-scrollbar { width: 8px; }
+        textarea.editor-textarea::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.18); border-radius: 8px; }
+
+        /* Shift preview to the left when assistant open on desktop (space for right drawer) */
+        .preview-shift { transition: transform 220ms cubic-bezier(.16,1,.3,1); }
+        .preview-shift.shift-left { transform: translateX(-360px); }
+        @media (max-width: 1024px) { .preview-shift.shift-left { transform: none; } }
       `}</style>
 
       <header className="h-12 border-b border-zinc-800/70 flex items-center justify-between px-3 md:px-4 lg:px-6 bg-[#0C0C0F]/95 backdrop-blur-sm sticky top-0 z-30">
@@ -617,7 +636,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       </div>
 
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
-        <aside className="hidden md:flex w-[420px] shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden no-scrollbar">
+        <aside className="hidden md:flex w-[420px] shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar">
           <div className="p-3 border-b border-zinc-800/70">
             <div className="flex gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/70">
               {([
@@ -636,7 +655,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             </div>
           </div>
 
-          <div ref={editorPaneRef} className="flex-1 overflow-y-auto no-scrollbar">
+          <div ref={editorPaneRef} className="flex-1 overflow-y-auto themed-scrollbar">
             {leftTab === 'content' && <EditorPanel />}
             {leftTab === 'style' && <StylePanel />}
             {leftTab === 'sections' && <SectionsTab />}
@@ -644,7 +663,10 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </aside>
 
         <main className="flex-1 bg-[#0A0A0D] overflow-hidden">
-          <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-center justify-center overflow-hidden">
+          <div
+            ref={previewHostRef}
+            className={`h-full w-full p-1.5 md:p-2.5 flex items-center justify-center overflow-hidden preview-shift ${assistantOpen && !isMobile ? 'shift-left' : ''}`}
+          >
             <div
               className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] relative rounded-sm"
               style={{
@@ -691,7 +713,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
               ))}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar p-4">
+          <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
             {assistantTab === 'tips' && (
               <div className="space-y-2.5">
                 {compactInsights.map((insight, idx) => (
@@ -737,7 +759,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
               ))}
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto no-scrollbar p-4">
+          <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
             {assistantTab === 'tips' && (
               <div className="space-y-2.5">
                 {compactInsights.map((insight, idx) => (
@@ -787,7 +809,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div ref={editorPaneRef} className="flex-1 overflow-y-auto no-scrollbar">
+            <div ref={editorPaneRef} className="flex-1 overflow-y-auto themed-scrollbar">
               {leftTab === 'content' && <EditorPanel />}
               {leftTab === 'style' && <StylePanel />}
               {leftTab === 'sections' && <SectionsTab />}
