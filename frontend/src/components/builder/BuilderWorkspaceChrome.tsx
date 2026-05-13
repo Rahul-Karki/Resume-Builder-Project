@@ -176,6 +176,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
   const completed = checklist.filter((item) => item.passed).length;
   const progress = Math.round((completed / checklist.length) * 100);
   const progressLabel = progress >= 90 ? "Launch ready" : progress >= 70 ? "Nearly there" : progress >= 40 ? "In progress" : "Just started";
+  const savedAtsScore = resume.atsScore;
 
   const personalFieldsFilled = [
     resume.personalInfo.name,
@@ -269,7 +270,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
 
       {/* 2. Middle Left Sidebar (Editor) */}
       {!isMobile && (
-        <aside className="relative z-10 flex w-[360px] min-h-0 shrink-0 flex-col border-r border-zinc-800 bg-[#09090b]">
+        <aside className="relative z-10 flex w-90 min-h-0 shrink-0 flex-col border-r border-zinc-800 bg-[#09090b]">
           <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
             <div>
               <h2 className="text-base font-semibold tracking-tight text-zinc-100">
@@ -320,9 +321,15 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                 </div>
                 <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
                   <div className="absolute inset-0 rounded-full bg-[conic-gradient(#fafafa_0%_var(--progress),#27272a_var(--progress)_100%)]" style={{ ["--progress" as string]: `${progress}%` }} />
-                  <div className="absolute inset-[3px] rounded-full bg-[#09090b]" />
+                  <div className="absolute inset-0.75 rounded-full bg-[#09090b]" />
                   <div className="relative text-[11px] font-bold text-zinc-100">{progress}%</div>
                 </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-[12px] text-zinc-400">
+                <span>Saved ATS score</span>
+                <span className={`font-semibold ${savedAtsScore === null || savedAtsScore === undefined ? "text-zinc-500" : savedAtsScore >= 80 ? "text-emerald-300" : savedAtsScore >= 60 ? "text-amber-300" : "text-rose-300"}`}>
+                  {savedAtsScore === null || savedAtsScore === undefined ? "Not scored" : `${savedAtsScore}/100`}
+                </span>
               </div>
             </div>
 

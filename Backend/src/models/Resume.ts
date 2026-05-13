@@ -105,6 +105,9 @@ export interface IResume extends Document {
   isVariant?: boolean;
   variantLabel?: string;
   targetRole?: string;
+  atsScore?: number | null;
+  atsStatus?: string | null;
+  atsAnalyzedAt?: Date | null;
   title: string;
   templateId: string;
   personalInfo: IPersonalInfo;
@@ -143,6 +146,21 @@ const ResumeSchema = new Schema<IResume>(
     targetRole: {
       type: String,
       default: "",
+    },
+
+    atsScore: {
+      type: Number,
+      default: null,
+    },
+
+    atsStatus: {
+      type: String,
+      default: null,
+    },
+
+    atsAnalyzedAt: {
+      type: Date,
+      default: null,
     },
 
     title: {

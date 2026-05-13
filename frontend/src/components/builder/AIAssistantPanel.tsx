@@ -31,6 +31,10 @@ const BLOCKED_PERSONAL_FIELDS = new Set([
   "portfolio",
 ]);
 
+const BLOCKED_PERSONAL_MESSAGE = "Name, email, phone, location, LinkedIn, GitHub, and portfolio are locked fields. Select summary, experience, skills, projects, certifications, or languages for suggestions.";
+
+const EDITABLE_FIELD_MESSAGE = "Click an editable field to get field-specific AI suggestions. Summary, experience bullets, skills, projects, certifications, and languages each get different guidance.";
+
 const getPersonalFieldText = (resume: ReturnType<typeof useResumeBuilderStore.getState>["resume"], field?: string) => {
   const personal = resume.personalInfo;
   switch (field) {
@@ -420,7 +424,7 @@ export function AIAssistantPanel() {
   const target = useMemo(() => getFocusTarget(resume, ui.focusedField, ui.activeSection, store), [resume, ui.focusedField, ui.activeSection, store]);
   const blockedReason = useMemo(() => {
     if (ui.focusedField?.kind === "personal" && ui.focusedField.field && BLOCKED_PERSONAL_FIELDS.has(ui.focusedField.field)) {
-      return "AI suggestions are not available for contact fields.";
+      return BLOCKED_PERSONAL_MESSAGE;
     }
     return null;
   }, [ui.focusedField]);
@@ -491,7 +495,7 @@ export function AIAssistantPanel() {
             <div className="ai-header-text">
               <span className="ai-header-title">AI Writing Assistant</span>
               <span className="ai-header-subtitle">
-                {hasContent ? `Ready to improve "${target.label || target.section}"` : "Click any text field to get started"}
+                {hasContent ? `Ready to improve "${target.label || target.section}"` : EDITABLE_FIELD_MESSAGE}
               </span>
             </div>
           </div>
@@ -527,7 +531,7 @@ export function AIAssistantPanel() {
               <Lightbulb size={20} />
             </div>
             <div className="ai-empty-text">
-              {blockedReason ?? "Click on any text field in your resume to get AI-powered writing suggestions"}
+              {blockedReason ?? EDITABLE_FIELD_MESSAGE}
             </div>
           </div>
         )}

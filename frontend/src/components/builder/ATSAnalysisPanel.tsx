@@ -271,6 +271,8 @@ export function ATSAnalysisPanel() {
     }
   };
 
+  const savedAtsScore = report?.overallScore ?? resume.atsScore ?? null;
+
   // Collapsed state
   if (!isExpanded) {
     return (
@@ -284,7 +286,7 @@ export function ATSAnalysisPanel() {
             <div className="ats-header-text">
               <span className="ats-header-title">ATS Analysis</span>
               <span className="ats-header-subtitle">
-                {report ? `Score: ${report.overallScore}/100` : "Check resume compatibility"}
+                {savedAtsScore !== null && savedAtsScore !== undefined ? `Score: ${savedAtsScore}/100` : "Check resume compatibility"}
               </span>
             </div>
           </div>
