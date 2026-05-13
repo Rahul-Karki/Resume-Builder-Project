@@ -169,6 +169,15 @@ const scoreLabel = (score: number) => {
   return "Poor";
 };
 
+const sectionStarCount = (score: number) => Math.max(1, Math.min(5, Math.round(score / 20)));
+
+const renderStars = (score: number) => {
+  const filled = sectionStarCount(score);
+  return Array.from({ length: 5 }, (_, index) => (
+    <span key={index} style={{ color: index < filled ? "#fde047" : "#3f3f46", fontSize: 12 }}>★</span>
+  ));
+};
+
 const SECTION_LABELS: Record<AtsSectionKey, string> = {
   summary: "Summary",
   experience: "Experience",
@@ -226,6 +235,8 @@ export function ATSAnalysisPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const sectionSuggestions = getSectionSuggestions(report);
+  const keywordGaps = (report?.keywordGaps ?? report?.keywordAnalysis?.missingKeywords ?? []).slice(0, 3);
+  const experienceRewrites = (report?.rewriteSuggestions ?? []).filter((suggestion) => (suggestion.path ?? "").startsWith("sections.experience"));
 
   const handleAnalyze = async () => {
     if (!resume._id) {
@@ -390,10 +401,66 @@ export function ATSAnalysisPanel() {
                       <div style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
                         <div style={{ width: `${val}%`, height: "100%", borderRadius: 3, background: scoreColor(val), transition: "width 0.8s ease" }} />
                       </div>
+                      <div style={{ width: 64, display: "flex", justifyContent: "flex-end", gap: 1 }}>{renderStars(val)}</div>
                       <span style={{ fontSize: 11, color: "#666", fontWeight: 600, width: 34, textAlign: "right" }}>{val}%</span>
                     </div>
                   ))}
                 </div>
+              </>
+            )}
+
+            {/* Verdict */}
+            <div className="ats-section-label">
+              <Lightbulb size={13} style={{ marginRight: 6 }} /> Verdict
+            </div>
+            <div className="ats-card">
+              <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{report.verdict || report.summary}</div>
+            </div>
+
+            {/* Top Keyword Gaps */}
+            {keywordGaps.length > 0 && (
+              <>
+                <div className="ats-section-label">
+                  <Target size={13} style={{ marginRight: 6 }} /> Top 3 Keyword Gaps
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 18px 10px" }}>
+                  {keywordGaps.map((gap, index) => (
+                    <span key={`${gap}-${index}`} className="ats-tag ats-tag-warn">{gap}</span>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Work Experience Rewrites */}
+            {experienceRewrites.length > 0 && (
+              <>
+                <div className="ats-section-label">
+                  <FileSearch size={13} style={{ marginRight: 6 }} /> Work Experience Rewrites
+                </div>
+                {experienceRewrites.slice(0, 3).map((suggestion, index) => (
+                  <div key={suggestion.id || index} className="ats-card">
+                    <div className="ats-card-header">
+                      <div className="ats-card-title">
+                        <Lightbulb size={14} style={{ color: "#eab308" }} /> {suggestion.reason || "Rewrite existing bullet"}
+                      </div>
+                      {suggestion.impact && (
+                        <span className={`ats-tag ${suggestion.impact === "high" ? "ats-tag-bad" : suggestion.impact === "medium" ? "ats-tag-warn" : "ats-tag-good"}`}>
+                          {suggestion.impact}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Original</div>
+                        <div className="ats-card-detail">{suggestion.originalText || "Original bullet not available"}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Rewritten</div>
+                        <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{suggestion.suggestionText || suggestion.reason}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </>
             )}
 

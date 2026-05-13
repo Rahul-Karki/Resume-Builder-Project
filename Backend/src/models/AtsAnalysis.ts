@@ -29,6 +29,8 @@ export interface IAtsAnalysis extends Document {
   formattingChecks: AtsFormattingCheck[];
   rewriteSuggestions: AiSuggestion[];
   perSectionSuggestions?: AtsSectionSuggestions;
+  keywordGaps?: string[];
+  verdict?: string;
   summary: string;
   analyzedAt?: Date;
   lastError?: string;
@@ -111,6 +113,8 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
       certifications: { type: [suggestionSchema], default: [] },
       languages: { type: [suggestionSchema], default: [] },
     },
+    keywordGaps: { type: [String], default: [] },
+    verdict: { type: String, default: "" },
     summary: { type: String, default: "" },
     analyzedAt: { type: Date, default: undefined },
     lastError: { type: String, default: "" },

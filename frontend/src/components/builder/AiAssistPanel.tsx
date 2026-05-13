@@ -364,10 +364,9 @@ export function AiAssistPanel() {
       <div style={{ padding: "14px 16px" }}>
         {activeTab === "tips" && (
           <>
-            {/* If an ATS analysis exists show those suggestions; otherwise show common tips */}
             {latestAnalysis ? (
               <div>
-                <div style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>ATS Suggestions</div>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>Actionable tips from your ATS analysis</div>
                 {Object.entries(sectionSuggestions).map(([section, suggestions]) => (
                   suggestions && suggestions.length > 0 ? (
                     <div key={section} style={{ marginBottom: 12 }}>
@@ -386,6 +385,7 @@ export function AiAssistPanel() {
               </div>
             ) : (
               <>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>Common tips before analysis</div>
                 {/* Section filter */}
                 <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
                   {[

@@ -85,6 +85,8 @@ export type AtsAnalysisReport = {
   formattingChecks: AtsFormattingCheck[];
   rewriteSuggestions: AiSuggestion[];
   perSectionSuggestions?: AtsSectionSuggestions;
+  keywordGaps?: string[];
+  verdict?: string;
   summary: string;
   analyzedAt?: string;
 };

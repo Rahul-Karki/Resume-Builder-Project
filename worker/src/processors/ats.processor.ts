@@ -18,6 +18,8 @@ type AiAtsEnhancement = {
   jdKeywords: string[];
   rewriteSuggestions: AiSuggestion[];
   perSectionSuggestions: AtsSectionSuggestions;
+  keywordGaps: string[];
+  verdict?: string;
   questionsForUser: string[];
 };
 
@@ -170,6 +172,12 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
     return accumulator;
   }, {});
 
+  const keywordGaps = Array.isArray(value.keywordGaps)
+    ? value.keywordGaps.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
+    : [];
+
+  const verdict = typeof value.verdict === "string" ? compactText(value.verdict) : "";
+
   const questionsForUser = Array.isArray(value.questionsForUser)
     ? value.questionsForUser.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
     : [];
@@ -178,6 +186,8 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
     jdKeywords: jdKeywords.slice(0, 30),
     rewriteSuggestions: rewriteSuggestions.slice(0, 12),
     perSectionSuggestions,
+    keywordGaps: keywordGaps.slice(0, 3),
+    verdict: verdict || undefined,
     questionsForUser: questionsForUser.slice(0, 5),
   };
 };
@@ -255,6 +265,8 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
     resumeText: resumeSnippet,
     outputShape: {
       jdKeywords: ["..."],
+      keywordGaps: ["..."],
+      verdict: "Two concise sentences summarizing the resume and the main improvement areas.",
       rewriteSuggestions: [
         {
           id: "ai-ats-1",
@@ -279,6 +291,9 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
     guidance: [
       "If a section seems missing/empty (e.g., summary too short, no projects, no skills categories), include a rewriteSuggestion that contains a template the user can add.",
       "Return suggestions grouped by section where possible in `perSectionSuggestions` and ensure each `rewriteSuggestions` item includes a `path` that identifies the target field (e.g., personalInfo.summary or sections.experience[0].bullets[1]).",
+      "For work experience, rewrite only the existing bullet points in plain, factual, action-driven language. Show original and rewritten wording without inventing new accomplishments.",
+      "Provide exactly three top keyword gaps as short phrases if possible.",
+      "Write the verdict in two concise sentences.",
       "For weak experience bullets, rewrite 1-2 bullets using strong action verbs and JD keywords (without adding new facts).",
       "Provide jdKeywords as 15-30 ATS keywords/phrases from the job description (tools, skills, role terms, methodologies).",
     ],
@@ -330,6 +345,8 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
       });
 
       const rewriteSuggestions: AiSuggestion[] = Array.from(suggestionById.values()).slice(0, 20);
+      const keywordGaps = enhancement.keywordGaps.length > 0 ? enhancement.keywordGaps : keywordResult.analysis.missingKeywords.slice(0, 3);
+      const verdict = enhancement.verdict || buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords);
 
       const report: AtsAnalysisReport = {
         ...base,
@@ -347,6 +364,8 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
         overallScore: sectionScores.overall,
         rewriteSuggestions,
         perSectionSuggestions,
+        keywordGaps,
+        verdict,
         summary: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
       };
 
@@ -490,6 +509,7 @@ const buildAtsReport = (job: Job<AtsAnalysisJobData>): AtsAnalysisReport => {
   const sectionScores = buildSectionScores(job.data.resume, keywordResult.matchScore);
   const formattingChecks = buildFormattingChecks(job.data.resume);
   const rewriteSuggestions = buildRewriteSuggestions(job.data.resume, grammarIssues);
+  const keywordGaps = keywordResult.analysis.missingKeywords.slice(0, 3);
 
   return {
     jobId: job.id,
@@ -506,6 +526,8 @@ const buildAtsReport = (job: Job<AtsAnalysisJobData>): AtsAnalysisReport => {
     grammarIssues,
     formattingChecks,
     rewriteSuggestions,
+    keywordGaps,
+    verdict: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
     summary: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
     analyzedAt: new Date().toISOString(),
   };
@@ -536,6 +558,8 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
         formattingChecks: report.formattingChecks,
         rewriteSuggestions: report.rewriteSuggestions,
         perSectionSuggestions: report.perSectionSuggestions ?? undefined,
+        keywordGaps: report.keywordGaps ?? [],
+        verdict: report.verdict ?? "",
         summary: report.summary,
         analyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
         lastError: "",
