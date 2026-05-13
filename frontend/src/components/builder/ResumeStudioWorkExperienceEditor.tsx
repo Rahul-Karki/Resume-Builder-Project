@@ -4,11 +4,14 @@ import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, Pane
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload } from '@/services/api';
+import { templates as localTemplateCatalog } from '@/data/templateMeta';
+import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
 import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
+import { Logo } from '@/components/Logo';
 
 type LeftTab = 'content' | 'style' | 'sections';
 type AssistantTab = 'tips' | 'ai' | 'ats';
@@ -17,6 +20,13 @@ type FocusTarget = {
   label: string;
   text: string;
   applySuggestion: (value: string) => void;
+};
+
+type TemplateOption = {
+  layoutId: string;
+  name: string;
+  audience?: 'tech' | 'non-tech';
+  sortOrder?: number;
 };
 
 const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 5000;
@@ -163,7 +173,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [template, setTemplate] = useState<'modern' | 'classic'>('modern');
+  const [templateId, setTemplateId] = useState<string>('classic');
+  const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -192,8 +203,62 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   }, [initFromTemplate, loadResume, location.state]);
 
   useEffect(() => {
-    setTemplate(resume.templateId === 'classic' ? 'classic' : 'modern');
+    setTemplateId(normalizeResumeTemplateId(resume.templateId));
   }, [resume.templateId]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadTemplates = async () => {
+      try {
+        const response = await api.get('/templates');
+        const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+        const apiTemplates: TemplateOption[] = rows
+          .map((row: unknown) => {
+            const data = typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {};
+            return {
+              layoutId: String(data.layoutId ?? ''),
+              name: String(data.name ?? data.layoutId ?? 'Template'),
+              audience: data.audience === 'tech' ? 'tech' : 'non-tech',
+              sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 999,
+            };
+          })
+          .filter((template: TemplateOption) => template.layoutId);
+
+        const mergedById = new Map<string, TemplateOption>();
+        apiTemplates.forEach((template) => mergedById.set(template.layoutId, template));
+
+        localTemplateCatalog.forEach((template) => {
+          if (!mergedById.has(template.id)) {
+            mergedById.set(template.id, {
+              layoutId: template.id,
+              name: template.name,
+              audience: template.audience,
+              sortOrder: 999,
+            });
+          }
+        });
+
+        if (!active) return;
+        setTemplateOptions(Array.from(mergedById.values()).sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+      } catch {
+        if (!active) return;
+        setTemplateOptions(
+          localTemplateCatalog.map((template) => ({
+            layoutId: template.id,
+            name: template.name,
+            audience: template.audience,
+            sortOrder: 999,
+          })),
+        );
+      }
+    };
+
+    void loadTemplates();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const computeScale = () => {
@@ -469,9 +534,10 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     }
   };
 
-  const handleTemplateChange = async (value: 'modern' | 'classic') => {
-    setTemplate(value);
-    await applyTemplateUpgrade(value === 'classic' ? 'classic' : 'modern');
+  const handleTemplateChange = async (value: string) => {
+    const normalized = normalizeResumeTemplateId(value);
+    setTemplateId(normalized);
+    await applyTemplateUpgrade(normalized);
   };
 
   const compactInsights = [
@@ -501,6 +567,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     <div className="h-screen overflow-hidden bg-[#09090b] text-[#F0EFE8] font-['Outfit']">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap');
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <header className="h-12 border-b border-zinc-800/70 flex items-center justify-between px-3 md:px-4 lg:px-6 bg-[#0C0C0F]/95 backdrop-blur-sm sticky top-0 z-30">
@@ -512,24 +580,27 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           >
             {mobileEditorOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
           </button>
-          <div className="h-7 w-7 rounded-lg bg-[#99A6FF] text-[#0A0A0A] flex items-center justify-center font-bold text-xs">R</div>
-          <div className="text-xs text-zinc-400 hidden sm:block tracking-wide">Resume Builder</div>
+          <Logo isCompact />
+          <div className="text-xs text-zinc-400 hidden sm:block tracking-wide">Editor</div>
         </div>
 
         <div className="flex items-center gap-2">
           <select
-            value={template}
-            onChange={(event) => void handleTemplateChange(event.target.value as 'modern' | 'classic')}
+            value={templateId}
+            onChange={(event) => void handleTemplateChange(event.target.value)}
             className="bg-zinc-900 border border-zinc-700/80 rounded-lg px-2.5 py-1 text-xs text-zinc-100"
           >
-            <option value="modern">Modern Executive</option>
-            <option value="classic">Classic Professional</option>
+            {templateOptions.map((templateOption) => (
+              <option key={templateOption.layoutId} value={templateOption.layoutId}>
+                {templateOption.name}
+              </option>
+            ))}
           </select>
 
           <button
             onClick={() => void handleSave()}
             disabled={ui.isSaving}
-            className="px-2.5 py-1 text-xs rounded-lg border border-zinc-700 bg-zinc-900 hover:border-[#99A6FF] disabled:opacity-50 transition-colors"
+            className="px-2.5 py-1 text-xs rounded-lg border border-zinc-700 bg-zinc-900 hover:border-[#C8F55A] disabled:opacity-50 transition-colors"
           >
             {ui.isSaving ? 'Saving...' : 'Save'}
           </button>
@@ -537,7 +608,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <button
             onClick={() => void handleDownload()}
             disabled={isExporting || (!resume.id && !ui.isSaved)}
-            className="px-2.5 py-1 text-xs rounded-lg bg-[#99A6FF] text-[#0A0A0A] font-semibold disabled:opacity-50"
+            className="px-2.5 py-1 text-xs rounded-lg bg-[#C8F55A] text-[#0A0A0A] font-semibold disabled:opacity-50"
           >
             {isExporting ? 'Exporting...' : 'Download PDF'}
           </button>
@@ -572,23 +643,23 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             <div className="px-3 py-2 border-b border-zinc-800/70 bg-zinc-900/40">
               <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Focused Field: {focusedTarget.label}</div>
               <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => void runContextAction('improve')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                <button onClick={() => void runContextAction('improve')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
                   <Sparkles size={12} /> {actionLoading === 'improve' ? '...' : 'Improve'}
                 </button>
-                <button onClick={() => void runContextAction('rewrite')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                <button onClick={() => void runContextAction('rewrite')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
                   <Wand2 size={12} /> {actionLoading === 'rewrite' ? '...' : 'Rewrite'}
                 </button>
-                <button onClick={() => void runContextAction('shorten')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                <button onClick={() => void runContextAction('shorten')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
                   <Scissors size={12} /> {actionLoading === 'shorten' ? '...' : 'Shorten'}
                 </button>
-                <button onClick={() => void runContextAction('ats')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                <button onClick={() => void runContextAction('ats')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#C8F55A]" disabled={actionLoading !== null}>
                   <Target size={12} /> {actionLoading === 'ats' ? '...' : 'ATS Optimize'}
                 </button>
               </div>
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto no-scrollbar">
             {leftTab === 'content' && <EditorPanel />}
             {leftTab === 'style' && <StylePanel />}
             {leftTab === 'sections' && <SectionsTab />}
@@ -616,7 +687,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
       <button
         onClick={() => setAssistantOpen(true)}
-        className="fixed right-4 bottom-4 z-40 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#99A6FF] text-[#0A0A0A] text-sm font-semibold shadow-[0_10px_32px_rgba(153,166,255,0.35)] hover:-translate-y-px transition-transform"
+        className="fixed right-4 bottom-4 z-40 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#C8F55A] text-[#0A0A0A] text-sm font-semibold shadow-[0_10px_32px_rgba(200,245,90,0.35)] hover:-translate-y-px transition-transform"
         aria-label="Open AI Assistant"
       >
         <Bot size={16} /> AI Assistant
@@ -645,7 +716,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto no-scrollbar p-4">
                 {assistantTab === 'tips' && (
                   <div className="space-y-2.5">
                     {compactInsights.map((insight, idx) => (
@@ -654,7 +725,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                         <span className="text-zinc-200">{insight.text}</span>
                       </div>
                     ))}
-                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#99A6FF] text-[#0A0A0A] py-2 text-sm font-semibold">
+                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
                       {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
                     </button>
                   </div>
@@ -684,7 +755,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto no-scrollbar p-4">
                 {assistantTab === 'tips' && (
                   <div className="space-y-2.5">
                     {compactInsights.map((insight, idx) => (
@@ -693,7 +764,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                         <span className="text-zinc-200">{insight.text}</span>
                       </div>
                     ))}
-                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#99A6FF] text-[#0A0A0A] py-2 text-sm font-semibold">
+                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
                       {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
                     </button>
                   </div>
@@ -727,7 +798,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 ))}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto no-scrollbar">
               {leftTab === 'content' && <EditorPanel />}
               {leftTab === 'style' && <StylePanel />}
               {leftTab === 'sections' && <SectionsTab />}
@@ -746,7 +817,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#27272a] mb-5">
               <pre className="text-sm text-zinc-100 whitespace-pre-wrap font-['Outfit'] leading-relaxed">{optimizationReport}</pre>
             </div>
-            <button onClick={() => setOptimizationReport(null)} className="w-full py-2.5 rounded-xl bg-[#99A6FF] text-[#0A0A0A] font-semibold">Got it</button>
+            <button onClick={() => setOptimizationReport(null)} className="w-full py-2.5 rounded-xl bg-[#C8F55A] text-[#0A0A0A] font-semibold">Got it</button>
           </div>
         </div>
       )}
