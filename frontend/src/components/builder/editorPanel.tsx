@@ -813,3 +813,69 @@ function ExperienceCard({
     </div>
   );
 }
+
+export function EditorPanel(): ReactNode {
+  const {
+    ui,
+    setActiveSection,
+  } = useResumeBuilderStore();
+
+  const activeSection = ui.activeSection;
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case "personal":
+        return <PersonalSection />;
+      case "experience":
+        return <ExperienceSection />;
+      default:
+        return (
+          <div style={{ padding: "20px", color: "#a1a1aa", fontSize: 13 }}>
+            This section editor is temporarily unavailable in this panel.
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="editor-fade-in" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <style>{css}</style>
+
+      <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
+          {NAV_ITEMS.map((item) => {
+            const isActive = item.id === activeSection;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveSection(item.id)}
+                style={{
+                  border: "1px solid",
+                  borderColor: isActive ? "#FFFFFF" : "rgba(255,255,255,0.12)",
+                  background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
+                  color: isActive ? "#FFFFFF" : "#a1a1aa",
+                  borderRadius: 10,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s ease",
+                }}
+                title={item.label}
+              >
+                <span style={{ marginRight: 6 }}>{item.icon}</span>
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto" }} className="themed-scrollbar">
+        {renderSection()}
+      </div>
+    </div>
+  );
+}
