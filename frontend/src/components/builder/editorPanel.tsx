@@ -491,7 +491,6 @@ function ExperienceSection() {
       setEnhancingId(null);
     }
   };
-
   const handleFinalizeOptimize = async () => {
     setIsOptimizing(true);
     setApiError(null);
@@ -503,7 +502,7 @@ function ExperienceSection() {
     } finally {
       setIsOptimizing(false);
     }
-  };
+    };
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -523,6 +522,7 @@ function ExperienceSection() {
   const handleDragEnd = () => {
     setDraggedId(null);
   };
+
 
   return (
     <div style={{ padding: "0 4px 24px" }}>
@@ -1144,6 +1144,11 @@ export function EditorPanel(): ReactNode {
     languages: <LanguagesSection />,
   };
 
+  const [activeSection, setActiveSection] = useState<string | null>(() => {
+    const firstVisible = resume.sectionOrder.find((k) => resume.sectionVisibility[k]);
+    return firstVisible ?? null;
+  });
+
   return (
     <div className="editor-fade-in" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{css}</style>
@@ -1153,22 +1158,55 @@ export function EditorPanel(): ReactNode {
           <PersonalSection />
         </div>
 
-        <div style={{ padding: "12px 14px", display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-          {/* Top row: Experience | Education | Skills */}
-          {(["experience", "education", "skills"] as const).map((key) => (
-            resume.sectionVisibility[key] ? (
-              <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
-            ) : null
-          ))}
+        {/* Section selector */}
+        <div style={{ padding: "8px 14px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          {resume.sectionOrder.map((key) => {
+            if (!resume.sectionVisibility[key]) return null;
+            const label = key.charAt(0).toUpperCase() + key.slice(1);
+            const active = activeSection === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveSection((s) => (s === key ? null : key))}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: active ? "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))" : "transparent",
+                  color: "#e8dfe3",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
-        <div style={{ padding: "0 14px 18px", display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
-          {/* Bottom row: Projects | Certifications | Languages */}
-          {(["projects", "certifications", "languages"] as const).map((key) => (
-            resume.sectionVisibility[key] ? (
-              <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
-            ) : null
-          ))}
+        <div style={{ padding: "12px 14px", display: "grid", gap: 14 }}>
+          {activeSection ? (
+            <div style={{ minWidth: 0 }}>{sectionContent[activeSection]}</div>
+          ) : (
+            <>
+              <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+                {(["experience", "education", "skills"] as const).map((key) => (
+                  resume.sectionVisibility[key] ? (
+                    <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
+                  ) : null
+                ))}
+              </div>
+
+              <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+                {(["projects", "certifications", "languages"] as const).map((key) => (
+                  resume.sectionVisibility[key] ? (
+                    <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
+                  ) : null
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
