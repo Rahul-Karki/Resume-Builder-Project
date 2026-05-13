@@ -1,206 +1,321 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
+import type { ResumeDocument, WorkEntry } from '@/types/resume-types';
+import {
+  api,
+  enhanceResumeBullet,
+  improveResumeText,
+  queueResumeDownload,
+  getResumeDownloadJobStatus,
+} from '@/services/api';
 
-type WorkExperience = {
-  id: string;
-  jobTitle: string;
-  company: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-  isExpanded: boolean;
+const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 5000;
+const RESUME_DOWNLOAD_MAX_POLLS = 60;
+
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const getEntryDescription = (entry: WorkEntry): string => {
+  if (entry.description.trim()) return entry.description;
+  return entry.bullets.find((bullet) => bullet.trim()) || '';
 };
 
-type AnthropicResponse = {
-  completion?: string;
-  output?: string;
-  text?: string;
+const normalizeDownloadUrl = (downloadUrl: string) => {
+  if (/^https?:\/\//i.test(downloadUrl)) return downloadUrl;
+
+  if (downloadUrl.startsWith('/api/')) {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const backendBase = apiBaseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+    return `${backendBase}${downloadUrl}`;
+  }
+
+  return downloadUrl;
 };
 
-declare global {
-  interface Window {
-    __ANTHROPIC_API_KEY__?: string;
-  }
-}
-
-const AnthropicConfig = {
-  endpoint: 'https://api.anthropic.com/v1/complete',
-  model: 'claude-2.1',
-  getKey: (): string | undefined => (typeof window !== 'undefined' ? window.__ANTHROPIC_API_KEY__ : undefined),
+const openPdfInNewTab = (downloadUrl: string) => {
+  const url = normalizeDownloadUrl(downloadUrl);
+  window.open(url, '_blank');
 };
 
-const defaultExperiences: WorkExperience[] = [
-  {
-    id: '1',
-    jobTitle: 'Senior Software Engineer',
-    company: 'Tech Solutions Inc.',
-    startDate: '2021-01',
-    endDate: 'Present',
-    description:
-      'Led a team of 5 engineers to build a customer portal. Managed migration to cloud infrastructure and improved performance by 30%.',
-    isExpanded: true,
-  },
-  {
-    id: '2',
-    jobTitle: 'Software Engineer',
-    company: 'Innovate LLC',
-    startDate: '2018-06',
-    endDate: '2020-12',
-    description: 'Worked on building REST APIs and frontend components using React and Node.js.',
-    isExpanded: false,
-  },
-];
+const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
+  for (let attempt = 1; attempt <= RESUME_DOWNLOAD_MAX_POLLS; attempt += 1) {
+    const status = await getResumeDownloadJobStatus(jobId);
 
-async function callAnthropic(prompt: string, signal?: AbortSignal): Promise<string> {
-  const key = AnthropicConfig.getKey();
-  if (!key) {
-    throw new Error('Anthropic API key missing. Set window.__ANTHROPIC_API_KEY__.');
+    if (status.status === 'completed') return status;
+    if (status.status === 'failed') throw new Error(status.lastError || 'Resume download failed');
+
+    onStatus?.(`Generating PDF... (${attempt}/${RESUME_DOWNLOAD_MAX_POLLS})`);
+    await sleep(RESUME_DOWNLOAD_POLL_INTERVAL_MS);
   }
 
-  const response = await fetch(AnthropicConfig.endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({
-      model: AnthropicConfig.model,
-      prompt,
-      max_tokens: 500,
-      temperature: 0.2,
-    }),
-    signal,
-  });
+  throw new Error('Resume download is taking longer than expected. Please try again later.');
+};
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || response.statusText);
+const downloadResume = async (
+  resume: ResumeDocument,
+  resumeId?: string,
+  onStatus?: (status: string) => void,
+) => {
+  onStatus?.('Queuing PDF export...');
+
+  const queueResponse = await queueResumeDownload(
+    resumeId
+      ? { resumeId, preset: 'standard' }
+      : { resume, preset: 'standard' },
+  );
+
+  const initialDownloadUrl = queueResponse.resultUrl || queueResponse.downloadUrl;
+
+  if (queueResponse.status === 'failed') {
+    throw new Error(queueResponse.message || 'Resume download failed');
   }
 
-  const json = (await response.json()) as AnthropicResponse;
-  return (json.completion || json.output || json.text || '').trim();
-}
+  if (queueResponse.status === 'completed' && initialDownloadUrl) {
+    onStatus?.('Opening PDF...');
+    openPdfInNewTab(initialDownloadUrl);
+    return;
+  }
+
+  onStatus?.('Generating PDF...');
+  const completedJob = await waitForResumeDownload(queueResponse.jobId, onStatus);
+  const downloadUrl = completedJob.resultUrl || initialDownloadUrl;
+
+  if (!downloadUrl) {
+    throw new Error('Resume download finished without a download URL.');
+  }
+
+  onStatus?.('Opening PDF...');
+  openPdfInNewTab(downloadUrl);
+};
 
 const ResumeStudioWorkExperienceEditor: React.FC = () => {
-  const [experiences, setExperiences] = useState<WorkExperience[]>(defaultExperiences);
-  const [zoom, setZoom] = useState<number>(1);
+  const {
+    resume,
+    ui,
+    loadResume,
+    initFromTemplate,
+    applyTemplateUpgrade,
+    saveResume,
+    addExperience,
+    updateExperience,
+    removeExperience,
+    reorderExperience,
+    updatePersonalInfo,
+  } = useResumeBuilderStore();
+
+  const location = useLocation();
+
   const [template, setTemplate] = useState<'modern' | 'classic'>('modern');
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [isOptimizing, setIsOptimizing] = useState<boolean>(false);
+  const [zoom, setZoom] = useState(1);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
+  const [isAiLoadingById, setIsAiLoadingById] = useState<Record<string, boolean>>({});
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationReport, setOptimizationReport] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (abortRef.current) abortRef.current.abort();
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get('resume');
+    const templateId = params.get('template') ?? 'classic';
+    const preloadedResume = (location.state as { preloadedResume?: ResumeDocument } | null)?.preloadedResume;
+
+    if (resumeId) {
+      void loadResume(resumeId, preloadedResume);
+      return;
+    }
+
+    void initFromTemplate(templateId);
+  }, [initFromTemplate, loadResume, location.state]);
+
+  useEffect(() => {
+    const currentTemplate = resume.templateId;
+    if (currentTemplate === 'classic') {
+      setTemplate('classic');
+    } else {
+      setTemplate('modern');
+    }
+  }, [resume.templateId]);
+
+  useEffect(() => {
+    setExpandedById((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      for (const exp of resume.sections.experience) {
+        if (!(exp.id in next)) {
+          next[exp.id] = true;
+          changed = true;
+        }
+      }
+
+      for (const id of Object.keys(next)) {
+        if (!resume.sections.experience.some((exp) => exp.id === id)) {
+          delete next[id];
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [resume.sections.experience]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        const user = response.data?.user;
+        if (!user || cancelled) return;
+
+        const nextName = String(user.name ?? '').trim();
+        const nextEmail = String(user.email ?? '').trim();
+
+        if (!resume.personalInfo.name?.trim() && nextName) {
+          updatePersonalInfo('name', nextName);
+        }
+        if (!resume.personalInfo.email?.trim() && nextEmail) {
+          updatePersonalInfo('email', nextEmail);
+        }
+      } catch {
+        // Keep UI functional even if prefill fails.
+      }
     };
-  }, []);
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [resume.personalInfo.email, resume.personalInfo.name, updatePersonalInfo]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (ui.isDirty) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [ui.isDirty]);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        void saveResume();
+      }
+    },
+    [saveResume],
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   const resumeStrength = useCallback(() => {
-    const totalWords = experiences.reduce((acc, e) => acc + e.description.split(/\s+/).filter(Boolean).length, 0);
-    const metrics = experiences.reduce((acc, e) => acc + (e.description.match(/\d+/g) || []).length, 0);
+    const entries = resume.sections.experience;
+    const totalWords = entries.reduce((acc, curr) => acc + getEntryDescription(curr).split(/\s+/).filter(Boolean).length, 0);
+    const metrics = entries.reduce((acc, curr) => acc + (getEntryDescription(curr).match(/\d+/g) || []).length, 0);
 
-    let score = 45;
-    if (totalWords > 100) score += 18;
-    if (totalWords > 200) score += 12;
-    score += Math.min(20, metrics * 4);
-    score += Math.min(10, experiences.length * 2);
+    let score = 40;
+    if (totalWords > 50) score += 12;
+    if (totalWords > 120) score += 12;
+    score += Math.min(24, metrics * 4);
+    score += Math.min(10, entries.length * 2);
 
-    return Math.max(20, Math.min(95, Math.round(score)));
-  }, [experiences]);
+    return Math.max(10, Math.min(95, Math.round(score)));
+  }, [resume.sections.experience]);
 
   const weakVerbUsage = useCallback(() => {
-    const ledCount = experiences.reduce((acc, e) => acc + ((e.description.match(/\bled\b/gi) || []).length), 0);
+    const ledCount = resume.sections.experience.reduce(
+      (acc, entry) => acc + ((getEntryDescription(entry).match(/\bled\b/gi) || []).length),
+      0,
+    );
     return ledCount > 1;
-  }, [experiences]);
+  }, [resume.sections.experience]);
 
-  const updateExperience = (id: string, field: keyof WorkExperience, value: string | boolean) => {
-    setExperiences((prev) => prev.map((exp) => (exp.id === id ? { ...exp, [field]: value } : exp)));
+  const setExperienceDescription = (id: string, nextDescription: string) => {
+    updateExperience(id, 'description', nextDescription);
+    updateExperience(id, 'contentMode', 'paragraph');
+    updateExperience(id, 'bullets', [nextDescription]);
   };
 
-  const addExperience = () => {
-    const id = Date.now().toString();
-    setExperiences((prev) => [
-      ...prev,
-      {
-        id,
-        jobTitle: '',
-        company: '',
-        startDate: '',
-        endDate: '',
-        description: '',
-        isExpanded: true,
-      },
-    ]);
-  };
+  const handleEnhanceDescription = async (entry: WorkEntry) => {
+    const rawDescription = getEntryDescription(entry).trim();
+    if (!rawDescription) {
+      setApiError('Please add a description first before using AI Enhance.');
+      return;
+    }
 
-  const removeExperience = (id: string) => {
-    setExperiences((prev) => prev.filter((exp) => exp.id !== id));
-  };
-
-  const toggleExpand = (id: string) => {
-    setExperiences((prev) => prev.map((exp) => (exp.id === id ? { ...exp, isExpanded: !exp.isExpanded } : exp)));
-  };
-
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    setDraggedId(id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent, id: string) => {
-    e.preventDefault();
-    if (!draggedId || draggedId === id) return;
-
-    setExperiences((prev) => {
-      const from = prev.findIndex((x) => x.id === draggedId);
-      const to = prev.findIndex((x) => x.id === id);
-      if (from === -1 || to === -1) return prev;
-      const reordered = [...prev];
-      const [item] = reordered.splice(from, 1);
-      reordered.splice(to, 0, item);
-      return reordered;
-    });
-  };
-
-  const handleDragEnd = () => setDraggedId(null);
-
-  const enhanceDescription = async (id: string) => {
     setApiError(null);
-    const exp = experiences.find((e) => e.id === id);
-    if (!exp) return;
-
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-
-    const prompt = `Rewrite the following work experience description to be achievement-focused. Use stronger action verbs and add measurable impact where reasonable. Keep it concise and professional (1-2 lines).\n\nOriginal:\n${exp.description}`;
+    setIsAiLoadingById((prev) => ({ ...prev, [entry.id]: true }));
 
     try {
-      const improved = await callAnthropic(prompt, abortRef.current.signal);
-      if (!improved) throw new Error('AI response was empty.');
-      updateExperience(id, 'description', improved);
+      const aiResult = await enhanceResumeBullet({
+        text: rawDescription,
+        section: 'experience',
+        tone: 'professional',
+      });
+
+      const improvedText =
+        aiResult.variations.find((value) => value.trim().length > 0) ||
+        aiResult.suggestions[0]?.suggestionText ||
+        rawDescription;
+
+      setExperienceDescription(entry.id, improvedText);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to enhance description.';
       setApiError(message);
+    } finally {
+      setIsAiLoadingById((prev) => ({ ...prev, [entry.id]: false }));
     }
   };
 
-  const finalizeAndOptimize = async () => {
+  const handleFinalizeAndOptimize = async () => {
+    const allDescriptions = resume.sections.experience.map((entry) => getEntryDescription(entry).trim()).filter(Boolean);
+
+    if (allDescriptions.length === 0) {
+      setApiError('Add at least one work experience description before optimization.');
+      return;
+    }
+
     setApiError(null);
     setIsOptimizing(true);
 
-    if (abortRef.current) abortRef.current.abort();
-    abortRef.current = new AbortController();
-
-    const payload = experiences
-      .map((exp, i) => `${i + 1}. ${exp.jobTitle || 'Role'} at ${exp.company || 'Company'}: ${exp.description}`)
-      .join('\n\n');
-
-    const prompt = `Analyze the following work experience content for a resume. Return an optimization report with:\n1) Overall impact\n2) Verb usage quality\n3) Missing metrics/opportunities\n4) ATS keyword suggestions\n5) Top 3 prioritized edits\n\nContent:\n${payload}`;
-
     try {
-      const report = await callAnthropic(prompt, abortRef.current.signal);
-      if (!report) throw new Error('Optimization report was empty.');
-      setOptimizationReport(report);
+      const aiResult = await improveResumeText({
+        text: allDescriptions.join('\n'),
+        section: 'experience',
+        tone: 'leadership-focused',
+      });
+
+      const reportLines = [
+        'Optimization Report',
+        '',
+        aiResult.summary || 'No summary returned.',
+        '',
+        ...(aiResult.suggestions.length
+          ? [
+              'Top Suggestions:',
+              ...aiResult.suggestions.slice(0, 5).map((suggestion, index) => `${index + 1}. ${suggestion.reason} -> ${suggestion.suggestionText}`),
+              '',
+            ]
+          : []),
+        ...(aiResult.variations.length
+          ? [
+              'Optional Variations:',
+              ...aiResult.variations.slice(0, 3).map((variation, index) => `${index + 1}. ${variation}`),
+            ]
+          : []),
+      ];
+
+      setOptimizationReport(reportLines.join('\n'));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate optimization report.';
       setApiError(message);
@@ -209,54 +324,99 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     }
   };
 
+  const handleSave = async () => {
+    setApiError(null);
+    setStatusMessage('Saving resume...');
+    try {
+      await saveResume();
+      setStatusMessage('Resume saved.');
+    } catch {
+      setStatusMessage(null);
+    }
+  };
+
+  const handleDownload = async () => {
+    setApiError(null);
+    setIsExporting(true);
+    try {
+      await downloadResume(resume, resume.id, setStatusMessage);
+      setStatusMessage('PDF opened in a new tab.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to export PDF.';
+      setApiError(message);
+      setStatusMessage(null);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleTemplateChange = async (nextTemplate: 'modern' | 'classic') => {
+    setTemplate(nextTemplate);
+    const mappedTemplateId = nextTemplate === 'classic' ? 'classic' : 'modern';
+    await applyTemplateUpgrade(mappedTemplateId);
+  };
+
+  const handleDragStart = (index: number) => setDraggedIndex(index);
+
+  const handleDragOver = (event: React.DragEvent, targetIndex: number) => {
+    event.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+    reorderExperience(draggedIndex, targetIndex);
+    setDraggedIndex(targetIndex);
+  };
+
+  const handleDragEnd = () => setDraggedIndex(null);
+
   const templateStyles =
     template === 'modern'
       ? {
           name: 'font-playfair text-4xl font-bold text-gray-900',
-          role: 'text-orange-500 text-lg font-medium',
-          section: 'text-xs uppercase tracking-widest text-gray-700 font-bold mb-3 border-b border-orange-400 pb-2',
-          bullet: 'list-disc list-inside text-gray-700 text-sm',
+          role: 'text-[#e8622a] text-lg font-medium',
+          section: 'text-xs uppercase tracking-widest text-gray-700 font-bold mb-3 border-b border-[#e8622a] pb-2',
+          bullet: 'list-disc list-inside text-gray-700 text-sm leading-relaxed',
         }
       : {
           name: 'font-playfair text-3xl font-semibold text-gray-900',
-          role: 'text-orange-500 text-base font-semibold',
+          role: 'text-[#e8622a] text-base font-semibold',
           section: 'text-sm text-gray-800 font-semibold mb-3 border-b border-gray-300 pb-2',
-          bullet: 'list-none text-gray-700 text-sm pl-4 border-l-2 border-orange-300',
+          bullet: 'list-none text-gray-700 text-sm leading-relaxed pl-4 border-l-2 border-[#f0847a]',
         };
 
   return (
-    <div className="min-h-screen w-full bg-[#1a1014] text-[#f5f0f2] flex font-sans overflow-hidden" style={{ minWidth: 1200 }}>
+    <div className="flex h-screen w-full bg-[#1a1014] text-[#f5f0f2] font-sans overflow-hidden" style={{ minWidth: 1200 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@400;700&display=swap');
         .font-sans { font-family: 'DM Sans', sans-serif; }
         .font-playfair { font-family: 'Playfair Display', serif; }
       `}</style>
 
-      <aside className="w-15 shrink-0 bg-[#231820] border-r border-[#2e1f28] flex flex-col items-center py-4">
-        <div className="mb-6 flex flex-col items-center">
-          <div className="w-10 h-10 bg-[#e8622a] rounded-lg flex items-center justify-center shadow-[0_8px_20px_rgba(232,98,42,0.35)]">
-            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7S4.99 16.2 3.5 16.2H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7s2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z"/></svg>
+      <aside className="w-15 shrink-0 bg-[#231820] flex flex-col items-center py-4 border-r border-[#2e1f28]">
+        <div className="mb-7 flex flex-col items-center">
+          <div className="w-10 h-10 bg-[#e8622a] rounded-lg flex items-center justify-center shadow-[0_8px_24px_rgba(232,98,42,0.35)]">
+            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7S4.99 16.2 3.5 16.2H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7s2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z" /></svg>
           </div>
-          <span className="text-[10px] text-[#f5f0f2] mt-2 text-center leading-tight">ResumeStudio</span>
+          <span className="text-[10px] mt-2">ResumeStudio</span>
           <span className="text-[9px] mt-1 bg-[#f0847a] text-[#231820] px-1.5 py-0.5 rounded-full font-semibold">V3.0 Beta</span>
         </div>
 
-        <div className="flex flex-col gap-5 w-full items-center mt-3">
+        <nav className="flex flex-col gap-5 w-full items-center">
           {[
             'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z',
             'M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4v2h16V6z',
             'M12 3L1 9l11 6 9-4.91V17h2V9L12 3z',
             'M19.43 12.98c.04-.32.07-.66.07-1.02 0-3.86-3.14-7-7-7-2.75 0-5.18 1.59-6.32 4.06',
             'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58',
-          ].map((path, idx) => (
+          ].map((path, index) => (
             <button
-              key={idx}
-              className={`w-10 h-10 rounded-md flex items-center justify-center transition-colors ${idx === 1 ? 'text-[#e8622a] bg-[#2e1f28]' : 'text-[#a08090] hover:text-[#f5f0f2]'}`}
+              key={path}
+              className={`w-10 h-10 rounded-md flex items-center justify-center transition-colors ${
+                index === 1 ? 'text-[#e8622a] bg-[#2e1f28]' : 'text-[#a08090] hover:text-[#f5f0f2]'
+              }`}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d={path} /></svg>
             </button>
           ))}
-        </div>
+        </nav>
       </aside>
 
       <section className="w-95 shrink-0 bg-[#231820] border-r border-[#2e1f28] flex flex-col">
@@ -268,97 +428,109 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {experiences.map((exp) => (
-            <div
-              key={exp.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, exp.id)}
-              onDragOver={(e) => handleDragOver(e, exp.id)}
-              onDragEnd={handleDragEnd}
-              className="bg-[#2e1f28] rounded-xl border border-[#3a2a33] overflow-hidden transition-all duration-300 hover:border-[#e8622a]/30"
-            >
-              <div className="p-4 flex items-center justify-between cursor-pointer" onClick={() => toggleExpand(exp.id)}>
-                <div className="flex items-center gap-3">
-                  <span className="text-[#a08090]">≡</span>
-                  <div>
-                    <h3 className="text-sm font-semibold">{exp.jobTitle || 'New Position'}</h3>
-                    <p className="text-xs text-[#a08090]">
-                      {exp.company || 'Company Name'} • {exp.startDate || 'Start'} - {exp.endDate || 'End'}
-                    </p>
+          {resume.sections.experience.map((entry, index) => {
+            const entryDescription = getEntryDescription(entry);
+            const isExpanded = expandedById[entry.id] ?? true;
+            const isEnhancing = isAiLoadingById[entry.id] ?? false;
+
+            return (
+              <div
+                key={entry.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(event) => handleDragOver(event, index)}
+                onDragEnd={handleDragEnd}
+                className="bg-[#2e1f28] rounded-xl border border-[#3a2a33] overflow-hidden transition-all duration-300 hover:border-[#e8622a]/30"
+              >
+                <div
+                  className="p-4 flex items-center justify-between cursor-pointer"
+                  onClick={() => setExpandedById((prev) => ({ ...prev, [entry.id]: !isExpanded }))}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#a08090]">≡</span>
+                    <div>
+                      <h3 className="text-sm font-semibold text-[#f5f0f2]">{entry.role || 'New Position'}</h3>
+                      <p className="text-xs text-[#a08090]">
+                        {entry.company || 'Company Name'} • {entry.start || 'Start'} - {entry.current ? 'Present' : entry.end || 'End'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        removeExperience(entry.id);
+                      }}
+                      className="text-[#a08090] hover:text-red-400 transition-colors"
+                    >
+                      ✕
+                    </button>
+                    <span className={`text-[#a08090] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>⌄</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeExperience(exp.id);
-                    }}
-                    className="text-[#a08090] hover:text-red-400 transition-colors"
-                  >
-                    ✕
-                  </button>
-                  <span className={`text-[#a08090] transition-transform duration-300 ${exp.isExpanded ? 'rotate-180' : ''}`}>⌄</span>
-                </div>
-              </div>
-
-              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${exp.isExpanded ? 'max-h-150 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-4 pt-0 space-y-3">
-                  <div>
-                    <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Job Title</label>
-                    <input
-                      value={exp.jobTitle}
-                      onChange={(e) => updateExperience(exp.id, 'jobTitle', e.target.value)}
-                      className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Company</label>
-                    <input
-                      value={exp.company}
-                      onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
-                      className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2]"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Start Date</label>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-150 opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <div className="p-4 pt-0 space-y-3">
+                    <div>
+                      <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Job Title</label>
                       <input
-                        type="month"
-                        value={exp.startDate}
-                        onChange={(e) => updateExperience(exp.id, 'startDate', e.target.value)}
+                        type="text"
+                        value={entry.role}
+                        onChange={(event) => updateExperience(entry.id, 'role', event.target.value)}
                         className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2]"
                       />
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">End Date</label>
+                    <div>
+                      <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Company</label>
                       <input
-                        value={exp.endDate}
-                        onChange={(e) => updateExperience(exp.id, 'endDate', e.target.value)}
+                        type="text"
+                        value={entry.company}
+                        onChange={(event) => updateExperience(entry.id, 'company', event.target.value)}
                         className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2]"
-                        placeholder="Present"
                       />
                     </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Start Date</label>
+                        <input
+                          type="month"
+                          value={entry.start}
+                          onChange={(event) => updateExperience(entry.id, 'start', event.target.value)}
+                          className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2]"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">End Date</label>
+                        <input
+                          type="text"
+                          value={entry.current ? 'Present' : entry.end}
+                          onChange={(event) => updateExperience(entry.id, 'end', event.target.value)}
+                          className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2]"
+                          placeholder="Present"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Description</label>
+                      <textarea
+                        rows={4}
+                        value={entryDescription}
+                        onChange={(event) => setExperienceDescription(entry.id, event.target.value)}
+                        className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2] resize-none"
+                      />
+                    </div>
+                    <button
+                      onClick={() => void handleEnhanceDescription(entry)}
+                      disabled={isEnhancing}
+                      className="w-full py-2 px-4 bg-[#e8622a]/10 border border-[#e8622a]/30 text-[#e8622a] rounded-lg text-sm font-medium hover:bg-[#e8622a]/20 transition-all disabled:opacity-50"
+                    >
+                      {isEnhancing ? 'Enhancing...' : '⚡ AI Enhance Description'}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-xs text-[#a08090] mb-1 uppercase tracking-wider">Description</label>
-                    <textarea
-                      rows={4}
-                      value={exp.description}
-                      onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
-                      className="w-full bg-[#231820] border border-[#3a2a33] rounded-lg px-3 py-2 text-sm text-[#f5f0f2] resize-none"
-                    />
-                  </div>
-                  <button
-                    onClick={() => enhanceDescription(exp.id)}
-                    className="w-full py-2 px-4 bg-[#e8622a]/10 border border-[#e8622a]/30 text-[#e8622a] rounded-lg text-sm font-medium hover:bg-[#e8622a]/20 transition-all"
-                  >
-                    ⚡ AI Enhance Description
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <button
             onClick={addExperience}
@@ -371,15 +543,33 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
       <section className="flex-1 bg-[#1a1014] flex flex-col min-w-0">
         <div className="h-14 border-b border-[#2e1f28] flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center bg-[#231820] rounded-lg p-1 border border-[#2e1f28]">
-            <button onClick={() => setZoom((z) => Math.max(0.6, z - 0.1))} className="p-1.5 text-[#a08090]">-</button>
-            <span className="text-xs text-[#a08090] w-12 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))} className="p-1.5 text-[#a08090]">+</button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center bg-[#231820] rounded-lg p-1 border border-[#2e1f28]">
+              <button onClick={() => setZoom((value) => Math.max(0.5, value - 0.1))} className="p-1.5 text-[#a08090]">-</button>
+              <span className="text-xs text-[#a08090] w-12 text-center">{Math.round(zoom * 100)}%</span>
+              <button onClick={() => setZoom((value) => Math.min(1.5, value + 0.1))} className="p-1.5 text-[#a08090]">+</button>
+            </div>
+
+            <button
+              onClick={() => void handleSave()}
+              disabled={ui.isSaving}
+              className="px-3 py-1.5 text-xs rounded-lg border border-[#2e1f28] bg-[#231820] hover:border-[#e8622a] disabled:opacity-50"
+            >
+              {ui.isSaving ? 'Saving...' : 'Save'}
+            </button>
+
+            <button
+              onClick={() => void handleDownload()}
+              disabled={isExporting || (!resume.id && !ui.isSaved)}
+              className="px-3 py-1.5 text-xs rounded-lg border border-[#2e1f28] bg-[#231820] hover:border-[#e8622a] disabled:opacity-50"
+            >
+              {isExporting ? 'Exporting...' : 'Download PDF'}
+            </button>
           </div>
 
           <select
             value={template}
-            onChange={(e) => setTemplate(e.target.value as 'modern' | 'classic')}
+            onChange={(event) => void handleTemplateChange(event.target.value as 'modern' | 'classic')}
             className="bg-[#231820] border border-[#2e1f28] rounded-lg px-3 py-1.5 text-sm text-[#f5f0f2]"
           >
             <option value="modern">Template: Modern Executive</option>
@@ -387,15 +577,14 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           </select>
         </div>
 
+        <div className="px-6 py-2 text-xs text-[#a08090] border-b border-[#2e1f28] min-h-8">
+          {statusMessage || ui.saveError || (ui.isDirty ? 'Unsaved changes' : 'All changes saved')}
+        </div>
+
         <div className="flex-1 overflow-auto p-8 flex items-start justify-center">
           <div
             className="bg-white shadow-2xl relative transition-transform duration-300"
-            style={{
-              width: '210mm',
-              minHeight: '297mm',
-              transform: `scale(${zoom})`,
-              transformOrigin: 'top center',
-            }}
+            style={{ width: '210mm', minHeight: '297mm', transform: `scale(${zoom})`, transformOrigin: 'top center' }}
           >
             <div className="absolute inset-0 flex items-end justify-center pb-12 pointer-events-none z-10 opacity-[0.05]">
               <span className="text-6xl font-playfair text-gray-900">Draft Preview</span>
@@ -403,33 +592,33 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
             <div className="p-12">
               <div className="mb-8">
-                <h1 className={templateStyles.name}>John Doe</h1>
-                <p className={templateStyles.role}>Software Engineer</p>
+                <h1 className={templateStyles.name}>{resume.personalInfo.name || 'Your Name'}</h1>
+                <p className={templateStyles.role}>{resume.personalInfo.title || 'Software Engineer'}</p>
                 <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-500">
-                  <span>john.doe@example.com</span>
+                  <span>{resume.personalInfo.email || 'email@example.com'}</span>
                   <span>•</span>
-                  <span>(555) 123-4567</span>
+                  <span>{resume.personalInfo.phone || '(555) 123-4567'}</span>
                   <span>•</span>
-                  <span>San Francisco, CA</span>
+                  <span>{resume.personalInfo.location || 'City, Country'}</span>
                   <span>•</span>
-                  <span>linkedin.com/in/johndoe</span>
+                  <span>{resume.personalInfo.linkedin || 'linkedin.com/in/username'}</span>
                 </div>
               </div>
 
               <div className="mb-8">
                 <h2 className={templateStyles.section}>Work Experience</h2>
                 <div className="space-y-6">
-                  {experiences.map((exp) => (
-                    <div key={exp.id}>
+                  {resume.sections.experience.map((entry) => (
+                    <div key={entry.id}>
                       <div className="flex justify-between items-baseline mb-1">
-                        <h3 className="font-bold text-gray-900">{exp.company || 'Company Name'}</h3>
+                        <h3 className="font-bold text-gray-900">{entry.company || 'Company Name'}</h3>
                         <span className="text-sm text-gray-500">
-                          {exp.startDate ? new Date(exp.startDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Start Date'} - {exp.endDate || 'Present'}
+                          {entry.start || 'Start'} - {entry.current ? 'Present' : entry.end || 'End'}
                         </span>
                       </div>
-                      <p className="text-gray-700 italic mb-2">{exp.jobTitle || 'Job Title'}</p>
+                      <p className="text-gray-700 italic mb-2">{entry.role || 'Role'}</p>
                       <ul className={templateStyles.bullet}>
-                        <li>{exp.description || 'Job description...'}</li>
+                        <li>{getEntryDescription(entry) || 'Describe achievements and impact...'}</li>
                       </ul>
                     </div>
                   ))}
@@ -439,11 +628,25 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
               <div>
                 <h2 className={templateStyles.section}>Education</h2>
                 <div>
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="font-bold text-gray-900">University of Technology</h3>
-                    <span className="text-sm text-gray-500">2014 - 2018</span>
-                  </div>
-                  <p className="text-gray-700 italic">Bachelor of Science in Computer Science</p>
+                  {resume.sections.education.length > 0 ? (
+                    resume.sections.education.map((entry) => (
+                      <div key={entry.id} className="mb-3 last:mb-0">
+                        <div className="flex justify-between items-baseline mb-1">
+                          <h3 className="font-bold text-gray-900">{entry.institution || 'Institution'}</h3>
+                          <span className="text-sm text-gray-500">{entry.year || 'Year'}</span>
+                        </div>
+                        <p className="text-gray-700 italic">{[entry.degree, entry.field].filter(Boolean).join(' in ') || 'Degree'}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div>
+                      <div className="flex justify-between items-baseline mb-1">
+                        <h3 className="font-bold text-gray-900">University of Technology</h3>
+                        <span className="text-sm text-gray-500">2014 - 2018</span>
+                      </div>
+                      <p className="text-gray-700 italic">Bachelor of Science in Computer Science</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -473,14 +676,13 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto p-6">
           <h3 className="text-sm font-bold mb-4">Actionable Tips</h3>
-
           <div className="space-y-3">
             <div className="p-3 rounded-lg border bg-green-900/20 border-green-800/30">
               <div className="flex items-start gap-2">
                 <span className="text-lg">✅</span>
                 <div>
                   <h4 className="text-sm font-medium">Quantify your impact</h4>
-                  <p className="text-xs text-[#a08090] mt-1">Great job including metrics in your bullets.</p>
+                  <p className="text-xs text-[#a08090] mt-1">Great job including metrics! Keep outcomes visible in each bullet.</p>
                 </div>
               </div>
             </div>
@@ -491,7 +693,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 <div>
                   <h4 className="text-sm font-medium">Add relevant skills</h4>
                   <p className="text-xs text-[#a08090] mt-1">Consider adding React, Node.js, and TypeScript.</p>
-                  <button className="text-xs text-[#e8622a] mt-2">Apply Suggested Skills</button>
+                  <button className="text-xs text-[#e8622a] mt-2 font-medium">Apply Suggested Skills</button>
                 </div>
               </div>
             </div>
@@ -501,7 +703,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 <span className="text-lg">⚠️</span>
                 <div>
                   <h4 className="text-sm font-medium">Weak Verb Usage</h4>
-                  <p className="text-xs text-[#a08090] mt-1">Repeated "Led" found. Try alternatives like "Orchestrated" or "Directed".</p>
+                  <p className="text-xs text-[#a08090] mt-1">Repeated "Led" found. Consider "Orchestrated", "Directed", or "Spearheaded".</p>
                 </div>
               </div>
             </div>
@@ -515,18 +717,18 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             <div className="h-24 bg-[#1a1014] rounded-lg flex items-center justify-center border border-[#3a2a33]">
               <span className="text-xs text-[#a08090]">Template Preview</span>
             </div>
+            <p className="text-xs text-[#a08090] mt-2">Modern Executive is optimized for ATS.</p>
           </div>
         </div>
 
         <div className="p-4 border-t border-[#2e1f28]">
           <button
-            onClick={finalizeAndOptimize}
+            onClick={() => void handleFinalizeAndOptimize()}
             disabled={isOptimizing}
             className="w-full py-3 bg-[#e8622a] hover:bg-[#d55524] text-white rounded-xl font-medium transition-all disabled:opacity-50"
           >
             {isOptimizing ? 'Optimizing...' : '✏️ Finalize & Optimize'}
           </button>
-          {apiError && <p className="text-xs text-red-300 mt-2">{apiError}</p>}
         </div>
       </aside>
 
@@ -542,6 +744,12 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             </div>
             <button onClick={() => setOptimizationReport(null)} className="w-full py-2.5 bg-[#e8622a] text-white rounded-xl">Got it</button>
           </div>
+        </div>
+      )}
+
+      {apiError && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-900/90 text-white px-6 py-3 rounded-xl shadow-lg z-50 border border-red-700 text-sm">
+          {apiError}
         </div>
       )}
     </div>
