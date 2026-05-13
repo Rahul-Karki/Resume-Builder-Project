@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Eye, EyeOff, GripVertical } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
-import { api, enhanceResumeBullet, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload } from '@/services/api';
+import { api, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload } from '@/services/api';
+import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
 import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
@@ -13,6 +14,8 @@ type RightTab = 'tips' | 'ai' | 'ats';
 
 const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 5000;
 const RESUME_DOWNLOAD_MAX_POLLS = 60;
+const A4_WIDTH_PX = 794;
+const A4_HEIGHT_PX = 1123;
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
@@ -137,10 +140,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     initFromTemplate,
     applyTemplateUpgrade,
     saveResume,
-    addExperience,
-    updateExperience,
-    removeExperience,
-    reorderExperience,
     updatePersonalInfo,
   } = useResumeBuilderStore();
 
@@ -148,10 +147,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
   const [leftTab, setLeftTab] = useState<LeftTab>('content');
   const [rightTab, setRightTab] = useState<RightTab>('tips');
-  const [zoom, setZoom] = useState(1);
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
-  const [isAiLoadingById, setIsAiLoadingById] = useState<Record<string, boolean>>({});
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationReport, setOptimizationReport] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -159,6 +154,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [template, setTemplate] = useState<'modern' | 'classic'>('modern');
   const [isMobile, setIsMobile] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewHostRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const updateViewport = () => setIsMobile(window.innerWidth < 1024);
@@ -186,27 +183,22 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   }, [resume.templateId]);
 
   useEffect(() => {
-    setExpandedById((prev) => {
-      const next = { ...prev };
-      let changed = false;
+    const computeScale = () => {
+      const host = previewHostRef.current;
+      if (!host) return;
 
-      for (const entry of resume.sections.experience) {
-        if (!(entry.id in next)) {
-          next[entry.id] = true;
-          changed = true;
-        }
-      }
+      const maxW = host.clientWidth - 24;
+      const maxH = host.clientHeight - 24;
+      if (maxW <= 0 || maxH <= 0) return;
 
-      for (const id of Object.keys(next)) {
-        if (!resume.sections.experience.some((entry) => entry.id === id)) {
-          delete next[id];
-          changed = true;
-        }
-      }
+      const fitScale = Math.min(maxW / A4_WIDTH_PX, maxH / A4_HEIGHT_PX, 1);
+      setPreviewScale(Math.max(0.3, fitScale));
+    };
 
-      return changed ? next : prev;
-    });
-  }, [resume.sections.experience]);
+    computeScale();
+    window.addEventListener('resize', computeScale);
+    return () => window.removeEventListener('resize', computeScale);
+  }, [isMobile, leftTab, rightTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -281,42 +273,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     return ledCount > 1;
   }, [resume.sections.experience]);
 
-  const setEntryDescription = (id: string, value: string) => {
-    updateExperience(id, 'description', value);
-    updateExperience(id, 'contentMode', 'paragraph');
-    updateExperience(id, 'bullets', [value]);
-  };
-
-  const handleEnhanceDescription = async (entry: WorkEntry) => {
-    const text = getEntryDescription(entry).trim();
-    if (!text) {
-      setApiError('Please add a description first before AI enhancement.');
-      return;
-    }
-
-    setApiError(null);
-    setIsAiLoadingById((prev) => ({ ...prev, [entry.id]: true }));
-
-    try {
-      const aiResult = await enhanceResumeBullet({
-        text,
-        section: 'experience',
-        tone: 'professional',
-      });
-
-      const improved = aiResult.variations.find((variation) => variation.trim().length > 0)
-        || aiResult.suggestions[0]?.suggestionText
-        || text;
-
-      setEntryDescription(entry.id, improved);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to enhance description.';
-      setApiError(message);
-    } finally {
-      setIsAiLoadingById((prev) => ({ ...prev, [entry.id]: false }));
-    }
-  };
-
   const handleFinalizeAndOptimize = async () => {
     const descriptions = resume.sections.experience.map((entry) => getEntryDescription(entry).trim()).filter(Boolean);
     if (descriptions.length === 0) {
@@ -388,13 +344,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     await applyTemplateUpgrade(value === 'classic' ? 'classic' : 'modern');
   };
 
-  const handleDragOver = (event: React.DragEvent, targetIndex: number) => {
-    event.preventDefault();
-    if (draggedIndex === null || draggedIndex === targetIndex) return;
-    reorderExperience(draggedIndex, targetIndex);
-    setDraggedIndex(targetIndex);
-  };
-
   const templateStyles = template === 'modern'
     ? {
         name: 'font-serif text-4xl font-bold text-zinc-900',
@@ -422,12 +371,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 lg:gap-3">
-          <div className="hidden md:flex items-center bg-[#171717] rounded-lg p-1 border border-[#27272a]">
-            <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="h-7 w-7 rounded text-zinc-300 hover:bg-zinc-800">-</button>
-            <span className="text-xs text-zinc-300 w-10 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom((z) => Math.min(1.4, z + 0.1))} className="h-7 w-7 rounded text-zinc-300 hover:bg-zinc-800">+</button>
-          </div>
-
           <select
             value={template}
             onChange={(event) => void handleTemplateChange(event.target.value as 'modern' | 'classic')}
@@ -480,110 +423,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           </div>
 
           {leftTab === 'content' && (
-            <div className="p-4 space-y-4 max-h-[70vh] lg:max-h-[calc(100vh-160px)] overflow-y-auto">
-              <div>
-                <h2 className="text-lg font-bold text-zinc-100 mb-1">Work Experience</h2>
-                <p className="text-xs text-zinc-500">Detail your professional journey. Focus on achievements and measurable outcomes.</p>
-              </div>
-
-              {resume.sections.experience.map((entry, index) => {
-                const isExpanded = expandedById[entry.id] ?? true;
-                const isEnhancing = isAiLoadingById[entry.id] ?? false;
-                const description = getEntryDescription(entry);
-
-                return (
-                  <div
-                    key={entry.id}
-                    draggable
-                    onDragStart={() => setDraggedIndex(index)}
-                    onDragOver={(event) => handleDragOver(event, index)}
-                    onDragEnd={() => setDraggedIndex(null)}
-                    className="rounded-xl border border-zinc-800 bg-[#141414] overflow-hidden"
-                  >
-                    <div className="p-3 flex items-center justify-between cursor-pointer" onClick={() => setExpandedById((prev) => ({ ...prev, [entry.id]: !isExpanded }))}>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-zinc-500">≡</span>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-zinc-100 truncate">{entry.role || 'New Position'}</div>
-                          <div className="text-xs text-zinc-500 truncate">{entry.company || 'Company'} • {entry.start || 'Start'} - {entry.current ? 'Present' : entry.end || 'End'}</div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          removeExperience(entry.id);
-                        }}
-                        className="text-zinc-500 hover:text-red-400"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    <div className={`${isExpanded ? 'max-h-150 opacity-100' : 'max-h-0 opacity-0'} overflow-hidden transition-all duration-300`}>
-                      <div className="px-3 pb-3 space-y-2.5">
-                        <div>
-                          <label className="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Job Title</label>
-                          <input
-                            value={entry.role}
-                            onChange={(event) => updateExperience(entry.id, 'role', event.target.value)}
-                            className="w-full rounded-lg bg-[#0F0F0F] border border-zinc-800 px-3 py-2 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Company</label>
-                          <input
-                            value={entry.company}
-                            onChange={(event) => updateExperience(entry.id, 'company', event.target.value)}
-                            className="w-full rounded-lg bg-[#0F0F0F] border border-zinc-800 px-3 py-2 text-sm"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Start</label>
-                            <input
-                              type="month"
-                              value={entry.start}
-                              onChange={(event) => updateExperience(entry.id, 'start', event.target.value)}
-                              className="w-full rounded-lg bg-[#0F0F0F] border border-zinc-800 px-3 py-2 text-sm"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">End</label>
-                            <input
-                              value={entry.current ? 'Present' : entry.end}
-                              onChange={(event) => updateExperience(entry.id, 'end', event.target.value)}
-                              className="w-full rounded-lg bg-[#0F0F0F] border border-zinc-800 px-3 py-2 text-sm"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Description</label>
-                          <textarea
-                            rows={4}
-                            value={description}
-                            onChange={(event) => setEntryDescription(entry.id, event.target.value)}
-                            className="w-full rounded-lg bg-[#0F0F0F] border border-zinc-800 px-3 py-2 text-sm resize-none"
-                          />
-                        </div>
-                        <button
-                          onClick={() => void handleEnhanceDescription(entry)}
-                          disabled={isEnhancing}
-                          className="w-full rounded-lg py-2 text-sm font-medium border border-[#d4fa6e]/30 text-[#d4fa6e] bg-[#d4fa6e]/5 hover:bg-[#d4fa6e]/10 disabled:opacity-50"
-                        >
-                          {isEnhancing ? 'Enhancing...' : '⚡ AI Enhance Description'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              <button
-                onClick={addExperience}
-                className="w-full py-3 border border-dashed border-zinc-700 rounded-xl text-zinc-400 hover:text-zinc-100 hover:border-[#d4fa6e]"
-              >
-                + Add Work Experience
-              </button>
+            <div className="max-h-[70vh] lg:max-h-[calc(100vh-160px)] overflow-y-auto">
+              <EditorPanel />
             </div>
           )}
 
@@ -601,8 +442,16 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </aside>
 
         <main className="flex-1 bg-[#0A0A0A] border-t lg:border-t-0 border-[#1E1E1E]">
-          <div className="h-full overflow-auto p-4 lg:p-8 flex items-start justify-center">
-            <div className="bg-white shadow-[0_20px_80px_rgba(0,0,0,0.65)] relative transition-transform duration-300 rounded-sm" style={{ width: isMobile ? '100%' : '210mm', minHeight: '297mm', transform: isMobile ? 'none' : `scale(${zoom})`, transformOrigin: 'top center', maxWidth: '100%' }}>
+          <div ref={previewHostRef} className="h-full overflow-hidden p-3 lg:p-6 flex items-center justify-center">
+            <div
+              className="bg-white shadow-[0_20px_80px_rgba(0,0,0,0.65)] relative rounded-sm transition-transform duration-200"
+              style={{
+                width: `${A4_WIDTH_PX}px`,
+                height: `${A4_HEIGHT_PX}px`,
+                transform: `scale(${previewScale})`,
+                transformOrigin: 'center center',
+              }}
+            >
               <div className="absolute inset-0 flex items-end justify-center pb-10 pointer-events-none opacity-[0.04]">
                 <span className="text-5xl lg:text-6xl font-['Playfair_Display'] text-zinc-900">Draft Preview</span>
               </div>
