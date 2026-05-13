@@ -1,4 +1,5 @@
 import mongoose, { Schema , Document } from "mongoose";
+import type { AtsAnalysisReport } from "../../../shared/src/ai";
 
 interface IWorkEntry {
   id: string;
@@ -108,6 +109,7 @@ export interface IResume extends Document {
   atsScore?: number | null;
   atsStatus?: string | null;
   atsAnalyzedAt?: Date | null;
+  latestAtsAnalysis?: AtsAnalysisReport | null;
   title: string;
   templateId: string;
   personalInfo: IPersonalInfo;
@@ -160,6 +162,11 @@ const ResumeSchema = new Schema<IResume>(
 
     atsAnalyzedAt: {
       type: Date,
+      default: null,
+    },
+
+    latestAtsAnalysis: {
+      type: Schema.Types.Mixed,
       default: null,
     },
 

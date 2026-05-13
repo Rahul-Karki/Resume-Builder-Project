@@ -9,7 +9,7 @@ import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
-import { AiAssistPanel } from '@/components/builder/AiAssistPanel';
+import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
 import { Logo } from '@/components/Logo';
 
@@ -726,7 +726,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 {/* Finalize & Optimize removed — ATS suggestions will appear here after analysis */}
               </div>
             )}
-            {assistantTab === 'ai' && <AiAssistPanel />}
+            {assistantTab === 'ai' && <AIAssistantPanel />}
             {assistantTab === 'ats' && <ATSAnalysisPanel />}
           </div>
         </div>
@@ -797,7 +797,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 {/* Finalize & Optimize removed — ATS suggestions will appear here after analysis */}
               </div>
             )}
-            {assistantTab === 'ai' && <AiAssistPanel />}
+            {assistantTab === 'ai' && <AIAssistantPanel />}
             {assistantTab === 'ats' && <ATSAnalysisPanel />}
           </div>
         </div>

@@ -1,3 +1,5 @@
+import type { AtsAnalysisReport } from "../../../shared/src/ai";
+
 // ─── Core Data Types ───────────────────────────────────────────────────────────
 
 export interface PersonalInfo {
@@ -143,6 +145,7 @@ export interface ResumeDocument {
   atsScore?: number | null;
   atsStatus?: string | null;
   atsAnalyzedAt?: string | null;
+  latestAtsAnalysis?: AtsAnalysisReport | null;
 }
 
 // ─── Builder UI State ──────────────────────────────────────────────────────────
@@ -318,7 +321,6 @@ export type {
   AiRewriteResult,
   AiSuggestion,
   AiTone,
-  AtsAnalysisReport,
   AtsFormattingCheck,
   AtsGrammarFinding,
   AtsKeywordAnalysis,

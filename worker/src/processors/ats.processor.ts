@@ -685,6 +685,7 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
         atsScore: report.overallScore,
         atsStatus: report.status,
         atsAnalyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
+        latestAtsAnalysis: report,
       },
       { new: true },
     ).catch((saveError: unknown) => {
