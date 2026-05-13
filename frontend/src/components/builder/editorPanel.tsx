@@ -1149,11 +1149,27 @@ export function EditorPanel(): ReactNode {
       <style>{css}</style>
 
       <div style={{ flex: 1, overflowY: "auto" }} className="themed-scrollbar">
-        <PersonalSection />
-        {resume.sectionOrder.map((sectionKey) => {
-          if (!resume.sectionVisibility[sectionKey]) return null;
-          return <div key={sectionKey}>{sectionContent[sectionKey]}</div>;
-        })}
+        <div style={{ padding: "12px 14px 8px" }}>
+          <PersonalSection />
+        </div>
+
+        <div style={{ padding: "12px 14px", display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+          {/* Top row: Experience | Education | Skills */}
+          {(["experience", "education", "skills"] as const).map((key) => (
+            resume.sectionVisibility[key] ? (
+              <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
+            ) : null
+          ))}
+        </div>
+
+        <div style={{ padding: "0 14px 18px", display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+          {/* Bottom row: Projects | Certifications | Languages */}
+          {(["projects", "certifications", "languages"] as const).map((key) => (
+            resume.sectionVisibility[key] ? (
+              <div key={key} style={{ minWidth: 0 }}>{sectionContent[key]}</div>
+            ) : null
+          ))}
+        </div>
       </div>
     </div>
   );
