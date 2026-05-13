@@ -238,15 +238,8 @@ const ACTION_VERBS = [
   "Increased", "Collaborated", "Architected", "Streamlined", "Spearheaded", "Engineered",
 ];
 
-function getEnhancementTip(text: string, context: "summary" | "bullet"): string | null {
+function getEnhancementTip(text: string): string | null {
   if (!text.trim()) return null;
-
-  if (context === "summary") {
-    if (text.length < 80) return "Tip: Expand your summary to 2-4 impactful sentences (120-400 chars). Include your title, years of experience, and top achievements.";
-    if (/\b(I am|I'm|I have|my)\b/i.test(text)) return "Tip: Remove first-person pronouns. Instead of 'I am a developer', write 'Full-stack developer with 5+ years…'";
-    if (!/\d/.test(text)) return "Tip: Add quantifiable metrics to your summary, e.g. '7+ years experience', 'serving 10M+ users'.";
-    return null;
-  }
 
   const firstWord = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
   const isActionVerb = ACTION_VERBS.some((v) => v.toLowerCase() === firstWord);
@@ -258,9 +251,9 @@ function getEnhancementTip(text: string, context: "summary" | "bullet"): string 
   return null;
 }
 
-function InlineEnhanceTip({ text, context }: { text: string; context: "summary" | "bullet" }) {
+function InlineEnhanceTip({ text }: { text: string }) {
   const [visible, setVisible] = useState(false);
-  const tip = getEnhancementTip(text, context);
+  const tip = getEnhancementTip(text);
 
   if (!tip) return null;
 
@@ -741,7 +734,7 @@ function ExperienceCard({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
               <span style={label}>Description</span>
-              <InlineEnhanceTip text={entry.description} context="summary" />
+              <InlineEnhanceTip text={entry.description} />
             </div>
             <FocusedTextArea
               value={entry.description}
@@ -1164,12 +1157,14 @@ export function EditorPanel(): ReactNode {
                 style={{
                   padding: "8px 12px",
                   borderRadius: 10,
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  background: active ? "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))" : "transparent",
-                  color: "#e8dfe3",
+                  border: active ? "1px solid rgba(232,98,42,0.65)" : "1px solid rgba(255,255,255,0.08)",
+                  background: active ? "linear-gradient(180deg, rgba(232,98,42,0.26), rgba(232,98,42,0.1))" : "rgba(255,255,255,0.01)",
+                  boxShadow: active ? "0 0 0 1px rgba(232,98,42,0.3), 0 8px 20px rgba(232,98,42,0.22)" : "none",
+                  color: active ? "#ffe6d9" : "#e8dfe3",
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: 700,
+                  transition: "all 0.2s ease",
                 }}
               >
                 {label}
