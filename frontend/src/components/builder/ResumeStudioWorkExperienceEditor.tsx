@@ -173,8 +173,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [assistantTab, setAssistantTab] = useState<AssistantTab>('tips');
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [optimizationReport, setOptimizationReport] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -606,7 +604,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       </div>
 
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
-        <aside className="hidden md:flex w-[420px] shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar">
+        <aside className="hidden md:flex w-105 shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar">
           <div className="p-3 border-b border-zinc-800/70">
             <div className="flex gap-2 bg-transparent p-1 rounded-xl">
               {([
@@ -632,7 +630,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           </div>
         </aside>
 
-        <main className={`flex-1 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isMobile ? 'mr-[360px]' : ''}`}>
+        <main className={`flex-1 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isMobile ? 'mr-90' : ''}`}>
           <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-center justify-center overflow-hidden">
             <div
               className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] relative rounded-sm"

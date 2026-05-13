@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 import type {
   AiSuggestion,
+  AtsSectionSuggestions,
   AtsGrammarFinding,
   AtsFormattingCheck,
   AtsKeywordAnalysis,
@@ -27,6 +28,7 @@ export interface IAtsAnalysis extends Document {
   grammarIssues: AtsGrammarFinding[];
   formattingChecks: AtsFormattingCheck[];
   rewriteSuggestions: AiSuggestion[];
+  perSectionSuggestions?: AtsSectionSuggestions;
   summary: string;
   analyzedAt?: Date;
   lastError?: string;
@@ -100,6 +102,15 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
     grammarIssues: { type: [grammarFindingSchema], default: [] },
     formattingChecks: { type: [formattingCheckSchema], default: [] },
     rewriteSuggestions: { type: [suggestionSchema], default: [] },
+    perSectionSuggestions: {
+      summary: { type: [suggestionSchema], default: [] },
+      experience: { type: [suggestionSchema], default: [] },
+      skills: { type: [suggestionSchema], default: [] },
+      education: { type: [suggestionSchema], default: [] },
+      projects: { type: [suggestionSchema], default: [] },
+      certifications: { type: [suggestionSchema], default: [] },
+      languages: { type: [suggestionSchema], default: [] },
+    },
     summary: { type: String, default: "" },
     analyzedAt: { type: Date, default: undefined },
     lastError: { type: String, default: "" },

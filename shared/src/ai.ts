@@ -11,6 +11,10 @@ export type AiSuggestion = {
   path?: string;
 };
 
+export type AtsSectionKey = "summary" | "experience" | "skills" | "education" | "projects" | "certifications" | "languages";
+
+export type AtsSectionSuggestions = Partial<Record<AtsSectionKey, AiSuggestion[]>>;
+
 export type AiRewriteResult = {
   suggestions: AiSuggestion[];
   variations: string[];
@@ -80,6 +84,7 @@ export type AtsAnalysisReport = {
   grammarIssues: AtsGrammarFinding[];
   formattingChecks: AtsFormattingCheck[];
   rewriteSuggestions: AiSuggestion[];
+  perSectionSuggestions?: AtsSectionSuggestions;
   summary: string;
   analyzedAt?: string;
 };

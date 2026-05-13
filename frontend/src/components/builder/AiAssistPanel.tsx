@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { getLatestAtsAnalysis } from "@/services/api";
+import type { AtsAnalysisReport, AtsSectionKey, AtsSectionSuggestions } from "../../../../shared/src/ai";
 
 // ─── Writing Tips Data ──────────────────────────────────────────────────────────
 
@@ -238,6 +239,58 @@ function ResumeChecklist() {
   );
 }
 
+const SECTION_LABELS: Record<AtsSectionKey, string> = {
+  summary: "Summary",
+  experience: "Experience",
+  skills: "Skills",
+  education: "Education",
+  projects: "Projects",
+  certifications: "Certifications",
+  languages: "Languages",
+};
+
+const getSectionSuggestions = (analysis: AtsAnalysisReport | null) => {
+  const structured = analysis?.perSectionSuggestions ?? {};
+  const hasStructured = Object.values(structured).some((items) => Array.isArray(items) && items.length > 0);
+
+  if (hasStructured) {
+    return structured as AtsSectionSuggestions;
+  }
+
+  const fallback: AtsSectionSuggestions = {};
+  const rewriteSuggestions = analysis?.rewriteSuggestions ?? [];
+
+  rewriteSuggestions.forEach((suggestion, index) => {
+    const path = suggestion.path ?? "";
+    const section: AtsSectionKey = path.startsWith("personalInfo.summary")
+      ? "summary"
+      : path.startsWith("sections.experience")
+        ? "experience"
+        : path.startsWith("sections.skills")
+          ? "skills"
+          : path.startsWith("sections.education")
+            ? "education"
+            : path.startsWith("sections.projects")
+              ? "projects"
+              : path.startsWith("sections.certifications")
+                ? "certifications"
+                : path.startsWith("sections.languages")
+                  ? "languages"
+                  : "experience";
+
+    const next = fallback[section] ?? [];
+    next.push({
+      ...suggestion,
+      id: suggestion.id || `${section}-${index}`,
+      originalText: suggestion.originalText || "",
+      reason: suggestion.reason || `${SECTION_LABELS[section]} improvement suggestion`,
+    });
+    fallback[section] = next;
+  });
+
+  return fallback;
+};
+
 // ─── Main Panel ─────────────────────────────────────────────────────────────────
 
 type AiTab = "tips" | "verbs" | "checklist";
@@ -246,14 +299,14 @@ export function AiAssistPanel() {
   const [activeTab, setActiveTab] = useState<AiTab>("tips");
   const [filterSection, setFilterSection] = useState<string>("all");
   const { resume } = useResumeBuilderStore();
-  const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
+  const [latestAnalysis, setLatestAnalysis] = useState<AtsAnalysisReport | null>(null);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-          if (!resume?._id) return;
-          const res = await getLatestAtsAnalysis(resume._id);
+        if (!resume?._id) return;
+        const res = await getLatestAtsAnalysis(resume._id);
         if (!mounted) return;
         setLatestAnalysis(res?.analysis ?? null);
       } catch {
@@ -263,11 +316,13 @@ export function AiAssistPanel() {
 
     void load();
     return () => { mounted = false; };
-  }, [resume?.id]);
+  }, [resume?._id]);
 
   const filteredTips = filterSection === "all"
     ? WRITING_TIPS
     : WRITING_TIPS.filter((tip) => tip.section === filterSection);
+
+  const sectionSuggestions = useMemo(() => getSectionSuggestions(latestAnalysis), [latestAnalysis]);
 
   return (
     <div style={{ overflowY: "auto", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
@@ -313,36 +368,21 @@ export function AiAssistPanel() {
             {latestAnalysis ? (
               <div>
                 <div style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>ATS Suggestions</div>
-                {(() => {
-                  const groups: Record<string, any[]> = {};
-                  const suggestions = Array.isArray(latestAnalysis.rewriteSuggestions) ? latestAnalysis.rewriteSuggestions : [];
-                  for (const s of suggestions) {
-                    const path: string = s.path ?? "general";
-                    let key = "general";
-                    if (path.startsWith("personalInfo.summary")) key = "summary";
-                    else if (path.startsWith("sections.experience")) key = "experience";
-                    else if (path.startsWith("sections.skills")) key = "skills";
-                    else if (path.startsWith("sections.education")) key = "education";
-                    else if (path.startsWith("sections.projects")) key = "projects";
-                    else if (path.startsWith("sections.certifications")) key = "certifications";
-                    else if (path.startsWith("sections.languages")) key = "languages";
-
-                    groups[key] = groups[key] ?? [];
-                    groups[key].push(s);
-                  }
-
-                  return Object.keys(groups).map((key) => (
-                    <div key={key} style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#e4e4e7", marginBottom: 8, textTransform: "capitalize" }}>{key}</div>
-                      {groups[key].map((g: any) => (
-                        <div key={g.id} style={{ background: "#09090b", border: "1px solid #27272a", borderRadius: 10, padding: 12, marginBottom: 8 }}>
-                          <div style={{ fontSize: 13, color: "#e4e4e7", fontWeight: 700 }}>{g.suggestionText}</div>
-                          <div style={{ fontSize: 12, color: "#888", marginTop: 6 }}>{g.reason}</div>
+                {Object.entries(sectionSuggestions).map(([section, suggestions]) => (
+                  suggestions && suggestions.length > 0 ? (
+                    <div key={section} style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#e4e4e7", marginBottom: 8, textTransform: "capitalize" }}>
+                        {SECTION_LABELS[section as AtsSectionKey] ?? section}
+                      </div>
+                      {suggestions.map((suggestion, index) => (
+                        <div key={suggestion.id || `${section}-${index}`} style={{ background: "#09090b", border: "1px solid #27272a", borderRadius: 10, padding: 12, marginBottom: 8 }}>
+                          <div style={{ fontSize: 13, color: "#e4e4e7", fontWeight: 700 }}>{suggestion.suggestionText}</div>
+                          <div style={{ fontSize: 12, color: "#888", marginTop: 6 }}>{suggestion.reason}</div>
                         </div>
                       ))}
                     </div>
-                  ));
-                })()}
+                  ) : null
+                ))}
               </div>
             ) : (
               <>

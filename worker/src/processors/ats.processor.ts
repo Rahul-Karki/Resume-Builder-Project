@@ -1,6 +1,6 @@
 import type { Job } from "bullmq";
 import type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
-import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsAnalysisReport, type AtsFormattingCheck } from "../../../shared/src/ai";
+import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsAnalysisReport, type AtsFormattingCheck, type AtsSectionKey, type AtsSectionSuggestions } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
 import { analyzeGrammarIssues } from "./grammarAnalysis.processor";
@@ -17,8 +17,11 @@ const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|lat
 type AiAtsEnhancement = {
   jdKeywords: string[];
   rewriteSuggestions: AiSuggestion[];
+  perSectionSuggestions: AtsSectionSuggestions;
   questionsForUser: string[];
 };
+
+const SECTION_KEYS: AtsSectionKey[] = ["summary", "experience", "skills", "education", "projects", "certifications", "languages"];
 
 const normalizeImpact = (value: unknown): AiSuggestion["impact"] => {
   if (value === "low" || value === "medium" || value === "high") return value;
@@ -141,6 +144,32 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
       .filter((item) => Boolean(item.suggestionText))
     : [];
 
+  const perSectionSuggestions = SECTION_KEYS.reduce<AtsSectionSuggestions>((accumulator, section) => {
+    const rawSuggestions = value.perSectionSuggestions && typeof value.perSectionSuggestions === "object"
+      ? (value.perSectionSuggestions as Record<string, unknown>)[section]
+      : undefined;
+
+    const items = Array.isArray(rawSuggestions)
+      ? rawSuggestions
+          .filter((item) => typeof item === "string")
+          .map((item, index) => ({
+            id: createSuggestionId(`section-${section}`, index),
+            originalText: "",
+            suggestionText: compactText(item),
+            reason: `${section} improvement suggestion`,
+            impact: "medium" as const,
+            path: section === "summary" ? "personalInfo.summary" : `sections.${section}`,
+          }))
+          .filter((item) => Boolean(item.suggestionText))
+      : [];
+
+    if (items.length > 0) {
+      accumulator[section] = items;
+    }
+
+    return accumulator;
+  }, {});
+
   const questionsForUser = Array.isArray(value.questionsForUser)
     ? value.questionsForUser.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
     : [];
@@ -148,9 +177,19 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
   return {
     jdKeywords: jdKeywords.slice(0, 30),
     rewriteSuggestions: rewriteSuggestions.slice(0, 12),
+    perSectionSuggestions,
     questionsForUser: questionsForUser.slice(0, 5),
   };
 };
+
+const cloneSuggestion = (suggestion: AiSuggestion, fallbackIdPrefix: string, index: number): AiSuggestion => ({
+  id: suggestion.id || createSuggestionId(fallbackIdPrefix, index),
+  originalText: suggestion.originalText,
+  suggestionText: suggestion.suggestionText,
+  reason: suggestion.reason,
+  impact: suggestion.impact,
+  path: suggestion.path,
+});
 
 const buildResumeSnippetForAi = (resume: Record<string, unknown>) => {
   const sections = getSections(resume);
@@ -277,6 +316,19 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
       enhancement.rewriteSuggestions.forEach((suggestion) => {
         if (suggestion?.id) suggestionById.set(suggestion.id, suggestion);
       });
+      const perSectionSuggestions: AtsSectionSuggestions = {};
+      SECTION_KEYS.forEach((section) => {
+        const baseSuggestions = (base.perSectionSuggestions?.[section] ?? []).map((suggestion, index) => cloneSuggestion(suggestion, `base-section-${section}`, index));
+        const aiSuggestions = (enhancement.perSectionSuggestions?.[section] ?? []).map((suggestion, index) => cloneSuggestion(suggestion, `ai-section-${section}`, index));
+        const merged = [...baseSuggestions, ...aiSuggestions];
+        if (merged.length > 0) {
+          perSectionSuggestions[section] = merged.slice(0, 10);
+          merged.forEach((suggestion) => {
+            if (suggestion.id) suggestionById.set(suggestion.id, suggestion);
+          });
+        }
+      });
+
       const rewriteSuggestions: AiSuggestion[] = Array.from(suggestionById.values()).slice(0, 20);
 
       const report: AtsAnalysisReport = {
@@ -294,6 +346,7 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
         },
         overallScore: sectionScores.overall,
         rewriteSuggestions,
+        perSectionSuggestions,
         summary: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
       };
 
@@ -482,6 +535,7 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
         grammarIssues: report.grammarIssues,
         formattingChecks: report.formattingChecks,
         rewriteSuggestions: report.rewriteSuggestions,
+        perSectionSuggestions: report.perSectionSuggestions ?? undefined,
         summary: report.summary,
         analyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
         lastError: "",

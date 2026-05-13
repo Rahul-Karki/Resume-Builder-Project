@@ -375,7 +375,6 @@ function ExperienceSection() {
   const experience = resume.sections.experience;
   const [enhancingId, setEnhancingId] = useState<string | null>(null);
   const [optimizationModal, setOptimizationModal] = useState<string | null>(null);
-  const [isOptimizing, setIsOptimizing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { queueAtsAnalysis, getLatestAtsAnalysis } from "@/services/api";
-import type { AtsAnalysisReport } from "../../../../shared/src/ai";
+import type { AtsAnalysisReport, AtsSectionKey, AtsSectionSuggestions } from "../../../../shared/src/ai";
 import { AlertCircle, BarChart3, ChevronDown, FileSearch, Lightbulb, Loader2, RefreshCw, Target } from "lucide-react";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────────── */
@@ -169,6 +169,55 @@ const scoreLabel = (score: number) => {
   return "Poor";
 };
 
+const SECTION_LABELS: Record<AtsSectionKey, string> = {
+  summary: "Summary",
+  experience: "Experience",
+  skills: "Skills",
+  education: "Education",
+  projects: "Projects",
+  certifications: "Certifications",
+  languages: "Languages",
+};
+
+const getSectionSuggestions = (report: AtsAnalysisReport | null) => {
+  const structured = report?.perSectionSuggestions ?? {};
+  const hasStructured = Object.values(structured).some((items) => Array.isArray(items) && items.length > 0);
+
+  if (hasStructured) {
+    return structured as AtsSectionSuggestions;
+  }
+
+  const grouped: AtsSectionSuggestions = {};
+  (report?.rewriteSuggestions ?? []).forEach((suggestion, index) => {
+    const path = suggestion.path ?? "";
+    const section: AtsSectionKey = path.startsWith("personalInfo.summary")
+      ? "summary"
+      : path.startsWith("sections.experience")
+        ? "experience"
+        : path.startsWith("sections.skills")
+          ? "skills"
+          : path.startsWith("sections.education")
+            ? "education"
+            : path.startsWith("sections.projects")
+              ? "projects"
+              : path.startsWith("sections.certifications")
+                ? "certifications"
+                : path.startsWith("sections.languages")
+                  ? "languages"
+                  : "experience";
+
+    const next = grouped[section] ?? [];
+    next.push({
+      ...suggestion,
+      id: suggestion.id || `${section}-${index}`,
+      reason: suggestion.reason || `${SECTION_LABELS[section]} improvement suggestion`,
+    });
+    grouped[section] = next;
+  });
+
+  return grouped;
+};
+
 /* ─── Component ──────────────────────────────────────────────────────────────── */
 export function ATSAnalysisPanel() {
   const { resume } = useResumeBuilderStore();
@@ -176,6 +225,7 @@ export function ATSAnalysisPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const sectionSuggestions = getSectionSuggestions(report);
 
   const handleAnalyze = async () => {
     if (!resume._id) {
@@ -366,26 +416,35 @@ export function ATSAnalysisPanel() {
               </>
             )}
 
-            {/* Rewrite Suggestions */}
-            {report.rewriteSuggestions && report.rewriteSuggestions.length > 0 && (
+            {/* ATS Suggestions */}
+            {Object.entries(sectionSuggestions).some(([, suggestions]) => (suggestions?.length ?? 0) > 0) && (
               <>
                 <div className="ats-section-label">
                   <Lightbulb size={13} style={{ marginRight: 6 }} /> Suggestions
                 </div>
-                {report.rewriteSuggestions.slice(0, 3).map((s, i) => (
-                  <div key={s.id || i} className="ats-card">
-                    <div className="ats-card-header">
-                      <div className="ats-card-title">
-                        <Lightbulb size={14} style={{ color: "#eab308" }} /> {s.reason || "Suggestion"}
+                {Object.entries(sectionSuggestions).map(([section, suggestions]) => (
+                  suggestions && suggestions.length > 0 ? (
+                    <div key={section} style={{ marginBottom: 8 }}>
+                      <div style={{ padding: "0 18px 8px", fontSize: 12, fontWeight: 700, color: "#e4e4e7", textTransform: "capitalize" }}>
+                        {SECTION_LABELS[section as AtsSectionKey] ?? section}
                       </div>
-                      {s.impact && (
-                        <span className={`ats-tag ${s.impact === "high" ? "ats-tag-bad" : s.impact === "medium" ? "ats-tag-warn" : "ats-tag-good"}`}>
-                          {s.impact}
-                        </span>
-                      )}
+                      {suggestions.slice(0, 3).map((s, i) => (
+                        <div key={s.id || i} className="ats-card">
+                          <div className="ats-card-header">
+                            <div className="ats-card-title">
+                              <Lightbulb size={14} style={{ color: "#eab308" }} /> {s.reason || "Suggestion"}
+                            </div>
+                            {s.impact && (
+                              <span className={`ats-tag ${s.impact === "high" ? "ats-tag-bad" : s.impact === "medium" ? "ats-tag-warn" : "ats-tag-good"}`}>
+                                {s.impact}
+                              </span>
+                            )}
+                          </div>
+                          <div className="ats-card-detail">{s.suggestionText || s.reason}</div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="ats-card-detail">{s.suggestionText || s.reason}</div>
-                  </div>
+                  ) : null
                 ))}
               </>
             )}
