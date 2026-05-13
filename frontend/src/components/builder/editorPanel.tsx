@@ -1,6 +1,6 @@
 import React, { useState, ReactNode } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
-import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry } from "@/types/resume-types";
+import { WorkEntry, LanguageEntry } from "@/types/resume-types";
 
 /* ─── CSS Animations ─────────────────────────────────────────────────────────── */
 const css = `
@@ -187,17 +187,6 @@ function ContentModeToggle({
     </div>
   );
 }
-
-// ─── Nav Sidebar ───────────────────────────────────────────────────────────────
-const NAV_ITEMS: { id: ActiveSection; label: string; icon: string }[] = [
-  { id: "personal", label: "Personal", icon: "◉" },
-  { id: "experience", label: "Experience", icon: "◈" },
-  { id: "education", label: "Education", icon: "◧" },
-  { id: "skills", label: "Skills", icon: "◎" },
-  { id: "projects", label: "Projects", icon: "◫" },
-  { id: "certifications", label: "Certs", icon: "◬" },
-  { id: "languages", label: "Languages", icon: "◭" },
-];
 
 // ─── Expandable Card ───────────────────────────────────────────────────────────
 function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: {
@@ -814,67 +803,357 @@ function ExperienceCard({
   );
 }
 
+function EducationSection() {
+  const { resume, addEducation, updateEducation, removeEducation, setFocusedField } = useResumeBuilderStore();
+  const education = resume.sections.education;
+
+  return (
+    <div style={{ padding: "0 4px 24px" }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Education</h2>
+      </div>
+
+      {education.map((entry) => (
+        <EntryCard
+          key={entry.id}
+          title={entry.degree || "Untitled Degree"}
+          subtitle={entry.institution}
+          onRemove={() => removeEducation(entry.id)}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
+            <div>
+              <span style={label}>Institution</span>
+              <Input
+                value={entry.institution}
+                onChange={(v) => updateEducation(entry.id, "institution", v)}
+                onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: entry.id, field: "institution", label: "Institution" })}
+                placeholder="University of Example"
+              />
+            </div>
+            <div>
+              <span style={label}>Degree</span>
+              <Input
+                value={entry.degree}
+                onChange={(v) => updateEducation(entry.id, "degree", v)}
+                onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: entry.id, field: "degree", label: "Degree" })}
+                placeholder="B.Sc. Computer Science"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <span style={label}>Field</span>
+              <Input
+                value={entry.field}
+                onChange={(v) => updateEducation(entry.id, "field", v)}
+                onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: entry.id, field: "field", label: "Field" })}
+                placeholder="Software Engineering"
+              />
+            </div>
+            <div>
+              <span style={label}>Year</span>
+              <Input
+                value={entry.year}
+                onChange={(v) => updateEducation(entry.id, "year", v)}
+                onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: entry.id, field: "year", label: "Year" })}
+                placeholder="2024"
+              />
+            </div>
+            <div>
+              <span style={label}>CGPA / GPA</span>
+              <Input
+                value={entry.cgpa}
+                onChange={(v) => updateEducation(entry.id, "cgpa", v)}
+                onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: entry.id, field: "cgpa", label: "CGPA / GPA" })}
+                placeholder="3.8 / 4.0"
+              />
+            </div>
+          </div>
+        </EntryCard>
+      ))}
+
+      <AddBtn label="Education" onClick={addEducation} />
+    </div>
+  );
+}
+
+function SkillsSection() {
+  const { resume, addSkillGroup, updateSkillGroup, removeSkillGroup, setFocusedField } = useResumeBuilderStore();
+  const skills = resume.sections.skills;
+
+  return (
+    <div style={{ padding: "0 4px 24px" }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Skills</h2>
+      </div>
+
+      {skills.map((entry) => (
+        <EntryCard
+          key={entry.id}
+          title={entry.category || "Skill Group"}
+          subtitle={`${entry.items.length} skill${entry.items.length === 1 ? "" : "s"}`}
+          onRemove={() => removeSkillGroup(entry.id)}
+        >
+          <div style={{ marginBottom: 20 }}>
+            <span style={label}>Category</span>
+            <Input
+              value={entry.category}
+              onChange={(v) => updateSkillGroup(entry.id, "category", v)}
+              onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: entry.id, field: "category", label: "Category" })}
+              placeholder="Technical Skills"
+            />
+          </div>
+
+          <div>
+            <span style={label}>Items (comma separated)</span>
+            <FocusedTextArea
+              value={entry.items.join(", ")}
+              onChange={(v) => updateSkillGroup(entry.id, "items", v.split(",").map((item) => item.trim()).filter(Boolean))}
+              onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: entry.id, field: "items", label: "Skill Items" })}
+              placeholder="React, TypeScript, Node.js, PostgreSQL"
+              rows={3}
+            />
+          </div>
+        </EntryCard>
+      ))}
+
+      <AddBtn label="Skill Group" onClick={addSkillGroup} />
+    </div>
+  );
+}
+
+function ProjectsSection() {
+  const { resume, addProject, updateProject, addProjectBullet, updateProjectBullet, removeProjectBullet, removeProject, setFocusedField } = useResumeBuilderStore();
+  const projects = resume.sections.projects;
+
+  return (
+    <div style={{ padding: "0 4px 24px" }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Projects</h2>
+        <p style={{ fontSize: 12, color: "#a08090", lineHeight: 1.5 }}>
+          Highlight the strongest project outcomes and measurable impact.
+        </p>
+      </div>
+
+      {projects.map((entry) => (
+        <EntryCard
+          key={entry.id}
+          title={entry.name || "Untitled Project"}
+          subtitle={entry.tech}
+          onRemove={() => removeProject(entry.id)}
+        >
+          <div style={{ marginBottom: 20 }}>
+            <span style={label}>Project Name</span>
+            <Input
+              value={entry.name}
+              onChange={(v) => updateProject(entry.id, "name", v)}
+              onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: entry.id, field: "name", label: "Project Name" })}
+              placeholder="Real-time Analytics Dashboard"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
+            <div>
+              <span style={label}>Tech Stack</span>
+              <Input
+                value={entry.tech}
+                onChange={(v) => updateProject(entry.id, "tech", v)}
+                onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: entry.id, field: "tech", label: "Tech Stack" })}
+                placeholder="React, Node.js, Redis"
+              />
+            </div>
+            <div>
+              <span style={label}>Link</span>
+              <Input
+                value={entry.link}
+                onChange={(v) => updateProject(entry.id, "link", v)}
+                onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: entry.id, field: "link", label: "Project Link" })}
+                placeholder="https://github.com/you/project"
+              />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <span style={label}>Content Mode</span>
+            <ContentModeToggle
+              value={entry.contentMode}
+              onChange={(mode) => updateProject(entry.id, "contentMode", mode)}
+            />
+          </div>
+
+          {entry.contentMode === "paragraph" ? (
+            <div>
+              <span style={label}>Description</span>
+              <FocusedTextArea
+                value={entry.description}
+                onChange={(v) => updateProject(entry.id, "description", v)}
+                onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: entry.id, field: "description", label: "Project Description" })}
+                placeholder="Built and deployed..."
+                rows={4}
+              />
+            </div>
+          ) : (
+            <div>
+              <span style={label}>Bullet Points</span>
+              {entry.bullets.map((bullet, idx) => (
+                <div key={`${entry.id}-bullet-${idx}`} style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center" }}>
+                  <FocusedTextArea
+                    value={bullet}
+                    onChange={(v) => updateProjectBullet(entry.id, idx, v)}
+                    onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: entry.id, field: "bullets", index: idx, label: `Project Bullet ${idx + 1}` })}
+                    placeholder="Reduced response time by 45%..."
+                    rows={2}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeProjectBullet(entry.id, idx)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px", borderRadius: 6 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <AddBtn label="Project Bullet" onClick={() => addProjectBullet(entry.id)} />
+            </div>
+          )}
+        </EntryCard>
+      ))}
+
+      <AddBtn label="Project" onClick={addProject} />
+    </div>
+  );
+}
+
+function CertificationsSection() {
+  const { resume, addCertification, updateCertification, removeCertification, setFocusedField } = useResumeBuilderStore();
+  const certifications = resume.sections.certifications;
+
+  return (
+    <div style={{ padding: "0 4px 24px" }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Certifications</h2>
+      </div>
+
+      {certifications.map((entry) => (
+        <EntryCard
+          key={entry.id}
+          title={entry.name || "Untitled Certification"}
+          subtitle={entry.issuer}
+          onRemove={() => removeCertification(entry.id)}
+        >
+          <div style={{ marginBottom: 20 }}>
+            <span style={label}>Name</span>
+            <Input
+              value={entry.name}
+              onChange={(v) => updateCertification(entry.id, "name", v)}
+              onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: entry.id, field: "name", label: "Certification Name" })}
+              placeholder="AWS Certified Developer"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <span style={label}>Issuer</span>
+              <Input
+                value={entry.issuer}
+                onChange={(v) => updateCertification(entry.id, "issuer", v)}
+                onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: entry.id, field: "issuer", label: "Issuer" })}
+                placeholder="Amazon Web Services"
+              />
+            </div>
+            <div>
+              <span style={label}>Year</span>
+              <Input
+                value={entry.year}
+                onChange={(v) => updateCertification(entry.id, "year", v)}
+                onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: entry.id, field: "year", label: "Year" })}
+                placeholder="2025"
+              />
+            </div>
+          </div>
+        </EntryCard>
+      ))}
+
+      <AddBtn label="Certification" onClick={addCertification} />
+    </div>
+  );
+}
+
+function LanguagesSection() {
+  const { resume, addLanguage, updateLanguage, removeLanguage, setFocusedField } = useResumeBuilderStore();
+  const languages = resume.sections.languages;
+
+  return (
+    <div style={{ padding: "0 4px 24px" }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Languages</h2>
+      </div>
+
+      {languages.map((entry: LanguageEntry) => (
+        <EntryCard
+          key={entry.id}
+          title={entry.language || "Language"}
+          subtitle={entry.proficiency}
+          onRemove={() => removeLanguage(entry.id)}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <span style={label}>Language</span>
+              <Input
+                value={entry.language}
+                onChange={(v) => updateLanguage(entry.id, "language", v)}
+                onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: entry.id, field: "language", label: "Language" })}
+                placeholder="English"
+              />
+            </div>
+            <div>
+              <span style={label}>Proficiency</span>
+              <select
+                value={entry.proficiency}
+                onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: entry.id, field: "proficiency", label: "Proficiency" })}
+                onChange={(e) => updateLanguage(entry.id, "proficiency", e.target.value)}
+                className="editor-input"
+                style={inp}
+              >
+                {(["Native", "Fluent", "Advanced", "Intermediate", "Basic"] as const).map((level) => (
+                  <option key={level} value={level}>{level}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </EntryCard>
+      ))}
+
+      <AddBtn label="Language" onClick={addLanguage} />
+    </div>
+  );
+}
+
 export function EditorPanel(): ReactNode {
   const {
-    ui,
-    setActiveSection,
+    resume,
   } = useResumeBuilderStore();
 
-  const activeSection = ui.activeSection;
-
-  const renderSection = () => {
-    switch (activeSection) {
-      case "personal":
-        return <PersonalSection />;
-      case "experience":
-        return <ExperienceSection />;
-      default:
-        return (
-          <div style={{ padding: "20px", color: "#a1a1aa", fontSize: 13 }}>
-            This section editor is temporarily unavailable in this panel.
-          </div>
-        );
-    }
+  const sectionContent: Record<string, ReactNode> = {
+    experience: <ExperienceSection />,
+    education: <EducationSection />,
+    skills: <SkillsSection />,
+    projects: <ProjectsSection />,
+    certifications: <CertificationsSection />,
+    languages: <LanguagesSection />,
   };
 
   return (
     <div className="editor-fade-in" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <style>{css}</style>
 
-      <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <div style={{ display: "flex", gap: 8, overflowX: "auto" }}>
-          {NAV_ITEMS.map((item) => {
-            const isActive = item.id === activeSection;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveSection(item.id)}
-                style={{
-                  border: "1px solid",
-                  borderColor: isActive ? "#FFFFFF" : "rgba(255,255,255,0.12)",
-                  background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
-                  color: isActive ? "#FFFFFF" : "#a1a1aa",
-                  borderRadius: 10,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  padding: "6px 10px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  transition: "all 0.15s ease",
-                }}
-                title={item.label}
-              >
-                <span style={{ marginRight: 6 }}>{item.icon}</span>
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       <div style={{ flex: 1, overflowY: "auto" }} className="themed-scrollbar">
-        {renderSection()}
+        <PersonalSection />
+        {resume.sectionOrder.map((sectionKey) => {
+          if (!resume.sectionVisibility[sectionKey]) return null;
+          return <div key={sectionKey}>{sectionContent[sectionKey]}</div>;
+        })}
       </div>
     </div>
   );
