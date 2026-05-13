@@ -153,14 +153,17 @@ function ContentModeToggle({
             key={mode}
             type="button"
             onClick={() => onChange(mode)}
+            aria-pressed={active}
             style={{
               borderRadius: 8,
-              color: active ? "#FFFFFF" : "#888",
+              color: active ? "#f5f0f2" : "#888",
               fontSize: 12,
-              fontWeight: 600,
+              fontWeight: active ? 800 : 600,
               textTransform: "capitalize",
               padding: "5px 12px",
               cursor: "pointer",
+              textDecoration: active ? "underline" : "none",
+              textUnderlineOffset: 3,
             }}
           >
             {mode}
