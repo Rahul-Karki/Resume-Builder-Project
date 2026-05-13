@@ -24,11 +24,7 @@ type FocusTarget = {
 
 type ContextActionKind = 'improve' | 'rewrite' | 'shorten' | 'ats';
 
-type InlineSuggestionState = {
-  kind: ContextActionKind;
-  label: string;
-  suggestion: string;
-};
+
 
 type TemplateOption = {
   layoutId: string;
@@ -187,14 +183,9 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
-  const [inlineSuggestion, setInlineSuggestion] = useState<InlineSuggestionState | null>(null);
-  const [inlineAnchorRect, setInlineAnchorRect] = useState<DOMRect | null>(null);
-  const [inlineAnchorEl, setInlineAnchorEl] = useState<HTMLElement | null>(null);
-  const [isInlineVisible, setIsInlineVisible] = useState(false);
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
-  const inlineUiRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const updateViewport = () => setIsMobile(window.innerWidth < 768);
@@ -461,161 +452,14 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     return null;
   }, [resume.personalInfo.summary, resume.sections.experience, resume.sections.projects, resume.sections.skills, ui.focusedField, updateBullet, updateExperience, updatePersonalInfo, updateProject, updateProjectBullet, updateSkillGroup]);
 
-  const requestContextSuggestion = useCallback(async (kind: ContextActionKind): Promise<string | null> => {
-    if (!focusedTarget || !focusedTarget.text.trim()) {
-      setApiError('Focus a summary, experience, project, or skills field with content to use AI actions.');
-      return null;
-    }
-
-    setActionLoading(kind);
-    setApiError(null);
-
-    const promptPrefix =
-      kind === 'improve'
-        ? 'Improve this resume text with clearer impact and stronger action verbs:'
-        : kind === 'rewrite'
-          ? 'Rewrite this resume text to sound more professional and polished:'
-          : kind === 'shorten'
-            ? 'Shorten this resume text while keeping all key impact details:'
-            : 'Optimize this resume text for ATS keywords and recruiter scanning:';
-
-    const tone =
-      kind === 'shorten'
-        ? 'concise'
-        : kind === 'ats'
-          ? 'technical'
-          : 'professional';
-
-    try {
-      const response = await improveResumeText({
-        text: `${promptPrefix}\n\n${focusedTarget.text}`,
-        section: 'experience',
-        tone,
-      });
-
-      const suggestion =
-        response.variations.find((value) => value.trim().length > 0)
-        || response.suggestions[0]?.suggestionText
-        || focusedTarget.text;
-      return suggestion;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'AI action failed.';
-      setApiError(message);
-      return null;
-    } finally {
-      setActionLoading(null);
-    }
-  }, [focusedTarget]);
-
   const runContextAction = useCallback(async (kind: ContextActionKind) => {
-    const suggestion = await requestContextSuggestion(kind);
-    if (!suggestion || !focusedTarget) return;
-
-    setInlineSuggestion({
-      kind,
-      label: focusedTarget.label,
-      suggestion,
-    });
-    setStatusMessage(`Suggestion ready for ${focusedTarget.label}.`);
-  }, [focusedTarget, requestContextSuggestion]);
-
-  const applyInlineSuggestion = useCallback(() => {
-    if (!inlineSuggestion || !focusedTarget) return;
-    focusedTarget.applySuggestion(inlineSuggestion.suggestion);
-    setStatusMessage(`${focusedTarget.label} updated with AI ${inlineSuggestion.kind}.`);
-    setInlineSuggestion(null);
-  }, [focusedTarget, inlineSuggestion]);
-
-  const regenerateInlineSuggestion = useCallback(async () => {
-    if (!inlineSuggestion) return;
-    const suggestion = await requestContextSuggestion(inlineSuggestion.kind);
-    if (!suggestion) return;
-    setInlineSuggestion((prev) => (prev ? { ...prev, suggestion } : prev));
-  }, [inlineSuggestion, requestContextSuggestion]);
-
-  useEffect(() => {
-    const container = editorPaneRef.current;
-    if (!container || leftTab !== 'content') return;
-
-    const isEditableTarget = (target: EventTarget | null): target is HTMLElement => {
-      if (!(target instanceof HTMLElement)) return false;
-      if (!container.contains(target)) return false;
-      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return false;
-      if (target instanceof HTMLInputElement && ['checkbox', 'radio', 'file'].includes(target.type)) return false;
-      return true;
-    };
-
-    const setAnchorFromElement = (element: HTMLElement | null) => {
-      if (!element) {
-        setInlineAnchorEl(null);
-        setInlineAnchorRect(null);
-        setIsInlineVisible(false);
-        return;
-      }
-
-      setInlineAnchorEl(element);
-      setInlineAnchorRect(element.getBoundingClientRect());
-      setIsInlineVisible(true);
-    };
-
-    const handleFocusIn = (event: FocusEvent) => {
-      if (!isEditableTarget(event.target)) return;
-      setAnchorFromElement(event.target);
-    };
-
-    const handlePointerOver = (event: Event) => {
-      if (!isEditableTarget(event.target)) return;
-      setAnchorFromElement(event.target);
-    };
-
-    container.addEventListener('focusin', handleFocusIn);
-    container.addEventListener('pointerover', handlePointerOver, true);
-
-    return () => {
-      container.removeEventListener('focusin', handleFocusIn);
-      container.removeEventListener('pointerover', handlePointerOver, true);
-    };
-  }, [leftTab]);
-
-  useEffect(() => {
-    if (!inlineAnchorEl) return;
-
-    const updatePosition = () => {
-      if (!inlineAnchorEl.isConnected) {
-        setInlineAnchorEl(null);
-        setInlineAnchorRect(null);
-        return;
-      }
-      setInlineAnchorRect(inlineAnchorEl.getBoundingClientRect());
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [inlineAnchorEl]);
-
-  useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target) return;
-
-      if (inlineUiRef.current?.contains(target)) return;
-      if (editorPaneRef.current?.contains(target)) return;
-
-      setInlineSuggestion(null);
-      setIsInlineVisible(false);
-      setInlineAnchorEl(null);
-      setInlineAnchorRect(null);
-    };
-
-    window.addEventListener('pointerdown', handlePointerDown);
-    return () => window.removeEventListener('pointerdown', handlePointerDown);
+    // Open assistant drawer for full AI interactions
+    setAssistantTab('ai');
+    setAssistantOpen(true);
+    setStatusMessage('AI Assistant opened for contextual action.');
   }, []);
+
+  
 
   const handleFinalizeAndOptimize = async () => {
     const descriptions = resume.sections.experience.map((entry) => getEntryDescription(entry).trim()).filter(Boolean);
@@ -714,10 +558,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     },
   ];
 
-  const inlineActionsVisible = leftTab === 'content' && !!focusedTarget && !!inlineAnchorRect && isInlineVisible;
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  const inlineActionsLeft = inlineAnchorRect ? Math.max(12, Math.min(inlineAnchorRect.right - 164, viewportWidth - 180)) : 12;
-  const inlineSuggestionLeft = inlineAnchorRect ? Math.max(12, Math.min(inlineAnchorRect.left, viewportWidth - 360)) : 12;
 
   return (
     <div className="h-screen overflow-hidden bg-[#09090b] text-[#F0EFE8] font-['Outfit']">
@@ -776,7 +617,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       </div>
 
       <div className="flex h-[calc(100vh-76px)] overflow-hidden">
-        <aside className="hidden md:flex w-82.5 shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col">
+        <aside className="hidden md:flex w-[420px] shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden no-scrollbar">
           <div className="p-3 border-b border-zinc-800/70">
             <div className="flex gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/70">
               {([
@@ -829,49 +670,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         <Bot size={16} /> AI Assistant
       </button>
 
-      {inlineActionsVisible && (
-        <div ref={inlineUiRef} className="fixed inset-0 z-45 pointer-events-none" aria-live="polite">
-          <div
-            className="pointer-events-auto inline-flex items-center gap-1 rounded-xl border border-zinc-700/80 bg-zinc-950/95 px-1 py-1 shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-all duration-200"
-            style={{
-              position: 'fixed',
-              top: Math.max(96, (inlineAnchorRect?.top ?? 0) - 42),
-              left: inlineActionsLeft,
-            }}
-          >
-            <button onClick={() => void runContextAction('improve')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
-              <Sparkles size={12} /> {actionLoading === 'improve' ? '...' : 'Improve'}
-            </button>
-            <button onClick={() => void runContextAction('rewrite')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
-              <Wand2 size={12} /> {actionLoading === 'rewrite' ? '...' : 'Rewrite'}
-            </button>
-            <button onClick={() => void runContextAction('shorten')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
-              <Scissors size={12} /> {actionLoading === 'shorten' ? '...' : 'Shorten'}
-            </button>
-            <button onClick={() => void runContextAction('ats')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-zinc-200 hover:bg-zinc-800" disabled={actionLoading !== null}>
-              <Target size={12} /> {actionLoading === 'ats' ? '...' : 'ATS'}
-            </button>
-          </div>
-
-          {inlineSuggestion && (
-            <div
-              className="pointer-events-auto fixed rounded-xl border border-zinc-700 bg-zinc-950/95 p-3 shadow-[0_14px_40px_rgba(0,0,0,0.55)] transition-all duration-200 w-[min(92vw,340px)]"
-              style={{
-                top: Math.min((inlineAnchorRect?.bottom ?? 120) + 10, window.innerHeight - 220),
-                left: inlineSuggestionLeft,
-              }}
-            >
-              <div className="mb-1 text-[11px] uppercase tracking-wide text-zinc-400">Improved {inlineSuggestion.label}</div>
-              <p className="text-xs text-zinc-100 leading-relaxed whitespace-pre-wrap">{inlineSuggestion.suggestion}</p>
-              <div className="mt-3 flex items-center gap-2">
-                <button onClick={applyInlineSuggestion} className="rounded-lg bg-[#C8F55A] px-2.5 py-1 text-xs font-semibold text-zinc-950">Apply</button>
-                <button onClick={() => void regenerateInlineSuggestion()} className="rounded-lg border border-zinc-700 px-2.5 py-1 text-xs text-zinc-200">Regenerate</button>
-                <button onClick={() => setInlineSuggestion(null)} className="ml-auto rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-400">Close</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      
 
       {isMobile ? (
         <div className={`fixed inset-x-0 bottom-0 z-50 h-[74vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col transition-transform duration-250 ${assistantOpen ? 'translate-y-0' : 'translate-y-full'}`}>
