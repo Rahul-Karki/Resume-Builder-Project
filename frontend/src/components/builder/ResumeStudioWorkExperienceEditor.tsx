@@ -233,7 +233,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       `}</style>
 
       {/* LEFT SIDEBAR */}
-      <aside className="w-[60px] flex-shrink-0 bg-[#231820] flex flex-col items-center py-4 border-r border-[#2e1f28]">
+      <aside className="w-15 shrink-0 bg-[#231820] flex flex-col items-center py-4 border-r border-[#2e1f28]">
         <div className="mb-8">
           <div className="w-8 h-8 bg-[#e8622a] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(232,98,42,0.4)]">
             <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4c-1.1 0-1.99.9-1.99 2v3.8H3.5c1.49 0 2.7 1.21 2.7 2.7s-1.21 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.49 1.21-2.7 2.7-2.7s2.7 1.21 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5s-1.12-2.5-2.5-2.5z"/></svg>
@@ -265,7 +265,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       </aside>
 
       {/* CENTER-LEFT PANEL (Editor) */}
-      <div className="w-[380px] flex-shrink-0 bg-[#231820] border-r border-[#2e1f28] flex flex-col">
+      <div className="w-95 shrink-0 bg-[#231820] border-r border-[#2e1f28] flex flex-col">
         <div className="p-6 border-b border-[#2e1f28]">
           <h2 className="text-xl font-bold text-[#f5f0f2] mb-1">Work Experience</h2>
           <p className="text-xs text-[#a08090] leading-relaxed">
@@ -324,7 +324,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
               {/* Expanded Content */}
               <div
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  exp.isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                  exp.isExpanded ? 'max-h-150 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
                 <div className="p-4 pt-0 space-y-3">
@@ -403,7 +403,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
       {/* CENTER PANEL (Preview) */}
       <div className="flex-1 bg-[#1a1014] flex flex-col min-w-0">
-        <div className="h-14 border-b border-[#2e1f28] flex items-center justify-between px-6 flex-shrink-0">
+        <div className="h-14 border-b border-[#2e1f28] flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-4">
             <div className="flex items-center bg-[#231820] rounded-lg p-1 border border-[#2e1f28]">
               <button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))} className="p-1.5 hover:bg-[#2e1f28] rounded-md transition-colors text-[#a08090]">
@@ -495,7 +495,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       </div>
 
       {/* RIGHT PANEL (Tips) */}
-      <div className="w-[300px] flex-shrink-0 bg-[#231820] border-l border-[#2e1f28] flex flex-col">
+      <div className="w-75 shrink-0 bg-[#231820] border-l border-[#2e1f28] flex flex-col">
         <div className="p-6 border-b border-[#2e1f28]">
           <h3 className="text-sm font-bold text-[#f5f0f2] mb-4">Resume Strength</h3>
           <div className="flex items-center gap-4">
