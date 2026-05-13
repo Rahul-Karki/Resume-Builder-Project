@@ -212,6 +212,7 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
     targetRole,
     jobDescription,
     existingKeywords: job.data.keywords,
+    previousScore: job.data.previousOverallScore ?? null,
     resumeText: resumeSnippet,
     outputShape: {
       jdKeywords: ["..."],
@@ -226,9 +227,19 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
         },
       ],
       questionsForUser: ["..."],
+      perSectionSuggestions: {
+        summary: ["..."],
+        experience: ["..."],
+        skills: ["..."],
+        education: ["..."],
+        projects: ["..."],
+        certifications: ["..."],
+        languages: ["..."],
+      },
     },
     guidance: [
       "If a section seems missing/empty (e.g., summary too short, no projects, no skills categories), include a rewriteSuggestion that contains a template the user can add.",
+      "Return suggestions grouped by section where possible in `perSectionSuggestions` and ensure each `rewriteSuggestions` item includes a `path` that identifies the target field (e.g., personalInfo.summary or sections.experience[0].bullets[1]).",
       "For weak experience bullets, rewrite 1-2 bullets using strong action verbs and JD keywords (without adding new facts).",
       "Provide jdKeywords as 15-30 ATS keywords/phrases from the job description (tools, skills, role terms, methodologies).",
     ],
@@ -270,6 +281,10 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
 
       const report: AtsAnalysisReport = {
         ...base,
+        // preserve previous score reported when job was queued
+        // (job.data.previousOverallScore is attached by controller when available)
+        // store as a plain number field on the persisted document
+        ...(job.data.previousOverallScore !== undefined ? { previousOverallScore: job.data.previousOverallScore } : {}),
         targetKeywords: mergedKeywords,
         matchScore: keywordResult.matchScore,
         keywordAnalysis: keywordResult.analysis,
@@ -459,6 +474,7 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
         jobTitle: report.jobTitle ?? "",
         jobDescription: report.jobDescription ?? "",
         targetKeywords: report.targetKeywords,
+        previousOverallScore: job.data.previousOverallScore ?? undefined,
         overallScore: report.overallScore,
         matchScore: report.matchScore,
         sectionScores: report.sectionScores,

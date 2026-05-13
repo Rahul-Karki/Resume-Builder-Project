@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
+import React, { useState, useEffect } from "react";
+import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
+import { getLatestAtsAnalysis } from "@/services/api";
 
 // ─── Writing Tips Data ──────────────────────────────────────────────────────────
 
@@ -244,6 +245,25 @@ type AiTab = "tips" | "verbs" | "checklist";
 export function AiAssistPanel() {
   const [activeTab, setActiveTab] = useState<AiTab>("tips");
   const [filterSection, setFilterSection] = useState<string>("all");
+  const { resume } = useResumeBuilderStore();
+  const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+          if (!resume?._id) return;
+          const res = await getLatestAtsAnalysis(resume._id);
+        if (!mounted) return;
+        setLatestAnalysis(res?.analysis ?? null);
+      } catch {
+        setLatestAnalysis(null);
+      }
+    };
+
+    void load();
+    return () => { mounted = false; };
+  }, [resume?.id]);
 
   const filteredTips = filterSection === "all"
     ? WRITING_TIPS
@@ -289,34 +309,73 @@ export function AiAssistPanel() {
       <div style={{ padding: "14px 16px" }}>
         {activeTab === "tips" && (
           <>
-            {/* Section filter */}
-            <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
-              {[
-                { id: "all", label: "All" },
-                { id: "summary", label: "Summary" },
-                { id: "experience", label: "Experience" },
-                { id: "skills", label: "Skills" },
-                { id: "general", label: "General" },
-              ].map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => setFilterSection(filter.id)}
-                  style={{
-                    padding: "4px 10px", borderRadius: 20,
-                    border: `1px solid ${filterSection === filter.id ? "#FFFFFF" : "#27272a"}`,
-                    background: filterSection === filter.id ? "rgba(255,255,255,0.1)" : "transparent",
-                    color: filterSection === filter.id ? "#FFFFFF" : "#666",
-                    fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                  }}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
+            {/* If an ATS analysis exists show those suggestions; otherwise show common tips */}
+            {latestAnalysis ? (
+              <div>
+                <div style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>ATS Suggestions</div>
+                {(() => {
+                  const groups: Record<string, any[]> = {};
+                  const suggestions = Array.isArray(latestAnalysis.rewriteSuggestions) ? latestAnalysis.rewriteSuggestions : [];
+                  for (const s of suggestions) {
+                    const path: string = s.path ?? "general";
+                    let key = "general";
+                    if (path.startsWith("personalInfo.summary")) key = "summary";
+                    else if (path.startsWith("sections.experience")) key = "experience";
+                    else if (path.startsWith("sections.skills")) key = "skills";
+                    else if (path.startsWith("sections.education")) key = "education";
+                    else if (path.startsWith("sections.projects")) key = "projects";
+                    else if (path.startsWith("sections.certifications")) key = "certifications";
+                    else if (path.startsWith("sections.languages")) key = "languages";
 
-            {filteredTips.map((tip) => (
-              <TipCard key={tip.id} tip={tip} />
-            ))}
+                    groups[key] = groups[key] ?? [];
+                    groups[key].push(s);
+                  }
+
+                  return Object.keys(groups).map((key) => (
+                    <div key={key} style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#e4e4e7", marginBottom: 8, textTransform: "capitalize" }}>{key}</div>
+                      {groups[key].map((g: any) => (
+                        <div key={g.id} style={{ background: "#09090b", border: "1px solid #27272a", borderRadius: 10, padding: 12, marginBottom: 8 }}>
+                          <div style={{ fontSize: 13, color: "#e4e4e7", fontWeight: 700 }}>{g.suggestionText}</div>
+                          <div style={{ fontSize: 12, color: "#888", marginTop: 6 }}>{g.reason}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ));
+                })()}
+              </div>
+            ) : (
+              <>
+                {/* Section filter */}
+                <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "summary", label: "Summary" },
+                    { id: "experience", label: "Experience" },
+                    { id: "skills", label: "Skills" },
+                    { id: "general", label: "General" },
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => setFilterSection(filter.id)}
+                      style={{
+                        padding: "4px 10px", borderRadius: 20,
+                        border: `1px solid ${filterSection === filter.id ? "#FFFFFF" : "#27272a"}`,
+                        background: filterSection === filter.id ? "rgba(255,255,255,0.1)" : "transparent",
+                        color: filterSection === filter.id ? "#FFFFFF" : "#666",
+                        fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+
+                {filteredTips.map((tip) => (
+                  <TipCard key={tip.id} tip={tip} />
+                ))}
+              </>
+            )}
           </>
         )}
 

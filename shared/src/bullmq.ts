@@ -17,6 +17,7 @@ export type AtsAnalysisJobData = {
   userId: string;
   resumeId: string;
   analysisId: string;
+  previousOverallScore?: number | null;
   resume: Record<string, unknown>;
   jobTitle?: string;
   jobDescription?: string;

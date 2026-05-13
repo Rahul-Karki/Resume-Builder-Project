@@ -99,10 +99,14 @@ export const analyzeAts: RequestHandler = async (req, res) => {
     ]));
 
     const analysisId = crypto.randomUUID();
+    const previousAnalysis = await AtsAnalysis.findOne({ resumeId: resume._id, userId }).sort({ createdAt: -1 }).lean();
+    const previousOverallScore = previousAnalysis?.overallScore ?? null;
+
     const jobId = createAtsAnalysisJobId({
       userId,
       resumeId: String(resume._id),
       analysisId,
+      previousOverallScore,
       resume: resume.toObject() as unknown as Record<string, unknown>,
       jobTitle,
       jobDescription,
@@ -117,6 +121,7 @@ export const analyzeAts: RequestHandler = async (req, res) => {
         jobId,
         resumeId: resume._id,
         userId,
+        previousOverallScore: previousOverallScore ?? undefined,
         status: "pending",
         reportType,
         jobTitle,
@@ -152,6 +157,7 @@ export const analyzeAts: RequestHandler = async (req, res) => {
       analysisId,
       userId,
       resumeId: String(resume._id),
+      previousOverallScore: previousOverallScore ?? undefined,
       resume: resume.toObject() as unknown as Record<string, unknown>,
       jobTitle,
       jobDescription,

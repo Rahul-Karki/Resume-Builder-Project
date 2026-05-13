@@ -348,60 +348,10 @@ function PersonalSection() {
   );
 }
 
-// ─── AI Enhance Button ─────────────────────────────────────────────────────────
-function AIEnhanceButton({ onClick, isLoading }: { onClick: () => void; isLoading?: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={isLoading}
-      style={{
-        width: "100%",
-        padding: "10px 14px",
-        color: "#e8622a",
-        fontSize: 12,
-        fontWeight: 600,
-        cursor: isLoading ? "not-allowed" : "pointer",
-        fontFamily: "'Outfit', sans-serif",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        opacity: isLoading ? 0.6 : 1,
-      }}
-
-    >
-      {isLoading ? (
-        <>
-          <span style={{ display: "inline-block", width: 14, height: 14, animation: "spin 0.8s linear infinite" }} />
-          Enhancing...
-        </>
-      ) : (
-        <>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M13 2L3 14h9l-3 8 11-12h-9l3-8z" />
-          </svg>
-          AI Enhance Description
-        </>
-      )}
-    </button>
-  );
-}
+// AI enhance button removed — ATS-driven suggestions replace local enhance actions.
 
 // ─── Mock AI Service ───────────────────────────────────────────────────────────
-const mockEnhanceDescription = async (description: string): Promise<string> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(
-        description
-          .replace(/led/gi, "Orchestrated")
-          .replace(/managed/gi, "Directed")
-          .replace(/worked on/gi, "Spearheaded")
-          .replace(/helped/gi, "Facilitated") +
-        " Resulting in a 25% increase in efficiency and a 15% reduction in costs."
-      );
-    }, 1500);
-  });
-};
+// Local mock enhancement removed; use ATS suggestions and AI assistant flows instead.
 
 const mockFinalizeOptimize = async (experience: WorkEntry[]): Promise<string> => {
   return new Promise((resolve) => {
@@ -431,38 +381,8 @@ function ExperienceSection() {
 
   
 
-  const handleEnhanceDescription = async (expId: string) => {
-    const exp = experience.find(e => e.id === expId);
-    if (!exp) return;
-    setEnhancingId(expId);
-    setApiError(null);
-    try {
-      const textToEnhance = exp.contentMode === "paragraph" ? exp.description : exp.bullets.join("\n");
-      const enhanced = await mockEnhanceDescription(textToEnhance);
-      if (exp.contentMode === "paragraph") {
-        updateExperience(expId, "description", enhanced);
-      } else {
-        // For bullets mode, update the first bullet or description
-        updateExperience(expId, "description", enhanced);
-      }
-    } catch (error) {
-      setApiError("Failed to enhance description. Please try again.");
-    } finally {
-      setEnhancingId(null);
-    }
-  };
-  const handleFinalizeOptimize = async () => {
-    setIsOptimizing(true);
-    setApiError(null);
-    try {
-      const report = await mockFinalizeOptimize(experience);
-      setOptimizationModal(report);
-    } catch (error) {
-      setApiError("Failed to generate optimization report.");
-    } finally {
-      setIsOptimizing(false);
-    }
-    };
+  // Inline AI enhance removed — users should run ATS analysis or use the AI assistant.
+  // Finalize & Optimize removed; handled via ATS suggestions instead.
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -496,7 +416,7 @@ function ExperienceSection() {
 
       {/* Experience Cards */}
       {experience.map((e: WorkEntry, idx: number) => (
-        <ExperienceCard
+          <ExperienceCard
           key={e.id}
           entry={e}
           isLast={idx === experience.length - 1}
@@ -505,8 +425,7 @@ function ExperienceSection() {
           onAddBullet={() => addBullet(e.id)}
           onUpdateBullet={(i, v) => updateBullet(e.id, i, v)}
           onRemoveBullet={(i) => removeBullet(e.id, i)}
-          onEnhance={() => handleEnhanceDescription(e.id)}
-          isEnhancing={enhancingId === e.id}
+            /* inline enhance removed */
           onDragStart={(ev) => handleDragStart(ev, e.id)}
           onDragOver={(ev) => handleDragOver(ev, e.id)}
           onDragEnd={handleDragEnd}
@@ -601,8 +520,6 @@ function ExperienceCard({
   onAddBullet,
   onUpdateBullet,
   onRemoveBullet,
-  onEnhance,
-  isEnhancing,
   onDragStart,
   onDragOver,
   onDragEnd,
@@ -615,8 +532,6 @@ function ExperienceCard({
   onAddBullet: () => void;
   onUpdateBullet: (index: number, value: string) => void;
   onRemoveBullet: (index: number) => void;
-  onEnhance: () => void;
-  isEnhancing: boolean;
   onDragStart: (e: React.DragEvent) => void;
   onDragOver: (e: React.DragEvent) => void;
   onDragEnd: () => void;
@@ -695,7 +610,7 @@ function ExperienceCard({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
               <span style={label}>Description</span>
-              <InlineEnhanceTip text={entry.description} />
+              {/* Inline enhance tip removed */}
             </div>
             <FocusedTextArea
               value={entry.description}
@@ -703,7 +618,7 @@ function ExperienceCard({
               placeholder="Describe your role and achievements..."
               rows={5}
             />
-            <AIEnhanceButton onClick={onEnhance} isLoading={isEnhancing} />
+            {/* AI Enhance removed */}
           </div>
         )}
 
@@ -738,7 +653,6 @@ function ExperienceCard({
               </div>
             ))}
             <AddBtn label="Bullet Point" onClick={onAddBullet} />
-            <AIEnhanceButton onClick={onEnhance} isLoading={isEnhancing} />
           </div>
         )}
       </EntryCard>

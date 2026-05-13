@@ -292,6 +292,14 @@ export function ATSAnalysisPanel() {
                   <span className="ats-score-label" style={{ color: scoreColor(report.overallScore) }}>{scoreLabel(report.overallScore)}</span>
                 </div>
               </div>
+              {typeof report.previousOverallScore === 'number' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#aaa', fontSize: 12 }}>
+                  <div>Previous score: <span style={{ color: '#e4e4e7', fontWeight: 700 }}>{report.previousOverallScore}</span></div>
+                  <div style={{ color: report.overallScore >= (report.previousOverallScore ?? 0) ? '#86efac' : '#fca5a5' }}>
+                    {report.previousOverallScore !== undefined ? `${report.overallScore - report.previousOverallScore >= 0 ? '+' : ''}${report.overallScore - report.previousOverallScore}` : ''} points
+                  </div>
+                </div>
+              )}
               <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div className="ats-stat-box">
                   <div className="ats-stat-value">{report.keywordAnalysis?.missingKeywords?.length ?? 0}</div>

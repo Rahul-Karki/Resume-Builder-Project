@@ -3,13 +3,13 @@ import { useLocation } from 'react-router-dom';
 import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
-import { api, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload } from '@/services/api';
+import { api, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload, getLatestAtsAnalysis } from '@/services/api';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
-import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
+import { AiAssistPanel } from '@/components/builder/AiAssistPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
 import { Logo } from '@/components/Logo';
 
@@ -183,6 +183,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
+  const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
@@ -295,7 +296,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
-
     const run = async () => {
       try {
         const response = await api.get('/auth/me');
@@ -309,6 +309,16 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         if (!resume.personalInfo.email?.trim() && nextEmail) updatePersonalInfo('email', nextEmail);
       } catch {
         // keep page usable without auth prefill
+      }
+
+      // load latest ATS analysis for this resume (if saved)
+      try {
+        if (resume?._id) {
+          const res = await getLatestAtsAnalysis(resume._id);
+          setLatestAnalysis(res.data?.analysis ?? null);
+        }
+      } catch {
+        setLatestAnalysis(null);
       }
     };
 
@@ -461,47 +471,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
   
 
-  const handleFinalizeAndOptimize = async () => {
-    const descriptions = resume.sections.experience.map((entry) => getEntryDescription(entry).trim()).filter(Boolean);
-    if (descriptions.length === 0) {
-      setApiError('Add at least one work experience description before optimization.');
-      return;
-    }
-
-    setApiError(null);
-    setIsOptimizing(true);
-
-    try {
-      const aiResult = await improveResumeText({
-        text: descriptions.join('\n'),
-        section: 'experience',
-        tone: 'leadership-focused',
-      });
-
-      const reportLines = [
-        'Optimization Report',
-        '',
-        aiResult.summary || 'No summary returned.',
-        '',
-        ...(aiResult.suggestions.length
-          ? [
-              'Top Suggestions:',
-              ...aiResult.suggestions.slice(0, 5).map((suggestion, idx) => `${idx + 1}. ${suggestion.reason} -> ${suggestion.suggestionText}`),
-              '',
-            ]
-          : []),
-      ];
-
-      setOptimizationReport(reportLines.join('\n'));
-      setAssistantOpen(true);
-      setAssistantTab('tips');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to generate optimization report.';
-      setApiError(message);
-    } finally {
-      setIsOptimizing(false);
-    }
-  };
+  // Finalize & Optimize flow removed — ATS-driven suggestions now surfaced in Tips after analysis.
 
   const handleSave = async () => {
     setApiError(null);
@@ -713,27 +683,52 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
             {assistantTab === 'tips' && (
               <div className="space-y-2.5">
-                {compactInsights.map((insight, idx) => (
-                  <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
-                    <span className={insight.tone}>{insight.icon}</span>
-                    <span className="text-zinc-200">{insight.text}</span>
+                {latestAnalysis ? (
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">ATS Suggestions</div>
+                    {(() => {
+                      const groups: Record<string, any[]> = {};
+                      const suggestions = Array.isArray(latestAnalysis.rewriteSuggestions) ? latestAnalysis.rewriteSuggestions : [];
+                      for (const s of suggestions) {
+                        const path: string = s.path ?? 'general';
+                        let key = 'general';
+                        if (path.startsWith('personalInfo.summary')) key = 'summary';
+                        else if (path.startsWith('sections.experience')) key = 'experience';
+                        else if (path.startsWith('sections.skills')) key = 'skills';
+                        else if (path.startsWith('sections.education')) key = 'education';
+                        else if (path.startsWith('sections.projects')) key = 'projects';
+                        else if (path.startsWith('sections.certifications')) key = 'certifications';
+                        else if (path.startsWith('sections.languages')) key = 'languages';
+
+                        groups[key] = groups[key] ?? [];
+                        groups[key].push(s);
+                      }
+
+                      return Object.keys(groups).map((key) => (
+                        <div key={key} className="mb-3">
+                          <div className="text-sm font-semibold text-zinc-200 mb-2" style={{ textTransform: 'capitalize' }}>{key}</div>
+                          {groups[key].map((g: any) => (
+                            <div key={g.id} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm mb-2">
+                              <div className="text-zinc-100 font-medium">{g.suggestionText}</div>
+                              <div className="text-zinc-400 text-xs mt-1">{g.reason}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ));
+                    })()}
                   </div>
-                ))}
-                <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
-                  {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
-                </button>
-                {optimizationReport && (
-                  <div className="mt-3 rounded-xl border border-zinc-700 bg-zinc-950/70 p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Optimization Report</div>
-                      <button onClick={() => setOptimizationReport(null)} className="text-zinc-500 hover:text-zinc-200 text-xs">Close</button>
+                ) : (
+                  compactInsights.map((insight, idx) => (
+                    <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
+                      <span className={insight.tone}>{insight.icon}</span>
+                      <span className="text-zinc-200">{insight.text}</span>
                     </div>
-                    <pre className="text-xs text-zinc-100 whitespace-pre-wrap leading-relaxed">{optimizationReport}</pre>
-                  </div>
+                  ))
                 )}
+                {/* Finalize & Optimize removed — ATS suggestions will appear here after analysis */}
               </div>
             )}
-            {assistantTab === 'ai' && <AIAssistantPanel />}
+            {assistantTab === 'ai' && <AiAssistPanel />}
             {assistantTab === 'ats' && <ATSAnalysisPanel />}
           </div>
         </div>
@@ -759,27 +754,52 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
             {assistantTab === 'tips' && (
               <div className="space-y-2.5">
-                {compactInsights.map((insight, idx) => (
-                  <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
-                    <span className={insight.tone}>{insight.icon}</span>
-                    <span className="text-zinc-200">{insight.text}</span>
+                {latestAnalysis ? (
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">ATS Suggestions</div>
+                    {(() => {
+                      const groups: Record<string, any[]> = {};
+                      const suggestions = Array.isArray(latestAnalysis.rewriteSuggestions) ? latestAnalysis.rewriteSuggestions : [];
+                      for (const s of suggestions) {
+                        const path: string = s.path ?? 'general';
+                        let key = 'general';
+                        if (path.startsWith('personalInfo.summary')) key = 'summary';
+                        else if (path.startsWith('sections.experience')) key = 'experience';
+                        else if (path.startsWith('sections.skills')) key = 'skills';
+                        else if (path.startsWith('sections.education')) key = 'education';
+                        else if (path.startsWith('sections.projects')) key = 'projects';
+                        else if (path.startsWith('sections.certifications')) key = 'certifications';
+                        else if (path.startsWith('sections.languages')) key = 'languages';
+
+                        groups[key] = groups[key] ?? [];
+                        groups[key].push(s);
+                      }
+
+                      return Object.keys(groups).map((key) => (
+                        <div key={key} className="mb-3">
+                          <div className="text-sm font-semibold text-zinc-200 mb-2" style={{ textTransform: 'capitalize' }}>{key}</div>
+                          {groups[key].map((g: any) => (
+                            <div key={g.id} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm mb-2">
+                              <div className="text-zinc-100 font-medium">{g.suggestionText}</div>
+                              <div className="text-zinc-400 text-xs mt-1">{g.reason}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ));
+                    })()}
                   </div>
-                ))}
-                <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#C8F55A] text-[#0A0A0A] py-2 text-sm font-semibold">
-                  {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
-                </button>
-                {optimizationReport && (
-                  <div className="mt-3 rounded-xl border border-zinc-700 bg-zinc-950/70 p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Optimization Report</div>
-                      <button onClick={() => setOptimizationReport(null)} className="text-zinc-500 hover:text-zinc-200 text-xs">Close</button>
+                ) : (
+                  compactInsights.map((insight, idx) => (
+                    <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
+                      <span className={insight.tone}>{insight.icon}</span>
+                      <span className="text-zinc-200">{insight.text}</span>
                     </div>
-                    <pre className="text-xs text-zinc-100 whitespace-pre-wrap leading-relaxed">{optimizationReport}</pre>
-                  </div>
+                  ))
                 )}
+                {/* Finalize & Optimize removed — ATS suggestions will appear here after analysis */}
               </div>
             )}
-            {assistantTab === 'ai' && <AIAssistantPanel />}
+            {assistantTab === 'ai' && <AiAssistPanel />}
             {assistantTab === 'ats' && <ATSAnalysisPanel />}
           </div>
         </div>
