@@ -394,92 +394,650 @@ function PersonalSection() {
   );
 }
 
-// ─── EXPERIENCE SECTION ────────────────────────────────────────────────────────
+// ─── AI Enhance Button ─────────────────────────────────────────────────────────
+function AIEnhanceButton({ onClick, isLoading }: { onClick: () => void; isLoading?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={isLoading}
+      style={{
+        width: "100%",
+        padding: "10px 14px",
+        borderRadius: 10,
+        border: "1px solid rgba(232, 98, 42, 0.3)",
+        background: "rgba(232, 98, 42, 0.08)",
+        color: "#e8622a",
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: isLoading ? "not-allowed" : "pointer",
+        fontFamily: "'Outfit', sans-serif",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        transition: "all 0.2s ease",
+        opacity: isLoading ? 0.6 : 1,
+      }}
+      onMouseEnter={e => { if (!isLoading) { e.currentTarget.style.background = "rgba(232, 98, 42, 0.15)"; e.currentTarget.style.borderColor = "rgba(232, 98, 42, 0.5)"; } }}
+      onMouseLeave={e => { e.currentTarget.style.background = "rgba(232, 98, 42, 0.08)"; e.currentTarget.style.borderColor = "rgba(232, 98, 42, 0.3)"; }}
+    >
+      {isLoading ? (
+        <>
+          <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(232, 98, 42, 0.2)", borderTopColor: "#e8622a", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          Enhancing...
+        </>
+      ) : (
+        <>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M13 2L3 14h9l-3 8 11-12h-9l3-8z" />
+          </svg>
+          AI Enhance Description
+        </>
+      )}
+    </button>
+  );
+}
+
+// ─── Mock AI Service ───────────────────────────────────────────────────────────
+const mockEnhanceDescription = async (description: string): Promise<string> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(
+        description
+          .replace(/led/gi, "Orchestrated")
+          .replace(/managed/gi, "Directed")
+          .replace(/worked on/gi, "Spearheaded")
+          .replace(/helped/gi, "Facilitated") +
+        " Resulting in a 25% increase in efficiency and a 15% reduction in costs."
+      );
+    }, 1500);
+  });
+};
+
+const mockFinalizeOptimize = async (experience: WorkEntry[]): Promise<string> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const totalWords = experience.reduce((acc, curr) => acc + (curr.description?.split(" ").length || 0) + curr.bullets.reduce((a, b) => a + b.split(" ").length, 0), 0);
+      resolve(
+        `Optimization Report:\n\n` +
+        `1. Overall Impact: Your resume demonstrates strong technical skills, but could benefit from more quantifiable achievements.\n` +
+        `2. Verb Usage: Consider varying your action verbs to avoid repetition.\n` +
+        `3. Length: Your total experience description is ${totalWords} words. Aim for 300-500 words for optimal ATS parsing.\n` +
+        `4. Keywords: Ensure you include relevant keywords from the job description.\n\n` +
+        `Recommendation: Focus on metrics and outcomes in your most recent role.`
+      );
+    }, 2000);
+  });
+};
+
+// ─── EXPERIENCE SECTION (Redesigned) ───────────────────────────────────────────
 function ExperienceSection() {
-  const { resume, addExperience, updateExperience, removeExperience, addBullet, updateBullet, removeBullet, setFocusedField } = useResumeBuilderStore();
+  const { resume, addExperience, updateExperience, removeExperience, addBullet, updateBullet, removeBullet, setFocusedField, reorderExperience } = useResumeBuilderStore();
   const experience = resume.sections.experience;
+  const [enhancingId, setEnhancingId] = useState<string | null>(null);
+  const [optimizationModal, setOptimizationModal] = useState<string | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  // Calculate resume strength
+  const calculateStrength = () => {
+    let score = 50;
+    const totalWords = experience.reduce((acc, curr) => {
+      const descWords = curr.description ? curr.description.split(" ").length : 0;
+      const bulletWords = curr.bullets.reduce((a, b) => a + b.split(" ").length, 0);
+      return acc + descWords + bulletWords;
+    }, 0);
+    const hasNumbers = experience.some((exp) => /\d/.test(exp.description) || exp.bullets.some(b => /\d/.test(b)));
+
+    if (totalWords > 50) score += 15;
+    if (totalWords > 150) score += 10;
+    if (hasNumbers) score += 10;
+    if (experience.length >= 2) score += 10;
+    if (experience.every(e => e.role && e.company)) score += 5;
+
+    return Math.min(100, score);
+  };
+
+  const strength = calculateStrength();
+
+  // Check for weak verb usage
+  const getWeakVerbTip = () => {
+    const allText = experience.map(e => `${e.description} ${e.bullets.join(" ")}`).join(" ");
+    const ledCount = (allText.match(/\bled\b/gi) || []).length;
+    if (ledCount > 1) {
+      return { title: "Weak Verb Usage", message: `You used "Led" ${ledCount} times. Try "Orchestrated", "Directed", or "Spearheaded" instead.`, type: "warning" as const };
+    }
+    return null;
+  };
+
+  const weakVerbTip = getWeakVerbTip();
+
+  const handleEnhanceDescription = async (expId: string) => {
+    const exp = experience.find(e => e.id === expId);
+    if (!exp) return;
+    setEnhancingId(expId);
+    setApiError(null);
+    try {
+      const textToEnhance = exp.contentMode === "paragraph" ? exp.description : exp.bullets.join("\n");
+      const enhanced = await mockEnhanceDescription(textToEnhance);
+      if (exp.contentMode === "paragraph") {
+        updateExperience(expId, "description", enhanced);
+      } else {
+        // For bullets mode, update the first bullet or description
+        updateExperience(expId, "description", enhanced);
+      }
+    } catch (error) {
+      setApiError("Failed to enhance description. Please try again.");
+    } finally {
+      setEnhancingId(null);
+    }
+  };
+
+  const handleFinalizeOptimize = async () => {
+    setIsOptimizing(true);
+    setApiError(null);
+    try {
+      const report = await mockFinalizeOptimize(experience);
+      setOptimizationModal(report);
+    } catch (error) {
+      setApiError("Failed to generate optimization report.");
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (draggedId === id) return;
+    const draggedIndex = experience.findIndex(exp => exp.id === draggedId);
+    const targetIndex = experience.findIndex(exp => exp.id === id);
+    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) return;
+    reorderExperience(draggedIndex, targetIndex);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+  };
 
   return (
-    <div>
+    <div style={{ padding: "0 4px 24px" }}>
+      {/* Section Header */}
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Work Experience</h2>
+        <p style={{ fontSize: 12, color: "#a08090", lineHeight: 1.5 }}>
+          Detail your professional journey. Focus on achievements rather than just duties.
+        </p>
+      </div>
+
+      {/* Experience Cards */}
       {experience.map((e: WorkEntry, idx: number) => (
-        <EntryCard key={e.id} title={e.role || "New Role"} subtitle={e.company} onRemove={() => removeExperience(e.id)} defaultOpen={idx === experience.length - 1}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12, marginTop: 6 }}>
-            <div><span style={label}>Job Title</span><input value={e.role} onChange={v => updateExperience(e.id, "role", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "role", label: "Job Title" })} placeholder="Operations Supervisor" className="editor-input" style={inp} /></div>
-            <div><span style={label}>Company</span><input value={e.company} onChange={v => updateExperience(e.id, "company", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "company", label: "Company" })} placeholder="BrightPath Services" className="editor-input" style={inp} /></div>
+        <ExperienceCard
+          key={e.id}
+          entry={e}
+          isLast={idx === experience.length - 1}
+          onRemove={() => removeExperience(e.id)}
+          onUpdate={(field, value) => updateExperience(e.id, field as keyof WorkEntry, value)}
+          onAddBullet={() => addBullet(e.id)}
+          onUpdateBullet={(i, v) => updateBullet(e.id, i, v)}
+          onRemoveBullet={(i) => removeBullet(e.id, i)}
+          onEnhance={() => handleEnhanceDescription(e.id)}
+          isEnhancing={enhancingId === e.id}
+          onDragStart={(ev) => handleDragStart(ev, e.id)}
+          onDragOver={(ev) => handleDragOver(ev, e.id)}
+          onDragEnd={handleDragEnd}
+          setFocusedField={setFocusedField}
+        />
+      ))}
+
+      {/* Add Experience Button */}
+      <button
+        onClick={addExperience}
+        style={{
+          width: "100%",
+          padding: "14px",
+          borderRadius: 12,
+          border: "1px dashed rgba(255,255,255,0.15)",
+          background: "rgba(255,255,255,0.02)",
+          color: "#888",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: "pointer",
+          fontFamily: "'Outfit', sans-serif",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "#e8622a"; e.currentTarget.style.color = "#e8622a"; e.currentTarget.style.background = "rgba(232, 98, 42, 0.05)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add Work Experience
+      </button>
+
+      {/* Resume Strength & Tips Panel (inline for this section) */}
+      <div style={{ marginTop: 24, padding: "16px", background: "rgba(20,20,20,0.6)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+          <div style={{ position: "relative", width: 56, height: 56 }}>
+            <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2e1f28" strokeWidth="3" />
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e8622a" strokeWidth="3" strokeDasharray={`${strength}, 100`} style={{ transition: "all 1s ease" }} />
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#f5f0f2" }}>{strength}</span>
+            </div>
           </div>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#f5f0f2", marginBottom: 2 }}>Resume Strength</p>
+            <p style={{ fontSize: 11, color: "#a08090" }}>Stronger than 78% of applicants</p>
+          </div>
+        </div>
+
+        {/* Actionable Tips */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(34, 197, 94, 0.08)", border: "1px solid rgba(34, 197, 94, 0.15)", display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <span style={{ fontSize: 14 }}>✅</span>
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#f5f0f2" }}>Quantify your impact</p>
+              <p style={{ fontSize: 11, color: "#a08090", marginTop: 2 }}>Great job including metrics!</p>
+            </div>
+          </div>
+          <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.15)", display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <span style={{ fontSize: 14 }}>🔵</span>
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#f5f0f2" }}>Add relevant skills</p>
+              <p style={{ fontSize: 11, color: "#a08090", marginTop: 2 }}>Consider adding React, Node.js, and TypeScript.</p>
+              <button style={{ fontSize: 11, color: "#e8622a", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4, fontWeight: 600 }}>Apply Suggested Skills →</button>
+            </div>
+          </div>
+          {weakVerbTip && (
+            <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.15)", display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <span style={{ fontSize: 14 }}>⚠️</span>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#f5f0f2" }}>{weakVerbTip.title}</p>
+                <p style={{ fontSize: 11, color: "#a08090", marginTop: 2 }}>{weakVerbTip.message}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Finalize & Optimize Button */}
+      <button
+        onClick={handleFinalizeOptimize}
+        disabled={isOptimizing}
+        style={{
+          width: "100%",
+          marginTop: 16,
+          padding: "12px",
+          borderRadius: 12,
+          border: "none",
+          background: "#e8622a",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: isOptimizing ? "not-allowed" : "pointer",
+          fontFamily: "'Outfit', sans-serif",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          transition: "all 0.2s ease",
+          opacity: isOptimizing ? 0.7 : 1,
+          boxShadow: "0 0 20px rgba(232, 98, 42, 0.3)",
+        }}
+        onMouseEnter={e => { if (!isOptimizing) e.currentTarget.style.background = "#d55524"; }}
+        onMouseLeave={e => { e.currentTarget.style.background = "#e8622a"; }}
+      >
+        {isOptimizing ? (
+          <>
+            <span style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            Optimizing...
+          </>
+        ) : (
+          <>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            Finalize & Optimize
+          </>
+        )}
+      </button>
+
+      {/* Optimization Modal */}
+      {optimizationModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}>
+          <div style={{ background: "#231820", border: "1px solid #2e1f28", borderRadius: 20, maxWidth: 520, width: "100%", padding: 24, boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f5f0f2" }}>Optimization Report</h3>
+              <button onClick={() => setOptimizationModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#a08090", padding: 4 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div style={{ background: "#1a1014", borderRadius: 12, padding: 16, border: "1px solid #2e1f28", marginBottom: 20 }}>
+              <pre style={{ fontSize: 13, color: "#f5f0f2", whiteSpace: "pre-wrap", fontFamily: "'Outfit', sans-serif", lineHeight: 1.6, margin: 0 }}>
+                {optimizationModal}
+              </pre>
+            </div>
+            <button
+              onClick={() => setOptimizationModal(null)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: 10,
+                border: "none",
+                background: "#e8622a",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "'Outfit', sans-serif",
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {apiError && (
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "rgba(220, 38, 38, 0.95)", color: "#fff", padding: "12px 20px", borderRadius: 12, display: "flex", alignItems: "center", gap: 10, zIndex: 100, border: "1px solid rgba(220, 38, 38, 0.5)", boxShadow: "0 10px 30px rgba(0,0,0,0.3)" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span style={{ fontSize: 13 }}>{apiError}</span>
+          <button onClick={() => setApiError(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.7)", marginLeft: 8 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Experience Card Component ─────────────────────────────────────────────────
+function ExperienceCard({
+  entry,
+  isLast,
+  onRemove,
+  onUpdate,
+  onAddBullet,
+  onUpdateBullet,
+  onRemoveBullet,
+  onEnhance,
+  isEnhancing,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  setFocusedField,
+}: {
+  entry: WorkEntry;
+  isLast: boolean;
+  onRemove: () => void;
+  onUpdate: (field: string, value: string | boolean) => void;
+  onAddBullet: () => void;
+  onUpdateBullet: (index: number, value: string) => void;
+  onRemoveBullet: (index: number) => void;
+  onEnhance: () => void;
+  isEnhancing: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  setFocusedField: (field: any) => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(isLast);
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 12px",
+    background: "rgba(20,20,20,0.6)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 10,
+    color: "#e4e4e7",
+    fontSize: 13,
+    fontFamily: "'Outfit', sans-serif",
+    outline: "none",
+    boxSizing: "border-box",
+    transition: "all 0.2s ease",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#888",
+    textTransform: "uppercase",
+    letterSpacing: "0.9px",
+    display: "block",
+    marginBottom: 6,
+  };
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      style={{
+        background: "rgba(20,20,20,0.6)",
+        backdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 16,
+        overflow: "hidden",
+        marginBottom: 14,
+        transition: "all 0.3s ease",
+      }}
+    >
+      {/* Card Header */}
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          padding: "14px 16px",
+          cursor: "pointer",
+          transition: "background 0.2s ease",
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      >
+        <div style={{ marginRight: 10, color: "#555", cursor: "grab" }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 8h4V4H4v4zm6 0h4V4h-4v4zm6-4v4h4V4h-4zM4 14h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4z" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7", marginBottom: 2 }}>{entry.role || "New Position"}</div>
+          <div style={{ fontSize: 12, color: "#555" }}>{entry.company || "Company Name"} • {entry.start || "Start"} - {entry.current ? "Present" : (entry.end || "End")}</div>
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); onRemove(); }}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "#444",
+            fontSize: 14,
+            padding: "4px 8px",
+            marginRight: 8,
+            borderRadius: 6,
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#ff6b6b"; e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.background = "transparent"; }}
+          title="Remove"
+        >
+          ✕
+        </button>
+        <span style={{
+          fontSize: 12,
+          color: "#555",
+          transform: isExpanded ? "rotate(180deg)" : "none",
+          transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        }}>▾</span>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div style={{ padding: "0 16px 18px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <div>
+              <span style={labelStyle}>Job Title</span>
+              <input
+                value={entry.role}
+                onChange={v => onUpdate("role", v.target.value)}
+                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "role", label: "Job Title" })}
+                placeholder="Senior Software Engineer"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <span style={labelStyle}>Company</span>
+              <input
+                value={entry.company}
+                onChange={v => onUpdate("company", v.target.value)}
+                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "company", label: "Company" })}
+                placeholder="Tech Solutions Inc."
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
           <div style={{ marginBottom: 12 }}>
-            <span style={label}>Location</span>
-            <input value={e.location} onChange={v => updateExperience(e.id, "location", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "location", label: "Location" })} placeholder="San Francisco, CA" className="editor-input" style={inp} />
+            <span style={labelStyle}>Location</span>
+            <input
+              value={entry.location}
+              onChange={v => onUpdate("location", v.target.value)}
+              onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "location", label: "Location" })}
+              placeholder="San Francisco, CA"
+              style={inputStyle}
+            />
           </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <div><span style={label}>Start Date</span><input value={e.start} onChange={v => updateExperience(e.id, "start", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "start", label: "Start Date" })} placeholder="Mar 2021" className="editor-input" style={inp} /></div>
-            <div><span style={label}>End Date</span><input value={e.end} onChange={v => updateExperience(e.id, "end", v.target.value)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "end", label: "End Date" })} placeholder="Present" disabled={e.current} style={{ ...inp, opacity: e.current ? 0.4 : 1 }} className="editor-input" /></div>
+            <div>
+              <span style={labelStyle}>Start Date</span>
+              <input
+                value={entry.start}
+                onChange={v => onUpdate("start", v.target.value)}
+                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "start", label: "Start Date" })}
+                placeholder="Mar 2021"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <span style={labelStyle}>End Date</span>
+              <input
+                value={entry.end}
+                onChange={v => onUpdate("end", v.target.value)}
+                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "end", label: "End Date" })}
+                placeholder="Present"
+                disabled={entry.current}
+                style={{ ...inputStyle, opacity: entry.current ? 0.4 : 1 }}
+              />
+            </div>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 2 }}>
               <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={e.current} onChange={v => updateExperience(e.id, "current", v.target.checked)} onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "current", label: "Current Role" })} />
+                <input
+                  type="checkbox"
+                  checked={entry.current}
+                  onChange={v => onUpdate("current", v.target.checked)}
+                  onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "current", label: "Current Role" })}
+                />
                 <span style={{ fontSize: 12, color: "#888" }}>Current</span>
               </label>
             </div>
           </div>
+
           <div style={{ marginBottom: 12 }}>
-            <span style={label}>Description Format</span>
+            <span style={labelStyle}>Description Format</span>
             <ContentModeToggle
-              value={e.contentMode}
-              onChange={(mode) => updateExperience(e.id, "contentMode", mode)}
+              value={entry.contentMode}
+              onChange={(mode) => onUpdate("contentMode", mode)}
             />
           </div>
 
-          {e.contentMode === "paragraph" ? (
-            <div>
-              <span style={label}>Experience Summary</span>
+          {entry.contentMode === "paragraph" ? (
+            <div style={{ marginBottom: 12 }}>
+              <span style={labelStyle}>Description</span>
               <textarea
-                value={e.description}
-                onChange={v => updateExperience(e.id, "description", v.target.value)}
-                onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "description", label: "Experience Summary" }); }}
+                value={entry.description}
+                onChange={v => onUpdate("description", v.target.value)}
+                onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "description", label: "Description" }); }}
+                onBlur={ev => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.background = "rgba(20,20,20,0.6)"; }}
                 rows={4}
-                placeholder="Summarize your impact, scope of work, and service outcomes in a concise paragraph..."
-                className="editor-textarea"
-                style={ta}
-                onBlur={ev => { ev.currentTarget.style.borderColor = "#27272a"; ev.currentTarget.style.background = "#09090b"; }}
+                placeholder="Describe your responsibilities and achievements..."
+                style={{ ...inputStyle, resize: "vertical", minHeight: 80, lineHeight: 1.6 }}
               />
             </div>
           ) : (
-            <div>
-              <span style={label}>Bullet Points (Achievements)</span>
-              {e.bullets.map((b, i) => (
+            <div style={{ marginBottom: 12 }}>
+              <span style={labelStyle}>Bullet Points (Achievements)</span>
+              {entry.bullets.map((b, i) => (
                 <div key={i} style={{ marginBottom: 8 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                     <span style={{ color: "#555", paddingTop: 10, flexShrink: 0, fontSize: 14 }}>›</span>
                     <textarea
                       value={b}
-                      onChange={v => updateBullet(e.id, i, v.target.value)}
+                      onChange={v => onUpdateBullet(i, v.target.value)}
                       placeholder="Describe a quantifiable achievement…"
                       rows={2}
-                      className="editor-textarea"
-                      style={{ ...ta, flex: 1, minHeight: 48 }}
+                      style={{ ...inputStyle, flex: 1, minHeight: 48 }}
                     />
-                    <button onClick={() => removeBullet(e.id, i)}
+                    <button
+                      onClick={() => onRemoveBullet(i)}
                       style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 10, flexShrink: 0, borderRadius: 6, padding: "8px", transition: "all 0.15s ease" }}
                       onMouseEnter={e => { e.currentTarget.style.color = "#ff6b6b"; e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
                       onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.background = "transparent"; }}
-                    >✕</button>
+                    >
+                      ✕
+                    </button>
                   </div>
-                  {b.trim().length > 0 && <div style={{ marginLeft: 24, marginTop: 4 }}><InlineEnhanceTip text={b} context="bullet" /></div>}
                 </div>
               ))}
-              <button onClick={() => addBullet(e.id)} style={{
-                background: "none", border: "1px dashed #27272a", borderRadius: 8, color: "#555",
-                fontSize: 12, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s ease",
-              }}
+              <button
+                onClick={onAddBullet}
+                style={{
+                  background: "none",
+                  border: "1px dashed #27272a",
+                  borderRadius: 8,
+                  color: "#555",
+                  fontSize: 12,
+                  padding: "6px 12px",
+                  cursor: "pointer",
+                  fontFamily: "'Outfit', sans-serif",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.2s ease",
+                }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.color = "#555"; }}
-              >+ Add bullet</button>
+              >
+                + Add bullet
+              </button>
             </div>
           )}
-        </EntryCard>
-      ))}
-      <AddBtn label="Add Experience" onClick={addExperience} />
+
+          {/* AI Enhance Button */}
+          <AIEnhanceButton onClick={onEnhance} isLoading={isEnhancing} />
+        </div>
+      )}
     </div>
   );
 }
