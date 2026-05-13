@@ -6,6 +6,9 @@ import type {
   AtsFormattingCheck,
   AtsKeywordAnalysis,
   AtsScoreBreakdown,
+  AtsSectionAudit,
+  AtsActionPlanItem,
+  AtsKeywordPlacement,
 } from "../../../shared/src/ai";
 
 export type AtsAnalysisStatus = "pending" | "completed" | "failed";
@@ -18,6 +21,7 @@ export interface IAtsAnalysis extends Document {
   previousOverallScore?: number | null;
   status: AtsAnalysisStatus;
   reportType: AtsAnalysisReportType;
+  grade?: string;
   jobTitle?: string;
   jobDescription?: string;
   targetKeywords: string[];
@@ -29,6 +33,12 @@ export interface IAtsAnalysis extends Document {
   formattingChecks: AtsFormattingCheck[];
   rewriteSuggestions: AiSuggestion[];
   perSectionSuggestions?: AtsSectionSuggestions;
+  sectionAudit?: AtsSectionAudit[];
+  actionPlan?: AtsActionPlanItem[];
+  quickWins?: string[];
+  estimatedScoreAfterFixes?: number;
+  questionsForUser?: string[];
+  keywordPlacement?: AtsKeywordPlacement[];
   keywordGaps?: string[];
   verdict?: string;
   summary: string;
@@ -73,6 +83,46 @@ const formattingCheckSchema = new Schema<AtsFormattingCheck>(
   { _id: false },
 );
 
+const sectionAuditFixSchema = new Schema(
+  {
+    why: { type: String, default: "" },
+    keywordsToInclude: { type: [String], default: [] },
+    copyPasteTemplate: { type: String, default: "" },
+    example: { type: String, default: "" },
+    expectedScoreGain: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
+const sectionAuditSchema = new Schema<AtsSectionAudit>(
+  {
+    section: { type: String, required: true },
+    status: { type: String, enum: ["present", "missing", "empty", "weak"], required: true },
+    fix: { type: sectionAuditFixSchema, required: true, default: () => ({}) },
+  },
+  { _id: false },
+);
+
+const actionPlanSchema = new Schema<AtsActionPlanItem>(
+  {
+    priority: { type: String, enum: ["P0", "P1", "P2"], required: true },
+    action: { type: String, required: true },
+    whyItIncreasesScore: { type: String, required: true },
+    howToDo: { type: [String], default: [] },
+    expectedScoreGain: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
+const keywordPlacementSchema = new Schema<AtsKeywordPlacement>(
+  {
+    keyword: { type: String, required: true },
+    placeIn: { type: [String], default: [] },
+    exampleUsage: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
 const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
   {
     jobId: { type: String, required: true, unique: true, index: true },
@@ -113,6 +163,12 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
       certifications: { type: [suggestionSchema], default: [] },
       languages: { type: [suggestionSchema], default: [] },
     },
+    sectionAudit: { type: [sectionAuditSchema], default: [] },
+    actionPlan: { type: [actionPlanSchema], default: [] },
+    quickWins: { type: [String], default: [] },
+    estimatedScoreAfterFixes: { type: Number, default: undefined },
+    questionsForUser: { type: [String], default: [] },
+    keywordPlacement: { type: [keywordPlacementSchema], default: [] },
     keywordGaps: { type: [String], default: [] },
     verdict: { type: String, default: "" },
     summary: { type: String, default: "" },

@@ -15,6 +15,36 @@ export type AtsSectionKey = "summary" | "experience" | "skills" | "education" | 
 
 export type AtsSectionSuggestions = Partial<Record<AtsSectionKey, AiSuggestion[]>>;
 
+export type AtsSectionAuditStatus = "present" | "missing" | "empty" | "weak";
+
+export type AtsSectionAuditFix = {
+  why: string;
+  keywordsToInclude: string[];
+  copyPasteTemplate: string;
+  example: string;
+  expectedScoreGain: number;
+};
+
+export type AtsSectionAudit = {
+  section: AtsSectionKey | "contact_info" | "achievements" | "volunteer";
+  status: AtsSectionAuditStatus;
+  fix: AtsSectionAuditFix;
+};
+
+export type AtsActionPlanItem = {
+  priority: "P0" | "P1" | "P2";
+  action: string;
+  whyItIncreasesScore: string;
+  howToDo: string[];
+  expectedScoreGain: number;
+};
+
+export type AtsKeywordPlacement = {
+  keyword: string;
+  placeIn: Array<"summary" | "skills" | "experience" | "projects">;
+  exampleUsage: string;
+};
+
 export type AiRewriteResult = {
   suggestions: AiSuggestion[];
   variations: string[];
@@ -74,6 +104,7 @@ export type AtsAnalysisReport = {
   resumeId?: string;
   status: "pending" | "completed" | "failed";
   reportType: "resume-analysis" | "job-description-match";
+  grade?: "poor" | "average" | "good" | "excellent";
   jobTitle?: string;
   jobDescription?: string;
   targetKeywords: string[];
@@ -85,6 +116,12 @@ export type AtsAnalysisReport = {
   formattingChecks: AtsFormattingCheck[];
   rewriteSuggestions: AiSuggestion[];
   perSectionSuggestions?: AtsSectionSuggestions;
+  sectionAudit?: AtsSectionAudit[];
+  actionPlan?: AtsActionPlanItem[];
+  quickWins?: string[];
+  estimatedScoreAfterFixes?: number;
+  questionsForUser?: string[];
+  keywordPlacement?: AtsKeywordPlacement[];
   keywordGaps?: string[];
   verdict?: string;
   summary: string;

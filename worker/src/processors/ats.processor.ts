@@ -1,12 +1,13 @@
 import type { Job } from "bullmq";
 import type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
-import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsAnalysisReport, type AtsFormattingCheck, type AtsSectionKey, type AtsSectionSuggestions } from "../../../shared/src/ai";
+import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
 import Resume from "../../../Backend/src/models/Resume";
 import { analyzeGrammarIssues } from "./grammarAnalysis.processor";
 import { analyzeKeywordMatch } from "./jdMatch.processor";
 import { env } from "../config/env";
+import { buildEnhancedAtsUserPrompt, ENHANCED_ATS_SYSTEM_PROMPT } from "../utils/atsPromptTemplates";
 
 const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
@@ -16,11 +17,19 @@ const ACTION_VERBS = new Set([
 const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|latency|revenue|conversion|sla|throughput|requests)\b/i.test(text);
 
 type AiAtsEnhancement = {
+  grade?: AtsAnalysisReport["grade"];
+  overallScore?: number;
+  sectionScores?: Partial<AtsScoreBreakdown>;
   jdKeywords: string[];
   rewriteSuggestions: AiSuggestion[];
   perSectionSuggestions: AtsSectionSuggestions;
   keywordGaps: string[];
   verdict?: string;
+  quickWins: string[];
+  actionPlan: AtsActionPlanItem[];
+  sectionAudit: AtsSectionAudit[];
+  estimatedScoreAfterFixes?: number;
+  keywordPlacement: AtsKeywordPlacement[];
   questionsForUser: string[];
 };
 
@@ -29,6 +38,51 @@ const SECTION_KEYS: AtsSectionKey[] = ["summary", "experience", "skills", "educa
 const normalizeImpact = (value: unknown): AiSuggestion["impact"] => {
   if (value === "low" || value === "medium" || value === "high") return value;
   return "medium";
+};
+
+const normalizeSectionKey = (section: string): AtsSectionKey | null => {
+  if (SECTION_KEYS.includes(section as AtsSectionKey)) return section as AtsSectionKey;
+  return null;
+};
+
+const normalizeSectionAuditSection = (section: unknown): AtsSectionAudit["section"] => {
+  if (typeof section !== "string") return "experience";
+  if (section === "contact_info" || section === "achievements" || section === "volunteer") return section;
+  return normalizeSectionKey(section) ?? "experience";
+};
+
+const normalizeSectionAuditStatus = (status: unknown): AtsSectionAudit["status"] => {
+  if (status === "present" || status === "missing" || status === "empty" || status === "weak") return status;
+  return "weak";
+};
+
+const normalizeActionPlanPriority = (priority: unknown): AtsActionPlanItem["priority"] => {
+  if (priority === "P0" || priority === "P1" || priority === "P2") return priority;
+  return "P1";
+};
+
+const normalizeScoreValue = (value: unknown) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? clampScore(numeric) : undefined;
+};
+
+const normalizeKeywordPlacement = (value: unknown): AtsKeywordPlacement[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => item && typeof item === "object")
+    .map((item) => {
+      const record = item as Record<string, unknown>;
+      return {
+        keyword: compactText(record.keyword),
+        placeIn: Array.isArray(record.place_in)
+          ? record.place_in.filter((entry) => typeof entry === "string").map((entry) => entry as AtsKeywordPlacement["placeIn"][number])
+          : Array.isArray(record.placeIn)
+            ? record.placeIn.filter((entry) => typeof entry === "string").map((entry) => entry as AtsKeywordPlacement["placeIn"][number])
+            : [],
+        exampleUsage: compactText(record.example_usage) || compactText(record.exampleUsage),
+      };
+    })
+    .filter((item) => Boolean(item.keyword));
 };
 
 const providerIsConfigured = () => {
@@ -179,16 +233,98 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
 
   const verdict = typeof value.verdict === "string" ? compactText(value.verdict) : "";
 
+  const sectionScores = value.section_scores && typeof value.section_scores === "object"
+    ? {
+      summary: normalizeScoreValue((value.section_scores as Record<string, unknown>).summary),
+      experience: normalizeScoreValue((value.section_scores as Record<string, unknown>).experience),
+      skills: normalizeScoreValue((value.section_scores as Record<string, unknown>).skills),
+      education: normalizeScoreValue((value.section_scores as Record<string, unknown>).education),
+      formatting: normalizeScoreValue((value.section_scores as Record<string, unknown>).formatting),
+      projects: normalizeScoreValue((value.section_scores as Record<string, unknown>).projects),
+    }
+    : undefined;
+
+  const overallScore = Number.isFinite(Number(value.overall_score)) ? clampScore(Number(value.overall_score)) : undefined;
+
+  const sectionAudit = Array.isArray(value.section_audit)
+    ? value.section_audit
+      .filter((item) => item && typeof item === "object")
+      .map((item) => {
+        const record = item as Record<string, unknown>;
+        const fix = (record.fix && typeof record.fix === "object") ? (record.fix as Record<string, unknown>) : {};
+        return {
+          section: normalizeSectionAuditSection(record.section),
+          status: normalizeSectionAuditStatus(record.status),
+          fix: {
+            why: compactText(fix.why),
+            keywordsToInclude: Array.isArray(fix.keywords_to_include)
+              ? fix.keywords_to_include.filter((entry) => typeof entry === "string").map((entry) => compactText(entry)).filter(Boolean)
+              : Array.isArray(fix.keywordsToInclude)
+                ? fix.keywordsToInclude.filter((entry) => typeof entry === "string").map((entry) => compactText(entry)).filter(Boolean)
+                : [],
+            copyPasteTemplate: compactText(fix.copy_paste_template) || compactText(fix.copyPasteTemplate),
+            example: compactText(fix.example),
+            expectedScoreGain: Number(fix.expected_score_gain ?? fix.expectedScoreGain ?? 0),
+          },
+        } as AtsSectionAudit;
+      })
+      .filter((item) => Boolean(item.fix.why || item.fix.copyPasteTemplate || item.fix.example))
+    : [];
+
+  const actionPlan = Array.isArray(value.action_plan)
+    ? value.action_plan
+      .filter((item) => item && typeof item === "object")
+      .map((item) => {
+        const record = item as Record<string, unknown>;
+        return {
+          priority: normalizeActionPlanPriority(record.priority),
+          action: compactText(record.action),
+          whyItIncreasesScore: compactText(record.why_it_increases_score) || compactText(record.whyItIncreasesScore),
+          howToDo: Array.isArray(record.how_to_do)
+            ? record.how_to_do.filter((entry) => typeof entry === "string").map((entry) => compactText(entry)).filter(Boolean)
+            : Array.isArray(record.howToDo)
+              ? record.howToDo.filter((entry) => typeof entry === "string").map((entry) => compactText(entry)).filter(Boolean)
+              : [],
+          expectedScoreGain: Number(record.expected_score_gain ?? record.expectedScoreGain ?? 0),
+        } as AtsActionPlanItem;
+      })
+      .filter((item) => Boolean(item.action || item.whyItIncreasesScore))
+    : [];
+
+  const quickWins = Array.isArray(value.quick_wins)
+    ? value.quick_wins.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
+    : Array.isArray(value.quickWins)
+      ? value.quickWins.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
+      : [];
+
+  const estimatedScoreAfterFixes = Number.isFinite(Number(value.estimated_score_after_fixes ?? value.estimatedScoreAfterFixes))
+    ? clampScore(Number(value.estimated_score_after_fixes ?? value.estimatedScoreAfterFixes))
+    : undefined;
+
+  const keywordPlacement = normalizeKeywordPlacement(value.keyword_placement ?? value.keywordPlacement);
+
+  const grade = typeof value.grade === "string" ? compactText(value.grade) : "";
+
   const questionsForUser = Array.isArray(value.questionsForUser)
     ? value.questionsForUser.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
+    : Array.isArray(value.questions_for_user)
+      ? value.questions_for_user.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
     : [];
 
   return {
+    grade: grade === "poor" || grade === "average" || grade === "good" || grade === "excellent" ? grade : undefined,
+    overallScore,
+    sectionScores,
     jdKeywords: jdKeywords.slice(0, 30),
     rewriteSuggestions: rewriteSuggestions.slice(0, 12),
     perSectionSuggestions,
     keywordGaps: keywordGaps.slice(0, 3),
     verdict: verdict || undefined,
+    quickWins: quickWins.slice(0, 5),
+    actionPlan: actionPlan.slice(0, 6),
+    sectionAudit: sectionAudit.slice(0, 10),
+    estimatedScoreAfterFixes,
+    keywordPlacement: keywordPlacement.slice(0, 12),
     questionsForUser: questionsForUser.slice(0, 5),
   };
 };
@@ -248,57 +384,13 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
   const jobDescription = sliceText(job.data.jobDescription, 6000);
   const targetRole = compactText(job.data.jobTitle);
 
-  const systemPrompt = [
-    "You are an ATS resume analyzer and resume-writing coach.",
-    "Return JSON only (no markdown).",
-    "Hard rules:",
-    "- Do NOT invent experience, tools, employers, degrees, or metrics.",
-    "- Only suggest keywords if they plausibly fit; if uncertain, ask a question.",
-    "- Suggestions should be copy-paste ready and ATS-friendly.",
-  ].join("\n");
-
-  const userPrompt = JSON.stringify({
-    task: "Extract key JD keywords and propose concrete improvements to increase ATS score.",
-    targetRole,
-    jobDescription,
-    existingKeywords: job.data.keywords,
-    previousScore: job.data.previousOverallScore ?? null,
-    resumeText: resumeSnippet,
-    outputShape: {
-      jdKeywords: ["..."],
-      keywordGaps: ["..."],
-      verdict: "Two concise sentences summarizing the resume and the main improvement areas.",
-      rewriteSuggestions: [
-        {
-          id: "ai-ats-1",
-          originalText: "...",
-          suggestionText: "...",
-          reason: "...",
-          impact: "low|medium|high",
-          path: "optional"
-        },
-      ],
-      questionsForUser: ["..."],
-      perSectionSuggestions: {
-        summary: ["..."],
-        experience: ["..."],
-        skills: ["..."],
-        education: ["..."],
-        projects: ["..."],
-        certifications: ["..."],
-        languages: ["..."],
-      },
-    },
-    guidance: [
-      "If a section seems missing/empty (e.g., summary too short, no projects, no skills categories), include a rewriteSuggestion that contains a template the user can add.",
-      "Return suggestions grouped by section where possible in `perSectionSuggestions` and ensure each `rewriteSuggestions` item includes a `path` that identifies the target field (e.g., personalInfo.summary or sections.experience[0].bullets[1]).",
-      "For work experience, rewrite only the existing bullet points in plain, factual, action-driven language. Show original and rewritten wording without inventing new accomplishments.",
-      "Provide exactly three top keyword gaps as short phrases if possible.",
-      "Write the verdict in two concise sentences.",
-      "For weak experience bullets, rewrite 1-2 bullets using strong action verbs and JD keywords (without adding new facts).",
-      "Provide jdKeywords as 15-30 ATS keywords/phrases from the job description (tools, skills, role terms, methodologies).",
-    ],
-  });
+  const systemPrompt = ENHANCED_ATS_SYSTEM_PROMPT;
+  const userPrompt = [
+    buildEnhancedAtsUserPrompt(resumeSnippet, jobDescription),
+    `TARGET ROLE: ${targetRole}`,
+    `EXISTING KEYWORDS: ${job.data.keywords.join(", ")}`,
+    `PREVIOUS SCORE: ${job.data.previousOverallScore ?? "none"}`,
+  ].join("\n\n");
 
   const providers = getProviderOrder();
   if (providers.length === 0) return { report: base, aiUsed: false };
@@ -348,6 +440,15 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
       const rewriteSuggestions: AiSuggestion[] = Array.from(suggestionById.values()).slice(0, 20);
       const keywordGaps = enhancement.keywordGaps.length > 0 ? enhancement.keywordGaps : keywordResult.analysis.missingKeywords.slice(0, 3);
       const verdict = enhancement.verdict || buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords);
+      const overallScore = clampScore(enhancement.overallScore ?? sectionScores.overall);
+      const mergedSectionScores: AtsScoreBreakdown = {
+        summary: enhancement.sectionScores?.summary ?? sectionScores.summary,
+        experience: enhancement.sectionScores?.experience ?? sectionScores.experience,
+        skills: enhancement.sectionScores?.skills ?? sectionScores.skills,
+        education: enhancement.sectionScores?.education ?? sectionScores.education,
+        formatting: enhancement.sectionScores?.formatting ?? sectionScores.formatting,
+        projects: enhancement.sectionScores?.projects ?? sectionScores.projects,
+      };
 
       const report: AtsAnalysisReport = {
         ...base,
@@ -355,19 +456,23 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
         // (job.data.previousOverallScore is attached by controller when available)
         // store as a plain number field on the persisted document
         ...(job.data.previousOverallScore !== undefined ? { previousOverallScore: job.data.previousOverallScore } : {}),
+        grade: enhancement.grade,
         targetKeywords: mergedKeywords,
         matchScore: keywordResult.matchScore,
         keywordAnalysis: keywordResult.analysis,
-        sectionScores: {
-          ...base.sectionScores,
-          ...sectionScores,
-        },
-        overallScore: sectionScores.overall,
+        sectionScores: mergedSectionScores,
+        overallScore,
         rewriteSuggestions,
         perSectionSuggestions,
+        sectionAudit: enhancement.sectionAudit,
+        actionPlan: enhancement.actionPlan,
+        quickWins: enhancement.quickWins,
+        estimatedScoreAfterFixes: enhancement.estimatedScoreAfterFixes,
+        questionsForUser: enhancement.questionsForUser,
+        keywordPlacement: enhancement.keywordPlacement,
         keywordGaps,
         verdict,
-        summary: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
+        summary: buildReportSummary(job.data.jobTitle, overallScore, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
       };
 
       logger.info({ jobId: job.id, provider }, "ATS AI enhancement applied");
@@ -559,6 +664,12 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
         formattingChecks: report.formattingChecks,
         rewriteSuggestions: report.rewriteSuggestions,
         perSectionSuggestions: report.perSectionSuggestions ?? undefined,
+        sectionAudit: report.sectionAudit ?? [],
+        actionPlan: report.actionPlan ?? [],
+        quickWins: report.quickWins ?? [],
+        estimatedScoreAfterFixes: report.estimatedScoreAfterFixes,
+        questionsForUser: report.questionsForUser ?? [],
+        keywordPlacement: report.keywordPlacement ?? [],
         keywordGaps: report.keywordGaps ?? [],
         verdict: report.verdict ?? "",
         summary: report.summary,

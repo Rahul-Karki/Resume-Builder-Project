@@ -237,6 +237,11 @@ export function ATSAnalysisPanel() {
   const sectionSuggestions = getSectionSuggestions(report);
   const keywordGaps = (report?.keywordGaps ?? report?.keywordAnalysis?.missingKeywords ?? []).slice(0, 3);
   const experienceRewrites = (report?.rewriteSuggestions ?? []).filter((suggestion) => (suggestion.path ?? "").startsWith("sections.experience"));
+  const quickWins = report?.quickWins ?? [];
+  const actionPlan = report?.actionPlan ?? [];
+  const sectionAudit = report?.sectionAudit ?? [];
+  const estimatedScoreAfterFixes = report?.estimatedScoreAfterFixes;
+  const questionsForUser = report?.questionsForUser ?? [];
 
   const handleAnalyze = async () => {
     if (!resume._id) {
@@ -384,6 +389,95 @@ export function ATSAnalysisPanel() {
             </div>
 
             {/* Score breakdown bar */}
+
+            {typeof estimatedScoreAfterFixes === "number" && (
+              <div style={{ padding: "0 18px 10px", display: "flex", justifyContent: "space-between", gap: 12, color: "#aaa", fontSize: 12 }}>
+                <div>Estimated after fixes: <span style={{ color: scoreColor(estimatedScoreAfterFixes), fontWeight: 700 }}>{estimatedScoreAfterFixes}</span></div>
+                <div>Grade: <span style={{ color: "#e4e4e7", fontWeight: 700 }}>{report.grade ?? scoreLabel(report.overallScore).toLowerCase()}</span></div>
+              </div>
+            )}
+
+            {quickWins.length > 0 && (
+              <>
+                <div className="ats-section-label">
+                  <Lightbulb size={13} style={{ marginRight: 6 }} /> Quick Wins
+                </div>
+                <div style={{ padding: "0 18px 8px", display: "grid", gap: 8 }}>
+                  {quickWins.slice(0, 3).map((item, index) => (
+                    <div key={`quick-win-${index}`} className="ats-card" style={{ margin: 0 }}>
+                      <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{item}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {actionPlan.length > 0 && (
+              <>
+                <div className="ats-section-label">
+                  <Target size={13} style={{ marginRight: 6 }} /> Action Plan
+                </div>
+                <div style={{ padding: "0 18px 8px", display: "grid", gap: 8 }}>
+                  {actionPlan.slice(0, 3).map((item, index) => (
+                    <div key={`action-plan-${index}`} className="ats-card" style={{ margin: 0 }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title">{item.priority} {item.action}</div>
+                        <span className={`ats-tag ${item.priority === "P0" ? "ats-tag-bad" : item.priority === "P1" ? "ats-tag-warn" : "ats-tag-good"}`}>
+                          {item.expectedScoreGain > 0 ? `+${item.expectedScoreGain}` : "Fix"}
+                        </span>
+                      </div>
+                      <div className="ats-card-detail">{item.whyItIncreasesScore}</div>
+                      {item.howToDo.length > 0 && (
+                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: "#b4b4b8", fontSize: 12, lineHeight: 1.6 }}>
+                          {item.howToDo.slice(0, 3).map((step, stepIndex) => <li key={`${index}-${stepIndex}`}>{step}</li>)}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {sectionAudit.length > 0 && (
+              <>
+                <div className="ats-section-label">
+                  <BarChart3 size={13} style={{ marginRight: 6 }} /> Section Audit
+                </div>
+                <div style={{ padding: "0 18px 8px", display: "grid", gap: 8 }}>
+                  {sectionAudit.slice(0, 4).map((item, index) => (
+                    <div key={`section-audit-${index}`} className="ats-card" style={{ margin: 0 }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title">{String(item.section).replace(/_/g, " ")}</div>
+                        <span className={`ats-tag ${item.status === "present" ? "ats-tag-good" : item.status === "weak" ? "ats-tag-warn" : "ats-tag-bad"}`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <div className="ats-card-detail">{item.fix.why || item.fix.example || item.fix.copyPasteTemplate}</div>
+                      {item.fix.copyPasteTemplate && (
+                        <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "rgba(255,255,255,0.03)", color: "#e4e4e7", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                          {item.fix.copyPasteTemplate}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {questionsForUser.length > 0 && (
+              <>
+                <div className="ats-section-label">
+                  <AlertCircle size={13} style={{ marginRight: 6 }} /> Questions for You
+                </div>
+                <div style={{ padding: "0 18px 8px", display: "grid", gap: 8 }}>
+                  {questionsForUser.slice(0, 3).map((item, index) => (
+                    <div key={`question-${index}`} className="ats-card" style={{ margin: 0 }}>
+                      <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{item}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             <div style={{ padding: "0 18px" }}>
               <div className="ats-progress-bar">
                 <div className="ats-progress-fill" style={{ width: `${report.overallScore}%`, background: scoreColor(report.overallScore) }} />
