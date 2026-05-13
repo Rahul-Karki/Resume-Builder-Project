@@ -13,20 +13,36 @@ const Row = ({ children, gap = 8 }: { children: React.ReactNode; gap?: number })
   <div style={{ display: "flex", gap, alignItems: "center" }}>{children}</div>
 );
 
-const SectionBlock = ({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
+const SectionBlock = ({
+  title,
+  sectionKey,
+  activeSection,
+  setActiveSection,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  sectionKey: string;
+  activeSection: string;
+  setActiveSection: (section: string) => void;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) => {
   const [open, setOpen] = useState(defaultOpen);
+  const active = activeSection === sectionKey;
   return (
     <div style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(20,20,20,0.4)", backdropFilter: "blur(8px)", marginBottom: 4, borderRadius: 8 }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => {
+          setActiveSection(sectionKey);
+          setOpen(o => !o);
+        }}
         style={{
           width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "16px 20px", background: "none", border: "none", cursor: "pointer",
-          color: "#e4e4e7", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+          color: active ? "#f5f0f2" : "#e4e4e7", fontFamily: "inherit", fontSize: 14, fontWeight: active ? 800 : 700,
           transition: "all 0.3s ease", borderRadius: 8,
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-        onMouseLeave={e => { e.currentTarget.style.color = "#e4e4e7"; e.currentTarget.style.background = "none"; }}
       >
         {title}
         <span style={{ fontSize: 12, color: "#555", transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}>▾</span>
@@ -74,6 +90,7 @@ const COLOR_PRESETS = [
 export function StylePanel() {
   const { resume, updateStyle, resetStyle } = useResumeBuilderStore();
   const { style } = resume;
+  const [activeSection, setActiveSection] = useState("Color Theme");
 
   const applyPreset = (preset: typeof COLOR_PRESETS[0]) => {
     updateStyle("accentColor", preset.accent);
@@ -101,7 +118,12 @@ export function StylePanel() {
       </div>
 
       {/* Color Themes */}
-      <SectionBlock title="Color Theme">
+      <SectionBlock
+        title="Color Theme"
+        sectionKey="Color Theme"
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      >
         <Label>Quick Presets</Label>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
           {COLOR_PRESETS.map(preset => (
@@ -134,7 +156,6 @@ export function StylePanel() {
           <ColorSwatch value={style.textColor} field="textColor" onChange={updateStyle} label="Body Text" />
           <ColorSwatch value={style.mutedColor} field="mutedColor" onChange={updateStyle} label="Muted" />
           <ColorSwatch value={style.borderColor} field="borderColor" onChange={updateStyle} label="Borders" />
-          <ColorSwatch value={style.backgroundColor} field="backgroundColor" onChange={updateStyle} label="Page BG" />
         </div>
         {/* Hex inputs for each */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -142,7 +163,6 @@ export function StylePanel() {
             { label: "Accent", field: "accentColor" as keyof ResumeStyle, value: style.accentColor },
             { label: "Heading", field: "headingColor" as keyof ResumeStyle, value: style.headingColor },
             { label: "Body", field: "textColor" as keyof ResumeStyle, value: style.textColor },
-            { label: "Page BG", field: "backgroundColor" as keyof ResumeStyle, value: style.backgroundColor },
           ].map(({ label, field, value }) => (
             <div key={field}>
               <div style={{ fontSize: 11, color: "#555", marginBottom: 4, fontWeight: 500 }}>{label}</div>
@@ -164,7 +184,12 @@ export function StylePanel() {
       </SectionBlock>
 
       {/* Typography */}
-      <SectionBlock title="Typography">
+      <SectionBlock
+        title="Typography"
+        sectionKey="Typography"
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      >
         <div style={{ marginBottom: 14 }}>
           <Label>Body Font</Label>
           <select
@@ -237,7 +262,12 @@ export function StylePanel() {
       </SectionBlock>
 
       {/* Layout & Spacing */}
-      <SectionBlock title="Layout & Spacing">
+      <SectionBlock
+        title="Layout & Spacing"
+        sectionKey="Layout & Spacing"
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      >
         <div style={{ marginBottom: 14 }}>
           <Label>Page Margins</Label>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -304,7 +334,12 @@ export function StylePanel() {
       </SectionBlock>
 
       {/* Decorative */}
-      <SectionBlock title="Details & Decoration">
+      <SectionBlock
+        title="Details & Decoration"
+        sectionKey="Details & Decoration"
+        activeSection={activeSection}
+        setActiveSection={setActiveSection}
+      >
         <div style={{ marginBottom: 14 }}>
           <Row>
             <div style={{ flex: 1 }}>
