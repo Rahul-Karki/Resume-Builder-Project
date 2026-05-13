@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Eye, EyeOff, GripVertical } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
-import type { ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
+import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload } from '@/services/api';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
 import { EditorPanel } from '@/components/builder/editorPanel';
@@ -11,7 +11,13 @@ import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
 
 type LeftTab = 'content' | 'style' | 'sections';
-type RightTab = 'tips' | 'ai' | 'ats';
+type AssistantTab = 'tips' | 'ai' | 'ats';
+
+type FocusTarget = {
+  label: string;
+  text: string;
+  applySuggestion: (value: string) => void;
+};
 
 const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 5000;
 const RESUME_DOWNLOAD_MAX_POLLS = 60;
@@ -100,7 +106,7 @@ function SectionsTab(): React.ReactElement {
   };
 
   return (
-    <div className="p-4 space-y-2">
+    <div className="p-5 space-y-2">
       {resume.sectionOrder.map((sectionKey, idx) => {
         const visible = resume.sectionVisibility[sectionKey as keyof SectionVisibility];
         return (
@@ -110,19 +116,17 @@ function SectionsTab(): React.ReactElement {
             onDragStart={() => setDragging(idx)}
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => {
-              if (dragging !== null && dragging !== idx) {
-                reorderSections(dragging, idx);
-              }
+              if (dragging !== null && dragging !== idx) reorderSections(dragging, idx);
               setDragging(null);
             }}
             onDragEnd={() => setDragging(null)}
-            className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-3"
+            className="flex items-center gap-3 rounded-xl border border-zinc-800/80 bg-zinc-900/50 px-3 py-3"
           >
             <GripVertical size={16} className="text-zinc-500" />
             <div className="flex-1 text-sm text-zinc-100 font-medium">{labels[sectionKey] ?? sectionKey}</div>
             <button
               onClick={() => toggleSectionVisibility(sectionKey as keyof SectionVisibility)}
-              className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 hover:text-white"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-700/80 text-zinc-300 hover:text-white transition-colors"
             >
               {visible ? <Eye size={14} /> : <EyeOff size={14} />}
             </button>
@@ -142,12 +146,18 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     applyTemplateUpgrade,
     saveResume,
     updatePersonalInfo,
+    updateBullet,
+    updateExperience,
+    updateProject,
+    updateProjectBullet,
   } = useResumeBuilderStore();
 
   const location = useLocation();
 
   const [leftTab, setLeftTab] = useState<LeftTab>('content');
-  const [rightTab, setRightTab] = useState<RightTab>('tips');
+  const [assistantTab, setAssistantTab] = useState<AssistantTab>('tips');
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationReport, setOptimizationReport] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -156,10 +166,12 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [template, setTemplate] = useState<'modern' | 'classic'>('modern');
   const [isMobile, setIsMobile] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
   const previewHostRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
+    const updateViewport = () => setIsMobile(window.innerWidth < 768);
     updateViewport();
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
@@ -188,27 +200,27 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       const host = previewHostRef.current;
       if (!host) return;
 
-      const maxW = host.clientWidth - 24;
-      const maxH = host.clientHeight - 24;
+      const maxW = host.clientWidth - 12;
+      const maxH = host.clientHeight - 12;
       if (maxW <= 0 || maxH <= 0) return;
 
-      const fitScale = Math.min(maxW / A4_WIDTH_PX, maxH / A4_HEIGHT_PX, 1);
-      setPreviewScale(Math.max(0.3, fitScale));
+      const fitScale = Math.min(maxW / A4_WIDTH_PX, maxH / A4_HEIGHT_PX, 1.15);
+      setPreviewScale(Math.max(0.28, fitScale));
     };
 
     computeScale();
 
     const host = previewHostRef.current;
-    const observer = host ? new ResizeObserver(() => computeScale()) : null;
+    const observer = host ? new ResizeObserver(computeScale) : null;
     if (host && observer) observer.observe(host);
 
     window.addEventListener('resize', computeScale);
 
     return () => {
-      window.removeEventListener('resize', computeScale);
       if (observer) observer.disconnect();
+      window.removeEventListener('resize', computeScale);
     };
-  }, [isMobile, leftTab, rightTab]);
+  }, [assistantOpen, mobileEditorOpen, isMobile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -283,6 +295,112 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     return ledCount > 1;
   }, [resume.sections.experience]);
 
+  const focusedTarget = useMemo<FocusTarget | null>(() => {
+    const focused = ui.focusedField as FocusedEditorField | null;
+    if (!focused) return null;
+
+    if (focused.kind === 'personal' && focused.field === 'summary') {
+      return {
+        label: 'Summary',
+        text: resume.personalInfo.summary,
+        applySuggestion: (value) => updatePersonalInfo('summary', value),
+      };
+    }
+
+    if (focused.kind === 'experience' && focused.entityId) {
+      const entry = resume.sections.experience.find((item) => item.id === focused.entityId);
+      if (!entry) return null;
+
+      if (focused.field === 'description') {
+        return {
+          label: 'Experience Description',
+          text: entry.description,
+          applySuggestion: (value) => updateExperience(entry.id, 'description', value),
+        };
+      }
+
+      if (typeof focused.index === 'number') {
+        const text = entry.bullets[focused.index] ?? '';
+        return {
+          label: 'Experience Bullet',
+          text,
+          applySuggestion: (value) => updateBullet(entry.id, focused.index as number, value),
+        };
+      }
+    }
+
+    if (focused.kind === 'projects' && focused.entityId) {
+      const project = resume.sections.projects.find((item) => item.id === focused.entityId);
+      if (!project) return null;
+
+      if (focused.field === 'description') {
+        return {
+          label: 'Project Description',
+          text: project.description,
+          applySuggestion: (value) => updateProject(project.id, 'description', value),
+        };
+      }
+
+      if (typeof focused.index === 'number') {
+        const text = project.bullets[focused.index] ?? '';
+        return {
+          label: 'Project Bullet',
+          text,
+          applySuggestion: (value) => updateProjectBullet(project.id, focused.index as number, value),
+        };
+      }
+    }
+
+    return null;
+  }, [resume.personalInfo.summary, resume.sections.experience, resume.sections.projects, ui.focusedField, updateBullet, updateExperience, updatePersonalInfo, updateProject, updateProjectBullet]);
+
+  const runContextAction = async (kind: 'improve' | 'rewrite' | 'shorten' | 'ats') => {
+    if (!focusedTarget || !focusedTarget.text.trim()) {
+      setApiError('Focus a summary/experience/project text field with content to use AI actions.');
+      return;
+    }
+
+    setActionLoading(kind);
+    setApiError(null);
+
+    const promptPrefix =
+      kind === 'improve'
+        ? 'Improve this resume text with clearer impact and stronger action verbs:'
+        : kind === 'rewrite'
+          ? 'Rewrite this resume text to sound more professional and polished:'
+          : kind === 'shorten'
+            ? 'Shorten this resume text while keeping all key impact details:'
+            : 'Optimize this resume text for ATS keywords and recruiter scanning:';
+
+    const tone =
+      kind === 'shorten'
+        ? 'concise'
+        : kind === 'ats'
+          ? 'technical'
+          : 'professional';
+
+    try {
+      const response = await improveResumeText({
+        text: `${promptPrefix}\n\n${focusedTarget.text}`,
+        section: 'experience',
+        tone,
+      });
+
+      const suggestion =
+        response.variations.find((value) => value.trim().length > 0)
+        || response.suggestions[0]?.suggestionText
+        || focusedTarget.text;
+
+      focusedTarget.applySuggestion(suggestion);
+      setStatusMessage(`${focusedTarget.label} updated with AI ${kind}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AI action failed.';
+      setApiError(message);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleFinalizeAndOptimize = async () => {
     const descriptions = resume.sections.experience.map((entry) => getEntryDescription(entry).trim()).filter(Boolean);
     if (descriptions.length === 0) {
@@ -315,6 +433,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       ];
 
       setOptimizationReport(reportLines.join('\n'));
+      setAssistantOpen(true);
+      setAssistantTab('tips');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate optimization report.';
       setApiError(message);
@@ -354,32 +474,62 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     await applyTemplateUpgrade(value === 'classic' ? 'classic' : 'modern');
   };
 
+  const compactInsights = [
+    {
+      icon: '•',
+      text: `Resume strength score: ${resumeStrength}%`,
+      tone: 'text-zinc-300',
+    },
+    {
+      icon: weakVerbUsage ? '⚠' : '✓',
+      text: weakVerbUsage ? 'Weak verbs detected in experience text' : 'Strong action verbs used in experience',
+      tone: weakVerbUsage ? 'text-amber-300' : 'text-emerald-300',
+    },
+    {
+      icon: '✓',
+      text: 'Add measurable metrics in at least 2 bullets',
+      tone: 'text-emerald-300',
+    },
+    {
+      icon: '✓',
+      text: 'Missing React/TypeScript keywords in summary',
+      tone: 'text-blue-300',
+    },
+  ];
+
   return (
-    <div className="h-screen overflow-hidden bg-[#080808] text-[#F0EFE8] font-['Outfit']">
+    <div className="h-screen overflow-hidden bg-[#09090b] text-[#F0EFE8] font-['Outfit']">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap');
       `}</style>
 
-      <div className="h-14 border-b border-[#1E1E1E] flex items-center justify-between px-3 lg:px-6 bg-[#0F0F0F]/95 backdrop-blur-sm sticky top-0 z-30">
-        <div className="flex items-center gap-2 lg:gap-3">
-          <div className="h-8 w-8 rounded-lg bg-[#d4fa6e] text-[#0A0A0A] flex items-center justify-center font-bold">R</div>
-          <div className="text-xs text-zinc-400 hidden sm:block">Resume Builder</div>
+      <header className="h-12 border-b border-zinc-800/70 flex items-center justify-between px-3 md:px-4 lg:px-6 bg-[#0C0C0F]/95 backdrop-blur-sm sticky top-0 z-30">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setMobileEditorOpen((prev) => !prev)}
+            className="md:hidden inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300"
+            aria-label="Toggle editor"
+          >
+            {mobileEditorOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+          </button>
+          <div className="h-7 w-7 rounded-lg bg-[#99A6FF] text-[#0A0A0A] flex items-center justify-center font-bold text-xs">R</div>
+          <div className="text-xs text-zinc-400 hidden sm:block tracking-wide">Resume Builder</div>
         </div>
 
-        <div className="flex items-center gap-2 lg:gap-3">
+        <div className="flex items-center gap-2">
           <select
             value={template}
             onChange={(event) => void handleTemplateChange(event.target.value as 'modern' | 'classic')}
-            className="bg-[#171717] border border-[#27272a] rounded-lg px-2 lg:px-3 py-1.5 text-xs lg:text-sm text-zinc-100"
+            className="bg-zinc-900 border border-zinc-700/80 rounded-lg px-2.5 py-1 text-xs text-zinc-100"
           >
-            <option value="modern">Template: Modern Executive</option>
-            <option value="classic">Template: Classic Professional</option>
+            <option value="modern">Modern Executive</option>
+            <option value="classic">Classic Professional</option>
           </select>
 
           <button
             onClick={() => void handleSave()}
             disabled={ui.isSaving}
-            className="px-2.5 lg:px-3 py-1.5 text-xs rounded-lg border border-[#27272a] bg-[#171717] hover:border-[#d4fa6e] disabled:opacity-50"
+            className="px-2.5 py-1 text-xs rounded-lg border border-zinc-700 bg-zinc-900 hover:border-[#99A6FF] disabled:opacity-50 transition-colors"
           >
             {ui.isSaving ? 'Saving...' : 'Save'}
           </button>
@@ -387,21 +537,21 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <button
             onClick={() => void handleDownload()}
             disabled={isExporting || (!resume.id && !ui.isSaved)}
-            className="px-2.5 lg:px-3 py-1.5 text-xs rounded-lg bg-[#d4fa6e] text-[#0A0A0A] font-semibold disabled:opacity-50"
+            className="px-2.5 py-1 text-xs rounded-lg bg-[#99A6FF] text-[#0A0A0A] font-semibold disabled:opacity-50"
           >
             {isExporting ? 'Exporting...' : 'Download PDF'}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="text-xs text-zinc-500 border-b border-[#1E1E1E] px-3 lg:px-6 py-2 min-h-8 bg-[#0B0B0B]">
+      <div className="text-[11px] text-zinc-500 border-b border-zinc-800/70 px-3 md:px-4 lg:px-6 py-1.5 min-h-7 bg-[#0B0B0D]">
         {statusMessage || ui.saveError || (ui.isDirty ? 'Unsaved changes' : 'All changes saved')}
       </div>
 
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-88px)] overflow-hidden">
-        <aside className="w-full lg:w-90 shrink-0 border-r border-[#1E1E1E] bg-[#0D0D0D]">
-          <div className="border-b border-[#1E1E1E] p-3">
-            <div className="flex gap-1 bg-[#171717] p-1 rounded-xl border border-[#27272a]">
+      <div className="flex h-[calc(100vh-76px)] overflow-hidden">
+        <aside className="hidden md:flex w-82.5 shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col">
+          <div className="p-3 border-b border-zinc-800/70">
+            <div className="flex gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/70">
               {([
                 ['content', 'Content'],
                 ['style', 'Style'],
@@ -410,7 +560,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 <button
                   key={tab}
                   onClick={() => setLeftTab(tab)}
-                  className={`flex-1 rounded-lg py-2 text-xs font-medium transition ${leftTab === tab ? 'bg-[#d4fa6e] text-[#0A0A0A]' : 'text-zinc-300 hover:bg-zinc-800'}`}
+                  className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition ${leftTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300 hover:bg-zinc-800'}`}
                 >
                   {label}
                 </button>
@@ -418,29 +568,37 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             </div>
           </div>
 
-          {leftTab === 'content' && (
-            <div className="max-h-[70vh] lg:max-h-[calc(100vh-160px)] overflow-y-auto">
-              <EditorPanel />
+          {leftTab === 'content' && focusedTarget && (
+            <div className="px-3 py-2 border-b border-zinc-800/70 bg-zinc-900/40">
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1">Focused Field: {focusedTarget.label}</div>
+              <div className="flex flex-wrap gap-1.5">
+                <button onClick={() => void runContextAction('improve')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                  <Sparkles size={12} /> {actionLoading === 'improve' ? '...' : 'Improve'}
+                </button>
+                <button onClick={() => void runContextAction('rewrite')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                  <Wand2 size={12} /> {actionLoading === 'rewrite' ? '...' : 'Rewrite'}
+                </button>
+                <button onClick={() => void runContextAction('shorten')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                  <Scissors size={12} /> {actionLoading === 'shorten' ? '...' : 'Shorten'}
+                </button>
+                <button onClick={() => void runContextAction('ats')} className="inline-flex items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1 text-[11px] text-zinc-200 hover:border-[#99A6FF]" disabled={actionLoading !== null}>
+                  <Target size={12} /> {actionLoading === 'ats' ? '...' : 'ATS Optimize'}
+                </button>
+              </div>
             </div>
           )}
 
-          {leftTab === 'style' && (
-            <div className="max-h-[70vh] lg:max-h-[calc(100vh-160px)] overflow-y-auto">
-              <StylePanel />
-            </div>
-          )}
-
-          {leftTab === 'sections' && (
-            <div className="max-h-[70vh] lg:max-h-[calc(100vh-160px)] overflow-y-auto">
-              <SectionsTab />
-            </div>
-          )}
+          <div className="flex-1 overflow-y-auto">
+            {leftTab === 'content' && <EditorPanel />}
+            {leftTab === 'style' && <StylePanel />}
+            {leftTab === 'sections' && <SectionsTab />}
+          </div>
         </aside>
 
-        <main className="flex-1 bg-[#0A0A0A] border-t lg:border-t-0 border-[#1E1E1E] overflow-hidden">
-          <div ref={previewHostRef} className="h-full overflow-hidden p-3 lg:p-6 flex items-center justify-center">
+        <main className="flex-1 bg-[#0A0A0D] overflow-hidden">
+          <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-center justify-center overflow-hidden">
             <div
-              className="bg-white shadow-[0_20px_80px_rgba(0,0,0,0.65)] relative rounded-sm transition-transform duration-200"
+              className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] relative rounded-sm"
               style={{
                 width: `${A4_WIDTH_PX}px`,
                 height: `${A4_HEIGHT_PX}px`,
@@ -454,80 +612,132 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             </div>
           </div>
         </main>
-
-        <aside className="w-full lg:w-[320px] shrink-0 border-l border-[#1E1E1E] bg-[#0D0D0D]">
-          <div className="border-b border-[#1E1E1E] p-3">
-            <div className="flex gap-1 bg-[#171717] p-1 rounded-xl border border-[#27272a]">
-              {([
-                ['tips', 'Tips'],
-                ['ai', 'AI'],
-                ['ats', 'ATS'],
-              ] as Array<[RightTab, string]>).map(([tab, label]) => (
-                <button
-                  key={tab}
-                  onClick={() => setRightTab(tab)}
-                  className={`flex-1 rounded-lg py-2 text-xs font-medium transition ${rightTab === tab ? 'bg-[#d4fa6e] text-[#0A0A0A]' : 'text-zinc-300 hover:bg-zinc-800'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="p-4 max-h-[70vh] lg:max-h-[calc(100vh-160px)] overflow-y-auto">
-            {rightTab === 'tips' && (
-              <>
-                <div className="p-4 rounded-xl border border-zinc-800 bg-[#141414] mb-4">
-                  <h3 className="text-sm font-bold mb-3">Resume Strength</h3>
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-14 h-14">
-                      <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#27272a" strokeWidth="3" />
-                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#d4fa6e" strokeWidth="3" strokeDasharray={`${resumeStrength}, 100`} className="transition-all duration-700" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center text-sm font-bold">{resumeStrength}%</div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">{resumeStrength > 75 ? 'Strong' : 'Moderate'}</div>
-                      <div className="text-xs text-zinc-500">Stronger than 78% of applicants</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="p-3 rounded-lg border border-emerald-900/40 bg-emerald-900/10">
-                    <div className="text-sm font-medium">✅ Quantify your impact</div>
-                    <div className="text-xs text-zinc-400 mt-1">Great job including measurable outcomes.</div>
-                  </div>
-                  <div className="p-3 rounded-lg border border-blue-900/40 bg-blue-900/10">
-                    <div className="text-sm font-medium">🔵 Add relevant skills</div>
-                    <div className="text-xs text-zinc-400 mt-1">Consider adding React, Node.js, and TypeScript.</div>
-                    <button className="text-xs text-[#d4fa6e] mt-2">Apply Suggested Skills</button>
-                  </div>
-                  <div className={`p-3 rounded-lg border ${weakVerbUsage ? 'border-yellow-900/40 bg-yellow-900/10' : 'border-zinc-800 bg-[#141414]'}`}>
-                    <div className="text-sm font-medium">⚠️ Weak Verb Usage</div>
-                    <div className="text-xs text-zinc-400 mt-1">Repeated "Led" detected. Try "Orchestrated" or "Directed".</div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => void handleFinalizeAndOptimize()}
-                  disabled={isOptimizing}
-                  className="w-full mt-4 py-2.5 rounded-xl bg-[#d4fa6e] text-[#0A0A0A] font-semibold disabled:opacity-50"
-                >
-                  {isOptimizing ? 'Optimizing...' : '✏️ Finalize & Optimize'}
-                </button>
-              </>
-            )}
-
-            {rightTab === 'ai' && <AIAssistantPanel />}
-            {rightTab === 'ats' && <ATSAnalysisPanel />}
-          </div>
-        </aside>
       </div>
 
+      <button
+        onClick={() => setAssistantOpen(true)}
+        className="fixed right-4 bottom-4 z-40 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#99A6FF] text-[#0A0A0A] text-sm font-semibold shadow-[0_10px_32px_rgba(153,166,255,0.35)] hover:-translate-y-px transition-transform"
+        aria-label="Open AI Assistant"
+      >
+        <Bot size={16} /> AI Assistant
+      </button>
+
+      {assistantOpen && (
+        <div className="fixed inset-0 z-50">
+          <button className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" aria-label="Close assistant" onClick={() => setAssistantOpen(false)} />
+
+          {isMobile ? (
+            <div className="absolute inset-x-0 bottom-0 h-[78vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col animate-[slideUp_220ms_ease-out]">
+              <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between">
+                <div className="text-sm font-semibold">Assistant</div>
+                <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center"><X size={16} /></button>
+              </div>
+              <div className="p-3 border-b border-zinc-800/70">
+                <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
+                  {([
+                    ['tips', 'Tips'],
+                    ['ai', 'AI'],
+                    ['ats', 'ATS'],
+                  ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
+                    <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {assistantTab === 'tips' && (
+                  <div className="space-y-2.5">
+                    {compactInsights.map((insight, idx) => (
+                      <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
+                        <span className={insight.tone}>{insight.icon}</span>
+                        <span className="text-zinc-200">{insight.text}</span>
+                      </div>
+                    ))}
+                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#99A6FF] text-[#0A0A0A] py-2 text-sm font-semibold">
+                      {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
+                    </button>
+                  </div>
+                )}
+                {assistantTab === 'ai' && <AIAssistantPanel />}
+                {assistantTab === 'ats' && <ATSAnalysisPanel />}
+              </div>
+            </div>
+          ) : (
+            <div className="absolute right-0 top-0 h-full w-90 bg-[#0C0D11] border-l border-zinc-700/80 shadow-[-24px_0_60px_rgba(0,0,0,0.5)] flex flex-col">
+              <div className="p-3.5 border-b border-zinc-800/70 flex items-center justify-between">
+                <div className="text-sm font-semibold">Assistant</div>
+                <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center"><X size={16} /></button>
+              </div>
+
+              <div className="p-3 border-b border-zinc-800/70">
+                <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
+                  {([
+                    ['tips', 'Tips'],
+                    ['ai', 'AI'],
+                    ['ats', 'ATS'],
+                  ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
+                    <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300 hover:bg-zinc-800'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {assistantTab === 'tips' && (
+                  <div className="space-y-2.5">
+                    {compactInsights.map((insight, idx) => (
+                      <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
+                        <span className={insight.tone}>{insight.icon}</span>
+                        <span className="text-zinc-200">{insight.text}</span>
+                      </div>
+                    ))}
+                    <button onClick={() => void handleFinalizeAndOptimize()} disabled={isOptimizing} className="w-full mt-2 rounded-lg bg-[#99A6FF] text-[#0A0A0A] py-2 text-sm font-semibold">
+                      {isOptimizing ? 'Optimizing...' : 'Finalize & Optimize'}
+                    </button>
+                  </div>
+                )}
+                {assistantTab === 'ai' && <AIAssistantPanel />}
+                {assistantTab === 'ats' && <ATSAnalysisPanel />}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isMobile && mobileEditorOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" aria-label="Close editor" onClick={() => setMobileEditorOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-[92vw] max-w-85 bg-[#0D0D10] border-r border-zinc-700/80 shadow-[20px_0_50px_rgba(0,0,0,0.5)] flex flex-col">
+            <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between">
+              <div className="text-sm font-semibold">Editor</div>
+              <button onClick={() => setMobileEditorOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center"><X size={16} /></button>
+            </div>
+            <div className="p-3 border-b border-zinc-800/70">
+              <div className="flex gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/70">
+                {([
+                  ['content', 'Content'],
+                  ['style', 'Style'],
+                  ['sections', 'Sections'],
+                ] as Array<[LeftTab, string]>).map(([tab, label]) => (
+                  <button key={tab} onClick={() => setLeftTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${leftTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {leftTab === 'content' && <EditorPanel />}
+              {leftTab === 'style' && <StylePanel />}
+              {leftTab === 'sections' && <SectionsTab />}
+            </div>
+          </div>
+        </div>
+      )}
+
       {optimizationReport && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-60 p-4">
           <div className="bg-[#111111] border border-[#27272a] rounded-2xl max-w-xl w-full p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold">Optimization Report</h3>
@@ -536,13 +746,13 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             <div className="bg-[#0A0A0A] rounded-xl p-4 border border-[#27272a] mb-5">
               <pre className="text-sm text-zinc-100 whitespace-pre-wrap font-['Outfit'] leading-relaxed">{optimizationReport}</pre>
             </div>
-            <button onClick={() => setOptimizationReport(null)} className="w-full py-2.5 rounded-xl bg-[#d4fa6e] text-[#0A0A0A] font-semibold">Got it</button>
+            <button onClick={() => setOptimizationReport(null)} className="w-full py-2.5 rounded-xl bg-[#99A6FF] text-[#0A0A0A] font-semibold">Got it</button>
           </div>
         </div>
       )}
 
       {apiError && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-red-950/95 border border-red-700 text-red-100 px-4 py-2.5 rounded-xl text-sm">
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-70 bg-red-950/95 border border-red-700 text-red-100 px-4 py-2.5 rounded-xl text-sm">
           {apiError}
         </div>
       )}
