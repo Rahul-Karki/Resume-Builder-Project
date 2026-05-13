@@ -4,6 +4,7 @@ import { Eye, EyeOff, GripVertical } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload } from '@/services/api';
+import { ResumeRenderer } from '@/templates/ResumeRenderer';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
 import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
@@ -196,8 +197,17 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     };
 
     computeScale();
+
+    const host = previewHostRef.current;
+    const observer = host ? new ResizeObserver(() => computeScale()) : null;
+    if (host && observer) observer.observe(host);
+
     window.addEventListener('resize', computeScale);
-    return () => window.removeEventListener('resize', computeScale);
+
+    return () => {
+      window.removeEventListener('resize', computeScale);
+      if (observer) observer.disconnect();
+    };
   }, [isMobile, leftTab, rightTab]);
 
   useEffect(() => {
@@ -344,22 +354,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     await applyTemplateUpgrade(value === 'classic' ? 'classic' : 'modern');
   };
 
-  const templateStyles = template === 'modern'
-    ? {
-        name: 'font-serif text-4xl font-bold text-zinc-900',
-        role: 'text-[#84cc16] text-lg font-medium',
-        section: 'text-xs uppercase tracking-widest text-zinc-700 font-bold mb-3 border-b border-[#84cc16] pb-2',
-        bullet: 'list-disc list-inside text-zinc-700 text-sm leading-relaxed',
-      }
-    : {
-        name: 'font-serif text-3xl font-semibold text-zinc-900',
-        role: 'text-zinc-700 text-base font-semibold',
-        section: 'text-sm text-zinc-800 font-semibold mb-3 border-b border-zinc-300 pb-2',
-        bullet: 'list-none text-zinc-700 text-sm leading-relaxed pl-4 border-l-2 border-zinc-300',
-      };
-
   return (
-    <div className="min-h-screen bg-[#080808] text-[#F0EFE8] font-['Outfit']">
+    <div className="h-screen overflow-hidden bg-[#080808] text-[#F0EFE8] font-['Outfit']">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap');
       `}</style>
@@ -402,7 +398,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         {statusMessage || ui.saveError || (ui.isDirty ? 'Unsaved changes' : 'All changes saved')}
       </div>
 
-      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-88px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-88px)] overflow-hidden">
         <aside className="w-full lg:w-90 shrink-0 border-r border-[#1E1E1E] bg-[#0D0D0D]">
           <div className="border-b border-[#1E1E1E] p-3">
             <div className="flex gap-1 bg-[#171717] p-1 rounded-xl border border-[#27272a]">
@@ -441,7 +437,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           )}
         </aside>
 
-        <main className="flex-1 bg-[#0A0A0A] border-t lg:border-t-0 border-[#1E1E1E]">
+        <main className="flex-1 bg-[#0A0A0A] border-t lg:border-t-0 border-[#1E1E1E] overflow-hidden">
           <div ref={previewHostRef} className="h-full overflow-hidden p-3 lg:p-6 flex items-center justify-center">
             <div
               className="bg-white shadow-[0_20px_80px_rgba(0,0,0,0.65)] relative rounded-sm transition-transform duration-200"
@@ -452,63 +448,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 transformOrigin: 'center center',
               }}
             >
-              <div className="absolute inset-0 flex items-end justify-center pb-10 pointer-events-none opacity-[0.04]">
-                <span className="text-5xl lg:text-6xl font-['Playfair_Display'] text-zinc-900">Draft Preview</span>
-              </div>
-
-              <div className="p-6 lg:p-12">
-                <div className="mb-7">
-                  <h1 className={templateStyles.name}>{resume.personalInfo.name || 'Your Name'}</h1>
-                  <p className={templateStyles.role}>{resume.personalInfo.title || 'Software Engineer'}</p>
-                  <div className="flex flex-wrap gap-3 mt-3 text-sm text-zinc-500">
-                    <span>{resume.personalInfo.email || 'email@example.com'}</span>
-                    <span>•</span>
-                    <span>{resume.personalInfo.phone || '(555) 123-4567'}</span>
-                    <span>•</span>
-                    <span>{resume.personalInfo.location || 'City, Country'}</span>
-                  </div>
-                </div>
-
-                <div className="mb-8">
-                  <h2 className={templateStyles.section}>Work Experience</h2>
-                  <div className="space-y-5">
-                    {resume.sections.experience.map((entry) => (
-                      <div key={entry.id}>
-                        <div className="flex justify-between items-baseline mb-1 gap-4">
-                          <h3 className="font-bold text-zinc-900">{entry.company || 'Company Name'}</h3>
-                          <span className="text-sm text-zinc-500">{entry.start || 'Start'} - {entry.current ? 'Present' : entry.end || 'End'}</span>
-                        </div>
-                        <p className="text-zinc-700 italic mb-2">{entry.role || 'Role'}</p>
-                        <ul className={templateStyles.bullet}>
-                          <li>{getEntryDescription(entry) || 'Describe your impact...'}</li>
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className={templateStyles.section}>Education</h2>
-                  {resume.sections.education.length > 0 ? (
-                    resume.sections.education.map((entry) => (
-                      <div key={entry.id} className="mb-3 last:mb-0">
-                        <div className="flex justify-between items-baseline mb-1">
-                          <h3 className="font-bold text-zinc-900">{entry.institution || 'Institution'}</h3>
-                          <span className="text-sm text-zinc-500">{entry.year || 'Year'}</span>
-                        </div>
-                        <p className="text-zinc-700 italic">{[entry.degree, entry.field].filter(Boolean).join(' in ') || 'Degree'}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <div>
-                      <div className="flex justify-between items-baseline mb-1">
-                        <h3 className="font-bold text-zinc-900">University of Technology</h3>
-                        <span className="text-sm text-zinc-500">2014 - 2018</span>
-                      </div>
-                      <p className="text-zinc-700 italic">Bachelor of Science in Computer Science</p>
-                    </div>
-                  )}
-                </div>
+              <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+                <ResumeRenderer resume={resume} />
               </div>
             </div>
           </div>
