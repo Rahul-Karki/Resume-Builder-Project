@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, ReactNode } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, LanguageEntry } from "@/types/resume-types";
 
@@ -356,12 +356,12 @@ function PersonalSection() {
 
   return (
     <div style={{ padding: "6px 6px 24px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 4 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 4 }}>
         {renderInput("name", "Full Name", "Maya Thompson")}
         {renderInput("title", "Job Title", "Operations and Client Services Manager")}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 4 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 4 }}>
         {renderInput("email", "Email", "alex@email.com", "email")}
         {renderInput("phone", "Phone", "+1 (555) 000-0000")}
       </div>
@@ -480,38 +480,7 @@ function ExperienceSection() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
-  // Calculate resume strength
-  const calculateStrength = () => {
-    let score = 50;
-    const totalWords = experience.reduce((acc, curr) => {
-      const descWords = curr.description ? curr.description.split(" ").length : 0;
-      const bulletWords = curr.bullets.reduce((a, b) => a + b.split(" ").length, 0);
-      return acc + descWords + bulletWords;
-    }, 0);
-    const hasNumbers = experience.some((exp) => /\d/.test(exp.description) || exp.bullets.some(b => /\d/.test(b)));
-
-    if (totalWords > 50) score += 15;
-    if (totalWords > 150) score += 10;
-    if (hasNumbers) score += 10;
-    if (experience.length >= 2) score += 10;
-    if (experience.every(e => e.role && e.company)) score += 5;
-
-    return Math.min(100, score);
-  };
-
-  const strength = calculateStrength();
-
-  // Check for weak verb usage
-  const getWeakVerbTip = () => {
-    const allText = experience.map(e => `${e.description} ${e.bullets.join(" ")}`).join(" ");
-    const ledCount = (allText.match(/\bled\b/gi) || []).length;
-    if (ledCount > 1) {
-      return { title: "Weak Verb Usage", message: `You used "Led" ${ledCount} times. Try "Orchestrated", "Directed", or "Spearheaded" instead.`, type: "warning" as const };
-    }
-    return null;
-  };
-
-  const weakVerbTip = getWeakVerbTip();
+  
 
   const handleEnhanceDescription = async (expId: string) => {
     const exp = experience.find(e => e.id === expId);
@@ -625,105 +594,15 @@ function ExperienceSection() {
         Add Work Experience
       </button>
 
-      {/* Resume Strength & Tips Panel (inline for this section) */}
-      <div style={{ marginTop: 24, padding: "16px", background: "rgba(20,20,20,0.6)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-          <div style={{ position: "relative", width: 56, height: 56 }}>
-            <svg viewBox="0 0 36 36" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2e1f28" strokeWidth="3" />
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e8622a" strokeWidth="3" strokeDasharray={`${strength}, 100`} style={{ transition: "all 1s ease" }} />
-            </svg>
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#f5f0f2" }}>{strength}</span>
-            </div>
-          </div>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#f5f0f2", marginBottom: 2 }}>Resume Strength</p>
-            <p style={{ fontSize: 11, color: "#a08090" }}>Stronger than 78% of applicants</p>
-          </div>
-        </div>
-
-        {/* Actionable Tips */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(34, 197, 94, 0.08)", border: "1px solid rgba(34, 197, 94, 0.15)", display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <span style={{ fontSize: 14 }}>✅</span>
-            <div>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "#f5f0f2" }}>Quantify your impact</p>
-              <p style={{ fontSize: 11, color: "#a08090", marginTop: 2 }}>Great job including metrics!</p>
-            </div>
-          </div>
-          <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.15)", display: "flex", alignItems: "flex-start", gap: 8 }}>
-            <span style={{ fontSize: 14 }}>🔵</span>
-            <div>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "#f5f0f2" }}>Add relevant skills</p>
-              <p style={{ fontSize: 11, color: "#a08090", marginTop: 2 }}>Consider adding React, Node.js, and TypeScript.</p>
-              <button style={{ fontSize: 11, color: "#e8622a", background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: 4, fontWeight: 600 }}>Apply Suggested Skills →</button>
-            </div>
-          </div>
-          {weakVerbTip && (
-            <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.15)", display: "flex", alignItems: "flex-start", gap: 8 }}>
-              <span style={{ fontSize: 14 }}>⚠️</span>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#f5f0f2" }}>{weakVerbTip.title}</p>
-                <p style={{ fontSize: 11, color: "#a08090", marginTop: 2 }}>{weakVerbTip.message}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Finalize & Optimize Button */}
-      <button
-        onClick={handleFinalizeOptimize}
-        disabled={isOptimizing}
-        style={{
-          width: "100%",
-          marginTop: 16,
-          padding: "12px",
-          borderRadius: 12,
-          border: "none",
-          background: "#e8622a",
-          color: "#fff",
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: isOptimizing ? "not-allowed" : "pointer",
-          fontFamily: "'Outfit', sans-serif",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 6,
-          transition: "all 0.2s ease",
-          opacity: isOptimizing ? 0.7 : 1,
-          boxShadow: "0 0 20px rgba(232, 98, 42, 0.3)",
-        }}
-        onMouseEnter={e => { if (!isOptimizing) e.currentTarget.style.background = "#d55524"; }}
-        onMouseLeave={e => { e.currentTarget.style.background = "#e8622a"; }}
-      >
-        {isOptimizing ? (
-          <>
-            <span style={{ display: "inline-block", width: 16, height: 16, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            Optimizing...
-          </>
-        ) : (
-          <>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-            Finalize & Optimize
-          </>
-        )}
-      </button>
-
-      {/* Optimization Modal */}
       {optimizationModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}>
-          <div style={{ background: "#231820", border: "1px solid #2e1f28", borderRadius: 20, maxWidth: 520, width: "100%", padding: 24, boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f5f0f2" }}>Optimization Report</h3>
-              <button onClick={() => setOptimizationModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#a08090", padding: 4 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: '#121212', borderRadius: 24, padding: 24, maxWidth: 600, width: '100%', position: 'relative', border: '1px solid #1a1014' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 18, color: '#f5f0f2', margin: 0 }}>Optimization Suggestion</h3>
+              <button onClick={() => setOptimizationModal(null)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
@@ -800,577 +679,137 @@ function ExperienceCard({
   onDragOver: (e: React.DragEvent) => void;
   onDragEnd: () => void;
   setFocusedField: (field: any) => void;
-}) {
-  const [isExpanded, setIsExpanded] = useState(isLast);
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    background: "rgba(20,20,20,0.6)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 10,
-    color: "#e4e4e7",
-    fontSize: 13,
-    fontFamily: "'Outfit', sans-serif",
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "all 0.2s ease",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: 10,
-    fontWeight: 700,
-    color: "#888",
-    textTransform: "uppercase",
-    letterSpacing: "0.9px",
-    display: "block",
-    marginBottom: 6,
-  };
-
+}): ReactNode {
   return (
     <div
       draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      style={{
-        background: "rgba(20,20,20,0.6)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 16,
-        overflow: "hidden",
-        marginBottom: 14,
-        transition: "all 0.3s ease",
-      }}
+      style={{ opacity: 0.8, cursor: "grab" }}
     >
-      {/* Card Header */}
-      <div
-        onClick={() => setIsExpanded(!isExpanded)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "14px 16px",
-          cursor: "pointer",
-          transition: "background 0.2s ease",
-        }}
-        onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
-        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      <EntryCard
+        title={entry.role || "Untitled Job"}
+        subtitle={entry.company}
+        onRemove={onRemove}
       >
-        <div style={{ marginRight: 10, color: "#555", cursor: "grab" }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 8h4V4H4v4zm6 0h4V4h-4v4zm6-4v4h4V4h-4zM4 14h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4z" />
-          </svg>
+        <div style={{ marginBottom: 20 }}>
+          <span style={label}>Job Title</span>
+          <Input
+            value={entry.role}
+            onChange={(v) => onUpdate("role", v)}
+            placeholder="e.g., Senior Software Engineer"
+          />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7", marginBottom: 2 }}>{entry.role || "New Position"}</div>
-          <div style={{ fontSize: 12, color: "#555" }}>{entry.company || "Company Name"} • {entry.start || "Start"} - {entry.current ? "Present" : (entry.end || "End")}</div>
+
+        <div style={{ marginBottom: 20 }}>
+          <span style={label}>Company</span>
+          <Input
+            value={entry.company}
+            onChange={(v) => onUpdate("company", v)}
+            placeholder="e.g., Google"
+          />
         </div>
-        <button
-          onClick={e => { e.stopPropagation(); onRemove(); }}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#444",
-            fontSize: 14,
-            padding: "4px 8px",
-            marginRight: 8,
-            borderRadius: 6,
-            transition: "all 0.15s ease",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = "#ff6b6b"; e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
-          onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.background = "transparent"; }}
-          title="Remove"
-        >
-          ✕
-        </button>
-        <span style={{
-          fontSize: 12,
-          color: "#555",
-          transform: isExpanded ? "rotate(180deg)" : "none",
-          transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        }}>▾</span>
-      </div>
 
-      {/* Expanded Content */}
-      {isExpanded && (
-        <div style={{ padding: "0 16px 18px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div>
-              <span style={labelStyle}>Job Title</span>
-              <input
-                value={entry.role}
-                onChange={v => onUpdate("role", v.target.value)}
-                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "role", label: "Job Title" })}
-                placeholder="Senior Software Engineer"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <span style={labelStyle}>Company</span>
-              <input
-                value={entry.company}
-                onChange={v => onUpdate("company", v.target.value)}
-                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "company", label: "Company" })}
-                placeholder="Tech Solutions Inc."
-                style={inputStyle}
-              />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <span style={labelStyle}>Location</span>
-            <input
-              value={entry.location}
-              onChange={v => onUpdate("location", v.target.value)}
-              onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "location", label: "Location" })}
-              placeholder="San Francisco, CA"
-              style={inputStyle}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
+          <div>
+            <span style={label}>Start Date</span>
+            <Input
+              value={entry.start}
+              onChange={(v) => onUpdate("start", v)}
+              placeholder="Jan 2020"
             />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <div>
-              <span style={labelStyle}>Start Date</span>
-              <input
-                value={entry.start}
-                onChange={v => onUpdate("start", v.target.value)}
-                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "start", label: "Start Date" })}
-                placeholder="Mar 2021"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <span style={labelStyle}>End Date</span>
-              <input
-                value={entry.end}
-                onChange={v => onUpdate("end", v.target.value)}
-                onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "end", label: "End Date" })}
-                placeholder="Present"
-                disabled={entry.current}
-                style={{ ...inputStyle, opacity: entry.current ? 0.4 : 1 }}
-              />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 2 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={entry.current}
-                  onChange={v => onUpdate("current", v.target.checked)}
-                  onFocus={() => setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "current", label: "Current Role" })}
-                />
-                <span style={{ fontSize: 12, color: "#888" }}>Current</span>
-              </label>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 12 }}>
-            <span style={labelStyle}>Description Format</span>
-            <ContentModeToggle
-              value={entry.contentMode}
-              onChange={(mode) => onUpdate("contentMode", mode)}
-            />
-          </div>
-
-          {entry.contentMode === "paragraph" ? (
-            <div style={{ marginBottom: 12 }}>
-              <span style={labelStyle}>Description</span>
-              <textarea
-                value={entry.description}
-                onChange={v => onUpdate("description", v.target.value)}
-                onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "experience", kind: "experience", entityId: entry.id, field: "description", label: "Description" }); }}
-                onBlur={ev => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; ev.currentTarget.style.background = "rgba(20,20,20,0.6)"; }}
-                rows={4}
-                placeholder="Describe your responsibilities and achievements..."
-                style={{ ...inputStyle, resize: "vertical", minHeight: 80, lineHeight: 1.6 }}
-              />
-            </div>
-          ) : (
-            <div style={{ marginBottom: 12 }}>
-              <span style={labelStyle}>Bullet Points (Achievements)</span>
-              {entry.bullets.map((b, i) => (
-                <div key={i} style={{ marginBottom: 8 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                    <span style={{ color: "#555", paddingTop: 10, flexShrink: 0, fontSize: 14 }}>›</span>
-                    <textarea
-                      value={b}
-                      onChange={v => onUpdateBullet(i, v.target.value)}
-                      placeholder="Describe a quantifiable achievement…"
-                      rows={2}
-                      style={{ ...inputStyle, flex: 1, minHeight: 48 }}
-                    />
-                    <button
-                      onClick={() => onRemoveBullet(i)}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 10, flexShrink: 0, borderRadius: 6, padding: "8px", transition: "all 0.15s ease" }}
-                      onMouseEnter={e => { e.currentTarget.style.color = "#ff6b6b"; e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.background = "transparent"; }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <button
-                onClick={onAddBullet}
-                style={{
-                  background: "none",
-                  border: "1px dashed #27272a",
-                  borderRadius: 8,
-                  color: "#555",
-                  fontSize: 12,
-                  padding: "6px 12px",
-                  cursor: "pointer",
-                  fontFamily: "'Outfit', sans-serif",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.color = "#555"; }}
-              >
-                + Add bullet
-              </button>
-            </div>
-          )}
-
-          {/* AI Enhance Button */}
-          <AIEnhanceButton onClick={onEnhance} isLoading={isEnhancing} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── EDUCATION SECTION ─────────────────────────────────────────────────────────
-function EducationSection() {
-  const { resume, addEducation, updateEducation, removeEducation, setFocusedField } = useResumeBuilderStore();
-  return (
-    <div>
-      {resume.sections.education.map((e: EduEntry, idx: number) => (
-        <EntryCard key={e.id} title={e.institution || "New School"} subtitle={e.degree && e.field ? `${e.degree} ${e.field}` : ""} onRemove={() => removeEducation(e.id)} defaultOpen={idx === resume.sections.education.length - 1}>
-          <div style={{ marginBottom: 12, marginTop: 6 }}>
-            <span style={label}>Institution</span>
-            <input value={e.institution} onChange={v => updateEducation(e.id, "institution", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "institution", label: "Institution" })} placeholder="State University of New York" className="editor-input" style={inp} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div><span style={label}>Degree</span><input value={e.degree} onChange={v => updateEducation(e.id, "degree", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "degree", label: "Degree" })} placeholder="B.A." className="editor-input" style={inp} /></div>
-            <div><span style={label}>Field of Study</span><input value={e.field} onChange={v => updateEducation(e.id, "field", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "field", label: "Field of Study" })} placeholder="Business Administration" className="editor-input" style={inp} /></div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div><span style={label}>Graduation Year</span><input value={e.year} onChange={v => updateEducation(e.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "year", label: "Graduation Year" })} placeholder="2020" className="editor-input" style={inp} /></div>
-            <div><span style={label}>GPA (optional)</span><input value={e.cgpa} onChange={v => updateEducation(e.id, "cgpa", v.target.value)} onFocus={() => setFocusedField({ section: "education", kind: "education", entityId: e.id, field: "cgpa", label: "GPA" })} placeholder="3.8" className="editor-input" style={inp} /></div>
-          </div>
-        </EntryCard>
-      ))}
-      <AddBtn label="Add Education" onClick={addEducation} />
-    </div>
-  );
-}
-
-// ─── SKILLS SECTION ────────────────────────────────────────────────────────────
-function SkillsSection() {
-  const { resume, addSkillGroup, updateSkillGroup, removeSkillGroup, setFocusedField } = useResumeBuilderStore();
-  const [skillDrafts, setSkillDrafts] = useState<Record<string, string>>({});
-
-  const commitSkills = (id: string) => {
-    const raw = skillDrafts[id];
-    if (raw === undefined) return;
-
-    const parsed = raw
-      .split(",")
-      .map(i => i.trim())
-      .filter(Boolean);
-
-    updateSkillGroup(id, "items", parsed);
-    setSkillDrafts(prev => ({ ...prev, [id]: parsed.join(", ") }));
-  };
-
-  const handleSkillChange = (id: string, raw: string) => {
-    setSkillDrafts(prev => ({ ...prev, [id]: raw }));
-
-    const parsed = raw
-      .split(",")
-      .map(i => i.trim())
-      .filter(Boolean);
-
-    updateSkillGroup(id, "items", parsed);
-  };
-
-  return (
-    <div>
-      <div style={{ padding: "10px 14px", background: "#18181b", borderRadius: 10, marginBottom: 16, fontSize: 12, color: "#555", lineHeight: 1.6, border: "1px solid #27272a" }}>
-        Organize skills into categories. Add items separated by commas — e.g. <em style={{ color: "#888" }}>Customer Service, Scheduling, Excel</em>
-      </div>
-      {resume.sections.skills.map((sk: SkillGroup) => (
-        <EntryCard key={sk.id} title={sk.category || "Skill Category"} subtitle={`${sk.items.length} items`} onRemove={() => removeSkillGroup(sk.id)}>
-          <div style={{ marginBottom: 12, marginTop: 6 }}>
-            <span style={label}>Category Name</span>
-            <input value={sk.category} onChange={v => updateSkillGroup(sk.id, "category", v.target.value)} onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: sk.id, field: "category", label: "Category Name" })} placeholder="Operations / Service / Software" className="editor-input" style={inp} />
           </div>
           <div>
-            <span style={label}>Skills (comma-separated)</span>
-            <input
-              value={skillDrafts[sk.id] ?? sk.items.join(", ")}
-              onChange={v => handleSkillChange(sk.id, v.target.value)}
-              onFocus={() => setFocusedField({ section: "skills", kind: "skills", entityId: sk.id, field: "items", label: "Skills" })}
-              onBlur={() => commitSkills(sk.id)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  commitSkills(sk.id);
-                }
-              }}
-              placeholder="CRM, Scheduling, Conflict Resolution, Excel"
-              className="editor-input"
-              style={inp}
-            />
-            {/* Tag preview */}
-            {sk.items.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                {sk.items.map((item, i) => (
-                  <span key={i} style={{ background: "#27272a", border: "1px solid #27272a", borderRadius: 6, padding: "3px 10px", fontSize: 12, color: "#888", fontWeight: 500 }}>{item}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        </EntryCard>
-      ))}
-      <AddBtn label="Add Skill Category" onClick={addSkillGroup} />
-    </div>
-  );
-}
-
-// ─── PROJECTS SECTION ──────────────────────────────────────────────────────────
-function ProjectsSection() {
-  const { resume, addProject, updateProject, addProjectBullet, updateProjectBullet, removeProjectBullet, removeProject, setFocusedField } = useResumeBuilderStore();
-  return (
-    <div>
-      {resume.sections.projects.map((pr: Project, idx: number) => (
-        <EntryCard key={pr.id} title={pr.name || "New Project"} subtitle={pr.tech} onRemove={() => removeProject(pr.id)} defaultOpen={idx === resume.sections.projects.length - 1}>
-          <div style={{ marginBottom: 12, marginTop: 6 }}>
-            <span style={label}>Project Name</span>
-            <input value={pr.name} onChange={v => updateProject(pr.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "name", label: "Project Name" })} placeholder="Service Recovery Playbook" className="editor-input" style={inp} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div><span style={label}>Focus Area</span><input value={pr.tech} onChange={v => updateProject(pr.id, "tech", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "tech", label: "Focus Area" })} placeholder="Process Design, Training, Reporting" className="editor-input" style={inp} /></div>
-            <div><span style={label}>Reference Link (optional)</span><input value={pr.link} onChange={v => updateProject(pr.id, "link", v.target.value)} onFocus={() => setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "link", label: "Reference Link" })} placeholder="organization.org/program" className="editor-input" style={inp} /></div>
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <span style={label}>Description Format</span>
-            <ContentModeToggle
-              value={pr.contentMode}
-              onChange={(mode) => updateProject(pr.id, "contentMode", mode)}
+            <span style={label}>End Date</span>
+            <Input
+              value={entry.end}
+              onChange={(v) => onUpdate("end", v)}
+              placeholder="Dec 2023"
             />
           </div>
+        </div>
 
-          {pr.contentMode === "paragraph" ? (
-            <div>
+        <div style={{ marginBottom: 20 }}>
+          <span style={label}>Location</span>
+          <Input
+            value={entry.location || ""}
+            onChange={(v) => onUpdate("location", v)}
+            placeholder="e.g., San Francisco, CA"
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+            <span style={label}>Content Mode</span>
+          </div>
+          <ContentModeToggle
+            value={entry.contentMode}
+            onChange={(mode) => onUpdate("contentMode", mode)}
+          />
+        </div>
+
+        {entry.contentMode === "paragraph" && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
               <span style={label}>Description</span>
-              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)} onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "description", label: "Description" }); }}
-                rows={3} placeholder="Briefly describe the initiative, who it supported, and the outcome it improved." className="editor-textarea" style={ta} />
+              <InlineEnhanceTip text={entry.description} context="summary" />
             </div>
-          ) : (
-            <div>
+            <FocusedTextArea
+              value={entry.description}
+              onChange={(v) => onUpdate("description", v)}
+              placeholder="Describe your role and achievements..."
+              rows={5}
+            />
+            <AIEnhanceButton onClick={onEnhance} isLoading={isEnhancing} />
+          </div>
+        )}
+
+        {entry.contentMode === "bullets" && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
               <span style={label}>Bullet Points</span>
-              {pr.bullets.map((b, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-start" }}>
-                  <span style={{ color: "#555", paddingTop: 10, flexShrink: 0, fontSize: 14 }}>›</span>
-                  <textarea
-                    value={b}
-                    onChange={v => updateProjectBullet(pr.id, i, v.target.value)}
-                    onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "bullet", index: i, label: `Project Bullet ${i + 1}` }); }}
-                    placeholder="Highlight one project outcome or feature..."
+            </div>
+            {entry.bullets.map((bullet, idx) => (
+              <div key={idx} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <FocusedTextArea
+                    value={bullet}
+                    onChange={(v) => onUpdateBullet(idx, v)}
+                    placeholder="e.g., Led a team of 5 developers..."
                     rows={2}
-                    className="editor-textarea"
-                    style={{ ...ta, flex: 1, minHeight: 48 }}
-                    onBlur={ev => { ev.currentTarget.style.borderColor = "#27272a"; ev.currentTarget.style.background = "#09090b"; }}
                   />
                   <button
-                    onClick={() => removeProjectBullet(pr.id, i)}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#444", fontSize: 14, paddingTop: 10, flexShrink: 0, borderRadius: 6, padding: "8px", transition: "all 0.15s ease" }}
-                    onMouseEnter={e => { e.currentTarget.style.color = "#ff6b6b"; e.currentTarget.style.background = "rgba(255,107,107,0.1)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.background = "transparent"; }}
+                    onClick={() => onRemoveBullet(idx)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#444",
+                      fontSize: 14,
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "#ff6b6b";
+                      e.currentTarget.style.background = "rgba(255,107,107,0.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "#444";
+                      e.currentTarget.style.background = "transparent";
+                    }}
                   >
                     ✕
                   </button>
                 </div>
-              ))}
-              <button onClick={() => addProjectBullet(pr.id)} style={{
-                background: "none", border: "1px dashed #27272a", borderRadius: 8, color: "#555",
-                fontSize: 12, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s ease",
-              }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.color = "#555"; }}
-              >+ Add bullet</button>
-            </div>
-          )}
-        </EntryCard>
-      ))}
-      <AddBtn label="Add Project" onClick={addProject} />
-    </div>
-  );
-}
-
-// ─── CERTIFICATIONS SECTION ────────────────────────────────────────────────────
-function CertificationsSection() {
-  const { resume, addCertification, updateCertification, removeCertification, setFocusedField } = useResumeBuilderStore();
-  return (
-    <div>
-      {resume.sections.certifications.map((c: CertEntry) => (
-        <EntryCard key={c.id} title={c.name || "New Certification"} subtitle={c.issuer} onRemove={() => removeCertification(c.id)}>
-          <div style={{ marginBottom: 12, marginTop: 6 }}>
-            <span style={label}>Certification Name</span>
-            <input value={c.name} onChange={v => updateCertification(c.id, "name", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "name", label: "Certification Name" })} placeholder="Certified Administrative Professional" className="editor-input" style={inp} />
+              </div>
+            ))}
+            <AddBtn label="Bullet Point" onClick={onAddBullet} />
+            <AIEnhanceButton onClick={onEnhance} isLoading={isEnhancing} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div><span style={label}>Issuing Body</span><input value={c.issuer} onChange={v => updateCertification(c.id, "issuer", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "issuer", label: "Issuing Body" })} placeholder="IAAP" className="editor-input" style={inp} /></div>
-            <div><span style={label}>Year</span><input value={c.year} onChange={v => updateCertification(c.id, "year", v.target.value)} onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: c.id, field: "year", label: "Year" })} placeholder="2023" className="editor-input" style={inp} /></div>
-          </div>
-        </EntryCard>
-      ))}
-      <AddBtn label="Add Certification" onClick={addCertification} />
-    </div>
-  );
-}
-
-// ─── LANGUAGES SECTION ─────────────────────────────────────────────────────────
-function LanguagesSection() {
-  const { resume, addLanguage, updateLanguage, removeLanguage, setFocusedField } = useResumeBuilderStore();
-  return (
-    <div>
-      {resume.sections.languages.map((l: LanguageEntry) => (
-        <EntryCard key={l.id} title={l.language || "New Language"} subtitle={l.proficiency} onRemove={() => removeLanguage(l.id)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 6 }}>
-            <div><span style={label}>Language</span><input value={l.language} onChange={v => updateLanguage(l.id, "language", v.target.value)} onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: l.id, field: "language", label: "Language" })} placeholder="Mandarin" className="editor-input" style={inp} /></div>
-            <div>
-              <span style={label}>Proficiency</span>
-              <select value={l.proficiency} onChange={v => updateLanguage(l.id, "proficiency", v.target.value)} onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: l.id, field: "proficiency", label: "Proficiency" })}
-                style={{ ...inp, cursor: "pointer" }}>
-                {["Native", "Fluent", "Advanced", "Intermediate", "Basic"].map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-          </div>
-        </EntryCard>
-      ))}
-      <AddBtn label="Add Language" onClick={addLanguage} />
-    </div>
-  );
-}
-
-// ─── SECTIONS MANAGER ──────────────────────────────────────────────────────────
-function SectionsManager() {
-  const { resume, toggleSectionVisibility, reorderSections } = useResumeBuilderStore();
-  const [dragging, setDragging] = useState<number | null>(null);
-
-  const SECTION_LABELS: Record<string, string> = {
-    experience: "Experience", education: "Education", skills: "Skills",
-    projects: "Projects", certifications: "Certifications", languages: "Languages",
-  };
-
-  return (
-    <div>
-      <div style={{ padding: "12px 14px", background: "#09090b", border: "1px solid #27272a", borderRadius: 12, marginBottom: 20, fontSize: 12, color: "#555", lineHeight: 1.6 }}>
-        Toggle sections on/off and drag to reorder how they appear on your resume.
-      </div>
-      {resume.sectionOrder.map((sectionKey, idx) => (
-        <div
-          key={sectionKey}
-          draggable
-          onDragStart={() => setDragging(idx)}
-          onDragOver={e => e.preventDefault()}
-          onDrop={() => { if (dragging !== null && dragging !== idx) { reorderSections(dragging, idx); setDragging(null); } }}
-          style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-            background: "#09090b", border: "1px solid #27272a", borderRadius: 10,
-            marginBottom: 8, cursor: "grab", opacity: dragging === idx ? 0.5 : 1,
-            transition: "all 0.2s ease",
-          }}
-        >
-          <span style={{ color: "#333", fontSize: 16, cursor: "grab" }}>⠿</span>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{SECTION_LABELS[sectionKey]}</span>
-          {/* Visibility toggle */}
-          <div
-            onClick={() => toggleSectionVisibility(sectionKey as any)}
-            style={{
-              width: 42, height: 22, borderRadius: 11, cursor: "pointer",
-              background: resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility] ? "#FFFFFF" : "#27272a",
-              position: "relative", transition: "background 0.25s ease",
-            }}
-          >
-            <div style={{
-              position: "absolute", top: 2, width: 18, height: 18, borderRadius: "50%",
-              background: resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility] ? "#0E0E0E" : "#444",
-              left: resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility] ? 22 : 2,
-              transition: "left 0.25s ease",
-            }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── MAIN EditorPanel ──────────────────────────────────────────────────────────
-export function EditorPanel() {
-  const { ui, setActiveSection } = useResumeBuilderStore();
-  const activeSection = ui.activeSection;
-
-  const sectionContent: Record<ActiveSection, React.ReactNode> = {
-    personal: <PersonalSection />,
-    experience: <ExperienceSection />,
-    education: <EducationSection />,
-    skills: <SkillsSection />,
-    projects: <ProjectsSection />,
-    certifications: <CertificationsSection />,
-    languages: <LanguagesSection />,
-  };
-
-  // Special "sections" tab content is handled from parent, but we expose it as a nav item
-  const sectionTitles: Record<ActiveSection, string> = {
-    personal: "Personal Info", experience: "Work Experience", education: "Education",
-    skills: "Skills", projects: "Projects", certifications: "Certifications", languages: "Languages",
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
-      <style>{css}</style>
-      {/* Section Nav */}
-      <div style={{ padding: "12px 12px 0", borderBottom: "1px solid #27272a" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingBottom: 12 }}>
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveSection(item.id)}
-              style={{
-                padding: "7px 14px", borderRadius: 24, border: "1px solid",
-                borderColor: activeSection === item.id ? "#FFFFFF" : "#27272a",
-                background: activeSection === item.id ? "rgba(255,255,255,0.1)" : "transparent",
-                color: activeSection === item.id ? "#FFFFFF" : "#666",
-                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", gap: 6,
-                transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
-              }}
-              onMouseEnter={e => { if (activeSection !== item.id) { e.currentTarget.style.borderColor = "#3A3A3A"; e.currentTarget.style.color = "#888"; } }}
-              onMouseLeave={e => { if (activeSection !== item.id) { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.color = "#666"; } }}
-            >
-              <span style={{ fontSize: 10 }}>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Section Header */}
-      <div style={{ padding: "14px 18px 10px", borderBottom: "1px solid #18181b" }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8", letterSpacing: "-0.2px" }}>{sectionTitles[activeSection]}</div>
-      </div>
-
-      {/* Section Content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "18px 18px" }}>
-        {sectionContent[activeSection]}
-      </div>
+        )}
+      </EntryCard>
     </div>
   );
 }
