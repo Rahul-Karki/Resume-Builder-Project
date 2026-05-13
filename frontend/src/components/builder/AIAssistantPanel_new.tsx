@@ -5,10 +5,10 @@ import type { AiRewriteResult, AiGrammarResult, AiTone, FocusedEditorField } fro
 import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, PenTool, ChevronDown, Wand2, X, Lightbulb } from "lucide-react";
 
 const TONES: { id: AiTone; label: string; icon: React.ReactNode; description: string }[] = [
-  { id: "professional", label: "Professional", icon: <Briefcase size={12} />, description: "Polished and formal" },
-  { id: "concise", label: "Concise", icon: <Scissors size={12} />, description: "Short and direct" },
-  { id: "technical", label: "Technical", icon: <Settings size={12} />, description: "Skills-focused" },
-  { id: "leadership-focused", label: "Leadership", icon: <Target size={12} />, description: "Impact-driven" },
+  { id: "professional", label: "Professional", icon: <Briefcase size={14} />, description: "Polished and formal" },
+  { id: "concise", label: "Concise", icon: <Scissors size={14} />, description: "Short and direct" },
+  { id: "technical", label: "Technical", icon: <Settings size={14} />, description: "Skills-focused" },
+  { id: "leadership-focused", label: "Leadership", icon: <Target size={14} />, description: "Impact-driven" },
 ];
 
 type FocusTarget = {
@@ -204,33 +204,33 @@ const css = `
     display: flex; 
     align-items: center; 
     justify-content: space-between; 
-    padding: 12px 16px; 
+    padding: 14px 18px; 
     background: linear-gradient(135deg, rgba(200, 245, 90, 0.08) 0%, rgba(200, 245, 90, 0.02) 100%);
     border-bottom: 1px solid rgba(200, 245, 90, 0.1);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
   }
   .ai-header-collapsed:hover { background: linear-gradient(135deg, rgba(200, 245, 90, 0.12) 0%, rgba(200, 245, 90, 0.04) 100%); }
   
-  .ai-header-left { display: flex; align-items: center; gap: 10px; }
+  .ai-header-left { display: flex; align-items: center; gap: 12px; }
   .ai-header-icon { 
-    width: 28px; height: 28px; 
+    width: 32px; height: 32px; 
     background: rgba(200, 245, 90, 0.15); 
-    border-radius: 6px; 
+    border-radius: 8px; 
     display: flex; align-items: center; justify-content: center;
     color: #C8F55A;
   }
   .ai-header-text { display: flex; flex-direction: column; }
-  .ai-header-title { font-size: 13px; font-weight: 600; color: #C8F55A; }
-  .ai-header-subtitle { font-size: 11px; color: #888; }
+  .ai-header-title { font-size: 14px; font-weight: 600; color: #C8F55A; }
+  .ai-header-subtitle { font-size: 12px; color: #888; }
   .ai-header-right { display: flex; align-items: center; gap: 8px; }
-  .ai-chevron { color: #666; transition: transform 0.2s ease; }
+  .ai-chevron { color: #666; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
   .ai-chevron.open { transform: rotate(180deg); }
   .ai-close-btn { 
-    width: 24px; height: 24px; 
+    width: 28px; height: 28px; 
     display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; color: #666; cursor: pointer;
-    transition: all 0.15s ease;
+    border-radius: 6px; color: #666; cursor: pointer;
+    transition: all 0.2s ease;
   }
   .ai-close-btn:hover { background: rgba(255,255,255,0.05); color: #C8C7C0; }
   
@@ -239,7 +239,7 @@ const css = `
     background: #0F0F0F; 
     border-bottom: 1px solid rgba(255, 255, 255, 0.06); 
     color: #e4e4e7; 
-    animation: slideDown 0.3s ease-out;
+    animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     max-height: 400px;
     overflow-y: auto;
   }
@@ -250,23 +250,23 @@ const css = `
     display: flex; 
     align-items: center; 
     justify-content: space-between;
-    padding: 12px 16px; 
+    padding: 14px 18px; 
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     position: sticky;
     top: 0;
     background: #0F0F0F;
     z-index: 10;
   }
-  .ai-panel-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #C8F55A; }
+  .ai-panel-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #C8F55A; }
   .ai-context-badge { 
     display: inline-flex; align-items: center; 
-    padding: 3px 8px; 
+    padding: 4px 10px; 
     background: rgba(255, 255, 255, 0.05); 
     border: 1px solid rgba(255, 255, 255, 0.08); 
-    border-radius: 4px; 
-    font-size: 10px; color: #888; 
+    border-radius: 6px; 
+    font-size: 11px; color: #888; 
     font-weight: 500;
-    max-width: 120px;
+    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -274,22 +274,22 @@ const css = `
   
   .ai-tone-bar { 
     display: flex; 
-    gap: 6px; 
-    padding: 12px 16px; 
+    gap: 8px; 
+    padding: 14px 18px; 
     flex-wrap: wrap; 
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   }
   .ai-tone-btn { 
-    display: flex; align-items: center; gap: 5px; 
-    padding: 5px 10px; 
-    border-radius: 6px; 
+    display: flex; align-items: center; gap: 6px; 
+    padding: 6px 12px; 
+    border-radius: 8px; 
     border: 1px solid rgba(255, 255, 255, 0.06); 
     background: rgba(255, 255, 255, 0.02); 
     color: #888; 
-    font-size: 11px; 
+    font-size: 12px; 
     font-weight: 500; 
     cursor: pointer; 
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
   }
   .ai-tone-btn:hover { border-color: rgba(255, 255, 255, 0.12); color: #aaa; background: rgba(255, 255, 255, 0.04); }
   .ai-tone-btn.active { 
@@ -300,85 +300,90 @@ const css = `
   
   .ai-actions { 
     display: flex; 
-    gap: 8px; 
-    padding: 12px 16px; 
+    gap: 10px; 
+    padding: 14px 18px; 
     flex-wrap: wrap; 
     align-items: center;
   }
   .ai-btn-primary { 
-    display: flex; align-items: center; gap: 6px; 
+    display: flex; align-items: center; gap: 8px; 
     background: #C8F55A; 
     color: #0A0A0A; 
     border: none; 
-    border-radius: 6px; 
-    padding: 8px 14px; 
-    font-size: 12px; 
+    border-radius: 8px; 
+    padding: 10px 16px; 
+    font-size: 13px; 
     font-weight: 600; 
     cursor: pointer; 
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
   }
   .ai-btn-primary:hover:not(:disabled) { background: #d4fa6e; transform: translateY(-1px); }
   .ai-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   
   .ai-btn-secondary { 
-    display: flex; align-items: center; gap: 6px; 
+    display: flex; align-items: center; gap: 8px; 
     background: transparent; 
     border: 1px solid rgba(255, 255, 255, 0.1); 
     color: #888; 
-    border-radius: 6px; 
-    padding: 8px 12px; 
-    font-size: 12px; 
+    border-radius: 8px; 
+    padding: 10px 14px; 
+    font-size: 13px; 
     font-weight: 500; 
     cursor: pointer; 
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
   }
   .ai-btn-secondary:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.2); color: #aaa; }
   .ai-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
   
   .ai-btn-apply { 
-    display: flex; align-items: center; gap: 4px; 
+    display: flex; align-items: center; gap: 6px; 
     background: rgba(200, 245, 90, 0.1); 
     border: 1px solid rgba(200, 245, 90, 0.2); 
     color: #C8F55A; 
-    border-radius: 4px; 
-    padding: 5px 10px; 
-    font-size: 11px; 
+    border-radius: 6px; 
+    padding: 6px 12px; 
+    font-size: 12px; 
     font-weight: 500; 
     cursor: pointer; 
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
   }
   .ai-btn-apply:hover { background: rgba(200, 245, 90, 0.15); border-color: rgba(200, 245, 90, 0.3); }
   
-  .ai-status { font-size: 11px; color: #666; margin-left: auto; }
+  .ai-status { font-size: 12px; color: #666; margin-left: auto; }
   .ai-spin { animation: spin 1s linear infinite; }
   
   .ai-card { 
     background: rgba(255, 255, 255, 0.02); 
     border: 1px solid rgba(255, 255, 255, 0.05); 
-    border-radius: 8px; 
-    padding: 12px; 
-    margin: 0 16px 10px; 
+    border-radius: 10px; 
+    padding: 14px; 
+    margin: 0 18px 10px; 
+    transition: all 0.2s ease;
   }
-  .ai-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .ai-card-reason { font-size: 12px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 6px; }
-  .ai-card-text { font-size: 13px; color: #C8C7C0; line-height: 1.5; margin-bottom: 10px; }
-  .ai-card-actions { display: flex; gap: 8px; }
+  .ai-card:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .ai-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .ai-card-reason { font-size: 13px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 8px; }
+  .ai-card-text { font-size: 14px; color: #C8C7C0; line-height: 1.6; margin-bottom: 12px; }
+  .ai-card-actions { display: flex; gap: 10px; }
   
   .ai-section-label { 
-    font-size: 10px; font-weight: 600; color: #666; 
+    font-size: 11px; font-weight: 600; color: #666; 
     text-transform: uppercase; letter-spacing: 0.5px; 
-    padding: 0 16px; margin: 12px 0 8px; 
+    padding: 0 18px; margin: 14px 0 10px; 
   }
   
   .ai-error { 
-    margin: 0 16px 12px; 
-    padding: 10px 12px; 
-    border-radius: 6px; 
+    margin: 0 18px 14px; 
+    padding: 12px 14px; 
+    border-radius: 8px; 
     background: rgba(220, 38, 38, 0.08); 
     border: 1px solid rgba(220, 38, 38, 0.2); 
     color: #fca5a5; 
-    font-size: 12px; 
-    display: flex; align-items: center; gap: 8px; 
+    font-size: 13px; 
+    display: flex; align-items: center; gap: 10px; 
   }
   
   .ai-variation { 
@@ -386,39 +391,39 @@ const css = `
     background: rgba(255, 255, 255, 0.02); 
     border: 1px solid rgba(255, 255, 255, 0.05); 
     color: #888; 
-    border-radius: 6px; 
-    padding: 10px 12px; 
-    font-size: 12px; 
+    border-radius: 8px; 
+    padding: 12px 14px; 
+    font-size: 13px; 
     cursor: pointer; 
-    line-height: 1.4; 
-    transition: all 0.15s ease; 
-    width: calc(100% - 32px); 
-    margin: 0 16px 8px; 
+    line-height: 1.5; 
+    transition: all 0.2s ease; 
+    width: calc(100% - 36px); 
+    margin: 0 18px 10px; 
     display: block;
   }
   .ai-variation:hover { border-color: rgba(200, 245, 90, 0.2); color: #C8F55A; background: rgba(200, 245, 90, 0.03); }
   
   .ai-empty { 
-    padding: 32px 16px; 
+    padding: 40px 18px; 
     text-align: center; 
     color: #666; 
-    display: flex; flex-direction: column; align-items: center; gap: 12px; 
+    display: flex; flex-direction: column; align-items: center; gap: 14px; 
   }
   .ai-empty-icon { 
-    width: 40px; height: 40px; 
+    width: 48px; height: 48px; 
     background: rgba(255, 255, 255, 0.03); 
-    border-radius: 10px; 
+    border-radius: 12px; 
     display: flex; align-items: center; justify-content: center;
     color: #555;
   }
-  .ai-empty-text { font-size: 12px; line-height: 1.5; max-width: 240px; }
+  .ai-empty-text { font-size: 13px; line-height: 1.6; max-width: 260px; }
   
-  .ai-impact { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .ai-impact { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
   .ai-impact-high { background: rgba(220, 38, 38, 0.12); color: #fca5a5; border: 1px solid rgba(220, 38, 38, 0.15); }
   .ai-impact-medium { background: rgba(217, 119, 6, 0.12); color: #fcd34d; border: 1px solid rgba(217, 119, 6, 0.15); }
   .ai-impact-low { background: rgba(22, 163, 74, 0.12); color: #86efac; border: 1px solid rgba(22, 163, 74, 0.15); }
   
-  .ai-loader-block { background: rgba(255, 255, 255, 0.03); border-radius: 4px; height: 12px; margin: 8px 0; position: relative; overflow: hidden; }
+  .ai-loader-block { background: rgba(255, 255, 255, 0.03); border-radius: 6px; height: 14px; margin: 10px 0; position: relative; overflow: hidden; }
   .ai-loader-block::after { 
     content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; 
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent); 
@@ -521,7 +526,7 @@ export function AIAssistantPanel() {
         <div className="ai-header-collapsed" onClick={() => setIsExpanded(true)}>
           <div className="ai-header-left">
             <div className="ai-header-icon">
-              <Wand2 size={14} />
+              <Wand2 size={16} />
             </div>
             <div className="ai-header-text">
               <span className="ai-header-title">AI Writing Assistant</span>
@@ -531,7 +536,7 @@ export function AIAssistantPanel() {
             </div>
           </div>
           <div className="ai-header-right">
-            <ChevronDown size={16} className="ai-chevron" />
+            <ChevronDown size={18} className="ai-chevron" />
           </div>
         </div>
       </div>
@@ -545,12 +550,12 @@ export function AIAssistantPanel() {
         {/* Compact Header */}
         <div className="ai-panel-header">
           <div className="ai-panel-title">
-            <Sparkles size={14} /> AI Assistant
+            <Sparkles size={16} /> AI Assistant
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             {target?.label && <span className="ai-context-badge">{target.label}</span>}
             <div className="ai-close-btn" onClick={() => setIsExpanded(false)} title="Collapse">
-              <ChevronDown size={16} className="ai-chevron open" />
+              <ChevronDown size={18} className="ai-chevron open" />
             </div>
           </div>
         </div>
@@ -559,7 +564,7 @@ export function AIAssistantPanel() {
         {!target && (
           <div className="ai-empty">
             <div className="ai-empty-icon">
-              <Lightbulb size={20} />
+              <Lightbulb size={24} />
             </div>
             <div className="ai-empty-text">
               Click on any text field in your resume to get AI-powered writing suggestions
@@ -586,11 +591,11 @@ export function AIAssistantPanel() {
             {/* Action buttons */}
             <div className="ai-actions">
               <button className="ai-btn-primary" onClick={handleImprove} disabled={loading || !eligibility.allowImprove}>
-                {loading ? <Loader2 size={12} className="ai-spin" /> : <RefreshCw size={12} />} 
+                {loading ? <Loader2 size={14} className="ai-spin" /> : <RefreshCw size={14} />} 
                 Improve
               </button>
               <button className="ai-btn-secondary" onClick={handleGrammar} disabled={loading || !eligibility.allowGrammar}>
-                <PenTool size={12} /> Grammar
+                <PenTool size={14} /> Grammar
               </button>
               <span className="ai-status">
                 {loading ? "Working..." : lastUpdatedAt ? "Updated" : "Ready"}
@@ -599,13 +604,13 @@ export function AIAssistantPanel() {
 
             {eligibility.reason && !error && (
               <div className="ai-error" style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)", color: "#888" }}>
-                <AlertCircle size={12} /> {eligibility.reason}
+                <AlertCircle size={14} /> {eligibility.reason}
               </div>
             )}
 
             {/* Loading skeleton */}
             {loading && !rewrite && !grammar && (
-              <div style={{ padding: "0 16px 12px" }}>
+              <div style={{ padding: "0 18px 14px" }}>
                 <div className="ai-loader-block" style={{ width: "80%" }} />
                 <div className="ai-loader-block" style={{ width: "60%" }} />
               </div>
@@ -614,7 +619,7 @@ export function AIAssistantPanel() {
             {/* Error */}
             {error && (
               <div className="ai-error">
-                <AlertCircle size={12} /> {error}
+                <AlertCircle size={14} /> {error}
               </div>
             )}
 
@@ -633,10 +638,10 @@ export function AIAssistantPanel() {
                     <div className="ai-card-text">{suggestion.suggestionText}</div>
                     <div className="ai-card-actions">
                       <button className="ai-btn-apply" onClick={() => applySuggestion(suggestion.suggestionText)}>
-                        <Check size={10} /> Apply
+                        <Check size={12} /> Apply
                       </button>
                       <button className="ai-btn-apply" onClick={() => handleCopy(suggestion.suggestionText, suggestion.id)}>
-                        <Copy size={10} /> {copiedId === suggestion.id ? "Copied" : "Copy"}
+                        <Copy size={12} /> {copiedId === suggestion.id ? "Copied" : "Copy"}
                       </button>
                     </div>
                   </div>
@@ -656,7 +661,7 @@ export function AIAssistantPanel() {
                     <div className="ai-card-text">{issue.suggestionText}</div>
                     <div className="ai-card-actions">
                       <button className="ai-btn-apply" onClick={() => applySuggestion(issue.suggestionText)}>
-                        <Check size={10} /> Fix
+                        <Check size={12} /> Fix
                       </button>
                     </div>
                   </div>
@@ -668,7 +673,7 @@ export function AIAssistantPanel() {
             {rewrite?.variations?.length ? (
               <>
                 <div className="ai-section-label">Alternatives</div>
-                <div style={{ padding: "0 0 12px" }}>
+                <div style={{ padding: "0 0 14px" }}>
                   {rewrite.variations.slice(0, 3).map((variation, index) => (
                     <button key={`${variation}-${index}`} className="ai-variation" onClick={() => applySuggestion(variation)}>
                       {variation}
