@@ -110,24 +110,24 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
   };
 
   return (
-    <header className="relative z-40 shrink-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(15,15,15,0.85),rgba(10,10,10,0.9))] font-['Outfit'] backdrop-blur-2xl shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-      <div className="mx-auto flex min-h-18 max-w-450 flex-wrap items-center gap-2 px-3 py-3 lg:flex-nowrap lg:gap-3 lg:px-5">
-        <div className="flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all hover:bg-white/10 hover:border-[#c8f55a]/20">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#c8f55a]/12 text-[#c8f55a] ring-1 ring-[#c8f55a]/20">
-            <span className="text-sm font-black">R</span>
+    <header className="relative z-40 shrink-0 border-b border-zinc-800 bg-[#09090b]/90 font-['Outfit'] backdrop-blur-md">
+      <div className="mx-auto flex min-h-16 w-full flex-wrap items-center gap-2 px-4 py-2 lg:flex-nowrap lg:gap-3 lg:px-6">
+        <div className="flex items-center gap-2.5 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 transition-all hover:bg-zinc-800 hover:border-zinc-700">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-100 text-zinc-900">
+            <span className="text-[13px] font-bold">R</span>
           </div>
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/35">Workspace</div>
-            <div className="text-sm font-semibold tracking-tight text-white">
-              Resume<span className="text-[#c8f55a]">Studio</span>
+            <div className="text-[10px] font-medium uppercase tracking-widest text-zinc-500">Workspace</div>
+            <div className="text-[13px] font-semibold tracking-tight text-zinc-100">
+              ResumeStudio
             </div>
           </div>
         </div>
 
-        <div className="hidden h-8 w-px bg-white/10 lg:block" />
+        <div className="hidden h-6 w-px bg-zinc-800 lg:block" />
 
         {editingTitle ? (
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-2xl border border-[#c8f55a]/20 bg-[#c8f55a]/5 px-3 py-2 shadow-[0_0_15px_rgba(200,245,90,0.05)] lg:flex-nowrap">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 shadow-sm lg:flex-nowrap">
             <input
               autoFocus
               value={titleDraft}
@@ -137,15 +137,15 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                 if (e.key === "Enter") handleTitleCommit();
                 if (e.key === "Escape") setEditingTitle(false);
               }}
-              className="min-w-0 flex-1 rounded-xl border border-[#c8f55a]/30 bg-[#111111]/80 px-3 py-2 text-sm font-semibold text-white outline-none transition-all placeholder:text-white/25 focus:border-[#c8f55a]/60 focus:bg-[#151515] focus:shadow-[0_0_10px_rgba(200,245,90,0.1)]"
+              className="min-w-0 flex-1 bg-transparent px-1 py-1 text-[13px] font-medium text-zinc-100 outline-none placeholder:text-zinc-500"
             />
-            <span className="text-[10px] font-medium text-white/35">Enter to save</span>
+            <span className="text-[10px] text-zinc-500">Enter to save</span>
           </div>
         ) : (
-          <div className="group flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-3 py-2 transition-all hover:border-white/15 hover:bg-white/10">
+          <div className="group flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-transparent px-3 py-1.5 transition-all hover:bg-zinc-900">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">Resume title</div>
-              <div className="truncate text-sm font-semibold text-white/95">{resume.title}</div>
+              <div className="text-[10px] font-medium uppercase tracking-widest text-zinc-500">Resume title</div>
+              <div className="truncate text-[13px] font-medium text-zinc-300">{resume.title}</div>
             </div>
             <button
               onClick={() => {
@@ -153,19 +153,18 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                 setEditingTitle(true);
               }}
               title="Rename resume"
-              className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/60 opacity-80 transition-all group-hover:opacity-100 hover:border-[#c8f55a]/50 hover:bg-[#c8f55a]/10 hover:text-[#c8f55a] hover:scale-105 active:scale-95"
+              className="inline-flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-[11px] font-medium text-zinc-400 opacity-0 transition-all group-hover:opacity-100 hover:border-zinc-700 hover:text-zinc-100"
             >
-              ✎
-              <span className="hidden sm:inline">Rename</span>
+              ✎ Rename
             </button>
           </div>
         )}
 
         {(ui.isDirty || ui.isSaved) && (
           <span
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] ${ui.isSaved ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300" : "border-amber-400/20 bg-amber-400/10 text-amber-300"}`}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide ${ui.isSaved ? "border-zinc-800 bg-zinc-900/50 text-zinc-400" : "border-zinc-800 bg-zinc-900/50 text-zinc-400"}`}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${ui.isSaved ? "bg-emerald-300" : "bg-amber-300"}`} />
+            <span className={`h-1.5 w-1.5 rounded-full ${ui.isSaved ? "bg-emerald-500" : "bg-amber-500"}`} />
             {ui.isSaved ? "Saved" : "Unsaved"}
           </span>
         )}
@@ -174,19 +173,19 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           <button
             onClick={() => setShowTemplates(!showTemplates)}
             title={isEditingExistingResume ? "Upgrade this resume to the latest template version" : "Switch template"}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/8 bg-white/5 px-3 py-2 text-sm font-semibold text-white/80 transition hover:border-[#c8f55a]/35 hover:bg-[#c8f55a]/8 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-[12px] font-medium text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100"
           >
             <span className="max-w-37.5 truncate sm:max-w-55">
               {isEditingExistingResume ? `Template: ${currentTemplateLabel}` : currentTemplateLabel}
             </span>
-            <span className="text-[10px] text-white/35">▼</span>
+            <span className="text-[9px] text-zinc-500">▼</span>
           </button>
 
           {showTemplates && (
             <>
               <button type="button" aria-label="Close template menu" className="fixed inset-0 z-40 cursor-default" onClick={() => setShowTemplates(false)} />
-              <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[min(92vw,360px)] overflow-hidden rounded-2xl border border-white/8 bg-[#111111] shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-                <div className="border-b border-white/6 px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/35">
+              <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-[min(92vw,360px)] overflow-hidden rounded-lg border border-zinc-800 bg-[#09090b] shadow-xl">
+                <div className="border-b border-zinc-800 bg-zinc-900/30 px-4 py-2 text-[10px] font-medium uppercase tracking-widest text-zinc-500">
                   Templates
                 </div>
                 {templatesLoading ? (
@@ -194,7 +193,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                 ) : templates.length > 0 ? (
                   <div className="max-h-[58vh] overflow-y-auto p-2">
                     {isEditingExistingResume && (
-                      <div className="mb-2 rounded-xl border border-[#c8f55a]/15 bg-[#c8f55a]/7 px-3 py-2 text-xs text-white/55">
+                      <div className="mb-2 rounded-xl border border-[#FFFFFF]/15 bg-[#FFFFFF]/7 px-3 py-2 text-xs text-white/55">
                         Keep your content and apply the latest template defaults.
                       </div>
                     )}
@@ -225,13 +224,13 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
                                     }
                                     setShowTemplates(false);
                                   }}
-                                  className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${isCurrentTemplate ? "border-[#c8f55a]/25 bg-[#c8f55a]/10 text-white" : "border-white/6 bg-white/2 text-white/70 hover:border-[#c8f55a]/20 hover:bg-white/5 hover:text-white"}`}
+                                  className={`flex w-full items-center justify-between rounded-md border px-3 py-2.5 text-left transition ${isCurrentTemplate ? "border-zinc-700 bg-zinc-800 text-zinc-100" : "border-transparent bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"}`}
                                 >
                                   <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-semibold">{isCurrentTemplate ? `Current: ${label}` : label}</span>
-                                    <span className="block text-[10px] text-white/35">{template.status ?? "Template"}</span>
+                                    <span className="block truncate text-[13px] font-medium">{isCurrentTemplate ? `Current: ${label}` : label}</span>
+                                    <span className="block text-[10px] text-zinc-500">{template.status ?? "Template"}</span>
                                   </span>
-                                  <span className="ml-3 text-[10px] uppercase tracking-[0.18em] text-white/30">
+                                  <span className="ml-3 text-[10px] uppercase tracking-wider text-zinc-600">
                                     {template.audience === "tech" ? "Tech" : "General"}
                                   </span>
                                 </button>
@@ -250,14 +249,14 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           )}
         </div>
 
-        <div className="ml-auto hidden h-8 w-px bg-white/10 lg:block" />
+        <div className="ml-auto hidden h-6 w-px bg-zinc-800 lg:block" />
 
         <div className="flex w-full flex-1 items-center justify-end gap-2 sm:flex-none lg:w-auto">
           <button
             onClick={onDownload}
             disabled={!canDownload || isExporting}
             title={isExporting ? (exportStatus ?? "Preparing PDF export") : canDownload ? "Download as PDF" : "Save resume first to enable download"}
-            className="inline-flex min-w-31 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 transition-all duration-300 hover:border-[#c8f55a]/40 hover:bg-[#c8f55a]/10 hover:text-white hover:scale-105 hover:shadow-[0_0_20px_rgba(200,245,90,0.15)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
+            className="inline-flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50"
           >
             {isExporting ? "Exporting..." : "Download PDF"}
           </button>
@@ -265,7 +264,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
           <button
             onClick={handleSave}
             disabled={ui.isSaving}
-            className="inline-flex min-w-29.5 items-center justify-center rounded-2xl bg-[#c8f55a] px-4 py-2 text-sm font-extrabold text-[#0a0a0a] shadow-[0_0_15px_rgba(200,245,90,0.25)] transition-all duration-300 hover:bg-[#d7fa74] hover:shadow-[0_0_30px_rgba(200,245,90,0.5)] hover:scale-105 active:scale-95 disabled:cursor-wait disabled:opacity-70 disabled:hover:scale-100 disabled:hover:shadow-none"
+            className="inline-flex items-center justify-center rounded-md bg-zinc-100 px-4 py-1.5 text-[12px] font-semibold text-zinc-900 transition hover:bg-white active:scale-95 disabled:opacity-70"
           >
             {ui.isSaving ? "Saving..." : "Save Resume"}
           </button>

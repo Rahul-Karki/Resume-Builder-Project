@@ -22,11 +22,11 @@ const SectionBlock = ({ title, children, defaultOpen = true }: { title: string; 
         style={{
           width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "16px 20px", background: "none", border: "none", cursor: "pointer",
-          color: "#C8C7C0", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+          color: "#e4e4e7", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
           transition: "all 0.3s ease", borderRadius: 8,
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-        onMouseLeave={e => { e.currentTarget.style.color = "#C8C7C0"; e.currentTarget.style.background = "none"; }}
+        onMouseEnter={e => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+        onMouseLeave={e => { e.currentTarget.style.color = "#e4e4e7"; e.currentTarget.style.background = "none"; }}
       >
         {title}
         <span style={{ fontSize: 12, color: "#555", transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}>▾</span>
@@ -52,7 +52,7 @@ const ColorSwatch = ({ value, field, onChange, label }: ColorSwatchProps) => (
         onChange={e => onChange(field, e.target.value)}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }}
       />
-      <div style={{ width: 40, height: 40, borderRadius: 10, background: value, border: "2px solid #2A2A2A", cursor: "pointer", transition: "all 0.2s ease" }} />
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: value, border: "2px solid #27272a", cursor: "pointer", transition: "all 0.2s ease" }} />
     </div>
     <span style={{ fontSize: 10, color: "#555", textAlign: "center", lineHeight: 1.3, fontWeight: 500 }}>{label}</span>
   </div>
@@ -60,7 +60,7 @@ const ColorSwatch = ({ value, field, onChange, label }: ColorSwatchProps) => (
 
 // ─── Preset Color Themes ────────────────────────────────────────────────────────
 const COLOR_PRESETS = [
-  { label: "Ink", accent: "#1a1a1a", heading: "#111111", text: "#333333", muted: "#666666", border: "#cccccc", bg: "#ffffff" },
+  { label: "Ink", accent: "#18181b", heading: "#09090b", text: "#333333", muted: "#666666", border: "#cccccc", bg: "#ffffff" },
   { label: "Navy", accent: "#1B2B4B", heading: "#1B2B4B", text: "#333333", muted: "#7A8BA0", border: "#C5D0DE", bg: "#ffffff" },
   { label: "Teal", accent: "#0F766E", heading: "#0D4F49", text: "#1E3A38", muted: "#5A8A86", border: "#B2DFDB", bg: "#ffffff" },
   { label: "Slate", accent: "#475569", heading: "#1E293B", text: "#334155", muted: "#64748B", border: "#CBD5E1", bg: "#ffffff" },
@@ -93,7 +93,7 @@ export function StylePanel() {
         <button
           onClick={resetStyle}
           style={{ fontSize: 12, color: "#888", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, transition: "all 0.2s ease" }}
-          onMouseEnter={e => { e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.borderColor = "#C8F55A"; e.currentTarget.style.background = "rgba(200,245,90,0.1)"; }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
           onMouseLeave={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
         >
           Reset
@@ -110,13 +110,13 @@ export function StylePanel() {
               onClick={() => applyPreset(preset)}
               title={preset.label}
               style={{
-                padding: "8px 6px", borderRadius: 10, border: `2px solid ${preset.accent === style.accentColor ? preset.accent : "#2A2A2A"}`,
-                background: "#161616", cursor: "pointer", fontFamily: "inherit", fontSize: 11, color: "#888", fontWeight: 500,
+                padding: "8px 6px", borderRadius: 10, border: `2px solid ${preset.accent === style.accentColor ? preset.accent : "#27272a"}`,
+                background: "#18181b", cursor: "pointer", fontFamily: "inherit", fontSize: 11, color: "#888", fontWeight: 500,
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                 transition: "all 0.2s ease",
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = preset.accent; }}
-              onMouseLeave={e => { if (preset.accent !== style.accentColor) e.currentTarget.style.borderColor = "#2A2A2A"; }}
+              onMouseLeave={e => { if (preset.accent !== style.accentColor) e.currentTarget.style.borderColor = "#27272a"; }}
             >
               <div style={{ display: "flex", gap: 3 }}>
                 <div style={{ width: 12, height: 12, borderRadius: 4, background: preset.accent }} />
@@ -151,12 +151,12 @@ export function StylePanel() {
                 value={value as string}
                 onChange={e => updateStyle(field, e.target.value)}
                 style={{
-                  width: "100%", padding: "6px 10px", background: "#161616", border: "1px solid #2A2A2A",
-                  borderRadius: 8, color: "#C8C7C0", fontSize: 12, fontFamily: "monospace",
+                  width: "100%", padding: "6px 10px", background: "#18181b", border: "1px solid #27272a",
+                  borderRadius: 8, color: "#e4e4e7", fontSize: 12, fontFamily: "monospace",
                   outline: "none", boxSizing: "border-box", transition: "all 0.2s ease",
                 }}
-                onFocus={e => { e.currentTarget.style.borderColor = "rgba(200,245,90,0.5)"; e.currentTarget.style.background = "#1A1A1A"; }}
-                onBlur={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.background = "#161616"; }}
+                onFocus={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "#18181b"; }}
+                onBlur={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.background = "#18181b"; }}
               />
             </div>
           ))}
@@ -175,7 +175,7 @@ export function StylePanel() {
             {fontOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
           {/* Live preview */}
-          <div style={{ marginTop: 8, padding: "10px 12px", background: "#161616", borderRadius: 8, fontSize: 13, fontFamily: style.bodyFont, color: "#888", lineHeight: 1.5, border: "1px solid #1E1E1E" }}>
+          <div style={{ marginTop: 8, padding: "10px 12px", background: "#18181b", borderRadius: 8, fontSize: 13, fontFamily: style.bodyFont, color: "#888", lineHeight: 1.5, border: "1px solid #27272a" }}>
             The quick brown fox jumps over the lazy dog.
           </div>
         </div>
@@ -188,7 +188,7 @@ export function StylePanel() {
           >
             {fontOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
-          <div style={{ marginTop: 8, padding: "10px 12px", background: "#161616", borderRadius: 8, fontSize: 15, fontFamily: style.headingFont, color: "#F0EFE8", fontWeight: 700, border: "1px solid #1E1E1E" }}>
+          <div style={{ marginTop: 8, padding: "10px 12px", background: "#18181b", borderRadius: 8, fontSize: 15, fontFamily: style.headingFont, color: "#F0EFE8", fontWeight: 700, border: "1px solid #27272a" }}>
             Alexandra Chen
           </div>
         </div>
@@ -201,9 +201,9 @@ export function StylePanel() {
                 onClick={() => updateStyle("fontSize", sz)}
                 style={{
                   flex: 1, padding: "6px 4px", borderRadius: 8, border: "1px solid",
-                  borderColor: style.fontSize === sz ? "#C8F55A" : "#2A2A2A",
-                  background: style.fontSize === sz ? "rgba(200,245,90,0.1)" : "#161616",
-                  color: style.fontSize === sz ? "#C8F55A" : "#555",
+                  borderColor: style.fontSize === sz ? "#FFFFFF" : "#27272a",
+                  background: style.fontSize === sz ? "rgba(255,255,255,0.1)" : "#18181b",
+                  color: style.fontSize === sz ? "#FFFFFF" : "#555",
                   fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   transition: "all 0.2s ease",
                 }}
@@ -222,9 +222,9 @@ export function StylePanel() {
                 onClick={() => updateStyle("lineHeight", lh)}
                 style={{
                   flex: 1, padding: "6px 4px", borderRadius: 8, border: "1px solid",
-                  borderColor: style.lineHeight === lh ? "#C8F55A" : "#2A2A2A",
-                  background: style.lineHeight === lh ? "rgba(200,245,90,0.1)" : "#161616",
-                  color: style.lineHeight === lh ? "#C8F55A" : "#555",
+                  borderColor: style.lineHeight === lh ? "#FFFFFF" : "#27272a",
+                  background: style.lineHeight === lh ? "rgba(255,255,255,0.1)" : "#18181b",
+                  color: style.lineHeight === lh ? "#FFFFFF" : "#555",
                   fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   transition: "all 0.2s ease",
                 }}
@@ -247,9 +247,9 @@ export function StylePanel() {
                 onClick={() => updateStyle("pageMargin", m)}
                 style={{
                   padding: "8px", borderRadius: 8, border: "1px solid",
-                  borderColor: style.pageMargin === m ? "#C8F55A" : "#2A2A2A",
-                  background: style.pageMargin === m ? "rgba(200,245,90,0.1)" : "#161616",
-                  color: style.pageMargin === m ? "#C8F55A" : "#888",
+                  borderColor: style.pageMargin === m ? "#FFFFFF" : "#27272a",
+                  background: style.pageMargin === m ? "rgba(255,255,255,0.1)" : "#18181b",
+                  color: style.pageMargin === m ? "#FFFFFF" : "#888",
                   fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   textTransform: "capitalize", transition: "all 0.2s ease",
                 }}
@@ -268,9 +268,9 @@ export function StylePanel() {
                 onClick={() => updateStyle("sectionSpacing", sp)}
                 style={{
                   padding: "8px", borderRadius: 8, border: "1px solid",
-                  borderColor: style.sectionSpacing === sp ? "#C8F55A" : "#2A2A2A",
-                  background: style.sectionSpacing === sp ? "rgba(200,245,90,0.1)" : "#161616",
-                  color: style.sectionSpacing === sp ? "#C8F55A" : "#888",
+                  borderColor: style.sectionSpacing === sp ? "#FFFFFF" : "#27272a",
+                  background: style.sectionSpacing === sp ? "rgba(255,255,255,0.1)" : "#18181b",
+                  color: style.sectionSpacing === sp ? "#FFFFFF" : "#888",
                   fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   textTransform: "capitalize", transition: "all 0.2s ease",
                 }}
@@ -289,9 +289,9 @@ export function StylePanel() {
                 onClick={() => updateStyle("headerAlign", align)}
                 style={{
                   flex: 1, padding: "8px", borderRadius: 8, border: "1px solid",
-                  borderColor: style.headerAlign === align ? "#C8F55A" : "#2A2A2A",
-                  background: style.headerAlign === align ? "rgba(200,245,90,0.1)" : "#161616",
-                  color: style.headerAlign === align ? "#C8F55A" : "#888",
+                  borderColor: style.headerAlign === align ? "#FFFFFF" : "#27272a",
+                  background: style.headerAlign === align ? "rgba(255,255,255,0.1)" : "#18181b",
+                  color: style.headerAlign === align ? "#FFFFFF" : "#888",
                   fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   textTransform: "capitalize", transition: "all 0.2s ease",
                 }}
@@ -308,7 +308,7 @@ export function StylePanel() {
         <div style={{ marginBottom: 14 }}>
           <Row>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: "#C8C7C0", fontWeight: 500 }}>Section Dividers</div>
+              <div style={{ fontSize: 14, color: "#e4e4e7", fontWeight: 500 }}>Section Dividers</div>
               <div style={{ fontSize: 12, color: "#555" }}>Horizontal lines between sections</div>
             </div>
             <ToggleSwitch
@@ -326,9 +326,9 @@ export function StylePanel() {
                 onClick={() => updateStyle("bulletStyle", b)}
                 style={{
                   width: 40, height: 40, borderRadius: 8, border: "1px solid",
-                  borderColor: style.bulletStyle === b ? "#C8F55A" : "#2A2A2A",
-                  background: style.bulletStyle === b ? "rgba(200,245,90,0.1)" : "#161616",
-                  color: style.bulletStyle === b ? "#C8F55A" : "#888",
+                  borderColor: style.bulletStyle === b ? "#FFFFFF" : "#27272a",
+                  background: style.bulletStyle === b ? "rgba(255,255,255,0.1)" : "#18181b",
+                  color: style.bulletStyle === b ? "#FFFFFF" : "#888",
                   fontSize: 16, cursor: "pointer", fontFamily: "inherit",
                   transition: "all 0.2s ease",
                 }}
@@ -353,7 +353,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
       onClick={() => onChange(!checked)}
       style={{
         width: 48, height: 26, borderRadius: 13, cursor: "pointer",
-        background: checked ? "#C8F55A" : "#2A2A2A", position: "relative", transition: "background 0.25s ease",
+        background: checked ? "#FFFFFF" : "#27272a", position: "relative", transition: "background 0.25s ease",
         flexShrink: 0,
       }}
     >
@@ -367,7 +367,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 
 // ─── Shared select style ───────────────────────────────────────────────────────
 const selectStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", background: "#161616", border: "1px solid #2A2A2A",
-  borderRadius: 8, color: "#C8C7C0", fontSize: 13, fontFamily: "'Outfit', sans-serif",
+  width: "100%", padding: "8px 12px", background: "#18181b", border: "1px solid #27272a",
+  borderRadius: 8, color: "#e4e4e7", fontSize: 13, fontFamily: "'Outfit', sans-serif",
   outline: "none", cursor: "pointer", transition: "all 0.2s ease",
 };

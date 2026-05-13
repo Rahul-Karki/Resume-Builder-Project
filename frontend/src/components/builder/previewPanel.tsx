@@ -32,7 +32,7 @@ export function PreviewPanel({ onDownload, canDownload, isExporting = false, exp
     }}>
       {/* Preview toolbar */}
       <div style={{
-        minHeight: 48, background: "#0F0F0F", borderBottom: "1px solid #1A1A1A",
+        minHeight: 48, background: "#0F0F0F", borderBottom: "1px solid #18181b",
         display: "flex", alignItems: "center", padding: isMobile ? "8px 12px" : "0 20px", gap: 14,
         flexWrap: isMobile ? "wrap" : "nowrap",
         fontFamily: "'Outfit', sans-serif", flexShrink: 0,
@@ -41,7 +41,7 @@ export function PreviewPanel({ onDownload, canDownload, isExporting = false, exp
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 11, color: "#333", fontWeight: 500 }}>A4 · 210 × 297 mm</span>
         <span style={{ fontSize: 11, color: "#333" }}>·</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#171717", borderRadius: 8, padding: "4px", border: "1px solid #2A2A2A" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#171717", borderRadius: 8, padding: "4px", border: "1px solid #27272a" }}>
           <button
             onClick={() => {
               if (scaleIndex > 0) setPreviewScale(scaleOptions[scaleIndex - 1]);
@@ -66,7 +66,7 @@ export function PreviewPanel({ onDownload, canDownload, isExporting = false, exp
           >
             −
           </button>
-          <span style={{ fontSize: 11, color: "#C8F55A", fontWeight: 700, minWidth: 32, textAlign: "center" }}>{Math.round(scale * 100)}%</span>
+          <span style={{ fontSize: 11, color: "#FFFFFF", fontWeight: 700, minWidth: 32, textAlign: "center" }}>{Math.round(scale * 100)}%</span>
           <button
             onClick={() => {
               if (scaleIndex < scaleOptions.length - 1) setPreviewScale(scaleOptions[scaleIndex + 1]);
@@ -144,13 +144,13 @@ export function PreviewPanel({ onDownload, canDownload, isExporting = false, exp
 
       {/* Bottom bar with quick actions */}
       <div style={{
-        height: 52, background: "#0F0F0F", borderTop: "1px solid #1A1A1A",
+        height: 52, background: "#0F0F0F", borderTop: "1px solid #18181b",
         display: "flex", alignItems: "center", padding: "0 20px", gap: 12,
         fontFamily: "'Outfit', sans-serif", flexShrink: 0,
       }}>
         {isExporting && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#C8F55A", fontSize: 12, fontWeight: 600 }}>
-            <span style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid rgba(200,245,90,0.3)", borderTopColor: "#C8F55A", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#FFFFFF", fontSize: 12, fontWeight: 600 }}>
+            <span style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#FFFFFF", animation: "spin 0.8s linear infinite" }} />
             <span>{exportStatus ?? "Preparing export..."}</span>
           </div>
         )}
@@ -160,7 +160,7 @@ export function PreviewPanel({ onDownload, canDownload, isExporting = false, exp
           disabled={!canDownload || isExporting}
           title={isExporting ? (exportStatus ?? "Preparing PDF export") : canDownload ? "Download as PDF" : "Save resume first to enable download"}
           style={{
-            background: canDownload && !isExporting ? "#C8F55A" : "transparent", border: canDownload && !isExporting ? "none" : "1px solid #2A2A2A", borderRadius: 8,
+            background: canDownload && !isExporting ? "#FFFFFF" : "transparent", border: canDownload && !isExporting ? "none" : "1px solid #27272a", borderRadius: 8,
             color: canDownload && !isExporting ? "#0A0A0A" : "#444", fontSize: 13, fontWeight: 700, padding: "7px 16px",
             cursor: canDownload && !isExporting ? "pointer" : "not-allowed", fontFamily: "inherit",
             opacity: canDownload && !isExporting ? 1 : 0.65, transition: "all 0.2s ease",

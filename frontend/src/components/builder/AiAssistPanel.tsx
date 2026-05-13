@@ -92,7 +92,7 @@ function TipCard({ tip }: { tip: WritingTip }) {
 
   return (
     <div style={{
-      background: "#141414", border: "1px solid #252525", borderRadius: 10,
+      background: "#09090b", border: "1px solid #27272a", borderRadius: 10,
       marginBottom: 8, overflow: "hidden",
     }}>
       <div
@@ -102,9 +102,9 @@ function TipCard({ tip }: { tip: WritingTip }) {
           alignItems: "flex-start", gap: 8,
         }}
       >
-        <span style={{ color: "#C8F55A", fontSize: 14, flexShrink: 0, marginTop: 1 }}>✦</span>
+        <span style={{ color: "#FFFFFF", fontSize: 14, flexShrink: 0, marginTop: 1 }}>✦</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#C8C7C0" }}>{tip.title}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#e4e4e7" }}>{tip.title}</div>
           <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{tip.description}</div>
         </div>
         <span style={{
@@ -117,7 +117,7 @@ function TipCard({ tip }: { tip: WritingTip }) {
         <div style={{ padding: "0 14px 14px" }}>
           <div style={{
             padding: "10px 12px", borderRadius: 8,
-            background: "#0F0F0F", border: "1px solid #1E1E1E",
+            background: "#0F0F0F", border: "1px solid #27272a",
           }}>
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.5px" }}>Before</span>
@@ -127,7 +127,7 @@ function TipCard({ tip }: { tip: WritingTip }) {
             </div>
             <div>
               <span style={{ fontSize: 10, fontWeight: 700, color: "#4ADE80", textTransform: "uppercase", letterSpacing: "0.5px" }}>After</span>
-              <div style={{ fontSize: 12, color: "#C8F55A", marginTop: 3, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12, color: "#FFFFFF", marginTop: 3, lineHeight: 1.5 }}>
                 {tip.example.after}
               </div>
             </div>
@@ -162,9 +162,9 @@ function VerbPalette() {
                 title="Click to copy"
                 style={{
                   padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 600,
-                  background: copiedVerb === verb ? "rgba(200,245,90,0.15)" : "#1E1E1E",
-                  border: `1px solid ${copiedVerb === verb ? "rgba(200,245,90,0.3)" : "#2A2A2A"}`,
-                  color: copiedVerb === verb ? "#C8F55A" : "#888",
+                  background: copiedVerb === verb ? "rgba(255,255,255,0.15)" : "#27272a",
+                  border: `1px solid ${copiedVerb === verb ? "rgba(255,255,255,0.3)" : "#27272a"}`,
+                  color: copiedVerb === verb ? "#FFFFFF" : "#888",
                   cursor: "pointer", fontFamily: "inherit",
                   transition: "all 0.15s",
                 }}
@@ -217,7 +217,7 @@ function ResumeChecklist() {
       {checks.map((check) => (
         <div key={check.label} style={{
           display: "flex", alignItems: "center", gap: 8,
-          padding: "6px 0", borderBottom: "1px solid #1A1A1A",
+          padding: "6px 0", borderBottom: "1px solid #18181b",
         }}>
           <span style={{
             fontSize: 14, color: check.passed ? "#4ADE80" : "#444",
@@ -252,7 +252,7 @@ export function AiAssistPanel() {
   return (
     <div style={{ overflowY: "auto", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
       {/* Header */}
-      <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #1E1E1E" }}>
+      <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #27272a" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 16 }}>✦</span>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#F0EFE8" }}>AI Writing Assistant</div>
@@ -263,7 +263,7 @@ export function AiAssistPanel() {
       </div>
 
       {/* Sub-tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid #1E1E1E", padding: "0 8px", background: "#0A0A0A" }}>
+      <div style={{ display: "flex", borderBottom: "1px solid #27272a", padding: "0 8px", background: "#0A0A0A" }}>
         {([
           { id: "tips" as const, label: "Writing Tips" },
           { id: "verbs" as const, label: "Action Verbs" },
@@ -274,8 +274,8 @@ export function AiAssistPanel() {
             onClick={() => setActiveTab(tab.id)}
             style={{
               flex: 1, padding: "10px 6px", background: "none", border: "none",
-              borderBottom: `2px solid ${activeTab === tab.id ? "#C8F55A" : "transparent"}`,
-              color: activeTab === tab.id ? "#C8F55A" : "#555",
+              borderBottom: `2px solid ${activeTab === tab.id ? "#FFFFFF" : "transparent"}`,
+              color: activeTab === tab.id ? "#FFFFFF" : "#555",
               fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit', sans-serif",
               transition: "all 0.15s",
             }}
@@ -303,9 +303,9 @@ export function AiAssistPanel() {
                   onClick={() => setFilterSection(filter.id)}
                   style={{
                     padding: "4px 10px", borderRadius: 20,
-                    border: `1px solid ${filterSection === filter.id ? "#C8F55A" : "#252525"}`,
-                    background: filterSection === filter.id ? "rgba(200,245,90,0.1)" : "transparent",
-                    color: filterSection === filter.id ? "#C8F55A" : "#666",
+                    border: `1px solid ${filterSection === filter.id ? "#FFFFFF" : "#27272a"}`,
+                    background: filterSection === filter.id ? "rgba(255,255,255,0.1)" : "transparent",
+                    color: filterSection === filter.id ? "#FFFFFF" : "#666",
                     fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                   }}
                 >

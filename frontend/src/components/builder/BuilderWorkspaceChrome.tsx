@@ -207,26 +207,25 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
   };
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-[#0a0a0a] text-[#f1efe8]">
+    <div className="relative flex min-h-screen overflow-hidden bg-[#09090b] text-zinc-300 font-['Outfit']">
       {isMobile && !drawerOpen && (
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="fixed left-3 top-3 z-50 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#111111]/95 px-3 py-2 text-sm font-bold text-white shadow-2xl backdrop-blur transition hover:border-[#c8f55a]/40"
+          className="fixed left-4 top-4 z-50 flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-950 p-2 text-zinc-100 shadow-sm transition hover:bg-zinc-900"
           aria-label="Open sidebar"
         >
-          <Menu size={16} />
-          <span className="hidden xs:inline">Menu</span>
+          <Menu size={18} />
         </button>
       )}
 
       {/* 1. Far Left Sidebar (Slim Nav) */}
       {!isMobile && (
-        <aside className="relative z-20 flex w-16 min-h-0 shrink-0 flex-col items-center border-r border-white/5 bg-[#0a0a0a] py-6">
-          <div className="mb-8 flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-[#c8f55a]/20 to-transparent text-[#c8f55a]">
-            <Sparkles size={18} />
+        <aside className="relative z-20 flex w-16 min-h-0 shrink-0 flex-col items-center border-r border-zinc-800 bg-[#09090b] py-4">
+          <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-100 text-zinc-900">
+            <Sparkles size={18} strokeWidth={2.5} />
           </div>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             {SECTION_NAV.map((section) => {
               const active = ui.activeSection === section.id;
               return (
@@ -234,10 +233,10 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                   key={section.id}
                   onClick={() => handleSectionChange(section.id)}
                   title={section.label}
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300 hover:scale-[1.05] active:scale-95 ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-200 ${
                     active
-                      ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]"
-                      : "border-transparent bg-transparent text-white/40 hover:bg-white/5 hover:text-white/80"
+                      ? "bg-zinc-800 text-zinc-50"
+                      : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
                   }`}
                 >
                   {section.icon}
@@ -246,7 +245,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
             })}
           </div>
           
-          <div className="mt-auto flex flex-col gap-4">
+          <div className="mt-auto flex flex-col gap-3">
             {NAV_TABS.filter(t => t.id !== "content" && t.id !== "sections").map(tab => {
               const active = ui.activeTab === tab.id;
               return (
@@ -254,10 +253,10 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   title={tab.label}
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300 hover:scale-[1.05] active:scale-95 ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-200 ${
                     active
-                      ? "border-[#c8f55a]/40 bg-[#c8f55a]/15 text-[#c8f55a] shadow-[0_0_15px_rgba(200,245,90,0.1)]"
-                      : "border-transparent bg-transparent text-white/40 hover:bg-white/5 hover:text-white/80"
+                      ? "bg-zinc-800 text-zinc-50"
+                      : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
                   }`}
                 >
                   {tab.icon}
@@ -270,110 +269,107 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
 
       {/* 2. Middle Left Sidebar (Editor) */}
       {!isMobile && (
-        <aside className="relative z-10 flex w-[380px] min-h-0 shrink-0 flex-col border-r border-white/5 bg-[#0e0e0e]/95 backdrop-blur-xl">
-          <div className="flex items-center justify-between border-b border-white/5 px-6 py-5">
+        <aside className="relative z-10 flex w-[360px] min-h-0 shrink-0 flex-col border-r border-zinc-800 bg-[#09090b]">
+          <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">
+              <h2 className="text-base font-semibold tracking-tight text-zinc-100">
                 {ui.activeTab === "content" ? SECTION_NAV.find((s) => s.id === ui.activeSection)?.label || "Editor" : NAV_TABS.find(t => t.id === ui.activeTab)?.label}
               </h2>
-              <p className="mt-1 text-[11px] text-white/40">
-                {ui.activeTab === "content" ? "Detail your professional journey" : "Customize your resume"}
+              <p className="mt-0.5 text-[13px] text-zinc-500">
+                {ui.activeTab === "content" ? "Update your information." : "Customize settings."}
               </p>
             </div>
             {ui.activeTab === "content" && (
               <button 
                 onClick={() => handleTabChange("sections")}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-white/70 transition hover:bg-white/10 hover:text-white"
+                className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
               >
                 <LayoutGrid size={12} />
                 Reorder
               </button>
             )}
           </div>
-          <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+          <div className="flex-1 overflow-y-auto p-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-800 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-700">
             {activeTabContent}
           </div>
         </aside>
       )}
 
       {/* 3. Center (Preview) */}
-      <main className="flex min-w-0 flex-1 flex-col items-center bg-[radial-gradient(ellipse_at_top,#141414_0%,#0a0a0a_80%)] overflow-hidden lg:p-6">
+      <main className="flex min-w-0 flex-1 flex-col items-center bg-[#18181b] overflow-hidden lg:p-6">
         <div className="flex w-full items-center justify-between mb-4 px-4 lg:px-0">
           <div className="flex items-center gap-2">
-            <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"><Bot size={14}/></button>
+            <button className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-700 bg-zinc-800 text-zinc-400 transition hover:bg-zinc-700 hover:text-zinc-100"><Bot size={14}/></button>
           </div>
         </div>
-        <div className="w-full flex-1 overflow-hidden rounded-[20px] border border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+        <div className="w-full flex-1 overflow-hidden rounded-xl border border-zinc-800 shadow-sm">
           {previewContent}
         </div>
       </main>
 
       {/* 4. Right Sidebar (Insights) */}
       {!isMobile && (
-        <aside className="relative z-10 flex w-[340px] min-h-0 shrink-0 flex-col border-l border-white/5 bg-[#0e0e0e]/95 backdrop-blur-xl">
-          <div className="flex-1 overflow-y-auto p-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 hover:[&::-webkit-scrollbar-thumb]:bg-white/20">
+        <aside className="relative z-10 flex w-[320px] min-h-0 shrink-0 flex-col border-l border-zinc-800 bg-[#09090b]">
+          <div className="flex-1 overflow-y-auto p-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-800 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-700">
             {/* Resume Strength */}
-            <h3 className="mb-4 text-sm font-bold text-white/90 tracking-wide">Resume Strength</h3>
-            <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <h3 className="mb-3 text-[13px] font-semibold text-zinc-100">Resume Strength</h3>
+            <div className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-xs leading-relaxed text-white/60">
-                  Your resume is stronger than <strong className="text-white">{progress}%</strong> of applicants for {resume.personalInfo.title || "your role"}.
+                <div className="text-[12px] leading-relaxed text-zinc-400">
+                  Stronger than <strong className="text-zinc-100">{progress}%</strong> of applicants for {resume.personalInfo.title || "your role"}.
                 </div>
-                <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
-                  <div className="absolute inset-0 rounded-full bg-[conic-gradient(#c8f55a_0%_var(--progress),rgba(255,255,255,0.05)_var(--progress)_100%)]" style={{ ["--progress" as string]: `${progress}%` }} />
-                  <div className="absolute inset-[3px] rounded-full bg-[#111]" />
-                  <div className="relative text-[11px] font-bold text-[#c8f55a]">{progress}%</div>
+                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-[conic-gradient(#fafafa_0%_var(--progress),#27272a_var(--progress)_100%)]" style={{ ["--progress" as string]: `${progress}%` }} />
+                  <div className="absolute inset-[3px] rounded-full bg-[#09090b]" />
+                  <div className="relative text-[11px] font-bold text-zinc-100">{progress}%</div>
                 </div>
               </div>
             </div>
 
             {/* Actionable Tips */}
-            <h3 className="mb-4 mt-8 text-[11px] font-bold uppercase tracking-widest text-white/40">Actionable Tips</h3>
-            <div className="flex flex-col gap-3">
+            <h3 className="mb-3 mt-6 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Actionable Tips</h3>
+            <div className="flex flex-col gap-2">
               {Object.entries(AI_TOOL_META).slice(0, 3).map(([key, tool], idx) => {
-                const colors = ["text-blue-400", "text-purple-400", "text-orange-400"];
                 const icons = [<CheckCircle2 size={14}/>, <Sparkles size={14}/>, <Award size={14}/>];
                 return (
-                  <div key={key} className="flex items-start gap-3 rounded-xl border border-white/5 bg-[#141414] p-3 transition hover:border-white/10 hover:bg-[#1a1a1a]">
-                    <div className={`mt-0.5 shrink-0 ${colors[idx]}`}>
+                  <div key={key} className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 transition hover:border-zinc-700 hover:bg-zinc-800/50">
+                    <div className="mt-0.5 shrink-0 text-zinc-400">
                       {icons[idx]}
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white/90">{tool.label}</div>
-                      <div className="mt-1 text-[11px] leading-relaxed text-white/50">{tool.helper}. Improve your content formatting and layout to stand out.</div>
-                      <button onClick={() => activeTool(key as AiToolId)} className="mt-2 text-[10px] font-bold text-[#c8f55a] hover:underline">Apply Suggestion</button>
+                      <div className="text-[13px] font-medium text-zinc-100">{tool.label}</div>
+                      <div className="mt-1 text-[12px] leading-relaxed text-zinc-500">{tool.helper}.</div>
+                      <button onClick={() => activeTool(key as AiToolId)} className="mt-2 text-[11px] font-medium text-zinc-300 hover:text-white">Apply Suggestion →</button>
                     </div>
                   </div>
                 );
               })}
             </div>
             
-            <div className="mt-8 rounded-2xl border border-[#c8f55a]/10 bg-gradient-to-br from-[#c8f55a]/10 to-transparent p-4 relative overflow-hidden">
+            <div className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900 p-4 relative overflow-hidden">
                <div className="relative z-10">
-                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#c8f55a]">Template Insights</h3>
-                 <div className="mt-2 text-sm font-bold text-white">Pro Template</div>
-                 <div className="mt-1 text-[11px] text-white/60">Upgrade to unlock ATS-optimized formats.</div>
+                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Template Insights</h3>
+                 <div className="mt-1 text-[13px] font-medium text-zinc-100">Pro Template Recommended</div>
+                 <div className="mt-1 text-[12px] text-zinc-500">Upgrade to unlock ATS-optimized formats.</div>
                </div>
             </div>
           </div>
 
-          <div className="border-t border-white/5 p-5 bg-[#0a0a0a]">
+          <div className="border-t border-zinc-800 p-4 bg-[#09090b]">
             <button
               onClick={() => void saveResume()}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#c8f55a] py-3 text-[13px] font-bold text-[#0a0a0a] shadow-[0_0_15px_rgba(200,245,90,0.2)] transition hover:scale-[1.02] hover:bg-[#d7fa74] hover:shadow-[0_0_25px_rgba(200,245,90,0.4)] active:scale-95"
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-zinc-100 py-2.5 text-[13px] font-semibold text-zinc-900 transition hover:bg-white active:scale-[0.98]"
             >
-              <Sparkles size={14} /> Finalize & Optimize
+              <CheckCircle2 size={14} /> Save & Sync
             </button>
-            <div className="mt-3 flex gap-2">
-               <button
-                  type="button"
-                  onClick={onDownload}
-                  disabled={!canDownload || isExporting}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-2 text-[11px] font-bold text-white/70 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
-               >
-                  <Download size={12} /> {isExporting ? "Exporting..." : "Download PDF"}
-               </button>
-            </div>
+            <button
+              type="button"
+              onClick={onDownload}
+              disabled={!canDownload || isExporting}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 py-2.5 text-[13px] font-medium text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100 active:scale-[0.98] disabled:opacity-50"
+            >
+              <Download size={14} /> {isExporting ? "Exporting PDF..." : "Download PDF"}
+            </button>
           </div>
         </aside>
       )}
@@ -401,7 +397,7 @@ export function BuilderWorkspaceChrome({ activeTabContent, onDownload, canDownlo
             >
               <div className="flex items-center justify-between border-b border-white/6 px-4 py-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-[#c8f55a]/30 to-transparent text-[#c8f55a]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-[#FFFFFF]/30 to-transparent text-[#FFFFFF]">
                     <Sparkles size={16} />
                   </div>
                   <div>

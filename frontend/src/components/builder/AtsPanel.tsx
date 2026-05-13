@@ -29,7 +29,7 @@ function ScoreRing({ score, size = 80, label }: { score: number; size?: number; 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} stroke="#1E1E1E" strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={radius} stroke="#27272a" strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2} cy={size / 2} r={radius}
           stroke={color} strokeWidth={stroke} fill="none"
@@ -61,10 +61,10 @@ function SectionScoreBar({ label, score }: { label: string; score: number }) {
   return (
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-        <span style={{ fontSize: 12, color: "#C8C7C0", fontWeight: 600 }}>{label}</span>
+        <span style={{ fontSize: 12, color: "#e4e4e7", fontWeight: 600 }}>{label}</span>
         <span style={{ fontSize: 12, color, fontWeight: 700 }}>{score}%</span>
       </div>
-      <div style={{ height: 6, background: "#1E1E1E", borderRadius: 3, overflow: "hidden" }}>
+      <div style={{ height: 6, background: "#27272a", borderRadius: 3, overflow: "hidden" }}>
         <div style={{
           height: "100%", width: `${score}%`, background: color,
           borderRadius: 3, transition: "width 0.6s ease",
@@ -88,7 +88,7 @@ function SuggestionCard({
 
   return (
     <div style={{
-      background: "#141414", border: "1px solid #252525", borderRadius: 10,
+      background: "#09090b", border: "1px solid #27272a", borderRadius: 10,
       padding: "12px 14px", marginBottom: 8,
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -113,9 +113,9 @@ function SuggestionCard({
           </div>
           {expanded && (
             <div style={{
-              fontSize: 12, color: "#C8F55A", marginBottom: 8,
-              padding: "8px 10px", background: "rgba(200,245,90,0.06)",
-              borderRadius: 6, border: "1px solid rgba(200,245,90,0.15)",
+              fontSize: 12, color: "#FFFFFF", marginBottom: 8,
+              padding: "8px 10px", background: "rgba(255,255,255,0.06)",
+              borderRadius: 6, border: "1px solid rgba(255,255,255,0.15)",
               lineHeight: 1.5,
             }}>
               {suggestion.suggestionText}
@@ -127,7 +127,7 @@ function SuggestionCard({
         <button
           onClick={() => setExpanded(!expanded)}
           style={{
-            background: "none", border: "1px solid #2A2A2A", borderRadius: 6,
+            background: "none", border: "1px solid #27272a", borderRadius: 6,
             color: "#888", fontSize: 11, fontWeight: 600, padding: "4px 10px",
             cursor: "pointer", fontFamily: "inherit",
           }}
@@ -138,9 +138,9 @@ function SuggestionCard({
           onClick={onApply}
           disabled={applying}
           style={{
-            background: applying ? "#1A1A1A" : "rgba(200,245,90,0.12)",
-            border: `1px solid ${applying ? "#2A2A2A" : "rgba(200,245,90,0.3)"}`,
-            borderRadius: 6, color: applying ? "#555" : "#C8F55A",
+            background: applying ? "#18181b" : "rgba(255,255,255,0.12)",
+            border: `1px solid ${applying ? "#27272a" : "rgba(255,255,255,0.3)"}`,
+            borderRadius: 6, color: applying ? "#555" : "#FFFFFF",
             fontSize: 11, fontWeight: 700, padding: "4px 10px",
             cursor: applying ? "wait" : "pointer", fontFamily: "inherit",
           }}
@@ -213,7 +213,7 @@ export function AtsPanel() {
   return (
     <div style={{ overflowY: "auto", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
       {/* Header */}
-      <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #1E1E1E" }}>
+      <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #27272a" }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: "#F0EFE8" }}>ATS Score Analysis</div>
         <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>
           Check how well your resume passes applicant tracking systems
@@ -221,7 +221,7 @@ export function AtsPanel() {
       </div>
 
       {/* Input Section */}
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid #1E1E1E" }}>
+      <div style={{ padding: "14px 16px", borderBottom: "1px solid #27272a" }}>
         <div style={{ marginBottom: 10 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: "#555", textTransform: "uppercase", letterSpacing: "0.6px", display: "block", marginBottom: 5 }}>
             Target Job Title
@@ -231,8 +231,8 @@ export function AtsPanel() {
             onChange={(e) => setJobTitle(e.target.value)}
             placeholder="e.g. Senior Frontend Engineer"
             style={{
-              width: "100%", padding: "7px 10px", background: "#141414",
-              border: "1px solid #252525", borderRadius: 7, color: "#C8C7C0",
+              width: "100%", padding: "7px 10px", background: "#09090b",
+              border: "1px solid #27272a", borderRadius: 7, color: "#e4e4e7",
               fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: "none",
               boxSizing: "border-box",
             }}
@@ -247,8 +247,8 @@ export function AtsPanel() {
             onChange={(e) => setKeywords(e.target.value)}
             placeholder="e.g. React, TypeScript, AWS, CI/CD"
             style={{
-              width: "100%", padding: "7px 10px", background: "#141414",
-              border: "1px solid #252525", borderRadius: 7, color: "#C8C7C0",
+              width: "100%", padding: "7px 10px", background: "#09090b",
+              border: "1px solid #27272a", borderRadius: 7, color: "#e4e4e7",
               fontSize: 13, fontFamily: "'Outfit', sans-serif", outline: "none",
               boxSizing: "border-box",
             }}
@@ -261,7 +261,7 @@ export function AtsPanel() {
           style={{
             width: "100%", padding: "10px", borderRadius: 8,
             border: "none",
-            background: loading ? "#1A1A1A" : "#C8F55A",
+            background: loading ? "#18181b" : "#FFFFFF",
             color: loading ? "#555" : "#0E0E0E",
             fontSize: 13, fontWeight: 800, cursor: loading ? "wait" : "pointer",
             fontFamily: "inherit",

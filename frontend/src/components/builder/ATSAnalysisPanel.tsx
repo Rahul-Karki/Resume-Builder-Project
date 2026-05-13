@@ -14,22 +14,22 @@ const css = `
   .ats-header-collapsed {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 18px;
-    background: linear-gradient(135deg, rgba(200, 245, 90, 0.08) 0%, rgba(200, 245, 90, 0.02) 100%);
-    border-bottom: 1px solid rgba(200, 245, 90, 0.1);
+    background: linear-gradient(135deg, rgba(255,255,255, 0.08) 0%, rgba(255,255,255, 0.02) 100%);
+    border-bottom: 1px solid rgba(255,255,255, 0.1);
     cursor: pointer; transition: all 0.25s ease;
   }
-  .ats-header-collapsed:hover { background: linear-gradient(135deg, rgba(200, 245, 90, 0.12) 0%, rgba(200, 245, 90, 0.04) 100%); }
+  .ats-header-collapsed:hover { background: linear-gradient(135deg, rgba(255,255,255, 0.12) 0%, rgba(255,255,255, 0.04) 100%); }
 
   .ats-header-left { display: flex; align-items: center; gap: 12px; }
   .ats-header-icon {
     width: 32px; height: 32px;
-    background: rgba(200, 245, 90, 0.15);
+    background: rgba(255,255,255, 0.15);
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    color: #C8F55A;
+    color: #FFFFFF;
   }
   .ats-header-text { display: flex; flex-direction: column; }
-  .ats-header-title { font-size: 14px; font-weight: 600; color: #C8F55A; }
+  .ats-header-title { font-size: 14px; font-weight: 600; color: #FFFFFF; }
   .ats-header-subtitle { font-size: 12px; color: #888; }
   .ats-chevron { color: #666; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
   .ats-chevron.open { transform: rotate(180deg); }
@@ -43,7 +43,7 @@ const css = `
     overflow-y: auto;
   }
   .ats-panel::-webkit-scrollbar { width: 4px; }
-  .ats-panel::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 2px; }
+  .ats-panel::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
 
   .ats-panel-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -51,7 +51,7 @@ const css = `
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     position: sticky; top: 0; background: #0F0F0F; z-index: 10;
   }
-  .ats-panel-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #C8F55A; }
+  .ats-panel-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #FFFFFF; }
 
   .ats-score-ring {
     width: 80px; height: 80px; border-radius: 50%;
@@ -98,7 +98,7 @@ const css = `
     border-color: rgba(255, 255, 255, 0.08);
   }
   .ats-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .ats-card-title { font-size: 13px; font-weight: 600; color: #C8C7C0; display: flex; align-items: center; gap: 8px; }
+  .ats-card-title { font-size: 13px; font-weight: 600; color: #e4e4e7; display: flex; align-items: center; gap: 8px; }
   .ats-card-detail { font-size: 12px; color: #888; line-height: 1.6; }
 
   .ats-tag {
@@ -126,7 +126,7 @@ const css = `
 
   .ats-btn-primary {
     display: flex; align-items: center; gap: 8px;
-    background: #C8F55A; color: #0A0A0A;
+    background: #FFFFFF; color: #0A0A0A;
     border: none; border-radius: 8px;
     padding: 10px 16px; font-size: 13px; font-weight: 600;
     cursor: pointer; transition: all 0.2s ease;

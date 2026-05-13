@@ -5,12 +5,12 @@ import { ActiveSection, WorkEntry, EduEntry, SkillGroup, Project, CertEntry, Lan
 /* ─── CSS Animations ─────────────────────────────────────────────────────────── */
 const css = `
   @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(200,245,90,0); } 50% { box-shadow: 0 0 20px rgba(200,245,90,0.2); } }
+  @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 20px rgba(255,255,255,0.2); } }
   .editor-fade-in { animation: fadeSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
   .editor-card { animation: fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; transition: all 0.3s ease; }
   .editor-card:hover { border-color: rgba(255,255,255,0.15) !important; box-shadow: 0 8px 30px rgba(0,0,0,0.5) !important; }
-  .editor-input:focus { border-color: rgba(200,245,90,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(200,245,90,0.15) !important; }
-  .editor-textarea:focus { border-color: rgba(200,245,90,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(200,245,90,0.15) !important; }
+  .editor-input:focus { border-color: rgba(255,255,255,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(255,255,255,0.15) !important; }
+  .editor-textarea:focus { border-color: rgba(255,255,255,0.6) !important; background: rgba(26,26,26,0.9) !important; box-shadow: 0 0 15px rgba(255,255,255,0.15) !important; }
 `;
 
 // ─── Shared Input Styles ───────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ const inp: React.CSSProperties = {
   backdropFilter: "blur(10px)",
   border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: 12,
-  color: "#C8C7C0",
+  color: "#e4e4e7",
   fontSize: 14,
   fontFamily: "'Outfit', sans-serif",
   outline: "none",
@@ -30,9 +30,9 @@ const inp: React.CSSProperties = {
 };
 
 const inpFocus: React.CSSProperties = {
-  borderColor: "rgba(200,245,90,0.6)",
+  borderColor: "rgba(255,255,255,0.6)",
   background: "rgba(26,26,26,0.9)",
-  boxShadow: "0 0 15px rgba(200,245,90,0.15)",
+  boxShadow: "0 0 15px rgba(255,255,255,0.15)",
 };
 
 const ta: React.CSSProperties = {
@@ -146,7 +146,7 @@ const modeToggleWrap: React.CSSProperties = {
   gap: 4,
   padding: 4,
   borderRadius: 10,
-  border: "1px solid #252525",
+  border: "1px solid #27272a",
   background: "#111",
 };
 
@@ -168,10 +168,10 @@ function ContentModeToggle({
             onClick={() => onChange(mode)}
             style={{
               border: "1px solid",
-              borderColor: active ? "#C8F55A" : "transparent",
+              borderColor: active ? "#FFFFFF" : "transparent",
               borderRadius: 8,
-              background: active ? "rgba(200,245,90,0.12)" : "transparent",
-              color: active ? "#C8F55A" : "#888",
+              background: active ? "rgba(255,255,255,0.12)" : "transparent",
+              color: active ? "#FFFFFF" : "#888",
               fontSize: 12,
               fontWeight: 600,
               textTransform: "capitalize",
@@ -209,7 +209,7 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
     <div className="editor-card" style={{ background: "rgba(20,20,20,0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, overflow: "hidden", marginBottom: 14, transition: "all 0.3s ease" }}>
       <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer", transition: "background 0.2s ease" }} onClick={() => setOpen(o => !o)} onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#C8C7C0" }}>{title || <span style={{ color: "#444" }}>Untitled</span>}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{title || <span style={{ color: "#444" }}>Untitled</span>}</div>
           {subtitle && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{subtitle}</div>}
         </div>
         <button onClick={e => { e.stopPropagation(); onRemove(); }}
@@ -233,7 +233,7 @@ function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
       cursor: "pointer", fontFamily: "inherit", transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
     }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = "#C8F55A"; e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.background = "rgba(200,245,90,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(200,245,90,0.1)"; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(255,255,255,0.1)"; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
       + {l}
@@ -282,23 +282,23 @@ function InlineEnhanceTip({ text, context }: { text: string; context: "summary" 
         onClick={() => setVisible(!visible)}
         title="AI writing tip"
         style={{
-          background: visible ? "rgba(200,245,90,0.12)" : "none",
-          border: `1px solid ${visible ? "rgba(200,245,90,0.3)" : "#2A2A2A"}`,
-          borderRadius: 6, color: visible ? "#C8F55A" : "#555",
+          background: visible ? "rgba(255,255,255,0.12)" : "none",
+          border: `1px solid ${visible ? "rgba(255,255,255,0.3)" : "#27272a"}`,
+          borderRadius: 6, color: visible ? "#FFFFFF" : "#555",
           fontSize: 11, fontWeight: 700, padding: "3px 8px",
           cursor: "pointer", fontFamily: "inherit", marginLeft: 6,
           transition: "all 0.15s ease",
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.color = "#C8F55A"; e.currentTarget.style.borderColor = "rgba(200,245,90,0.3)"; }}
-        onMouseLeave={(e) => { if (!visible) { e.currentTarget.style.color = "#555"; e.currentTarget.style.borderColor = "#2A2A2A"; } }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; }}
+        onMouseLeave={(e) => { if (!visible) { e.currentTarget.style.color = "#555"; e.currentTarget.style.borderColor = "#27272a"; } }}
       >
         ✦ Enhance
       </button>
       {visible && (
         <div style={{
           position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 20,
-          background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 10,
-          padding: "10px 12px", fontSize: 12, color: "#C8F55A", lineHeight: 1.6,
+          background: "#18181b", border: "1px solid #27272a", borderRadius: 10,
+          padding: "10px 12px", fontSize: 12, color: "#FFFFFF", lineHeight: 1.6,
           maxWidth: 300, boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
         }}>
           {tip}
@@ -315,8 +315,8 @@ function Inp({ label: l, value, onChange, placeholder, type = "text" }: {
   return fieldGroup(<>
     <span style={label}>{l}</span>
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="editor-input" style={inp}
-      onFocus={e => { e.currentTarget.style.borderColor = "rgba(200,245,90,0.5)"; e.currentTarget.style.background = "#1A1A1A"; }}
-      onBlur={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.background = "#141414"; }}
+      onFocus={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "#18181b"; }}
+      onBlur={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.background = "#09090b"; }}
     />
   </>);
 }
@@ -328,8 +328,8 @@ function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
     <span style={label}>{l}</span>
     <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
       rows={rows} className="editor-textarea" style={ta}
-      onFocus={e => { e.currentTarget.style.borderColor = "rgba(200,245,90,0.5)"; e.currentTarget.style.background = "#1A1A1A"; }}
-      onBlur={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.background = "#141414"; }}
+      onFocus={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "#18181b"; }}
+      onBlur={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.background = "#09090b"; }}
     />
   </>);
 }
@@ -435,12 +435,12 @@ function ExperienceSection() {
               <textarea
                 value={e.description}
                 onChange={v => updateExperience(e.id, "description", v.target.value)}
-                onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(200,245,90,0.5)"; ev.currentTarget.style.background = "#1A1A1A"; setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "description", label: "Experience Summary" }); }}
+                onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "experience", kind: "experience", entityId: e.id, field: "description", label: "Experience Summary" }); }}
                 rows={4}
                 placeholder="Summarize your impact, scope of work, and service outcomes in a concise paragraph..."
                 className="editor-textarea"
                 style={ta}
-                onBlur={ev => { ev.currentTarget.style.borderColor = "#2A2A2A"; ev.currentTarget.style.background = "#141414"; }}
+                onBlur={ev => { ev.currentTarget.style.borderColor = "#27272a"; ev.currentTarget.style.background = "#09090b"; }}
               />
             </div>
           ) : (
@@ -468,12 +468,12 @@ function ExperienceSection() {
                 </div>
               ))}
               <button onClick={() => addBullet(e.id)} style={{
-                background: "none", border: "1px dashed #2A2A2A", borderRadius: 8, color: "#555",
+                background: "none", border: "1px dashed #27272a", borderRadius: 8, color: "#555",
                 fontSize: 12, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
                 display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s ease",
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#C8F55A"; e.currentTarget.style.color = "#C8F55A"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#555"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.color = "#555"; }}
               >+ Add bullet</button>
             </div>
           )}
@@ -541,7 +541,7 @@ function SkillsSection() {
 
   return (
     <div>
-      <div style={{ padding: "10px 14px", background: "#161616", borderRadius: 10, marginBottom: 16, fontSize: 12, color: "#555", lineHeight: 1.6, border: "1px solid #1E1E1E" }}>
+      <div style={{ padding: "10px 14px", background: "#18181b", borderRadius: 10, marginBottom: 16, fontSize: 12, color: "#555", lineHeight: 1.6, border: "1px solid #27272a" }}>
         Organize skills into categories. Add items separated by commas — e.g. <em style={{ color: "#888" }}>Customer Service, Scheduling, Excel</em>
       </div>
       {resume.sections.skills.map((sk: SkillGroup) => (
@@ -571,7 +571,7 @@ function SkillsSection() {
             {sk.items.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
                 {sk.items.map((item, i) => (
-                  <span key={i} style={{ background: "#1E1E1E", border: "1px solid #2A2A2A", borderRadius: 6, padding: "3px 10px", fontSize: 12, color: "#888", fontWeight: 500 }}>{item}</span>
+                  <span key={i} style={{ background: "#27272a", border: "1px solid #27272a", borderRadius: 6, padding: "3px 10px", fontSize: 12, color: "#888", fontWeight: 500 }}>{item}</span>
                 ))}
               </div>
             )}
@@ -609,7 +609,7 @@ function ProjectsSection() {
           {pr.contentMode === "paragraph" ? (
             <div>
               <span style={label}>Description</span>
-              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)} onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(200,245,90,0.5)"; ev.currentTarget.style.background = "#1A1A1A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "description", label: "Description" }); }}
+              <textarea value={pr.description} onChange={v => updateProject(pr.id, "description", v.target.value)} onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "description", label: "Description" }); }}
                 rows={3} placeholder="Briefly describe the initiative, who it supported, and the outcome it improved." className="editor-textarea" style={ta} />
             </div>
           ) : (
@@ -621,12 +621,12 @@ function ProjectsSection() {
                   <textarea
                     value={b}
                     onChange={v => updateProjectBullet(pr.id, i, v.target.value)}
-                    onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(200,245,90,0.5)"; ev.currentTarget.style.background = "#1A1A1A"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "bullet", index: i, label: `Project Bullet ${i + 1}` }); }}
+                    onFocus={(ev) => { ev.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; ev.currentTarget.style.background = "#18181b"; setFocusedField({ section: "projects", kind: "projects", entityId: pr.id, field: "bullet", index: i, label: `Project Bullet ${i + 1}` }); }}
                     placeholder="Highlight one project outcome or feature..."
                     rows={2}
                     className="editor-textarea"
                     style={{ ...ta, flex: 1, minHeight: 48 }}
-                    onBlur={ev => { ev.currentTarget.style.borderColor = "#2A2A2A"; ev.currentTarget.style.background = "#141414"; }}
+                    onBlur={ev => { ev.currentTarget.style.borderColor = "#27272a"; ev.currentTarget.style.background = "#09090b"; }}
                   />
                   <button
                     onClick={() => removeProjectBullet(pr.id, i)}
@@ -639,12 +639,12 @@ function ProjectsSection() {
                 </div>
               ))}
               <button onClick={() => addProjectBullet(pr.id)} style={{
-                background: "none", border: "1px dashed #2A2A2A", borderRadius: 8, color: "#555",
+                background: "none", border: "1px dashed #27272a", borderRadius: 8, color: "#555",
                 fontSize: 12, padding: "6px 12px", cursor: "pointer", fontFamily: "inherit",
                 display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s ease",
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#C8F55A"; e.currentTarget.style.color = "#C8F55A"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#2A2A2A"; e.currentTarget.style.color = "#555"; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.color = "#FFFFFF"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.color = "#555"; }}
               >+ Add bullet</button>
             </div>
           )}
@@ -713,7 +713,7 @@ function SectionsManager() {
 
   return (
     <div>
-      <div style={{ padding: "12px 14px", background: "#141414", border: "1px solid #252525", borderRadius: 12, marginBottom: 20, fontSize: 12, color: "#555", lineHeight: 1.6 }}>
+      <div style={{ padding: "12px 14px", background: "#09090b", border: "1px solid #27272a", borderRadius: 12, marginBottom: 20, fontSize: 12, color: "#555", lineHeight: 1.6 }}>
         Toggle sections on/off and drag to reorder how they appear on your resume.
       </div>
       {resume.sectionOrder.map((sectionKey, idx) => (
@@ -725,19 +725,19 @@ function SectionsManager() {
           onDrop={() => { if (dragging !== null && dragging !== idx) { reorderSections(dragging, idx); setDragging(null); } }}
           style={{
             display: "flex", alignItems: "center", gap: 12, padding: "12px 14px",
-            background: "#141414", border: "1px solid #252525", borderRadius: 10,
+            background: "#09090b", border: "1px solid #27272a", borderRadius: 10,
             marginBottom: 8, cursor: "grab", opacity: dragging === idx ? 0.5 : 1,
             transition: "all 0.2s ease",
           }}
         >
           <span style={{ color: "#333", fontSize: 16, cursor: "grab" }}>⠿</span>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#C8C7C0" }}>{SECTION_LABELS[sectionKey]}</span>
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{SECTION_LABELS[sectionKey]}</span>
           {/* Visibility toggle */}
           <div
             onClick={() => toggleSectionVisibility(sectionKey as any)}
             style={{
               width: 42, height: 22, borderRadius: 11, cursor: "pointer",
-              background: resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility] ? "#C8F55A" : "#2A2A2A",
+              background: resume.sectionVisibility[sectionKey as keyof typeof resume.sectionVisibility] ? "#FFFFFF" : "#27272a",
               position: "relative", transition: "background 0.25s ease",
             }}
           >
@@ -779,7 +779,7 @@ export function EditorPanel() {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'Outfit', sans-serif" }}>
       <style>{css}</style>
       {/* Section Nav */}
-      <div style={{ padding: "12px 12px 0", borderBottom: "1px solid #1E1E1E" }}>
+      <div style={{ padding: "12px 12px 0", borderBottom: "1px solid #27272a" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingBottom: 12 }}>
           {NAV_ITEMS.map(item => (
             <button
@@ -787,15 +787,15 @@ export function EditorPanel() {
               onClick={() => setActiveSection(item.id)}
               style={{
                 padding: "7px 14px", borderRadius: 24, border: "1px solid",
-                borderColor: activeSection === item.id ? "#C8F55A" : "#252525",
-                background: activeSection === item.id ? "rgba(200,245,90,0.1)" : "transparent",
-                color: activeSection === item.id ? "#C8F55A" : "#666",
+                borderColor: activeSection === item.id ? "#FFFFFF" : "#27272a",
+                background: activeSection === item.id ? "rgba(255,255,255,0.1)" : "transparent",
+                color: activeSection === item.id ? "#FFFFFF" : "#666",
                 fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 display: "flex", alignItems: "center", gap: 6,
                 transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
               }}
               onMouseEnter={e => { if (activeSection !== item.id) { e.currentTarget.style.borderColor = "#3A3A3A"; e.currentTarget.style.color = "#888"; } }}
-              onMouseLeave={e => { if (activeSection !== item.id) { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#666"; } }}
+              onMouseLeave={e => { if (activeSection !== item.id) { e.currentTarget.style.borderColor = "#27272a"; e.currentTarget.style.color = "#666"; } }}
             >
               <span style={{ fontSize: 10 }}>{item.icon}</span>
               {item.label}
@@ -805,7 +805,7 @@ export function EditorPanel() {
       </div>
 
       {/* Section Header */}
-      <div style={{ padding: "14px 18px 10px", borderBottom: "1px solid #1A1A1A" }}>
+      <div style={{ padding: "14px 18px 10px", borderBottom: "1px solid #18181b" }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8", letterSpacing: "-0.2px" }}>{sectionTitles[activeSection]}</div>
       </div>
 

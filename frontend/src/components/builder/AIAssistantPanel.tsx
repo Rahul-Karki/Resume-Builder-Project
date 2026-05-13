@@ -181,23 +181,23 @@ const css = `
     align-items: center; 
     justify-content: space-between; 
     padding: 12px 16px; 
-    background: linear-gradient(135deg, rgba(200, 245, 90, 0.08) 0%, rgba(200, 245, 90, 0.02) 100%);
-    border-bottom: 1px solid rgba(200, 245, 90, 0.1);
+    background: linear-gradient(135deg, rgba(255,255,255, 0.08) 0%, rgba(255,255,255, 0.02) 100%);
+    border-bottom: 1px solid rgba(255,255,255, 0.1);
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  .ai-header-collapsed:hover { background: linear-gradient(135deg, rgba(200, 245, 90, 0.12) 0%, rgba(200, 245, 90, 0.04) 100%); }
+  .ai-header-collapsed:hover { background: linear-gradient(135deg, rgba(255,255,255, 0.12) 0%, rgba(255,255,255, 0.04) 100%); }
   
   .ai-header-left { display: flex; align-items: center; gap: 10px; }
   .ai-header-icon { 
     width: 28px; height: 28px; 
-    background: rgba(200, 245, 90, 0.15); 
+    background: rgba(255,255,255, 0.15); 
     border-radius: 6px; 
     display: flex; align-items: center; justify-content: center;
-    color: #C8F55A;
+    color: #FFFFFF;
   }
   .ai-header-text { display: flex; flex-direction: column; }
-  .ai-header-title { font-size: 13px; font-weight: 600; color: #C8F55A; }
+  .ai-header-title { font-size: 13px; font-weight: 600; color: #FFFFFF; }
   .ai-header-subtitle { font-size: 11px; color: #888; }
   .ai-header-right { display: flex; align-items: center; gap: 8px; }
   .ai-chevron { color: #666; transition: transform 0.2s ease; }
@@ -208,7 +208,7 @@ const css = `
     border-radius: 4px; color: #666; cursor: pointer;
     transition: all 0.15s ease;
   }
-  .ai-close-btn:hover { background: rgba(255,255,255,0.05); color: #C8C7C0; }
+  .ai-close-btn:hover { background: rgba(255,255,255,0.05); color: #e4e4e7; }
   
   /* Expanded Panel */
   .ai-panel { 
@@ -220,7 +220,7 @@ const css = `
     overflow-y: auto;
   }
   .ai-panel::-webkit-scrollbar { width: 4px; }
-  .ai-panel::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 2px; }
+  .ai-panel::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
   
   .ai-panel-header { 
     display: flex; 
@@ -233,7 +233,7 @@ const css = `
     background: #0F0F0F;
     z-index: 10;
   }
-  .ai-panel-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #C8F55A; }
+  .ai-panel-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #FFFFFF; }
   .ai-context-badge { 
     display: inline-flex; align-items: center; 
     padding: 3px 8px; 
@@ -269,9 +269,9 @@ const css = `
   }
   .ai-tone-btn:hover { border-color: rgba(255, 255, 255, 0.12); color: #aaa; background: rgba(255, 255, 255, 0.04); }
   .ai-tone-btn.active { 
-    background: rgba(200, 245, 90, 0.12); 
-    border-color: rgba(200, 245, 90, 0.3); 
-    color: #C8F55A;
+    background: rgba(255,255,255, 0.12); 
+    border-color: rgba(255,255,255, 0.3); 
+    color: #FFFFFF;
   }
   
   .ai-actions { 
@@ -283,7 +283,7 @@ const css = `
   }
   .ai-btn-primary { 
     display: flex; align-items: center; gap: 6px; 
-    background: #C8F55A; 
+    background: #FFFFFF; 
     color: #0A0A0A; 
     border: none; 
     border-radius: 6px; 
@@ -313,9 +313,9 @@ const css = `
   
   .ai-btn-apply { 
     display: flex; align-items: center; gap: 4px; 
-    background: rgba(200, 245, 90, 0.1); 
-    border: 1px solid rgba(200, 245, 90, 0.2); 
-    color: #C8F55A; 
+    background: rgba(255,255,255, 0.1); 
+    border: 1px solid rgba(255,255,255, 0.2); 
+    color: #FFFFFF; 
     border-radius: 4px; 
     padding: 5px 10px; 
     font-size: 11px; 
@@ -323,7 +323,7 @@ const css = `
     cursor: pointer; 
     transition: all 0.15s ease;
   }
-  .ai-btn-apply:hover { background: rgba(200, 245, 90, 0.15); border-color: rgba(200, 245, 90, 0.3); }
+  .ai-btn-apply:hover { background: rgba(255,255,255, 0.15); border-color: rgba(255,255,255, 0.3); }
   
   .ai-status { font-size: 11px; color: #666; margin-left: auto; }
   .ai-spin { animation: spin 1s linear infinite; }
@@ -337,7 +337,7 @@ const css = `
   }
   .ai-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .ai-card-reason { font-size: 12px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 6px; }
-  .ai-card-text { font-size: 13px; color: #C8C7C0; line-height: 1.5; margin-bottom: 10px; }
+  .ai-card-text { font-size: 13px; color: #e4e4e7; line-height: 1.5; margin-bottom: 10px; }
   .ai-card-actions { display: flex; gap: 8px; }
   
   .ai-section-label { 
@@ -372,7 +372,7 @@ const css = `
     margin: 0 16px 8px; 
     display: block;
   }
-  .ai-variation:hover { border-color: rgba(200, 245, 90, 0.2); color: #C8F55A; background: rgba(200, 245, 90, 0.03); }
+  .ai-variation:hover { border-color: rgba(255,255,255, 0.2); color: #FFFFFF; background: rgba(255,255,255, 0.03); }
   
   .ai-empty { 
     padding: 32px 16px; 
