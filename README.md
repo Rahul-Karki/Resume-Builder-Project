@@ -8,7 +8,7 @@ The project is split into four workspaces:
 
 - `frontend`: React, Vite, TypeScript, Zustand, Tailwind, and Playwright E2E tests.
 - `Backend`: Express, TypeScript, MongoDB, Redis-backed cache/rate limits, authentication, OpenAPI metadata, and observability.
-- `worker`: BullMQ worker for PDF generation and ATS jobs, using Puppeteer for browser-based rendering.
+- `worker`: (removed) PDF generation and ATS analysis now run synchronously inside the backend process; the `worker/` folder is kept for reference only.
 - `shared`: Shared queue and AI contract types used by the backend and worker.
 
 ```mermaid
@@ -16,11 +16,9 @@ flowchart LR
   Browser[Browser] --> Frontend[React/Vite frontend]
   Frontend --> API[Express API]
   API --> Mongo[(MongoDB)]
+  API --> Mongo[(MongoDB)]
   API --> Redis[(Redis)]
-  API --> Queue[BullMQ queues]
-  Worker[Worker service] --> Queue
-  Worker --> Mongo
-  Worker --> FrontendPreview[Frontend preview route]
+  API --> FrontendPreview[Frontend preview route]
 ```
 
 ## Local Development
@@ -43,7 +41,6 @@ Install dependencies in each workspace:
 ```bash
 cd Backend && npm install
 cd ../frontend && npm install
-cd ../worker && npm install
 ```
 
 Create environment files from examples:
@@ -51,7 +48,6 @@ Create environment files from examples:
 ```bash
 cp Backend/.env.example Backend/.env
 cp frontend/.env.example frontend/.env
-cp worker/.env.example worker/.env
 ```
 
 Run services:
@@ -59,7 +55,6 @@ Run services:
 ```bash
 cd Backend && npm run dev
 cd frontend && npm run dev
-cd worker && npm run dev
 ```
 
 ## Verification
@@ -83,14 +78,12 @@ npm run build
 Worker:
 
 ```bash
-cd worker
-npm run build
+# Worker no longer required; PDF generation and ATS run inside the Backend process.
 ```
 
 ## Production Notes
 
-- Configure `FRONTEND_URL` so the worker can load `/resume/preview/:id` for pixel-matched PDF rendering.
-- Keep `BULLMQ_REDIS_URL` available to both backend and worker.
+-- Configure `FRONTEND_URL` so the backend can load `/resume/preview/:id` for pixel-matched PDF rendering when generating PDFs.
 - Use strong `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values.
 - Set `USE_MEMORY_ONLY_CACHE=false` in production when Redis or Upstash is configured.
 - Optional observability exporters accept blank values; empty optional URLs are treated as disabled.

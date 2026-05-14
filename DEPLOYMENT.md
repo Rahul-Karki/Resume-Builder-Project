@@ -42,30 +42,11 @@ FRONTEND_URLS=https://your-frontend-domain.com,https://www.your-frontend-domain.
 #### Database & Redis
 See [Database & Redis Configuration](#database--redis-configuration) section below.
 
-### Worker Configuration
+### Worker configuration
 
-The worker service lives in `worker/` and reuses the same MongoDB and BullMQ Redis endpoints as the backend.
+The worker service has been discontinued: PDF generation and ATS analysis now run synchronously within the backend process. The `worker/` folder remains for historical reference but is not required for deployment.
 
-```bash
-cd worker
-npm install
-npm run build
-```
-
-Local worker settings to review:
-
-```env
-NODE_ENV=production
-MONGO_URI=mongodb://mongo:27017/resume_builder
-BULLMQ_REDIS_URL=redis://redis:6379/0
-PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-SERVICE_NAME=resume-builder-worker
-```
-
-Deployment target:
-- Render: backend API
-- Render: frontend SPA
-- Railway: worker service
+Ensure the backend has Puppeteer/Chromium available in production if you intend to generate PDFs server-side (install `chromium` or set `PUPPETEER_EXECUTABLE_PATH`).
 
 ### Frontend Configuration
 
@@ -179,7 +160,7 @@ Unlike simple readiness probes, the health endpoint performs actual operations:
   - **Native Redis**: Runs `PING` command
   - **Upstash (REST)**: Sends HTTP request to verify REST API connectivity
 
-The worker uses the same Redis endpoint but keeps its own MongoDB heartbeat and job processing loop. If the worker is down, queued PDF and ATS jobs will stay pending until Railway brings the service back.
+There is no separate worker process. The backend performs PDF generation and ATS analysis directly; ensure the backend has access to necessary resources (Chromium, AI API keys). If you prefer a queue/worker model, reintroduce a worker service and `BULLMQ_REDIS_URL` as needed.
 
 ### Monitoring Integration
 

@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import { jobEvents } from "../events/jobEvents";
 import Resume from "../models/Resume";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
-import { enqueueResumeDownloadJob, getResumeQueue, requeueResumeDownloadJob } from "../queue/resumeQueue";
+import { getResumeQueue } from "../queue/resumeQueue";
+import { processResumeDownloadJob } from "../lib/workerShim";
 import { env } from "../config/env";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { logger } from "../observability";
@@ -180,13 +181,21 @@ export const downloadResume: RequestHandler = async (req, res) => {
           // ignore
         }
 
-        await requeueResumeDownloadJob({
-          userId,
-          preset,
-          resumeId: snapshot.resumeId,
-          resume: snapshot.resume,
-          requestId: req.traceId ?? req.correlationId,
-        });
+        // Run resume PDF generation synchronously (no BullMQ)
+        const requeueJob = {
+          id: jobId,
+          data: {
+            userId,
+            preset,
+            resumeId: snapshot.resumeId,
+            resume: snapshot.resume,
+            requestId: req.traceId ?? req.correlationId,
+          },
+          attemptsMade: 0,
+          opts: { attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS },
+        } as any;
+
+        await processResumeDownloadJob(requeueJob as any);
 
         logger.info(
           { userId, jobId, previousStatus: existingJob.status, pendingIsStale },
@@ -251,23 +260,26 @@ export const downloadResume: RequestHandler = async (req, res) => {
       }
     });
 
-    try {
-      await enqueueResumeDownloadJob({
+    // Process resume download synchronously
+    const job = {
+      id: jobId,
+      data: {
         userId,
         preset,
         resumeId: snapshot.resumeId,
         resume: snapshot.resume,
         requestId: req.traceId ?? req.correlationId,
-      });
-    } catch (error) {
-      logger.warn({ error, userId, jobId }, "Resume download enqueue failed");
-      throw error;
-    }
+      },
+      attemptsMade: 0,
+      opts: { attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS },
+    } as any;
 
-    logger.info({ userId, jobId, preset, resumeId: snapshot.resumeId }, "Resume download job queued");
+    await processResumeDownloadJob(job as any);
+
+    logger.info({ userId, jobId, preset, resumeId: snapshot.resumeId }, "Resume download completed (synchronous)");
     markSpanSuccess(span);
-    res.status(202).json({
-      message: "Resume download queued",
+    res.status(200).json({
+      message: "Resume download completed",
       jobId,
       statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
       downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,

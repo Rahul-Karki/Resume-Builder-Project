@@ -1,99 +1,29 @@
-import { Queue, type JobsOptions } from "bullmq";
-import { env } from "../config/env";
 import { logger } from "../observability";
-import {
-  ATS_ANALYSIS_QUEUE_NAME,
-  createBullmqJobId,
-  createBullmqQueueOptions,
-  getBullmqRuntimeInfo,
-  resolveBullmqRedisUrl,
-  type AtsAnalysisJobData,
-} from "../../../shared/src/bullmq";
-import { getSharedBullmqConnection } from "./sharedConnection";
+import type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
+import { processAtsAnalysisJob } from "../lib/workerShim";
 
 export type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
 
-let atsQueueInstance: Queue<AtsAnalysisJobData> | null = null;
+export const createAtsAnalysisJobId = (data: Record<string, unknown>) => `ats-${String(data.analysisId ?? cryptoRandom())}`;
 
-export const createAtsAnalysisJobId = (data: Record<string, unknown>) => createBullmqJobId("ats-analysis", data);
-
-export const getAtsQueueRuntimeInfo = () => {
-  const redisUrl = resolveBullmqRedisUrl(env.BULLMQ_REDIS_URL, env.REDIS_URL);
-  return getBullmqRuntimeInfo(ATS_ANALYSIS_QUEUE_NAME, env.ATS_ANALYSIS_QUEUE_PREFIX, redisUrl, env.SERVICE_NAME);
+const cryptoRandom = () => {
+  return Math.random().toString(16).slice(2);
 };
 
-export const getAtsQueue = () => {
-  if (!atsQueueInstance) {
-    atsQueueInstance = new Queue<AtsAnalysisJobData>(ATS_ANALYSIS_QUEUE_NAME, {
-      connection: getSharedBullmqConnection(),
-      prefix: env.ATS_ANALYSIS_QUEUE_PREFIX,
-      defaultJobOptions: createBullmqQueueOptions(env.ATS_ANALYSIS_JOB_ATTEMPTS, env.ATS_ANALYSIS_BACKOFF_DELAY_MS) satisfies JobsOptions,
-    });
+export const getAtsQueueRuntimeInfo = () => ({ enabled: false, reason: "BullMQ disabled - ATS runs synchronously", serviceName: "backend", queueName: "atsAnalysisQueue", queuePrefix: "" });
 
-    atsQueueInstance.on("error", (error) => {
-      logger.error({ error, queueName: ATS_ANALYSIS_QUEUE_NAME }, "ATS queue connection error");
-    });
-  }
+export const ensureAtsQueueReady = async () => { /* no-op; ATS runs synchronously now */ };
 
-  return atsQueueInstance;
-};
-
-export const ensureAtsQueueReady = async () => {
-  const queue = getAtsQueue();
-
-  await queue.waitUntilReady();
-  logger.info({ ...getAtsQueueRuntimeInfo() }, "ATS queue Redis connection verified");
-};
-
-export const closeAtsQueue = async () => {
-  if (atsQueueInstance) {
-    await atsQueueInstance.close();
-    atsQueueInstance = null;
-  }
-};
+export const closeAtsQueue = async () => { /* no-op */ };
 
 export const enqueueAtsAnalysisJob = async (data: AtsAnalysisJobData) => {
-  const queue = getAtsQueue();
-  const jobId = createAtsAnalysisJobId(data);
-
-  logger.info({ jobId, userId: data.userId, resumeId: data.resumeId }, "Enqueuing ATS analysis job");
-
-  try {
-    const job = await queue.add("analyze-ats", data, {
-      jobId,
-      ...createBullmqQueueOptions(env.ATS_ANALYSIS_JOB_ATTEMPTS, env.ATS_ANALYSIS_BACKOFF_DELAY_MS),
-    });
-
-    logger.info({ jobId, userId: data.userId, queueJobId: job.id }, "ATS analysis job successfully enqueued");
-    return job;
-  } catch (error) {
-    logger.error(
-      { jobId, userId: data.userId, error: error instanceof Error ? error.message : String(error) },
-      "Failed to enqueue ATS analysis job",
-    );
-    throw error;
-  }
+  const jobId = createAtsAnalysisJobId(data as unknown as Record<string, unknown>);
+  logger.info({ jobId, userId: data.userId, resumeId: data.resumeId }, "Running ATS analysis synchronously (enqueue shim)");
+  const job = { id: jobId, data } as any;
+  const result = await processAtsAnalysisJob(job);
+  return { id: jobId, result } as any;
 };
 
 export const requeueAtsAnalysisJob = async (data: AtsAnalysisJobData) => {
-  const queue = getAtsQueue();
-  const jobId = createAtsAnalysisJobId(data);
-
-  try {
-    const existingJob = await queue.getJob(jobId);
-
-    if (existingJob) {
-      const state = await existingJob.getState().catch(() => "unknown");
-      logger.info({ jobId, state }, "Removing existing ATS BullMQ job before requeue");
-      await existingJob.remove();
-    }
-
-    return enqueueAtsAnalysisJob(data);
-  } catch (error) {
-    logger.error(
-      { jobId, userId: data.userId, error: error instanceof Error ? error.message : String(error) },
-      "Failed to requeue ATS analysis job",
-    );
-    throw error;
-  }
+  return enqueueAtsAnalysisJob(data);
 };

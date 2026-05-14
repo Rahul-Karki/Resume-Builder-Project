@@ -5,7 +5,7 @@ import AtsAnalysis from "../models/AtsAnalysis";
 import ResumeVersion from "../models/ResumeVersion";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
-import { createAtsAnalysisJobId, enqueueAtsAnalysisJob } from "../queue/atsQueue";
+import { processAtsAnalysisJob } from "../lib/workerShim";
 import { createResumeVersion } from "../services/resumeVersionService";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
@@ -102,18 +102,7 @@ export const analyzeAts: RequestHandler = async (req, res) => {
     const previousAnalysis = await AtsAnalysis.findOne({ resumeId: resume._id, userId }).sort({ createdAt: -1 }).lean();
     const previousOverallScore = previousAnalysis?.overallScore ?? null;
 
-    const jobId = createAtsAnalysisJobId({
-      userId,
-      resumeId: String(resume._id),
-      analysisId,
-      previousOverallScore,
-      resume: resume.toObject() as unknown as Record<string, unknown>,
-      jobTitle,
-      jobDescription,
-      keywords,
-      tone,
-      reportType,
-    });
+    const jobId = `ats-${analysisId}`;
 
     await AtsAnalysis.findOneAndUpdate(
       { jobId, userId },
@@ -153,29 +142,29 @@ export const analyzeAts: RequestHandler = async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
-    const queuedJob = await enqueueAtsAnalysisJob({
-      analysisId,
-      userId,
-      resumeId: String(resume._id),
-      previousOverallScore: previousOverallScore ?? undefined,
-      resume: resume.toObject() as unknown as Record<string, unknown>,
-      jobTitle,
-      jobDescription,
-      keywords,
-      tone,
-      reportType,
-      requestId: req.traceId ?? req.correlationId,
-    });
+    // Run ATS analysis synchronously (no BullMQ)
+    const job = {
+      id: jobId,
+      data: {
+        analysisId,
+        userId,
+        resumeId: String(resume._id),
+        previousOverallScore: previousOverallScore ?? undefined,
+        resume: resume.toObject() as unknown as Record<string, unknown>,
+        jobTitle,
+        jobDescription,
+        keywords,
+        tone,
+        reportType,
+        requestId: req.traceId ?? req.correlationId,
+      },
+    } as any;
 
-    logger.info({ userId, resumeId: req.params.id, jobId: queuedJob.id }, "ATS analysis queued");
+    const analysisResult = await processAtsAnalysisJob(job as any);
+
+    logger.info({ userId, resumeId: req.params.id, jobId }, "ATS analysis completed (synchronous)");
     markSpanSuccess(span);
-    res.status(202).json({
-      message: "ATS analysis queued",
-      jobId: queuedJob.id,
-      analysisId,
-      statusUrl: `/api/resumes/${encodeURIComponent(String(req.params.id))}/ats-analysis/${encodeURIComponent(String(queuedJob.id))}`,
-      latestUrl: `/api/resumes/${encodeURIComponent(String(req.params.id))}/ats-analysis/latest`,
-    });
+    res.status(200).json({ message: "ATS analysis completed", analysis: analysisResult });
   } catch (error) {
     markSpanError(span, error as Error, "Failed to analyze ATS score");
     logger.error({ error, resumeId: req.params.id }, "Failed to analyze ATS score");
