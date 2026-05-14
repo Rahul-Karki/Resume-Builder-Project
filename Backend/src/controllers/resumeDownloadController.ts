@@ -110,6 +110,20 @@ const toBuffer = (value: unknown) => {
   return null;
 };
 
+const runResumeDownloadInBackground = (job: any) => {
+  void processResumeDownloadJob(job).catch((error) => {
+    logger.error(
+      {
+        error,
+        jobId: job?.id,
+        userId: job?.data?.userId,
+        resumeId: job?.data?.resumeId,
+      },
+      "Background resume download job failed",
+    );
+  });
+};
+
 // The worker service owns PDF rendering; the API only tracks job state and returns queue metadata.
 
 export const downloadResume: RequestHandler = async (req, res) => {
@@ -196,7 +210,7 @@ export const downloadResume: RequestHandler = async (req, res) => {
           opts: { attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS },
         } as any;
 
-        await processResumeDownloadJob(requeueJob as any);
+        runResumeDownloadInBackground(requeueJob as any);
 
         logger.info(
           { userId, jobId, previousStatus: existingJob.status, pendingIsStale },
@@ -262,7 +276,7 @@ export const downloadResume: RequestHandler = async (req, res) => {
       }
     });
 
-    // Process resume download synchronously
+    // Process resume download asynchronously in-process to avoid request-time failures/timeouts.
     const job = {
       id: jobId,
       data: {
@@ -276,15 +290,16 @@ export const downloadResume: RequestHandler = async (req, res) => {
       opts: { attempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS },
     } as any;
 
-    await processResumeDownloadJob(job as any);
+    runResumeDownloadInBackground(job as any);
 
-    logger.info({ userId, jobId, preset, resumeId: snapshot.resumeId }, "Resume download completed (synchronous)");
+    logger.info({ userId, jobId, preset, resumeId: snapshot.resumeId }, "Resume download queued for in-process background execution");
     markSpanSuccess(span);
-    res.status(200).json({
-      message: "Resume download completed",
+    res.status(202).json({
+      message: "Resume download queued",
       jobId,
       statusUrl: `/api/resumes/job-status/${encodeURIComponent(jobId)}`,
       downloadUrl: `/api/resumes/download-result/${encodeURIComponent(jobId)}`,
+      status: "pending",
     });
   } catch (error) {
     if (jobId) {
