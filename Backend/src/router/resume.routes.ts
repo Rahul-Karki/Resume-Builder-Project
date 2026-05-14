@@ -15,6 +15,13 @@ import {
   getAtsAnalysisByJobId,
   getLatestAtsAnalysis,
 } from "../controllers/resumeEnhancementController";
+import {
+  downloadResume,
+  downloadResumeResult,
+  getResumeDownloadJobStatus,
+  getResumePreviewData,
+  streamResumeDownloadJobEvents,
+} from "../controllers/resumeDownloadController";
 import { createRedisCacheMiddleware } from "../middleware/redisCache";
 import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
 import { validateRequest } from "../middleware/validateRequest";
@@ -64,6 +71,12 @@ router.get(
 router.post("/", validateRequest({ body: createResumeSchema }), resumeMutationLimiter, baseCreateResume);
 router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }), resumeMutationLimiter, baseUpdateResume);
 router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
+
+router.post("/download-resume", downloadResume);
+router.get("/job-status/:id", validateRequest({ params: objectIdParamSchema }), getResumeDownloadJobStatus);
+router.get("/job-events/:id", validateRequest({ params: objectIdParamSchema }), streamResumeDownloadJobEvents);
+router.get("/download-result/:id", validateRequest({ params: objectIdParamSchema }), downloadResumeResult);
+router.get("/preview-data/:id", validateRequest({ params: objectIdParamSchema }), getResumePreviewData);
 
 // export-pdf endpoint removed - was related to BullMQ PDF generation
 
