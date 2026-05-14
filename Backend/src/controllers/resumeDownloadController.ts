@@ -1,4 +1,6 @@
 import type { Request, RequestHandler, Response } from "express";
+import mongoose from "mongoose";
+import { jobEvents } from "../events/jobEvents";
 import Resume from "../models/Resume";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
 import { enqueueResumeDownloadJob, getResumeQueue, requeueResumeDownloadJob } from "../queue/resumeQueue";
@@ -23,6 +25,8 @@ const QUEUE_COUNTS_CACHE_TTL_MS = 10_000;
 
 let cachedQueueCounts: Record<string, number> | null = null;
 let cachedQueueCountsAt = 0;
+
+// jobEvents imported from centralized emitter
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -169,6 +173,13 @@ export const downloadResume: RequestHandler = async (req, res) => {
           },
         );
 
+        // Emit pending event to any in-process listeners (best-effort)
+        try {
+          jobEvents.emit(String(jobId), { jobId, status: "pending", queuedAt: new Date() });
+        } catch {
+          // ignore
+        }
+
         await requeueResumeDownloadJob({
           userId,
           preset,
@@ -232,7 +243,13 @@ export const downloadResume: RequestHandler = async (req, res) => {
         lastError: "",
       },
       { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
-    );
+    ).then((doc) => {
+      try {
+        if (doc) jobEvents.emit(String(jobId), { jobId, status: (doc as any).status, queuedAt: (doc as any).queuedAt });
+      } catch {
+        // best-effort emit
+      }
+    });
 
     try {
       await enqueueResumeDownloadJob({
@@ -267,6 +284,11 @@ export const downloadResume: RequestHandler = async (req, res) => {
           },
         },
       ).catch(() => undefined);
+      try {
+        jobEvents.emit(String(jobId), { jobId, status: "failed", failedAt: new Date(), lastError: error instanceof Error ? error.message : String(error) });
+      } catch {
+        // ignore
+      }
     }
 
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -324,6 +346,87 @@ export const getResumeDownloadJobStatus: RequestHandler = async (req, res) => {
     markSpanError(span, error as Error, "Failed to fetch job status");
     logger.error({ error, jobId: req.params.id }, "Failed to fetch job status");
     sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
+export const streamResumeDownloadJobEvents: RequestHandler = async (req, res) => {
+  const span = startControllerSpan("resumeDownload.streamResumeDownloadJobEvents", req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const jobId = String(req.params.id);
+
+    // SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+
+    // Helper to send event
+    const send = (type: string, data: unknown) => {
+      try {
+        res.write(`event: ${type}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      } catch (err) {
+        // ignore write errors
+      }
+    };
+
+    // Send initial state
+    try {
+      const job = await ResumeDownloadJob.findOne({ jobId, userId }).lean();
+      if (job) send("init", { jobId: job.jobId, status: job.status, resultUrl: job.resultUrl || null, queuedAt: job.queuedAt });
+    } catch (err) {
+      // ignore
+    }
+
+    // Listen for in-process events
+    const listener = (payload: unknown) => {
+      // Ensure we only forward events for this jobId
+      try {
+        if (!payload || (payload as any).jobId !== jobId) return;
+        send("update", payload);
+      } catch {
+        // ignore
+      }
+    };
+
+    jobEvents.on(jobId, listener);
+
+    // Try to open a change stream for cross-process updates
+    let changeStream: any | null = null;
+    try {
+      const pipeline = [
+        { $match: { "fullDocument.jobId": jobId } },
+      ];
+      changeStream = (ResumeDownloadJob as any).watch(pipeline, { fullDocument: "updateLookup" });
+      changeStream.on("change", (change: any) => {
+        try {
+          const doc = change.fullDocument;
+          if (doc && doc.userId === userId) {
+            send("update", { jobId: doc.jobId, status: doc.status, resultUrl: doc.resultUrl || null, queuedAt: doc.queuedAt, startedAt: doc.startedAt || null, completedAt: doc.completedAt || null, failedAt: doc.failedAt || null, lastError: doc.lastError || null });
+          }
+        } catch {
+          // ignore
+        }
+      });
+    } catch (err) {
+      logger.info({ error: err }, "Resume job change stream not available; SSE will still deliver in-process events");
+    }
+
+    req.on("close", () => {
+      jobEvents.off(jobId, listener);
+      try { if (changeStream) changeStream.close(); } catch { /* ignore */ }
+    });
+
+    markSpanSuccess(span);
+  } catch (error) {
+    markSpanError(span, error as Error, "Failed to stream job events");
+    logger.error({ error, jobId: req.params.id }, "Failed to stream resume job events");
+    try { res.end(); } catch { /* ignore */ }
   } finally {
     finishControllerSpan(span);
   }

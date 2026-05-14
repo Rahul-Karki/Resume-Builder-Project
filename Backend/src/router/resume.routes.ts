@@ -6,6 +6,7 @@ import {
   downloadResumeResult,
   getResumePreviewData,
   getResumeDownloadJobStatus,
+  streamResumeDownloadJobEvents,
   getResumeQueueMetrics,
 } from "../controllers/resumeDownloadController";
 import {
@@ -75,6 +76,7 @@ router.use(authMiddleware);
 router.post("/download-resume", validateRequest({ body: downloadResumeSchema }), resumeExportLimiter, downloadResume);
 router.get("/queue-metrics", getResumeQueueMetrics);
 router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
+router.get("/job-events/:id", validateRequest({ params: jobStatusParamSchema }), streamResumeDownloadJobEvents);
 router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
 router.post(
   "/:id/analyze-ats",

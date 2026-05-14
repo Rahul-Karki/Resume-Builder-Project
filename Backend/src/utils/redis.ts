@@ -31,12 +31,43 @@ const hasUpstashConfiguration = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTAS
 
 const upstashBaseUrl = env.UPSTASH_REDIS_REST_URL.replace(/\/+$/, "");
 
+// Per-process window counters to limit Upstash REST calls (soft budget)
+let upstashCallCount = 0;
+let upstashWindowStart = 0;
+
 const upstashCall = async (
   command: string,
   args: Array<string | number> = [],
 ): Promise<unknown> => {
   if (!hasUpstashConfiguration) {
     return null;
+  }
+
+  // Per-process Upstash call budget to protect free-tier limits.
+  // This is a soft limit; when exhausted this process will fall back
+  // to the in-memory cache/rate-limiter to avoid extra REST calls.
+  // The limit is configured via `env.UPSTASH_CALLS_PER_MIN`.
+  // Implement a simple fixed-window counter.
+  // (Note: this is per-process only and intended to reduce overall load.)
+  if (typeof env.UPSTASH_CALLS_PER_MIN === "number") {
+    const now = Date.now();
+    // initialize window state on first use
+    if ((upstashWindowStart ?? 0) === 0) {
+      upstashWindowStart = now;
+      upstashCallCount = 0;
+    }
+
+    if (now - upstashWindowStart > 60_000) {
+      upstashWindowStart = now;
+      upstashCallCount = 0;
+    }
+
+    if (upstashCallCount >= env.UPSTASH_CALLS_PER_MIN) {
+      logger.warn({ limit: env.UPSTASH_CALLS_PER_MIN }, "Upstash call budget exhausted; skipping REST call and falling back to memory");
+      return null;
+    }
+
+    upstashCallCount += 1;
   }
 
   const encodedArgs = args.map((arg) => encodeURIComponent(String(arg))).join("/");
@@ -69,6 +100,8 @@ const upstashCall = async (
     clearTimeout(timeoutId);
   }
 };
+
+
 
 export const getCacheProvider = (): CacheProvider => {
   // When USE_MEMORY_ONLY_CACHE is true, skip Redis/Upstash for cache and
@@ -184,7 +217,9 @@ export const cacheGet = async (key: string): Promise<string | null> => {
         return value;
       }
 
-      return value == null ? null : JSON.stringify(value);
+      // If Upstash returned null (budget exhausted or missing), fall back to in-memory cache.
+      if (value == null) return memoryCache.get(key);
+      return JSON.stringify(value);
     } catch (error) {
       logger.warn({ error }, "Upstash read failed; falling back to in-memory cache");
       return memoryCache.get(key);
@@ -265,6 +300,11 @@ export const consumeRateLimit = async (
       ].join("\n");
 
       const result = await upstashCall("eval", [luaScript, "1", key, String(windowSeconds)]);
+      if (!result) {
+        // Upstash call skipped/failed (budget exhausted). Use in-memory limiter.
+        return memoryRateLimiter.consume(key, windowSeconds * 1000);
+      }
+
       const [countRaw, ttlRaw] = Array.isArray(result) ? result : [0, 0];
       const count = Number(countRaw);
       const ttlSeconds = Number(ttlRaw);
@@ -326,8 +366,8 @@ export const warmupCacheBackend = async (): Promise<boolean> => {
 
   if (provider === "upstash") {
     try {
-      await upstashCall("ping");
-      return true;
+      const result = await upstashCall("ping");
+      return Boolean(result);
     } catch (error) {
       logger.warn({ error }, "Upstash warmup ping failed");
       return false;
@@ -358,8 +398,8 @@ export const checkRedisHealth = async (): Promise<boolean> => {
 
   if (provider === "upstash") {
     try {
-      await upstashCall("ping");
-      return true;
+      const result = await upstashCall("ping");
+      return Boolean(result);
     } catch (error) {
       logger.warn({ error }, "Upstash health ping failed");
       return false;

@@ -46,6 +46,8 @@ const baseEnvSchema = z.object({
   BULLMQ_REDIS_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(""),
+  // Soft limit to cap Upstash REST API calls per-process (helps free-tier limits)
+  UPSTASH_CALLS_PER_MIN: z.coerce.number().int().min(10).default(600),
   USE_MEMORY_ONLY_CACHE: booleanFromEnv.default(true),
   REDIS_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(5000),
   REDIS_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).default(300),

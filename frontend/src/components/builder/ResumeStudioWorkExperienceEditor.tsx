@@ -57,17 +57,83 @@ const openPdfInNewTab = (downloadUrl: string) => {
 };
 
 const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
-  for (let attempt = 1; attempt <= RESUME_DOWNLOAD_MAX_POLLS; attempt += 1) {
-    const status = await getResumeDownloadJobStatus(jobId);
+  // Try using SSE first (better than polling). Fall back to polling on error.
+  const sseUrl = normalizeDownloadUrl(`/api/resumes/job-events/${encodeURIComponent(jobId)}`);
 
-    if (status.status === 'completed') return status;
-    if (status.status === 'failed') throw new Error(status.lastError || 'Resume download failed');
+  const fallbackPolling = async () => {
+    for (let attempt = 1; attempt <= RESUME_DOWNLOAD_MAX_POLLS; attempt += 1) {
+      const status = await getResumeDownloadJobStatus(jobId);
 
-    onStatus?.(`Generating PDF... (${attempt}/${RESUME_DOWNLOAD_MAX_POLLS})`);
-    await sleep(RESUME_DOWNLOAD_POLL_INTERVAL_MS);
+      if (status.status === 'completed') return status;
+      if (status.status === 'failed') throw new Error(status.lastError || 'Resume download failed');
+
+      onStatus?.(`Generating PDF... (${attempt}/${RESUME_DOWNLOAD_MAX_POLLS})`);
+      await sleep(RESUME_DOWNLOAD_POLL_INTERVAL_MS);
+    }
+
+    throw new Error('Resume download is taking longer than expected. Please try again later.');
+  };
+
+  if (typeof window !== 'undefined' && 'EventSource' in window) {
+    try {
+      return await new Promise<any>((resolve, reject) => {
+        const es = new EventSource(sseUrl);
+
+        const timeout = setTimeout(() => {
+          es.close();
+          // fallback to polling on timeout
+          void fallbackPolling().then(resolve).catch(reject);
+        }, RESUME_DOWNLOAD_MAX_POLLS * RESUME_DOWNLOAD_POLL_INTERVAL_MS);
+
+        es.addEventListener('init', (e: MessageEvent) => {
+          try {
+            const payload = JSON.parse((e as MessageEvent).data);
+            if (payload?.status === 'completed') {
+              clearTimeout(timeout);
+              es.close();
+              resolve(payload);
+            }
+          } catch {
+            // ignore
+          }
+        });
+
+        es.addEventListener('update', (e: MessageEvent) => {
+          try {
+            const payload = JSON.parse((e as MessageEvent).data);
+
+            if (payload?.status === 'completed') {
+              clearTimeout(timeout);
+              es.close();
+              resolve(payload);
+            }
+
+            if (payload?.status === 'failed') {
+              clearTimeout(timeout);
+              es.close();
+              reject(new Error(payload.lastError || 'Resume download failed'));
+            }
+
+            onStatus?.(typeof payload === 'string' ? payload : `Generating PDF...`);
+          } catch {
+            // ignore
+          }
+        });
+
+        es.onerror = () => {
+          try { es.close(); } catch {}
+          clearTimeout(timeout);
+          // On SSE errors, fallback to polling
+          void fallbackPolling().then(resolve).catch(reject);
+        };
+      });
+    } catch (err) {
+      // fallthrough to polling fallback
+      return fallbackPolling();
+    }
   }
 
-  throw new Error('Resume download is taking longer than expected. Please try again later.');
+  return fallbackPolling();
 };
 
 const downloadResume = async (resume: ResumeDocument, resumeId?: string, onStatus?: (status: string) => void) => {
