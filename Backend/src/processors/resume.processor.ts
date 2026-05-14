@@ -294,13 +294,14 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
       let loadedFrontendPreview = false;
 
       try {
-        await page.goto(previewUrl, { waitUntil: "load", timeout: 60000 });
-        await page.waitForSelector("#resume-export-root", { timeout: 10000 });
+        // Keep preview wait short to avoid long export stalls on cold starts.
+        await page.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: 12000 });
+        await page.waitForSelector("#resume-export-root", { timeout: 4000 });
         loadedFrontendPreview = true;
       } catch (error) {
         logger.warn({ error, jobId, previewUrl }, "Frontend resume preview unavailable; falling back to backend-rendered PDF HTML");
         await page.emulateMediaType("print");
-        await page.setContent(html, { waitUntil: "load", timeout: 60000 });
+        await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 15000 });
       }
 
       try {
@@ -314,7 +315,6 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
       }
 
       logger.debug({ jobId, loadedFrontendPreview }, "Resume PDF render source selected");
-      await new Promise((r) => setTimeout(r, 1000));
 
       try {
         await page.evaluate(() => {
