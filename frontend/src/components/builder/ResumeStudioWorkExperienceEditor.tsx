@@ -77,7 +77,7 @@ const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) 
   if (typeof window !== 'undefined' && 'EventSource' in window) {
     try {
       return await new Promise<any>((resolve, reject) => {
-        const es = new EventSource(sseUrl);
+        const es = new EventSource(sseUrl, { withCredentials: true });
 
         const timeout = setTimeout(() => {
           es.close();
