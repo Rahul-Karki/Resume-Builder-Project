@@ -12,4 +12,20 @@ export const createPuppeteerLaunchOptions = () => ({
   ],
 });
 
-export const launchPuppeteerBrowser = async () => puppeteer.launch(createPuppeteerLaunchOptions());
+export const launchPuppeteerBrowser = async () => {
+  const primaryOptions = createPuppeteerLaunchOptions();
+
+  try {
+    return await puppeteer.launch(primaryOptions);
+  } catch (error) {
+    // Some deployments keep an outdated executable path env; retry with Puppeteer's managed binary.
+    if (!env.PUPPETEER_EXECUTABLE_PATH) {
+      throw error;
+    }
+
+    return puppeteer.launch({
+      ...primaryOptions,
+      executablePath: undefined,
+    });
+  }
+};

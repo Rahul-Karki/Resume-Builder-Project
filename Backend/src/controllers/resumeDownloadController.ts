@@ -157,6 +157,7 @@ export const downloadResume: RequestHandler = async (req, res) => {
             $set: {
               status: "pending",
               queuedAt: new Date(),
+              resume: snapshot.resume,
               attemptsMade: 0,
               totalAttempts: env.RESUME_DOWNLOAD_JOB_ATTEMPTS,
               fileName: "",
@@ -240,6 +241,7 @@ export const downloadResume: RequestHandler = async (req, res) => {
         jobId,
         userId,
         resumeId: snapshot.resumeId,
+        resume: snapshot.resume,
         preset,
         status: "pending",
         queuedAt: new Date(),
