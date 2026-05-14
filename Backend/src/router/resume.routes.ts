@@ -28,6 +28,7 @@ import { validateRequest } from "../middleware/validateRequest";
 // creditDeductionMiddleware removed - was used for ATS analysis which was removed
 import {
   createResumeSchema,
+  jobStatusParamSchema,
   objectIdParamSchema,
   updateResumeSchema,
 } from "../validation/schemas";
@@ -73,10 +74,10 @@ router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateRe
 router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
 
 router.post("/download-resume", downloadResume);
-router.get("/job-status/:id", validateRequest({ params: objectIdParamSchema }), getResumeDownloadJobStatus);
-router.get("/job-events/:id", validateRequest({ params: objectIdParamSchema }), streamResumeDownloadJobEvents);
-router.get("/download-result/:id", validateRequest({ params: objectIdParamSchema }), downloadResumeResult);
-router.get("/preview-data/:id", validateRequest({ params: objectIdParamSchema }), getResumePreviewData);
+router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
+router.get("/job-events/:id", validateRequest({ params: jobStatusParamSchema }), streamResumeDownloadJobEvents);
+router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
+router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }), getResumePreviewData);
 
 // export-pdf endpoint removed - was related to BullMQ PDF generation
 
