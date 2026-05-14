@@ -9,6 +9,12 @@ import {
   getResumeById as baseGetResumeById,
   updateResume as baseUpdateResume,
 } from "../controllers/resumeController";
+import {
+  analyzeAts,
+  applyAtsSuggestion,
+  getAtsAnalysisByJobId,
+  getLatestAtsAnalysis,
+} from "../controllers/resumeEnhancementController";
 import { createRedisCacheMiddleware } from "../middleware/redisCache";
 import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
 import { validateRequest } from "../middleware/validateRequest";
@@ -61,8 +67,12 @@ router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDele
 
 // export-pdf endpoint removed - was related to BullMQ PDF generation
 
-// ATS analysis endpoint removed to reduce Redis usage
-// ATS suggestion application endpoint removed to reduce Redis usage
+router.post("/:id/analyze-ats", validateRequest({ params: objectIdParamSchema }), analyzeAts);
+router.post("/:id/ats-analysis", validateRequest({ params: objectIdParamSchema }), analyzeAts);
+router.get("/:id/ats-analysis/latest", validateRequest({ params: objectIdParamSchema }), getLatestAtsAnalysis);
+router.get("/:id/ats-analysis/:jobId", validateRequest({ params: objectIdParamSchema }), getAtsAnalysisByJobId);
+router.post("/:id/apply-suggestion", validateRequest({ params: objectIdParamSchema }), applyAtsSuggestion);
+
 // Resume version endpoints removed - were related to BullMQ functionality
 
 export default router;
