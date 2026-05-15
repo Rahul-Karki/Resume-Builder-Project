@@ -33,7 +33,7 @@ type TemplateOption = {
   sortOrder?: number;
 };
 
-const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 5000;
+const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 2000;
 const RESUME_DOWNLOAD_MAX_POLLS = 60;
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
