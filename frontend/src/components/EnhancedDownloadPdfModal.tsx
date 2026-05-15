@@ -1,10 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { useResumeBuilderStore } from "../store/useResumeBuilderStore";
-import { ResumeRenderer } from "../templates/ResumeRenderer";
 import { waitForFonts } from "../utils/enhancedPDFGenerator";
-import { openPrintPreviewForSelector } from "../utils/printPreview";
 
 type Props = {
   open: boolean;
@@ -13,40 +10,11 @@ type Props = {
   onDownloadComplete?: () => void;
 };
 
-const A4_W_PX = 794;
-const A4_H_PX = 1123;
-
 export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector, onDownloadComplete }: Props) {
-  const resume = useResumeBuilderStore((s) => s.resume);
-  const captureRef = useRef<HTMLDivElement>(null);
-  const scaleRef = useRef<HTMLDivElement>(null);
   const [filename, setFilename] = useState("resume.pdf");
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
-  const [fitScale, setFitScale] = useState(1);
-
-  // Measure true content height and calculate fit scale once resume data is available
-  useEffect(() => {
-    if (!open || !resume || !captureRef.current) return;
-    const el = captureRef.current;
-    // Temporarily make measurable
-    el.style.position = 'fixed';
-    el.style.left = '-9999px';
-    el.style.top = '0';
-    el.style.width = A4_W_PX + 'px';
-    el.style.height = 'auto';
-    el.style.overflow = 'visible';
-    el.style.transform = 'none';
-
-    requestAnimationFrame(() => {
-      const h = el.scrollHeight;
-      const s = Math.min(1, A4_H_PX / h);
-      setFitScale(s);
-      // Put back to hidden
-      el.style.display = 'none';
-    });
-  }, [open, resume]);
 
   const generatePdf = async () => {
     setGenerating(true);
@@ -54,59 +22,79 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
     setProgress(0);
 
     try {
-      if (!scaleRef.current) throw new Error('Capture element not ready');
+      const el = document.querySelector<HTMLElement>(resumeSelector);
+      if (!el) throw new Error('Resume element not found');
 
-      setMessage('Waiting for fonts...');
-      setProgress(15);
+      // ── Save original styles to restore after capture ──
+      const origTransform = el.style.transform;
+      const origOverflow = el.style.overflow;
+      const origHeight = el.style.height;
+      const origPos = el.style.position;
+
+      // Find inner overflow:hidden container
+      const inner = el.firstElementChild as HTMLElement | null;
+      const origInnerOverflow = inner?.style.overflow;
+
+      setMessage('Preparing layout...');
+      setProgress(10);
+
+      // Temporarily remove transform/overflow so html2canvas captures full-size content at 1:1
+      el.style.transform = 'none';
+      el.style.webkitTransform = 'none';
+      el.style.overflow = 'visible';
+      el.style.height = 'auto';
+      if (inner) inner.style.overflow = 'visible';
+
+      // Allow browser to re-layout
+      await new Promise(r => requestAnimationFrame(r));
+      await new Promise(r => setTimeout(r, 50));
+
+      // ── Wait for fonts ──
+      setMessage('Loading fonts...');
+      setProgress(25);
+      await document.fonts?.ready;
       await waitForFonts();
-      await new Promise(r => requestAnimationFrame(r));
 
+      // ── Capture the EXACT rendered DOM ──
       setMessage('Rendering canvas...');
-      setProgress(40);
+      setProgress(45);
 
-      // Ensure container dimensions are correct for capture
-      const container = scaleRef.current;
-      container.style.transform = fitScale < 1 ? `scale(${fitScale})` : 'none';
-      container.style.transformOrigin = 'top left';
-      container.style.width = fitScale < 1 ? (A4_W_PX / fitScale) + 'px' : '100%';
-
-      // The outer wrapper is exactly A4 size, inner is scaled
-      const wrapper = container.parentElement!;
-      wrapper.style.width = A4_W_PX + 'px';
-      wrapper.style.height = A4_H_PX + 'px';
-      wrapper.style.overflow = 'hidden';
-
-      await new Promise(r => requestAnimationFrame(r));
-
-      const canvas = await html2canvas(wrapper, {
-        scale: 2,
-        backgroundColor: '#ffffff',
+      const canvas = await html2canvas(el, {
+        scale: 3,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        width: wrapper.scrollWidth,
-        height: wrapper.scrollHeight,
-        windowWidth: wrapper.scrollWidth,
-        windowHeight: wrapper.scrollHeight,
+        backgroundColor: '#ffffff',
+        width: el.scrollWidth,
+        height: el.scrollHeight,
+        windowWidth: el.scrollWidth,
+        windowHeight: el.scrollHeight,
       });
 
+      // ── Restore original element styles immediately ──
+      el.style.transform = origTransform;
+      el.style.webkitTransform = origTransform;
+      el.style.overflow = origOverflow;
+      el.style.height = origHeight;
+      el.style.position = origPos;
+      if (inner) inner.style.overflow = origInnerOverflow || 'hidden';
+
+      // ── Generate single-page PDF (scale to fit A4) ──
       setMessage('Assembling PDF...');
       setProgress(70);
 
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pw = 210;
-      const ph = 297;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pw = 210, ph = 297;
       const imgW = pw;
       const imgH = (canvas.height * pw) / canvas.width;
+      const fitScale = Math.min(1, ph / imgH);
+      const displayH = imgH * fitScale;
+      // Center vertically if smaller than page
+      const offsetY = (ph - displayH) / 2;
 
-      // Add image — should fit in one page since we scaled
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgW, Math.min(imgH, ph));
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, offsetY, imgW, displayH);
 
+      // ── Download ──
       setProgress(90);
       const blob = pdf.output('blob');
       const url = URL.createObjectURL(blob);
@@ -123,6 +111,16 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       setTimeout(() => { onClose(); onDownloadComplete?.(); }, 1000);
     } catch (err: any) {
       console.error('PDF generation error:', err);
+      // Restore styles in case of error
+      try {
+        const el = document.querySelector<HTMLElement>(resumeSelector);
+        if (el) {
+          el.style.transform = '';
+          el.style.webkitTransform = '';
+          el.style.overflow = '';
+          el.style.height = '';
+        }
+      } catch {}
       setMessage(err?.message || 'Failed to generate PDF');
     } finally {
       setGenerating(false);
@@ -148,42 +146,6 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
         onClick={() => !generating && onClose()}
         aria-hidden="true"
       />
-
-      {/* Hidden render at true A4 dimensions — measures scaling, then captures */}
-      <div
-        ref={captureRef}
-        style={{
-          position: "fixed",
-          left: "-9999px",
-          top: "0",
-          width: A4_W_PX,
-          zIndex: -1000,
-          display: "none",
-          background: resume?.style?.backgroundColor ?? "#ffffff",
-        }}
-      >
-        <div className="bg-white" style={{ width: A4_W_PX }}>
-          {resume ? <ResumeRenderer resume={resume} /> : null}
-        </div>
-      </div>
-
-      {/* Capture target: outer = A4 exact, inner = possibly scaled */}
-      <div
-        style={{
-          position: "fixed",
-          left: "-9999px",
-          top: "0",
-          width: A4_W_PX,
-          height: A4_H_PX,
-          overflow: "hidden",
-          background: resume?.style?.backgroundColor ?? "#ffffff",
-          zIndex: -1000,
-        }}
-      >
-        <div ref={scaleRef} className="bg-white" style={{ width: '100%' }}>
-          {resume ? <ResumeRenderer resume={resume} /> : null}
-        </div>
-      </div>
 
       <div className="relative z-60 w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-lg bg-white shadow-2xl">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -213,9 +175,7 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
-            {fitScale < 1
-              ? `Content scales to ${Math.round(fitScale * 100)}% to fit one A4 page.`
-              : 'Resume fits perfectly on one A4 page.'}
+            Captures your on-screen resume directly at 3x resolution for crisp output.
           </div>
 
           {generating && (
@@ -235,11 +195,6 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
               {message}
             </div>
           )}
-
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>• PDF is generated from a fresh render matching your on-screen preview exactly</p>
-            <p>• Content is auto-scaled to fit a single A4 page if needed</p>
-          </div>
         </div>
 
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
@@ -264,20 +219,6 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
                 Generating...
               </>
             ) : "Generate & Download"}
-          </button>
-          <button
-            onClick={() => {
-              if (!generating) {
-                setGenerating(true);
-                openPrintPreviewForSelector(resumeSelector)
-                  .catch(e => setMessage(e?.message || 'Failed to open print preview'))
-                  .finally(() => setGenerating(false));
-              }
-            }}
-            disabled={generating}
-            className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 transition-colors"
-          >
-            Open Print Preview
           </button>
         </div>
       </div>
