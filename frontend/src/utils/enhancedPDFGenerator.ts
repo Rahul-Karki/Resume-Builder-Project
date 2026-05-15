@@ -99,36 +99,36 @@ export const generatePDF = async ({
 
         // Handle multi-page content
         if (imgHeight > pageHeight) {
-          // Calculate scale to fit content
-          const scaleToPage = pageHeight / imgHeight;
-          const scaledWidth = imgWidth * scaleToPage;
-          const scaledHeight = pageHeight;
+          // Calculate how many canvas pixels correspond to one page height
+          const pageHeightPx = (pageHeight * canvas.width) / pageWidth;
           
-          let position = 0;
+          let srcY = 0;
           let pageCount = 0;
           
-          while (position < canvas.height) {
+          while (srcY < canvas.height) {
             if (pageCount > 0) {
               pdf.addPage();
             }
             
-            const sliceHeight = Math.min(scaledHeight, (canvas.height - position) * scaleToPage);
+            const sliceHeightPx = Math.min(pageHeightPx, canvas.height - srcY);
+            const sliceHeightMm = (sliceHeightPx * pageWidth) / canvas.width;
+            
             const pageCanvas = document.createElement('canvas');
-            pageCanvas.width = scaledWidth;
-            pageCanvas.height = sliceHeight;
+            pageCanvas.width = canvas.width;
+            pageCanvas.height = sliceHeightPx;
             
             const ctx = pageCanvas.getContext('2d');
             if (ctx) {
               ctx.drawImage(
                 canvas,
                 0,
-                (position * canvas.width) / imgWidth,
+                srcY,
                 canvas.width,
-                (sliceHeight * canvas.width) / scaledWidth,
+                sliceHeightPx,
                 0,
                 0,
-                scaledWidth,
-                sliceHeight
+                canvas.width,
+                sliceHeightPx
               );
               
               pdf.addImage(
@@ -137,11 +137,11 @@ export const generatePDF = async ({
                 0,
                 0,
                 imgWidth,
-                sliceHeight
+                sliceHeightMm
               );
             }
             
-            position += sliceHeight / scaleToPage;
+            srcY += sliceHeightPx;
             pageCount++;
           }
         } else {

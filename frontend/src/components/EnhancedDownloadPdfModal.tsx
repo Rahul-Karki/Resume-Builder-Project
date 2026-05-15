@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { generateAndDownloadPDF, PDFOptions } from "../utils/enhancedPDFGenerator";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { waitForFonts } from "../utils/enhancedPDFGenerator";
 import { openPrintPreviewForSelector } from "../utils/printPreview";
 
 type Props = {
@@ -8,6 +10,69 @@ type Props = {
   resumeSelector: string;
   onDownloadComplete?: () => void;
 };
+
+const PAGE_SIZE_MM: Record<string, { width: number; height: number }> = {
+  A4: { width: 210, height: 297 },
+  Letter: { width: 216, height: 279 },
+};
+
+async function fetchImageAsDataUrl(url: string) {
+  try {
+    const resp = await fetch(url, { mode: "cors" });
+    const blob = await resp.blob();
+    return await new Promise<string>((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res(String(reader.result));
+      reader.onerror = rej;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return url;
+  }
+}
+
+async function inlineImages(root: HTMLElement) {
+  const imgs = Array.from(root.querySelectorAll<HTMLImageElement>("img"));
+  for (const img of imgs) {
+    const src = img.getAttribute("src") ?? "";
+    if (!src || src.startsWith("data:")) continue;
+    try {
+      const dataUrl = await fetchImageAsDataUrl(src);
+      img.setAttribute("src", dataUrl);
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function sanitizeCloneForPdf(clone: HTMLElement) {
+  // Remove transform so html2canvas captures at 1:1
+  clone.style.transform = "none";
+  clone.style.webkitTransform = "none";
+  // Allow content to flow naturally instead of clipping at A4 height
+  clone.style.height = "auto";
+  clone.style.minHeight = "0";
+  clone.style.maxHeight = "none";
+  clone.style.overflow = "visible";
+  // Remove border-radius for clean PDF edges
+  clone.style.borderRadius = "0";
+  // Remove box-shadow
+  clone.style.boxShadow = "none";
+
+  // Recursively fix overflow on all children
+  const all = Array.from(clone.querySelectorAll<HTMLElement>("*"));
+  for (const el of [clone, ...all]) {
+    const ov = el.style.overflow;
+    if (ov === "hidden" || ov === "scroll" || ov === "auto") {
+      el.style.overflow = "visible";
+    }
+    // Remove any inner transforms that would skew capture
+    const tr = el.style.transform;
+    if (tr && tr !== "none" && !tr.includes("none")) {
+      el.style.transform = "none";
+    }
+  }
+}
 
 export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector, onDownloadComplete }: Props) {
   const [filename, setFilename] = useState("resume.pdf");
@@ -24,29 +89,128 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
 
     try {
       const root = document.querySelector<HTMLElement>(resumeSelector);
-      if (!root) {
-        throw new Error('Resume element not found');
-      }
+      if (!root) throw new Error('Resume element not found');
 
-      // Show progress updates
-      setMessage('Preparing preview...');
+      setMessage('Preparing PDF layout...');
       setProgress(10);
 
-      const pdfOptions: PDFOptions = {
-        filename,
-        orientation,
-        pageSize,
-        quality: 'high',
-        includeBackground: true
-      };
+      // Clone and sanitize: remove transform, overflow, fixed height
+      const clone = root.cloneNode(true) as HTMLElement;
+      // Copy important inline dimensions before clone loses computed layout
+      clone.style.width = root.offsetWidth + "px";
+      sanitizeCloneForPdf(clone);
+      clone.classList.add('__pdf-export-clone');
 
-      // Use the enhanced PDF generator
-      await generateAndDownloadPDF(root, pdfOptions);
+      // Place offscreen but visible to html2canvas
+      clone.style.position = "fixed";
+      clone.style.left = "-9999px";
+      clone.style.top = "0";
+      clone.style.zIndex = "-1000";
+      document.body.appendChild(clone);
+
+      // Wait a frame for layout to settle
+      await new Promise(r => requestAnimationFrame(r));
+
+      setMessage('Inlining images...');
+      setProgress(25);
+      await inlineImages(clone);
+
+      setMessage('Waiting for fonts...');
+      setProgress(35);
+      await waitForFonts();
+
+      const size = PAGE_SIZE_MM[pageSize] || PAGE_SIZE_MM.A4;
+      const pageWidthMm = orientation === 'portrait' ? size.width : size.height;
+      const pageHeightMm = orientation === 'portrait' ? size.height : size.width;
+
+      setMessage('Rendering canvas...');
+      setProgress(50);
+
+      const scale = 2;
+      const canvas = await html2canvas(clone, {
+        scale,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: clone.scrollWidth,
+        height: clone.scrollHeight,
+        windowWidth: clone.scrollWidth,
+        windowHeight: clone.scrollHeight,
+      });
+
+      // Remove clone
+      clone.remove();
+
+      setMessage('Assembling PDF...');
+      setProgress(70);
+
+      const pdf = new jsPDF({
+        orientation,
+        unit: "mm",
+        format: [pageWidthMm, pageHeightMm],
+      });
+
+      const imgWidth = pageWidthMm;
+      const canvasPageHeightPx = (pageHeightMm * canvas.width) / pageWidthMm;
+      const totalImgHeightMm = (canvas.height * pageWidthMm) / canvas.width;
+
+      if (totalImgHeightMm <= pageHeightMm) {
+        // Single page
+        pdf.addImage(
+          canvas.toDataURL("image/png"),
+          "PNG",
+          0,
+          0,
+          imgWidth,
+          totalImgHeightMm
+        );
+      } else {
+        // Multi-page: slice canvas at page-height intervals
+        let srcY = 0;
+        let pageNum = 0;
+
+        while (srcY < canvas.height) {
+          if (pageNum > 0) pdf.addPage();
+
+          const sliceH = Math.min(canvasPageHeightPx, canvas.height - srcY);
+          const sliceMm = (sliceH * pageWidthMm) / canvas.width;
+
+          const pageCanvas = document.createElement("canvas");
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sliceH;
+          const ctx = pageCanvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+            pdf.addImage(
+              pageCanvas.toDataURL("image/png"),
+              "PNG",
+              0,
+              0,
+              imgWidth,
+              sliceMm
+            );
+          }
+
+          srcY += sliceH;
+          pageNum++;
+        }
+      }
+
+      setProgress(90);
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename.endsWith(".pdf") ? filename : filename + ".pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       setMessage('PDF downloaded successfully!');
       setProgress(100);
-      
-      // Close modal after a short delay
+
       setTimeout(() => {
         onClose();
         onDownloadComplete?.();
@@ -57,6 +221,7 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       setMessage(err?.message || 'Failed to generate PDF');
     } finally {
       setGenerating(false);
+      document.querySelectorAll('.__pdf-export-clone').forEach(n => n.remove());
     }
   };
 

@@ -43,6 +43,24 @@ function cloneNodeWithInlineStyles(node: HTMLElement): HTMLElement {
   for (let i = 0; i < originals.length; i++) {
     copyStyle(originals[i], clones[i]);
   }
+
+  // Remove transforms and overflow:hidden so capture is at true size
+  const allClones = Array.from(clone.querySelectorAll<HTMLElement>('*'));
+  for (const el of [clone, ...allClones]) {
+    const tr = el.style.transform;
+    if (tr && tr !== 'none') {
+      el.style.transform = 'none';
+      el.style.webkitTransform = 'none';
+    }
+    const ov = el.style.overflow;
+    if (ov === 'hidden' || ov === 'scroll' || ov === 'auto') {
+      el.style.overflow = 'visible';
+    }
+  }
+  clone.style.height = 'auto';
+  clone.style.minHeight = '0';
+  clone.style.maxHeight = 'none';
+
   clone.classList.add('__pdf-export-clone');
   return clone;
 }
