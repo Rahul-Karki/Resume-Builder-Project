@@ -271,14 +271,30 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
   `;
 };
 
-export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: string, jobId: string, previewToken?: string): Promise<ResumeDownloadArtifact> => {
+export const generateResumePdfArtifact = async (
+  resume: ResumeSnapshot,
+  preset: string,
+  jobId: string,
+  previewToken?: string,
+  options?: { timeoutMs?: number },
+): Promise<ResumeDownloadArtifact> => {
+  const timeoutMs = options?.timeoutMs ?? env.RESUME_DOWNLOAD_JOB_TIMEOUT_MS ?? 120000;
   const browser = await launchPuppeteerBrowser();
+  let timedOut = false;
+  let timeoutHandle: NodeJS.Timeout | null = null;
   const fileName = createResumeDownloadFileName(jobId);
   const html = buildResumeHtml(resume, preset);
   const useFrontendPreview = String(process.env.RESUME_PDF_USE_FRONTEND_PREVIEW || "").toLowerCase() === "true";
   let pdfBuffer: Buffer | null = null;
 
   try {
+    if (timeoutMs > 0) {
+      timeoutHandle = setTimeout(() => {
+        timedOut = true;
+        // Best-effort: close browser to abort any ongoing page operations.
+        void browser.close().catch(() => undefined);
+      }, timeoutMs);
+    }
     const page = await browser.newPage();
 
     try {
@@ -340,10 +356,19 @@ export const generateResumePdfArtifact = async (resume: ResumeSnapshot, preset: 
     } finally {
       await page.close().catch(() => undefined);
     }
-  } finally {
-    await browser.close().catch((error) => {
-      logger.warn({ error }, "Failed to close Puppeteer browser after PDF generation");
-    });
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle as NodeJS.Timeout);
+      try {
+        await browser.close().catch((error) => {
+          logger.warn({ error }, "Failed to close Puppeteer browser after PDF generation");
+        });
+      } catch (err) {
+        // ignore
+      }
+    }
+
+  if (timedOut) {
+    throw new Error("Resume PDF generation timeout");
   }
 
   if (!pdfBuffer) {
@@ -380,9 +405,7 @@ export const processResumeDownloadJob = async (job: Job<ResumeDownloadJobData>) 
 
     // Guard against indefinite PDF generation by enforcing a timeout.
     const timeoutMs = env.RESUME_DOWNLOAD_JOB_TIMEOUT_MS ?? 120000;
-    const generatePromise = generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id), previewToken);
-    const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Resume PDF generation timeout")), timeoutMs));
-    const artifact = await Promise.race([generatePromise, timeoutPromise]);
+    const artifact = await generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id), previewToken, { timeoutMs });
 
     const pdfSizeBytes = artifact.pdfBuffer.length;
     const pdfSizeMb = pdfSizeBytes / (1024 * 1024);

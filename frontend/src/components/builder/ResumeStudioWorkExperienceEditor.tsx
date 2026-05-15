@@ -155,7 +155,12 @@ const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) 
   return fallbackPolling();
 };
 
-const downloadResume = async (resume: ResumeDocument, resumeId?: string, onStatus?: (status: string) => void) => {
+const downloadResume = async (
+  resume: ResumeDocument,
+  resumeId?: string,
+  onStatus?: (status: string) => void,
+  preopenedWindow?: Window | null,
+) => {
   onStatus?.('Queuing PDF export...');
 
   const queueResponse = await queueResumeDownload(
@@ -172,7 +177,17 @@ const downloadResume = async (resume: ResumeDocument, resumeId?: string, onStatu
 
   if (queueResponse.status === 'completed' && initialDownloadUrl) {
     onStatus?.('Opening PDF...');
-    openPdfInNewTab(initialDownloadUrl);
+    const finalUrl = normalizeDownloadUrl(initialDownloadUrl);
+    try {
+      if (preopenedWindow && !preopenedWindow.closed) {
+        preopenedWindow.location.href = finalUrl;
+      } else {
+        openPdfInNewTab(finalUrl);
+      }
+    } catch {
+      openPdfInNewTab(finalUrl);
+    }
+
     return;
   }
 
@@ -183,7 +198,16 @@ const downloadResume = async (resume: ResumeDocument, resumeId?: string, onStatu
   if (!downloadUrl) throw new Error('Resume download finished without a download URL.');
 
   onStatus?.('Opening PDF...');
-  openPdfInNewTab(downloadUrl);
+  const finalUrl = normalizeDownloadUrl(downloadUrl);
+  try {
+    if (preopenedWindow && !preopenedWindow.closed) {
+      preopenedWindow.location.href = finalUrl;
+    } else {
+      openPdfInNewTab(finalUrl);
+    }
+  } catch {
+    openPdfInNewTab(finalUrl);
+  }
 };
 
 const getEntryDescription = (entry: WorkEntry): string => {
@@ -571,7 +595,10 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     setApiError(null);
     setIsExporting(true);
     try {
-      await downloadResume(resume, resume.id, setStatusMessage);
+      // Open a blank window immediately to avoid popup blockers when the
+      // async export finishes and we try to open the PDF.
+      const preopened = typeof window !== 'undefined' ? window.open('', '_blank') : null;
+      await downloadResume(resume, resume.id, setStatusMessage, preopened);
       setStatusMessage('PDF opened in a new tab.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to export PDF.';
