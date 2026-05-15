@@ -15,22 +15,90 @@ export async function printResume(selector = '.resume-preview') {
   }));
 
   // Small delay to ensure styles/layout stabilized
-  await new Promise(r => setTimeout(r, 120));
+  await new Promise((resolve) => setTimeout(resolve, 120));
 
   // Create a printable clone appended to body so it's not affected by hidden ancestors
   const clone = root.cloneNode(true) as HTMLElement;
   clone.classList.add('__print-clone');
-  clone.classList.add('printing');
+  clone.setAttribute('aria-hidden', 'true');
   // ensure clone is direct child of body
   document.body.appendChild(clone);
 
-  // Hide original to avoid duplication
-  const originalVisibility = root.style.visibility;
-  root.style.visibility = 'hidden';
+  const printStyle = document.createElement('style');
+  printStyle.setAttribute('data-print-helper', 'true');
+  printStyle.textContent = `
+    @page {
+      size: A4;
+      margin: 12mm;
+    }
+
+    @media print {
+      html,
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+      }
+
+      body > :not(.__print-clone):not(style):not(script) {
+        visibility: hidden !important;
+      }
+
+      .__print-clone,
+      .__print-clone * {
+        visibility: visible !important;
+      }
+
+      .__print-clone {
+        position: absolute !important;
+        inset: 0 !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 210mm !important;
+        min-height: 297mm !important;
+        margin: 0 auto !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+        overflow: visible !important;
+        transform: none !important;
+      }
+
+      .__print-clone,
+      .__print-clone * {
+        box-shadow: none !important;
+      }
+
+      .__print-clone img {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+
+      .__print-clone h1,
+      .__print-clone h2,
+      .__print-clone h3,
+      .__print-clone h4,
+      .__print-clone h5,
+      .__print-clone h6,
+      .__print-clone p,
+      .__print-clone ul,
+      .__print-clone ol,
+      .__print-clone li,
+      .__print-clone section,
+      .__print-clone article,
+      .__print-clone header,
+      .__print-clone footer,
+      .__print-clone img,
+      .__print-clone svg {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    }
+  `;
+  document.head.appendChild(printStyle);
 
   const cleanup = () => {
-    try { root.style.visibility = originalVisibility || ''; } catch {}
     try { clone.remove(); } catch {}
+    try { printStyle.remove(); } catch {}
     try { window.removeEventListener('afterprint', cleanup); } catch {}
   };
 

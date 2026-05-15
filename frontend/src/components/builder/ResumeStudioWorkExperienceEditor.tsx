@@ -8,7 +8,7 @@ import dynamic from 'react-dynamic-import';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
-import { openResumePrintPreview } from '@/utils/resumePrintPreview';
+import printResume from '@/utils/print';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
 import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
@@ -435,8 +435,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         throw new Error('Save the resume first before downloading it.');
       }
 
-      openResumePrintPreview(resumeId, latestResume);
-      setStatusMessage('Print preview opened in a new tab.');
+      await printResume('#resume-preview-root');
+      setStatusMessage('Browser print preview opened.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to open print preview.';
       setStatusMessage(message);
@@ -580,6 +580,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         <main className={`flex-1 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isMobile ? 'mr-90' : ''}`}>
           <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-center justify-center overflow-hidden">
             <div
+              id="resume-preview-root"
               className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] relative rounded-sm"
               style={{
                 width: `${A4_WIDTH_PX}px`,
@@ -588,7 +589,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 transformOrigin: 'center center',
               }}
             >
-              <div id="resume-preview-root" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
                 <ResumeRenderer resume={resume} />
               </div>
             </div>

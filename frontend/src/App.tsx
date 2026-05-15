@@ -6,7 +6,6 @@ import Home from "./pages/Home"
 import Templates from "./pages/Templates"
 import ResumeBuilder from "./pages/ResumeBuiler"
 import MyResumePage from "./pages/MyResumePage"
-import ResumePreviewPage from "./pages/ResumePreviewPage"
 import { RequireRole } from "./components/auth/RequireRole"
 import AdminLayout from "./pages/AdminLayout"
 import { AdminDashboard } from "./pages/AdminDashboard"
@@ -32,7 +31,6 @@ function App() {
           <Route path ="/templates" element={<Templates />} />
           <Route path="/builder" element={<ResumeBuilder />} />
           <Route path="/resumes" element={<MyResumePage />} />
-          <Route path="/resume/preview/:id" element={<ResumePreviewPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route
             path="/admin"
