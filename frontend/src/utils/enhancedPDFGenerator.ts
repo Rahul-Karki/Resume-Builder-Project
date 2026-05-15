@@ -97,64 +97,19 @@ export const generatePDF = async ({
         const imgWidth = pageWidth;
         const imgHeight = (canvas.height * pageWidth) / canvas.width;
 
-        // Handle multi-page content
-        if (imgHeight > pageHeight) {
-          // Calculate how many canvas pixels correspond to one page height
-          const pageHeightPx = (pageHeight * canvas.width) / pageWidth;
-          
-          let srcY = 0;
-          let pageCount = 0;
-          
-          while (srcY < canvas.height) {
-            if (pageCount > 0) {
-              pdf.addPage();
-            }
-            
-            const sliceHeightPx = Math.min(pageHeightPx, canvas.height - srcY);
-            const sliceHeightMm = (sliceHeightPx * pageWidth) / canvas.width;
-            
-            const pageCanvas = document.createElement('canvas');
-            pageCanvas.width = canvas.width;
-            pageCanvas.height = sliceHeightPx;
-            
-            const ctx = pageCanvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(
-                canvas,
-                0,
-                srcY,
-                canvas.width,
-                sliceHeightPx,
-                0,
-                0,
-                canvas.width,
-                sliceHeightPx
-              );
-              
-              pdf.addImage(
-                pageCanvas.toDataURL('image/png', QUALITY_SETTINGS[options.quality || 'high']),
-                'PNG',
-                0,
-                0,
-                imgWidth,
-                sliceHeightMm
-              );
-            }
-            
-            srcY += sliceHeightPx;
-            pageCount++;
-          }
-        } else {
-          // Single page
-          pdf.addImage(
-            canvas.toDataURL('image/png', QUALITY_SETTINGS[options.quality || 'high']),
-            'PNG',
-            0,
-            0,
-            imgWidth,
-            imgHeight
-          );
-        }
+        // Scale to fit single page (never create multiple pages)
+        const fitScale = Math.min(1, pageHeight / imgHeight);
+        const displayH = imgHeight * fitScale;
+        const offsetY = (pageHeight - displayH) / 2; // center vertically
+
+        pdf.addImage(
+          canvas.toDataURL('image/png', QUALITY_SETTINGS[options.quality || 'high']),
+          'PNG',
+          0,
+          offsetY,
+          imgWidth,
+          displayH
+        );
 
         resolve(pdf.output('blob'));
       }).catch(error => {
