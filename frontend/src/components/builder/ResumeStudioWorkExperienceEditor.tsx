@@ -5,10 +5,10 @@ import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api, improveResumeText, getLatestAtsAnalysis } from '@/services/api';
 import dynamic from 'react-dynamic-import';
-import DownloadPdfModal from '@/components/DownloadPdfModal';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
+import { openResumePrintPreview } from '@/utils/resumePrintPreview';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
 import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
@@ -37,36 +37,6 @@ type TemplateOption = {
 
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
-const RESUME_PRINT_PAYLOAD_PREFIX = "resume-print-payload:";
-
-const storePrintPayload = (resumeId: string, resume: ResumeDocument) => {
-  const payloadKey = `${RESUME_PRINT_PAYLOAD_PREFIX}${resumeId}`;
-  window.localStorage.setItem(payloadKey, JSON.stringify({ resume, createdAt: Date.now() }));
-  return payloadKey;
-};
-
-const getPrintPreviewUrl = (resumeId: string, payloadKey: string) => `/resume/preview/${encodeURIComponent(resumeId)}?print=1&payloadKey=${encodeURIComponent(payloadKey)}`;
-
-const openPrintPreview = (resumeId: string, payloadKey: string) => {
-  const previewUrl = getPrintPreviewUrl(resumeId, payloadKey);
-  // Navigate the current window to the print preview (same-tab flow)
-  window.location.assign(previewUrl);
-  return true;
-};
-
-const downloadResume = async (resume: ResumeDocument, resumeId?: string) => {
-  if (!resumeId) {
-    throw new Error('Save the resume first before downloading it as PDF.');
-  }
-
-  const payloadKey = storePrintPayload(resumeId, resume);
-  try {
-    openPrintPreview(resumeId, payloadKey);
-  } catch (error) {
-    window.localStorage.removeItem(payloadKey);
-    throw error;
-  }
-};
 
 const getEntryDescription = (entry: WorkEntry): string => {
   if (entry.description.trim()) return entry.description;
@@ -142,7 +112,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<string>('classic');
   const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
@@ -451,8 +420,28 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   };
 
   const handleDownload = async () => {
-    // open modal in same window
-    setDownloadModalOpen(true);
+    setApiError(null);
+    setStatusMessage('Preparing print preview...');
+
+    try {
+      if (!resume.id) {
+        await saveResume();
+      }
+
+      const latestResume = useResumeBuilderStore.getState().resume;
+      const resumeId = latestResume.id ?? latestResume._id;
+
+      if (!resumeId) {
+        throw new Error('Save the resume first before downloading it.');
+      }
+
+      openResumePrintPreview(resumeId, latestResume);
+      setStatusMessage('Print preview opened in a new tab.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to open print preview.';
+      setStatusMessage(message);
+      setApiError(message);
+    }
   };
 
   const handleTemplateChange = async (value: string) => {
@@ -549,7 +538,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
           <button
             onClick={() => void handleDownload()}
-            disabled={isExporting || (!resume.id && !ui.isSaved)}
+            disabled={isExporting}
             className="px-2.5 py-1 text-xs rounded-lg bg-[#C8F55A] text-[#0A0A0A] font-semibold disabled:opacity-50"
           >
             {isExporting ? 'Exporting...' : 'Download PDF'}
@@ -796,7 +785,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           {apiError}
         </div>
       )}
-      <DownloadPdfModal open={downloadModalOpen} onClose={() => setDownloadModalOpen(false)} resumeSelector="#resume-preview-root" />
     </div>
   );
 };

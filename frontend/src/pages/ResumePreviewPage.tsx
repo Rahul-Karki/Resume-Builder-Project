@@ -1,215 +1,224 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { api } from "@/services/api";
-import { ResumeDocument } from "@/types/resume-types";
-import ResumeRenderer from "@/templates/ResumeRenderer";
+import type { ResumeDocument } from "@/types/resume-types";
+import { ResumeTemplate } from "@/components/resume/ResumeTemplate";
+import { clearResumePrintPayload, readResumePrintPayload } from "@/utils/resumePrintPreview";
+
+const previewPageStyles = `
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: #eef2f7;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .resume-preview-page {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f7f8fb 0%, #edf1f6 100%);
+  }
+
+  .resume-preview-page__status {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    z-index: 2;
+    transform: translateX(-50%);
+    border-radius: 9999px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: rgba(255, 255, 255, 0.88);
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #334155;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  }
+
+  .resume-preview-page__error {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #991b1b;
+    background: #fff1f2;
+    font-size: 14px;
+  }
+
+  @media print {
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+
+    .resume-preview-page {
+      background: #ffffff;
+    }
+
+    .resume-preview-page__status {
+      display: none !important;
+    }
+  }
+`;
+
+const waitForImages = async () => {
+  const imageElements = Array.from(document.images);
+  await Promise.all(
+    imageElements.map((image) => {
+      if (image.complete && image.naturalWidth > 0) {
+        return Promise.resolve();
+      }
+
+      return new Promise<void>((resolve) => {
+        const finish = () => resolve();
+        image.addEventListener("load", finish, { once: true });
+        image.addEventListener("error", finish, { once: true });
+      });
+    }),
+  );
+};
 
 export default function ResumePreviewPage() {
   const { id } = useParams<{ id: string }>();
   const { search } = useLocation();
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const [resume, setResume] = useState<ResumeDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
   const printTriggeredRef = useRef(false);
-  const [payloadKey] = useState(() => new URLSearchParams(search).get("payloadKey") ?? "");
-  const isPrintMode = new URLSearchParams(search).get("print") === "1";
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const [printScale, setPrintScale] = useState<number>(1);
+
+  const isPrintMode = searchParams.get("print") === "1";
+  const payloadKey = searchParams.get("payloadKey") ?? "";
+  const previewToken = searchParams.get("previewToken") ?? "";
 
   useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      if (!id) return setError("Missing preview id");
+    let cancelled = false;
+
+    const loadResume = async () => {
+      if (!id) {
+        setError("Missing preview id");
+        return;
+      }
 
       if (isPrintMode && payloadKey) {
-        const rawPayload = window.localStorage.getItem(payloadKey);
-        if (rawPayload) {
-          try {
-            const parsed = JSON.parse(rawPayload) as { resume?: ResumeDocument };
-            if (parsed.resume) {
-              if (!mounted) return;
-              setResume(parsed.resume);
-              return;
-            }
-          } catch {
-            // fall back to API
+        const payloadResume = readResumePrintPayload(payloadKey);
+        if (payloadResume) {
+          if (!cancelled) {
+            setResume(payloadResume);
           }
+          return;
         }
       }
 
       try {
-        const params = new URLSearchParams(window.location.search);
-        const previewToken = params.get("previewToken");
-        const url = previewToken
+        const previewUrl = previewToken
           ? `/resumes/preview-data/${encodeURIComponent(id)}?previewToken=${encodeURIComponent(previewToken)}`
           : `/resumes/preview-data/${encodeURIComponent(id)}`;
-        const res = await api.get(url);
-        if (!mounted) return;
-        setResume(res.data?.resume ?? null);
-      } catch (err: any) {
+        const response = await api.get(previewUrl);
+
+        if (!cancelled) {
+          setResume(response.data?.resume ?? null);
+        }
+      } catch (requestError: any) {
         if (isPrintMode && payloadKey) {
-          const rawPayload = window.localStorage.getItem(payloadKey);
-          if (rawPayload) {
-            try {
-              const parsed = JSON.parse(rawPayload) as { resume?: ResumeDocument };
-              if (parsed.resume) {
-                if (!mounted) return;
-                setResume(parsed.resume);
-                return;
-              }
-            } catch {
-              // ignore and surface API error below
+          const payloadResume = readResumePrintPayload(payloadKey);
+          if (payloadResume) {
+            if (!cancelled) {
+              setResume(payloadResume);
             }
+            return;
           }
         }
 
-        setError(err?.response?.data?.message || "Failed to load preview");
+        if (!cancelled) {
+          setError(requestError?.response?.data?.message || "Failed to load preview");
+        }
       }
     };
 
-    void load();
-    useEffect(() => {
-      if (!isPrintMode || !resume || printTriggeredRef.current) return;
-      printTriggeredRef.current = true;
+    void loadResume();
 
-      let cancelled = false;
-      const waitForAssets = async () => {
-        try {
-          if (document.fonts?.ready) await document.fonts.ready;
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isPrintMode, payloadKey, previewToken]);
 
-          await Promise.all(Array.from(document.images).map((img) => {
-            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-            return new Promise<void>((resolve) => {
-              const finish = () => resolve();
-              img.addEventListener('load', finish, { once: true });
-              img.addEventListener('error', finish, { once: true });
-            });
-          }));
+  useEffect(() => {
+    if (!isPrintMode || !resume || printTriggeredRef.current) {
+      return;
+    }
 
-          if (cancelled) return;
+    printTriggeredRef.current = true;
+    let cancelled = false;
 
-          // compute a print scale so content fits a single A4 page if it slightly exceeds it
-          try {
-            const el = document.getElementById('resume-export-root');
-            if (el) {
-              contentRef.current = el as HTMLDivElement;
-              const contentHeight = el.scrollHeight;
-              const contentWidth = el.scrollWidth;
-              const mmToPx = (mm: number) => mm * (96 / 25.4);
-              const pageHeightPx = 297 * (96 / 25.4);
-              const pageWidthPx = 210 * (96 / 25.4);
-              const marginPxV = mmToPx(12) * 2;
-              const marginPxH = mmToPx(12) * 2;
-              const headerFooterReservePx = mmToPx(18);
+    const removePayload = () => {
+      if (payloadKey) {
+        clearResumePrintPayload(payloadKey);
+      }
+    };
 
-              const printableHeight = pageHeightPx - marginPxV - headerFooterReservePx;
-              const printableWidth = pageWidthPx - marginPxH;
-
-              const scaleH = printableHeight / contentHeight;
-              const scaleW = printableWidth / contentWidth;
-              const scale = Math.min(scaleH, scaleW, 1);
-              setPrintScale(Math.max(0.7, scale));
-            }
-          } catch {
-            // ignore
-          }
-
-          window.addEventListener('afterprint', () => {
-            try {
-              if (payloadKey) window.localStorage.removeItem(payloadKey);
-            } catch {
-              // ignore
-            }
-          }, { once: true });
-
-          window.setTimeout(() => {
-            if (!cancelled) window.print();
-          }, 100);
-        } catch {
-          if (!cancelled) window.print();
+    const runPrint = async () => {
+      try {
+        if (document.fonts?.ready) {
+          await document.fonts.ready;
         }
-      };
 
-      void waitForAssets();
+        await waitForImages();
 
-      return () => { cancelled = true; };
-    }, [isPrintMode, resume, payloadKey]);
-  }, [isPrintMode, resume, payloadKey]);
-                  window.print();
+        if (cancelled) {
+          return;
+        }
+
+        const handleAfterPrint = () => {
+          removePayload();
+        };
+
+        window.addEventListener("afterprint", handleAfterPrint, { once: true });
+
+        window.requestAnimationFrame(() => {
+          window.setTimeout(() => {
+            if (!cancelled) {
+              window.print();
+            }
+          }, 120);
+        });
+      } catch {
+        if (!cancelled) {
+          window.print();
+        }
+      }
+    };
+
+    void runPrint();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPrintMode, payloadKey, resume]);
+
   if (error) {
-    return <div style={{ padding: 24, color: "#f55" }}>Preview error: {error}</div>;
+    return <div className="resume-preview-page__error">Preview error: {error}</div>;
   }
 
   if (!resume) {
-    return null;
+    return (
+      <div className="resume-preview-page__error" style={{ color: "#334155", background: "#eef2f7" }}>
+        Loading print preview...
+      </div>
+    );
   }
 
-  // Minimal, print-friendly container used by Puppeteer
   return (
-    <div className="resume-print-shell" style={{ width: "100%", minHeight: "100vh", background: resume.style?.backgroundColor ?? "#fff", padding: 0 }}>
-      <style>{`
-        @page {
-          size: A4;
-          margin: 12mm;
-        }
-
-        html, body {
-          margin: 0;
-          padding: 0;
-          background: ${resume.style?.backgroundColor ?? "#fff"};
-        }
-
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-
-        .resume-print-shell {
-          min-height: 100vh;
-          background: ${resume.style?.backgroundColor ?? "#fff"};
-        }
-
-        .resume-print-root {
-          width: 210mm;
-          max-width: 210mm;
-          margin: 0 auto;
-          box-sizing: border-box;
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-
-        .resume-print-root,
-        .resume-print-root * {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-        }
-
-        .resume-print-root img {
-          max-width: 100%;
-          height: auto;
-        }
-
-        .resume-print-root h1,
-        .resume-print-root h2,
-        .resume-print-root h3,
-        .resume-print-root p,
-        .resume-print-root ul,
-        .resume-print-root li,
-        .resume-print-root img {
-          break-inside: avoid;
-          page-break-inside: avoid;
-        }
-
-        .resume-print-root a {
-          color: inherit;
-          text-decoration: none;
-        }
-      `}</style>
-      <div id="resume-export-root" className="resume-print-root" style={{ width: "794px", margin: "0 auto", boxSizing: "border-box", transform: `scale(${printScale})`, transformOrigin: 'top left' }}>
-        <ResumeRenderer resume={resume} />
-      </div>
-
-      {/* No retry banner — keep preview available after cancel */}
-      <script dangerouslySetInnerHTML={{ __html: "window.__RESUME_PREVIEW_READY = true;" }} />
+    <div className="resume-preview-page">
+      <style>{previewPageStyles}</style>
+      {isPrintMode && <div className="resume-preview-page__status">Opening print preview...</div>}
+      <ResumeTemplate resume={resume} mode="print" />
     </div>
   );
 }
