@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 
 /**
@@ -88,7 +88,8 @@ export const useRequestManager = () => {
    * Cancel all in-flight requests. Useful on unmount or navigation.
    */
   const cancelAll = useCallback((): void => {
-    stateRef.current.requests.forEach((request) => {
+    // Convert to array first to avoid Map mutation during iteration
+    Array.from(stateRef.current.requests.values()).forEach((request) => {
       request.controller.abort();
     });
     stateRef.current.requests.clear();
@@ -101,7 +102,7 @@ export const useRequestManager = () => {
     return Array.from(stateRef.current.requests.values()).map((r) => r.requestId);
   }, []);
 
-  return {
+  return useMemo(() => ({
     getRequestKey,
     isRequestInFlight,
     createRequest,
@@ -109,5 +110,5 @@ export const useRequestManager = () => {
     cancelRequest,
     cancelAll,
     getActiveRequests,
-  };
+  }), [getRequestKey, isRequestInFlight, createRequest, completeRequest, cancelRequest, cancelAll, getActiveRequests]);
 };

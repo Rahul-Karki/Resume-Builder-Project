@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AiGrammarResult, AiRewriteResult, AiTone } from "@/types/resume-types";
 import { useRequestManager } from "./useRequestManager";
+import { api } from "@/services/api";
 
 /**
  * Hook for debounced AI suggestion requests with automatic deduplication and cancellation.
@@ -26,7 +27,7 @@ const DEFAULT_CONFIG: Required<DebounceConfig> = {
 };
 
 export const useAISuggestions = (config: DebounceConfig = {}) => {
-  const finalConfig = { ...DEFAULT_CONFIG, ...config };
+  const finalConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [config]);
   const requestManager = useRequestManager();
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,67 +67,49 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
       setState({ loading: true, error: null, requestId });
 
       try {
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error("Request timeout")),
-            finalConfig.timeoutMs
-          )
-        );
-
-        const fetchPromise = fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Request-ID": requestId,
-          },
-          credentials: "include",
+        // Use the configured axios api instance (includes CSRF token, auth refresh, retry interceptors)
+        const response = await api.post(endpoint, body, {
           signal: controller.signal,
-          body: JSON.stringify(body),
+          timeout: finalConfig.timeoutMs,
+          headers: { "X-Request-ID": requestId },
         });
 
-        const response = (await Promise.race([
-          fetchPromise,
-          timeoutPromise,
-        ])) as Response;
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            String((errorData as Record<string, unknown>)?.message || `HTTP ${response.status}`)
-          );
-        }
-
-        const data = await response.json();
+        const data = response.data;
         setSuggestions(data);
         setState({ loading: false, error: null, requestId });
         requestManager.completeRequest(requestKey);
         return { success: true, data };
       } catch (error) {
-        const isAborted = error instanceof Error && error.name === "AbortError";
-        const isTimeout = error instanceof Error && error.message === "Request timeout";
-        const errorMsg = error instanceof Error ? error.message : "Unknown error";
+        const axiosErr = error as { code?: string; message?: string; response?: { status?: number } };
+        const isAborted = axiosErr?.code === "ERR_CANCELED" || (error instanceof Error && error.name === "AbortError");
+        const isTimeout = axiosErr?.code === "ECONNABORTED" || axiosErr?.message === "Request timeout";
+        const status = axiosErr?.response?.status;
+        const errorMsg = axiosErr?.message || "Unknown error";
 
-        // Don't retry on abort or network errors; do retry on timeout
         if (isAborted) {
           requestManager.completeRequest(requestKey);
           return { success: false, error: "Request cancelled" };
         }
 
-        // Retry on timeout or 5xx errors
+        // Retry on timeout or 5xx errors (only if we haven't exhausted retries)
         if (
-          (isTimeout || (error instanceof Error && errorMsg.includes("5"))) &&
+          (isTimeout || (status && status >= 500)) &&
           currentRetry < finalConfig.maxRetries
         ) {
           retryCountRef.current.set(requestKey, currentRetry + 1);
-          // Exponential backoff: 100ms, 300ms, 900ms
           const backoffMs = Math.pow(3, currentRetry) * 100;
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
           return fetchWithRetry(endpoint, body, requestKey, currentRetry + 1);
         }
 
-        setState({ loading: false, error: errorMsg, requestId });
+        // Use server message if available, otherwise the generic message
+        const displayMsg = axiosErr?.response?.data && typeof axiosErr.response.data === 'object'
+          ? String((axiosErr.response.data as Record<string, unknown>)?.message ?? errorMsg)
+          : errorMsg;
+
+        setState({ loading: false, error: displayMsg, requestId });
         requestManager.completeRequest(requestKey);
-        return { success: false, error: errorMsg };
+        return { success: false, error: displayMsg };
       }
     },
     [requestManager, finalConfig]

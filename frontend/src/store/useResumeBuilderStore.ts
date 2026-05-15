@@ -452,10 +452,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       })),
 
     removeExperience: (id) =>
-      set(s => ({
-        resume: { ...s.resume, sections: { ...s.resume.sections, experience: s.resume.sections.experience.filter(e => e.id !== id) } },
-        ui: { ...s.ui, isDirty: true },
-      })),
+      set(s => {
+        const filtered = s.resume.sections.experience.filter(e => e.id !== id);
+        return {
+          resume: {
+            ...s.resume, sections: { ...s.resume.sections, experience: filtered },
+            sectionVisibility: filtered.length === 0
+              ? { ...s.resume.sectionVisibility, experience: false }
+              : s.resume.sectionVisibility,
+          },
+          ui: { ...s.ui, isDirty: true },
+        };
+      }),
 
     addBullet: (expId) =>
       set(s => ({
@@ -533,10 +541,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       })),
 
     removeEducation: (id) =>
-      set(s => ({
-        resume: { ...s.resume, sections: { ...s.resume.sections, education: s.resume.sections.education.filter(e => e.id !== id) } },
-        ui: { ...s.ui, isDirty: true },
-      })),
+      set(s => {
+        const filtered = s.resume.sections.education.filter(e => e.id !== id);
+        return {
+          resume: {
+            ...s.resume, sections: { ...s.resume.sections, education: filtered },
+            sectionVisibility: filtered.length === 0
+              ? { ...s.resume.sectionVisibility, education: false }
+              : s.resume.sectionVisibility,
+          },
+          ui: { ...s.ui, isDirty: true },
+        };
+      }),
 
     // ─── Skills ──────────────────────────────────────────────────────────────
     addSkillGroup: () =>
@@ -563,10 +579,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       })),
 
     removeSkillGroup: (id) =>
-      set(s => ({
-        resume: { ...s.resume, sections: { ...s.resume.sections, skills: s.resume.sections.skills.filter(sk => sk.id !== id) } },
-        ui: { ...s.ui, isDirty: true },
-      })),
+      set(s => {
+        const filtered = s.resume.sections.skills.filter(sk => sk.id !== id);
+        return {
+          resume: {
+            ...s.resume, sections: { ...s.resume.sections, skills: filtered },
+            sectionVisibility: filtered.length === 0
+              ? { ...s.resume.sectionVisibility, skills: false }
+              : s.resume.sectionVisibility,
+          },
+          ui: { ...s.ui, isDirty: true },
+        };
+      }),
 
     // ─── Projects ────────────────────────────────────────────────────────────
     addProject: () =>
@@ -639,10 +663,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       })),
 
     removeProject: (id) =>
-      set(s => ({
-        resume: { ...s.resume, sections: { ...s.resume.sections, projects: s.resume.sections.projects.filter(p => p.id !== id) } },
-        ui: { ...s.ui, isDirty: true },
-      })),
+      set(s => {
+        const filtered = s.resume.sections.projects.filter(p => p.id !== id);
+        return {
+          resume: {
+            ...s.resume, sections: { ...s.resume.sections, projects: filtered },
+            sectionVisibility: filtered.length === 0
+              ? { ...s.resume.sectionVisibility, projects: false }
+              : s.resume.sectionVisibility,
+          },
+          ui: { ...s.ui, isDirty: true },
+        };
+      }),
 
     // ─── Certifications ──────────────────────────────────────────────────────
     addCertification: () =>
@@ -669,10 +701,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       })),
 
     removeCertification: (id) =>
-      set(s => ({
-        resume: { ...s.resume, sections: { ...s.resume.sections, certifications: s.resume.sections.certifications.filter(c => c.id !== id) } },
-        ui: { ...s.ui, isDirty: true },
-      })),
+      set(s => {
+        const filtered = s.resume.sections.certifications.filter(c => c.id !== id);
+        return {
+          resume: {
+            ...s.resume, sections: { ...s.resume.sections, certifications: filtered },
+            sectionVisibility: filtered.length === 0
+              ? { ...s.resume.sectionVisibility, certifications: false }
+              : s.resume.sectionVisibility,
+          },
+          ui: { ...s.ui, isDirty: true },
+        };
+      }),
 
     // ─── Languages ───────────────────────────────────────────────────────────
     addLanguage: () =>
@@ -699,10 +739,18 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       })),
 
     removeLanguage: (id) =>
-      set(s => ({
-        resume: { ...s.resume, sections: { ...s.resume.sections, languages: s.resume.sections.languages.filter(l => l.id !== id) } },
-        ui: { ...s.ui, isDirty: true },
-      })),
+      set(s => {
+        const filtered = s.resume.sections.languages.filter(l => l.id !== id);
+        return {
+          resume: {
+            ...s.resume, sections: { ...s.resume.sections, languages: filtered },
+            sectionVisibility: filtered.length === 0
+              ? { ...s.resume.sectionVisibility, languages: false }
+              : s.resume.sectionVisibility,
+          },
+          ui: { ...s.ui, isDirty: true },
+        };
+      }),
 
     // ─── Sections Management ─────────────────────────────────────────────────
     toggleSectionVisibility: (section) =>
@@ -779,12 +827,15 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         const { resume } = get();
         const payload = toResumePayload(resume);
 
-        const response = resume.id
+        const hasServerId = !!(resume.id && !resume.id.startsWith('res_'));
+        const response = hasServerId
           ? await api.put(`/resumes/${resume.id}`, payload)
           : await api.post(`/resumes`, payload);
 
         const savedResume = response.data?.resume ?? response.data;
-        const savedId = savedResume?._id ?? savedResume?.id ?? resume.id ?? `res_${Date.now()}`;
+        // Only use server-assigned IDs — never fabricate one
+        const savedId = savedResume?._id ?? savedResume?.id;
+        if (!savedId) throw new Error('Server did not return a resume ID');
 
         set(s => ({
           resume: { ...s.resume, id: savedId, updatedAt: savedResume?.updatedAt ?? new Date().toISOString() },
