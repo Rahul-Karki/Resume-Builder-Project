@@ -30,7 +30,7 @@ export async function printResume(selector = '.resume-preview') {
   printStyle.textContent = `
     @page {
       size: A4;
-      margin: 12mm;
+      margin: 0;
     }
 
     @media print {
@@ -39,6 +39,8 @@ export async function printResume(selector = '.resume-preview') {
         margin: 0 !important;
         padding: 0 !important;
         background: #ffffff !important;
+        width: 210mm !important;
+        min-height: 297mm !important;
       }
 
       body > :not(.__print-clone):not(style):not(script) {
@@ -48,25 +50,18 @@ export async function printResume(selector = '.resume-preview') {
       .__print-clone,
       .__print-clone * {
         visibility: visible !important;
+        overflow: visible !important;
+        transform: none !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
       }
 
       .__print-clone {
-        position: absolute !important;
-        inset: 0 !important;
-        left: 0 !important;
-        top: 0 !important;
+        position: static !important;
         width: 210mm !important;
         min-height: 297mm !important;
-        margin: 0 auto !important;
-        box-shadow: none !important;
-        text-shadow: none !important;
-        overflow: visible !important;
-        transform: none !important;
-      }
-
-      .__print-clone,
-      .__print-clone * {
-        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
 
       .__print-clone img {
