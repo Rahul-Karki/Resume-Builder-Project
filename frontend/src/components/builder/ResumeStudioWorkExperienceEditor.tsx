@@ -4,6 +4,8 @@ import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, Pane
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api, improveResumeText, getLatestAtsAnalysis } from '@/services/api';
+import dynamic from 'react-dynamic-import';
+import DownloadPdfModal from '@/components/DownloadPdfModal';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
@@ -140,6 +142,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<string>('classic');
   const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
@@ -448,18 +451,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   };
 
   const handleDownload = async () => {
-    setApiError(null);
-    setIsExporting(true);
-    try {
-      await downloadResume(resume, resume.id);
-      setStatusMessage(null);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to export PDF.';
-      setApiError(message);
-      setStatusMessage(null);
-    } finally {
-      setIsExporting(false);
-    }
+    // open modal in same window
+    setDownloadModalOpen(true);
   };
 
   const handleTemplateChange = async (value: string) => {
@@ -606,7 +599,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 transformOrigin: 'center center',
               }}
             >
-              <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+              <div id="resume-preview-root" style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
                 <ResumeRenderer resume={resume} />
               </div>
             </div>
@@ -803,6 +796,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           {apiError}
         </div>
       )}
+      <DownloadPdfModal open={downloadModalOpen} onClose={() => setDownloadModalOpen(false)} resumeSelector="#resume-preview-root" />
     </div>
   );
 };
