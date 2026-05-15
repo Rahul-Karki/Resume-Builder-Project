@@ -72,6 +72,27 @@ export async function printResume(selector = '.resume-preview') {
   printClone.style.padding = '0';
   printClone.style.boxSizing = 'border-box';
 
+  // ── Freeze ALL computed visual styles as inline (critical for backgrounds) ──
+  const allPc = [printClone, ...printClone.querySelectorAll<HTMLElement>('*')];
+  for (const e of allPc) {
+    const cs = window.getComputedStyle(e);
+    e.style.background = cs.background;
+    e.style.backgroundColor = cs.backgroundColor;
+    e.style.backgroundImage = cs.backgroundImage;
+    e.style.backgroundSize = cs.backgroundSize;
+    e.style.backgroundPosition = cs.backgroundPosition;
+    e.style.backgroundRepeat = cs.backgroundRepeat;
+    e.style.color = cs.color;
+    e.style.boxShadow = cs.boxShadow;
+    e.style.border = cs.border;
+    e.style.borderTop = cs.borderTop;
+    e.style.borderRight = cs.borderRight;
+    e.style.borderBottom = cs.borderBottom;
+    e.style.borderLeft = cs.borderLeft;
+    e.style.borderRadius = cs.borderRadius;
+    e.style.outline = cs.outline;
+  }
+
   // Wrap all children in a scaled inner div
   const inner = document.createElement('div');
   inner.style.width = fitScale < 1 ? (A4_W_PX / fitScale) + 'px' : '100%';

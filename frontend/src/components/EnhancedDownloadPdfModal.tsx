@@ -25,35 +25,69 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       const el = document.querySelector<HTMLElement>(resumeSelector);
       if (!el) throw new Error('Resume element not found');
 
-      // ── Save original styles to restore after capture ──
-      const origTransform = el.style.transform;
-      const origOverflow = el.style.overflow;
-      const origHeight = el.style.height;
-      const origPos = el.style.position;
-
-      // Find inner overflow:hidden container
-      const inner = el.firstElementChild as HTMLElement | null;
-      const origInnerOverflow = inner?.style.overflow;
-
       setMessage('Preparing layout...');
       setProgress(10);
+
+      // ── Save original inline styles + classNames for all elements ──
+      const allElements = [el, ...el.querySelectorAll<HTMLElement>('*')];
+      const savedCSS = new Map<HTMLElement, string>();
+      const savedClass = new Map<HTMLElement, string>();
+      for (const e of allElements) {
+        savedCSS.set(e, e.style.cssText);
+        savedClass.set(e, e.className);
+      }
 
       // Temporarily remove transform/overflow so html2canvas captures full-size content at 1:1
       el.style.transform = 'none';
       el.style.webkitTransform = 'none';
+      el.style.position = 'static';
       el.style.overflow = 'visible';
       el.style.height = 'auto';
-      if (inner) inner.style.overflow = 'visible';
+      // Also fix inner overflow-hidden containers
+      for (const e of allElements) {
+        const cs = window.getComputedStyle(e);
+        if (cs.overflow === 'hidden' || cs.overflow === 'scroll' || cs.overflow === 'auto') {
+          e.style.overflow = 'visible';
+        }
+      }
 
       // Allow browser to re-layout
       await new Promise(r => requestAnimationFrame(r));
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 100));
 
       // ── Wait for fonts ──
       setMessage('Loading fonts...');
       setProgress(25);
       await document.fonts?.ready;
       await waitForFonts();
+
+      // ── Freeze ALL computed visual styles as inline (critical for backgrounds) ──
+      setMessage('Freezing styles...');
+      setProgress(35);
+      for (const e of allElements) {
+        const cs = window.getComputedStyle(e);
+        // Background (handles gradients, colors, images)
+        e.style.background = cs.background;
+        e.style.backgroundColor = cs.backgroundColor;
+        e.style.backgroundImage = cs.backgroundImage;
+        e.style.backgroundSize = cs.backgroundSize;
+        e.style.backgroundPosition = cs.backgroundPosition;
+        e.style.backgroundRepeat = cs.backgroundRepeat;
+        // Colors
+        e.style.color = cs.color;
+        // Borders and shadows
+        e.style.boxShadow = cs.boxShadow;
+        e.style.border = cs.border;
+        e.style.borderTop = cs.borderTop;
+        e.style.borderRight = cs.borderRight;
+        e.style.borderBottom = cs.borderBottom;
+        e.style.borderLeft = cs.borderLeft;
+        e.style.borderRadius = cs.borderRadius;
+        e.style.outline = cs.outline;
+      }
+
+      // Ensure explicit container background
+      el.style.background = '#ffffff';
 
       // ── Capture the EXACT rendered DOM ──
       setMessage('Rendering canvas...');
@@ -63,6 +97,7 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
         scale: 3,
         useCORS: true,
         allowTaint: true,
+        foreignObjectRendering: true,
         logging: false,
         backgroundColor: '#ffffff',
         width: el.scrollWidth,
@@ -71,13 +106,11 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
         windowHeight: el.scrollHeight,
       });
 
-      // ── Restore original element styles immediately ──
-      el.style.transform = origTransform;
-      el.style.webkitTransform = origTransform;
-      el.style.overflow = origOverflow;
-      el.style.height = origHeight;
-      el.style.position = origPos;
-      if (inner) inner.style.overflow = origInnerOverflow || 'hidden';
+      // ── Restore ALL original styles and classNames immediately ──
+      for (const e of allElements) {
+        e.style.cssText = savedCSS.get(e) || '';
+        e.className = savedClass.get(e) || '';
+      }
 
       // ── Generate single-page PDF (scale to fit A4) ──
       setMessage('Assembling PDF...');
