@@ -12,6 +12,9 @@ export default function ResumePreviewPage() {
   const printTriggeredRef = useRef(false);
   const [payloadKey] = useState(() => new URLSearchParams(search).get("payloadKey") ?? "");
   const isPrintMode = new URLSearchParams(search).get("print") === "1";
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [printScale, setPrintScale] = useState<number>(1);
+  const [printAttempted, setPrintAttempted] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -96,6 +99,29 @@ export default function ResumePreviewPage() {
 
         if (cancelled) return;
 
+        // compute a print scale so content fits a single A4 page if it slightly exceeds it
+        try {
+          const el = document.getElementById('resume-export-root');
+          if (el) {
+            contentRef.current = el as HTMLDivElement;
+            const contentHeight = el.scrollHeight;
+            const mmToPx = (mm: number) => mm * (96 / 25.4);
+            const pageHeightPx = 297 * (96 / 25.4); // A4 height in px at 96dpi (≈1122.52)
+            const marginPx = mmToPx(12) * 2; // top+bottom
+            const printableHeight = pageHeightPx - marginPx;
+            if (contentHeight > printableHeight) {
+              // scale down to fit a single page if content isn't massively longer
+              const scale = printableHeight / contentHeight;
+              // don't scale below 0.7 to maintain readability
+              setPrintScale(Math.max(0.7, scale));
+            } else {
+              setPrintScale(1);
+            }
+          }
+        } catch {
+          // ignore
+        }
+
         window.addEventListener("afterprint", () => {
           try {
             if (payloadKey) {
@@ -104,11 +130,13 @@ export default function ResumePreviewPage() {
           } catch {
             // ignore
           }
+          // mark that we attempted printing so UI can offer retry
+          setPrintAttempted(true);
         }, { once: true });
 
         window.setTimeout(() => {
           if (!cancelled) {
-            window.print();
+            try { window.print(); } finally { setPrintAttempted(true); }
           }
         }, 100);
       } catch {
@@ -194,9 +222,18 @@ export default function ResumePreviewPage() {
           text-decoration: none;
         }
       `}</style>
-      <div id="resume-export-root" className="resume-print-root" style={{ width: "794px", margin: "0 auto", boxSizing: "border-box" }}>
+      <div id="resume-export-root" className="resume-print-root" style={{ width: "794px", margin: "0 auto", boxSizing: "border-box", transform: `scale(${printScale})`, transformOrigin: 'top left' }}>
         <ResumeRenderer resume={resume} />
       </div>
+
+      {printAttempted && (
+        <div style={{ position: 'fixed', right: 18, top: 18, zIndex: 9999 }}>
+          <div style={{ background: 'rgba(0,0,0,0.7)', color: 'white', padding: '8px 12px', borderRadius: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 13 }}>Print dialog completed or cancelled.</span>
+            <button onClick={() => { try { window.print(); } catch {} }} style={{ background: '#C8F55A', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>Print again</button>
+          </div>
+        </div>
+      )}
       <script dangerouslySetInnerHTML={{ __html: "window.__RESUME_PREVIEW_READY = true;" }} />
     </div>
   );
