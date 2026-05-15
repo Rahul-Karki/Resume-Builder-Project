@@ -99,9 +99,67 @@ export default function ResumePreviewPage() {
 
   // Minimal, print-friendly container used by Puppeteer
   return (
-    <div style={{ width: "100%", minHeight: "100vh", background: resume.style?.backgroundColor ?? "#fff", padding: 0 }}>
-      <div id="resume-export-root" style={{ width: "794px", margin: "0 auto", boxSizing: "border-box" }}>
-        <ResumeRenderer resume={resume} forExport={true} />
+    <div className="resume-print-shell" style={{ width: "100%", minHeight: "100vh", background: resume.style?.backgroundColor ?? "#fff", padding: 0 }}>
+      <style>{`
+        @page {
+          size: A4;
+          margin: 12mm;
+        }
+
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: ${resume.style?.backgroundColor ?? "#fff"};
+        }
+
+        body {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .resume-print-shell {
+          min-height: 100vh;
+          background: ${resume.style?.backgroundColor ?? "#fff"};
+        }
+
+        .resume-print-root {
+          width: 210mm;
+          max-width: 210mm;
+          margin: 0 auto;
+          box-sizing: border-box;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .resume-print-root,
+        .resume-print-root * {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+
+        .resume-print-root img {
+          max-width: 100%;
+          height: auto;
+        }
+
+        .resume-print-root h1,
+        .resume-print-root h2,
+        .resume-print-root h3,
+        .resume-print-root p,
+        .resume-print-root ul,
+        .resume-print-root li,
+        .resume-print-root img {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+
+        .resume-print-root a {
+          color: inherit;
+          text-decoration: none;
+        }
+      `}</style>
+      <div id="resume-export-root" className="resume-print-root" style={{ width: "794px", margin: "0 auto", boxSizing: "border-box" }}>
+        <ResumeRenderer resume={resume} />
       </div>
       <script dangerouslySetInnerHTML={{ __html: "window.__RESUME_PREVIEW_READY = true;" }} />
     </div>

@@ -471,7 +471,7 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
         minHeight: "100%",
         background: resume.style.backgroundColor,
         boxSizing: "border-box",
-        overflow: forExport ? "hidden" : "visible",
+        overflow: "visible",
       }}
     >
       <SelectedTemplate data={renderableResume} />
