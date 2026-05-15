@@ -41,14 +41,16 @@ function cloneNodeWithInlineStyles(node: HTMLElement): HTMLElement {
   }
 
   // Remove transforms and overflow:hidden so html2canvas captures at true size
+  // Use getComputedStyle to detect styles from CSS classes (not just inline)
   const allClones = Array.from(clone.querySelectorAll<HTMLElement>("*"));
   for (const el of [clone, ...allClones]) {
-    const tr = el.style.transform;
+    const cs = window.getComputedStyle(el);
+    const tr = cs.transform;
     if (tr && tr !== "none") {
       el.style.transform = "none";
       el.style.webkitTransform = "none";
     }
-    const ov = el.style.overflow;
+    const ov = cs.overflow;
     if (ov === "hidden" || ov === "scroll" || ov === "auto") {
       el.style.overflow = "visible";
     }

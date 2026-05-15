@@ -45,33 +45,60 @@ async function inlineImages(root: HTMLElement) {
   }
 }
 
+/** Clone element with ALL computed styles frozen as inline styles */
+function cloneNodeWithInlineStyles(node: HTMLElement): HTMLElement {
+  const clone = node.cloneNode(true) as HTMLElement;
+  const originals = Array.from(node.querySelectorAll<HTMLElement>("*"));
+  const clones = Array.from(clone.querySelectorAll<HTMLElement>("*"));
+  const copyStyle = (src: HTMLElement, dst: HTMLElement) => {
+    try {
+      const cs = window.getComputedStyle(src);
+      dst.style.cssText = cs.cssText;
+    } catch {
+      // ignore
+    }
+  };
+  copyStyle(node, clone);
+  for (let i = 0; i < originals.length; i++) {
+    copyStyle(originals[i], clones[i]);
+  }
+  return clone;
+}
+
+/** After cloning with inline styles, sanitize for PDF capture */
 function sanitizeCloneForPdf(clone: HTMLElement) {
-  // Remove transform so html2canvas captures at 1:1
+  const all = Array.from(clone.querySelectorAll<HTMLElement>("*"));
+
+  for (const el of [clone, ...all]) {
+    // Get computed overflow (may be from CSS classes, not inline)
+    const cs = window.getComputedStyle(el);
+    const ov = cs.overflow;
+    if (ov === "hidden" || ov === "scroll" || ov === "auto") {
+      el.style.overflow = "visible";
+    }
+    // Remove any transforms (may be from CSS classes)
+    const tr = cs.transform;
+    if (tr && tr !== "none") {
+      el.style.transform = "none";
+      el.style.webkitTransform = "none";
+    }
+    // Remove fixed heights on the resume-root container only
+    // (keep height auto so content can flow multiple pages)
+  }
+
+  // Root-level overrides for the container
+  clone.style.position = "fixed";
+  clone.style.left = "-9999px";
+  clone.style.top = "0";
+  clone.style.zIndex = "-1000";
   clone.style.transform = "none";
   clone.style.webkitTransform = "none";
-  // Allow content to flow naturally instead of clipping at A4 height
   clone.style.height = "auto";
   clone.style.minHeight = "0";
   clone.style.maxHeight = "none";
   clone.style.overflow = "visible";
-  // Remove border-radius for clean PDF edges
   clone.style.borderRadius = "0";
-  // Remove box-shadow
   clone.style.boxShadow = "none";
-
-  // Recursively fix overflow on all children
-  const all = Array.from(clone.querySelectorAll<HTMLElement>("*"));
-  for (const el of [clone, ...all]) {
-    const ov = el.style.overflow;
-    if (ov === "hidden" || ov === "scroll" || ov === "auto") {
-      el.style.overflow = "visible";
-    }
-    // Remove any inner transforms that would skew capture
-    const tr = el.style.transform;
-    if (tr && tr !== "none" && !tr.includes("none")) {
-      el.style.transform = "none";
-    }
-  }
 }
 
 export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector, onDownloadComplete }: Props) {
@@ -94,18 +121,10 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       setMessage('Preparing PDF layout...');
       setProgress(10);
 
-      // Clone and sanitize: remove transform, overflow, fixed height
-      const clone = root.cloneNode(true) as HTMLElement;
-      // Copy important inline dimensions before clone loses computed layout
-      clone.style.width = root.offsetWidth + "px";
+      // Clone with all computed styles frozen as inline, then sanitize
+      const clone = cloneNodeWithInlineStyles(root);
       sanitizeCloneForPdf(clone);
       clone.classList.add('__pdf-export-clone');
-
-      // Place offscreen but visible to html2canvas
-      clone.style.position = "fixed";
-      clone.style.left = "-9999px";
-      clone.style.top = "0";
-      clone.style.zIndex = "-1000";
       document.body.appendChild(clone);
 
       // Wait a frame for layout to settle
