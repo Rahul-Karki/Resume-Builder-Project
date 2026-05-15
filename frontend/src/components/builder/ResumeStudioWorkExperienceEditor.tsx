@@ -52,8 +52,28 @@ const normalizeDownloadUrl = (downloadUrl: string) => {
   return downloadUrl;
 };
 
-const openPdfInNewTab = (downloadUrl: string) => {
-  window.open(normalizeDownloadUrl(downloadUrl), '_blank');
+const openPdfBlobInNewTab = (downloadUrl: string, preopenedWindow?: Window | null) => {
+  const normalizedUrl = normalizeDownloadUrl(downloadUrl);
+
+  return api.get(normalizedUrl, {
+    responseType: 'blob',
+    timeout: 30000,
+  }).then((response) => {
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+      if (preopenedWindow && !preopenedWindow.closed) {
+        preopenedWindow.location.href = objectUrl;
+      } else {
+        window.open(objectUrl, '_blank');
+      }
+    } catch {
+      window.open(objectUrl, '_blank');
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  });
 };
 
 const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
@@ -177,15 +197,10 @@ const downloadResume = async (
 
   if (queueResponse.status === 'completed' && initialDownloadUrl) {
     onStatus?.('Opening PDF...');
-    const finalUrl = normalizeDownloadUrl(initialDownloadUrl);
     try {
-      if (preopenedWindow && !preopenedWindow.closed) {
-        preopenedWindow.location.href = finalUrl;
-      } else {
-        openPdfInNewTab(finalUrl);
-      }
+      await openPdfBlobInNewTab(initialDownloadUrl, preopenedWindow);
     } catch {
-      openPdfInNewTab(finalUrl);
+      throw new Error('Failed to open generated PDF.');
     }
 
     return;
@@ -198,15 +213,10 @@ const downloadResume = async (
   if (!downloadUrl) throw new Error('Resume download finished without a download URL.');
 
   onStatus?.('Opening PDF...');
-  const finalUrl = normalizeDownloadUrl(downloadUrl);
   try {
-    if (preopenedWindow && !preopenedWindow.closed) {
-      preopenedWindow.location.href = finalUrl;
-    } else {
-      openPdfInNewTab(finalUrl);
-    }
+    await openPdfBlobInNewTab(downloadUrl, preopenedWindow);
   } catch {
-    openPdfInNewTab(finalUrl);
+    throw new Error('Failed to open generated PDF.');
   }
 };
 
