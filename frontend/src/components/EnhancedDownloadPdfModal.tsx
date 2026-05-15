@@ -136,7 +136,7 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
         aria-hidden="true"
       />
 
-      {/* Hidden fresh render of the resume at true A4 dimensions */}
+      {/* Fresh render of the resume at true A4 dimensions — same structure as on-screen preview */}
       <div
         ref={captureRef}
         style={{
@@ -144,11 +144,10 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
           left: "-9999px",
           top: "0",
           width: A4_W_PX,
-          background: resume?.style?.backgroundColor ?? "#ffffff",
           zIndex: -1000,
         }}
       >
-        <div style={{ all: "initial", display: "block", width: "100%" }}>
+        <div className="bg-white" style={{ width: A4_W_PX }}>
           {resume ? <ResumeRenderer resume={resume} /> : null}
         </div>
       </div>

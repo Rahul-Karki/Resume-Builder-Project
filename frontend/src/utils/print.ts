@@ -3,9 +3,17 @@ export async function printResume(selector = '.resume-preview') {
   if (!root) throw new Error('Resume element not found for printing');
 
   // Wait for fonts to load so printed text matches screen
-  if (document.fonts && (document.fonts as any).ready) {
-    try { await (document.fonts as any).ready; } catch {}
+  await document.fonts?.ready;
+  // Explicitly check key font families are actually loaded
+  const usedFamilies = new Set<string>();
+  const allEls = root.querySelectorAll<HTMLElement>('*');
+  for (const el of [root, ...allEls]) {
+    const ff = document.defaultView?.getComputedStyle(el).fontFamily;
+    if (ff) usedFamilies.add(ff.split(',')[0].replace(/["']/g, '').trim());
   }
+  await Promise.allSettled(
+    Array.from(usedFamilies).map(f => document.fonts?.load(`1em "${f}"`))
+  );
 
   // Wait for images inside resume to load (handles lazy images)
   const imgs = Array.from(root.querySelectorAll<HTMLImageElement>('img'));
@@ -15,7 +23,7 @@ export async function printResume(selector = '.resume-preview') {
   }));
 
   // Small delay to ensure styles/layout stabilized
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  await new Promise((resolve) => setTimeout(resolve, 200));
 
   // Create a printable clone appended to body so it's not affected by hidden ancestors
   const clone = root.cloneNode(true) as HTMLElement;
