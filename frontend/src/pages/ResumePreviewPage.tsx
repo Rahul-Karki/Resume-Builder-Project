@@ -105,18 +105,23 @@ export default function ResumePreviewPage() {
           if (el) {
             contentRef.current = el as HTMLDivElement;
             const contentHeight = el.scrollHeight;
+            const contentWidth = el.scrollWidth;
             const mmToPx = (mm: number) => mm * (96 / 25.4);
             const pageHeightPx = 297 * (96 / 25.4); // A4 height in px at 96dpi (≈1122.52)
-            const marginPx = mmToPx(12) * 2; // top+bottom
-            const printableHeight = pageHeightPx - marginPx;
-            if (contentHeight > printableHeight) {
-              // scale down to fit a single page if content isn't massively longer
-              const scale = printableHeight / contentHeight;
-              // don't scale below 0.7 to maintain readability
-              setPrintScale(Math.max(0.7, scale));
-            } else {
-              setPrintScale(1);
-            }
+            const pageWidthPx = 210 * (96 / 25.4); // A4 width in px
+            const marginPxV = mmToPx(12) * 2; // top+bottom margins
+            const marginPxH = mmToPx(12) * 2; // left+right margins
+            // Reserve extra space for browser headers/footers (they consume printable area if enabled)
+            const headerFooterReservePx = mmToPx(18);
+
+            const printableHeight = pageHeightPx - marginPxV - headerFooterReservePx;
+            const printableWidth = pageWidthPx - marginPxH;
+
+            const scaleH = printableHeight / contentHeight;
+            const scaleW = printableWidth / contentWidth;
+            const scale = Math.min(scaleH, scaleW, 1);
+            // don't scale below 0.7 to maintain readability
+            setPrintScale(Math.max(0.7, scale));
           }
         } catch {
           // ignore
@@ -231,6 +236,7 @@ export default function ResumePreviewPage() {
           <div style={{ background: 'rgba(0,0,0,0.7)', color: 'white', padding: '8px 12px', borderRadius: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 13 }}>Print dialog completed or cancelled.</span>
             <button onClick={() => { try { window.print(); } catch {} }} style={{ background: '#C8F55A', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>Print again</button>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginLeft: 8 }}>Tip: disable browser headers/footers in the print dialog for exact single-page export.</div>
           </div>
         </div>
       )}
