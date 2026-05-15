@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { waitForFonts } from "../utils/enhancedPDFGenerator";
+import { waitForFonts } from "../utils/pdfGenerator";
 
 type Props = {
   open: boolean;

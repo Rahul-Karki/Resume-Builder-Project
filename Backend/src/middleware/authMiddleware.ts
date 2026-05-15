@@ -29,21 +29,28 @@ export const authMiddleware = async (
     // Verify token and attach current user
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
-    // Query with timeout to prevent hanging requests
+    // Query with timeout to prevent hanging requests; cancel the query on timeout
     const query = User.findById(decoded.userId)
       .select("name role")
       .lean();
 
-    const userPromise = typeof (query as { exec?: () => Promise<unknown> }).exec === "function"
-      ? (query as { exec: () => Promise<unknown> }).exec()
+    const queryPromise = typeof (query as { exec?: () => Promise<unknown>; cancel?: () => void }).exec === "function"
+      ? (query as { exec: () => Promise<unknown>; cancel?: () => void }).exec()
       : Promise.resolve(query);
 
+    const timeoutId = setTimeout(() => {
+      const cancelable = query as { cancel?: () => void };
+      if (typeof cancelable.cancel === "function") {
+        cancelable.cancel();
+      }
+    }, AUTH_QUERY_TIMEOUT_MS);
+
     const user = await Promise.race([
-      userPromise,
+      queryPromise,
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Auth query timeout")), AUTH_QUERY_TIMEOUT_MS)
       ),
-    ]);
+    ]).finally(() => clearTimeout(timeoutId));
 
     if (!user) {
       logAuthFailure(req, "User not found");

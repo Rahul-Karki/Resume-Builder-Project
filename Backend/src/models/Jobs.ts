@@ -34,6 +34,7 @@ const JobSchema : Schema = new Schema<IJobs>(
     },{timestamps : true}
 );
 
-export default mongoose.model<IJobs>("Job",JobSchema);
+JobSchema.index({ recruiterId: 1, createdAt: -1 });
+JobSchema.index({ title: "text", company: "text", description: "text" });
 
-// later add indexes
+export default mongoose.model<IJobs>("Job",JobSchema);

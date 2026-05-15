@@ -41,19 +41,18 @@ const isExcludedPath = (url?: string) => {
 };
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-const CSRF_STORAGE_KEY = "csrfToken";
 const MAX_TRANSIENT_RETRIES = 3;
 
-const getStoredCsrfToken = () => localStorage.getItem(CSRF_STORAGE_KEY) ?? "";
-
-const setStoredCsrfToken = (token?: unknown) => {
-  if (typeof token === "string" && token.trim().length > 0) {
-    localStorage.setItem(CSRF_STORAGE_KEY, token);
-  }
+const parseCookieValue = (name: string): string => {
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=(.*?)(?:;|$)`));
+  return match ? decodeURIComponent(match[1]) : "";
 };
 
-const clearStoredCsrfToken = () => {
-  localStorage.removeItem(CSRF_STORAGE_KEY);
+const getStoredCsrfToken = () => parseCookieValue("csrfToken");
+
+const setStoredCsrfToken = (token?: unknown) => {
+  // CSRF token is set via HTTP cookie by the server; this is a no-op on the client.
+  // We keep the function signature for compatibility but the cookie is the source of truth.
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -324,7 +323,6 @@ export async function bootstrapAuthSession() {
     try {
       await fetchRotatedCsrfToken();
     } catch {
-      clearStoredCsrfToken();
       // If token rotation fails we fall back to the next successful auth response.
     }
     return false;
@@ -386,7 +384,6 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch {
         localStorage.removeItem("accessToken");
-        clearStoredCsrfToken();
       }
     }
 
@@ -403,7 +400,6 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch {
         localStorage.removeItem("accessToken");
-        clearStoredCsrfToken();
       }
     }
 

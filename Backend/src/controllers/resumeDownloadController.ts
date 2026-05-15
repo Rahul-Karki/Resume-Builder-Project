@@ -461,6 +461,9 @@ export const streamResumeDownloadJobEvents: RequestHandler = async (req, res) =>
           // ignore
         }
       });
+      changeStream.on("error", () => {
+        try { changeStream.close(); } catch { /* ignore */ }
+      });
     } catch (err) {
       logger.info({ error: err }, "Resume job change stream not available; SSE will still deliver in-process events");
     }

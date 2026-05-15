@@ -3,7 +3,7 @@ import type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
 import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
-import Resume from "../../../Backend/src/models/Resume";
+import mongoose from "mongoose";
 import { analyzeGrammarIssues } from "./grammarAnalysis.processor";
 import { analyzeKeywordMatch } from "./jdMatch.processor";
 import { env } from "../config/env";
@@ -585,12 +585,10 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
         projects: enhancement.sectionScores?.projects ?? sectionScores.projects,
       };
 
+      const prevScore = job.data.previousOverallScore;
       const report: AtsAnalysisReport = {
         ...base,
-        // preserve previous score reported when job was queued
-        // (job.data.previousOverallScore is attached by controller when available)
-        // store as a plain number field on the persisted document
-        ...(job.data.previousOverallScore !== undefined ? { previousOverallScore: job.data.previousOverallScore } : {}),
+        ...(prevScore != null ? { previousOverallScore: Number(prevScore) } : {}),
         grade: enhancement.grade,
         targetKeywords: mergedKeywords,
         matchScore: keywordResult.matchScore,
@@ -814,18 +812,24 @@ export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
       { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
     );
 
-    await Resume.findOneAndUpdate(
-      { _id: job.data.resumeId, userId: job.data.userId },
+    const db = mongoose.connection.db;
+    if (!db) {
+      logger.warn({ jobId: job.data.analysisId }, "MongoDB not connected; skipping resume ATS score update");
+    } else {
+    await db.collection("resumes").findOneAndUpdate(
+      { _id: new mongoose.Types.ObjectId(job.data.resumeId), userId: new mongoose.Types.ObjectId(job.data.userId) },
       {
-        atsScore: report.overallScore,
-        atsStatus: report.status,
-        atsAnalyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
-        latestAtsAnalysis: report,
+        $set: {
+          atsScore: report.overallScore,
+          atsStatus: report.status,
+          atsAnalyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
+          latestAtsAnalysis: report,
+        },
       },
-      { new: true },
     ).catch((saveError: unknown) => {
       logger.warn({ saveError, jobId: job.data.analysisId, resumeId: job.data.resumeId }, "Failed to persist resume ATS score");
     });
+    }
 
     logger.info({ jobId: job.data.analysisId, resumeId: job.data.resumeId }, "ATS analysis job completed");
     return saved?.toObject() ?? report;

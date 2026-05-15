@@ -585,9 +585,10 @@ const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisRepo
         projects: enhancement.sectionScores?.projects ?? sectionScores.projects,
       };
 
+      const prevScore = job.data.previousOverallScore;
       const report: AtsAnalysisReport = {
         ...base,
-        ...(job.data.previousOverallScore !== undefined ? { previousOverallScore: job.data.previousOverallScore } : {}),
+        ...(prevScore != null ? { previousOverallScore: Number(prevScore) } : {}),
         grade: enhancement.grade,
         targetKeywords: mergedKeywords,
         matchScore: keywordResult.matchScore,

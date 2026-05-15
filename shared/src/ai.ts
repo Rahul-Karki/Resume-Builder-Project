@@ -123,6 +123,7 @@ export type AtsAnalysisReport = {
   questionsForUser?: string[];
   keywordPlacement?: AtsKeywordPlacement[];
   keywordGaps?: string[];
+  previousOverallScore?: number;
   verdict?: string;
   summary: string;
   analyzedAt?: string;

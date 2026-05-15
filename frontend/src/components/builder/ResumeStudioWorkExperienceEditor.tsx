@@ -4,7 +4,6 @@ import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, Pane
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api, improveResumeText, getLatestAtsAnalysis } from '@/services/api';
-import dynamic from 'react-dynamic-import';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
@@ -250,7 +249,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       try {
         if (resume?._id) {
           const res = await getLatestAtsAnalysis(resume._id);
-          setLatestAnalysis(res.data?.analysis ?? null);
+          setLatestAnalysis(res.analysis ?? null);
         }
       } catch {
         setLatestAnalysis(null);

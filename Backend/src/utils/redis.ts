@@ -29,7 +29,7 @@ const isNativeRedisUrl = (value: string) => {
 const hasRedisConfiguration = isNativeRedisUrl(env.REDIS_URL);
 const hasUpstashConfiguration = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
 
-const upstashBaseUrl = env.UPSTASH_REDIS_REST_URL.replace(/\/+$/, "");
+const getUpstashBaseUrl = () => env.UPSTASH_REDIS_REST_URL.replace(/\/+$/, "");
 
 // Per-process window counters to limit Upstash REST calls (soft budget)
 let upstashCallCount = 0;
@@ -72,7 +72,7 @@ const upstashCall = async (
 
   const encodedArgs = args.map((arg) => encodeURIComponent(String(arg))).join("/");
   const suffix = encodedArgs ? `/${encodedArgs}` : "";
-  const endpoint = `${upstashBaseUrl}/${command}${suffix}`;
+  const endpoint = `${getUpstashBaseUrl()}/${command}${suffix}`;
   const isWrite = new Set(["set", "del", "expire", "incr"]);
 
   const controller = new AbortController();

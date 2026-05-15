@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { generateAndDownloadPDF } from "../utils/enhancedPDFGenerator";
+import { generateAndDownloadPDF } from "../utils/pdfGenerator";
 import { openPrintPreviewForSelector } from "../utils/printPreview";
 
 type Props = {

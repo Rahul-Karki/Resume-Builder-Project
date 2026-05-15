@@ -145,7 +145,7 @@ test("resume CRUD works for an authenticated user", async () => {
   await agent
     .delete(`/api/resumes/${resumeId}`)
     .set("X-CSRF-Token", csrfToken)
-    .expect(200);
+    .expect(204);
 
   const listResponse = await agent
     .get("/api/resumes")

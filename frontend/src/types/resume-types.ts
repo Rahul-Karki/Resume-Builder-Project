@@ -328,7 +328,13 @@ export type {
 } from "../../../shared/src/ai";
 
 export type SortOption = "updatedAt" | "createdAt" | "title" | "completion";
-export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; }
+export type AiCreditsInfo = {
+  remaining: number;
+  resetAt?: string;
+  plan: "free" | "basic" | "premium" | "enterprise";
+};
+
+export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; aiCredits?: AiCreditsInfo; }
 
 // ─── ATS Analysis Types ────────────────────────────────────────────────────────
 

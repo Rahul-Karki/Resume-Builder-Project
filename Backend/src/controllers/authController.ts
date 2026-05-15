@@ -22,6 +22,8 @@ import {
   recordSuspiciousActivity,
 } from "../utils/businessMetrics";
 import { sendSuccess, sendCreated, sendBadRequest, sendUnauthorized, sendServerError } from "../utils/apiResponse";
+import { blacklistRefreshToken, blacklistAccessToken } from "../utils/tokenBlacklist";
+import { parseCookies } from "../utils/cookieParser";
 
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
@@ -36,9 +38,20 @@ const hasLinkedProvider = (user: { authProvider?: string[] }, provider: "local" 
 const logout = async (req: Request, res: Response) => {
   const span = startControllerSpan("auth.logout", req);
   try {
+    const cookies = parseCookies(req.headers.cookie);
+    const refreshToken = cookies.refreshToken;
+    const accessToken = cookies.accessToken;
+
+    if (refreshToken) {
+      await blacklistRefreshToken(refreshToken);
+    }
+    if (accessToken) {
+      await blacklistAccessToken(accessToken);
+    }
+
     clearAuthCookies(req, res);
     logLogout(req);
-    logger.info({ route: req.originalUrl }, "User logged out");
+    logger.info({ route: req.originalUrl, hadRefresh: !!refreshToken }, "User logged out with token blacklist");
     markSpanSuccess(span);
     return sendSuccess(res, { message: "Logged out successfully" });
   } catch (error) {

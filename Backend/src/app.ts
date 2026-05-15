@@ -38,6 +38,12 @@ export const createApp = () => {
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
+        // Allow absent Origin header for server-to-server requests in production
+        // and all server-to-server + browser requests in development/test
+        if (env.NODE_ENV === "production") {
+          callback(null, true);
+          return;
+        }
         callback(null, true);
         return;
       }

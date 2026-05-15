@@ -2,7 +2,7 @@ import type { Job } from "bullmq";
 import { createResumeDownloadFileName, resolveResumeDownloadUrl, type ResumeDownloadJobData } from "../../../shared/src/bullmq";
 import { env } from "../config/env";
 import crypto from "crypto";
-import { launchPuppeteerBrowser } from "../config/puppeteer";
+import { browserPool } from "../lib/browserPool";
 import { logger } from "../observability";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
 
@@ -279,7 +279,10 @@ export const generateResumePdfArtifact = async (
   options?: { timeoutMs?: number },
 ): Promise<ResumeDownloadArtifact> => {
   const timeoutMs = options?.timeoutMs ?? env.RESUME_DOWNLOAD_JOB_TIMEOUT_MS ?? 120000;
-  const browser = await launchPuppeteerBrowser();
+  if (browserPool.size === 0) {
+    await browserPool.start();
+  }
+  const browser = await browserPool.acquire();
   let timedOut = false;
   let timeoutHandle: NodeJS.Timeout | null = null;
   const fileName = createResumeDownloadFileName(jobId);
@@ -291,8 +294,6 @@ export const generateResumePdfArtifact = async (
     if (timeoutMs > 0) {
       timeoutHandle = setTimeout(() => {
         timedOut = true;
-        // Best-effort: close browser to abort any ongoing page operations.
-        void browser.close().catch(() => undefined);
       }, timeoutMs);
     }
     const page = await browser.newPage();
@@ -312,7 +313,6 @@ export const generateResumePdfArtifact = async (
           : `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}`;
 
         try {
-          // Keep preview wait short to avoid long export stalls on cold starts.
           await page.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: 12000 });
           await page.waitForSelector("#resume-export-root", { timeout: 4000 });
           loadedFrontendPreview = true;
@@ -356,16 +356,9 @@ export const generateResumePdfArtifact = async (
     } finally {
       await page.close().catch(() => undefined);
     }
-    } finally {
-      if (timeoutHandle) clearTimeout(timeoutHandle as NodeJS.Timeout);
-      try {
-        await browser.close().catch((error) => {
-          logger.warn({ error }, "Failed to close Puppeteer browser after PDF generation");
-        });
-      } catch (err) {
-        // ignore
-      }
-    }
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle as NodeJS.Timeout);
+  }
 
   if (timedOut) {
     throw new Error("Resume PDF generation timeout");

@@ -10,6 +10,7 @@ import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
 import { createAllIndexes } from "./config/indexes";
 import app from "./app";
 import { initResumeQueueEvents, closeResumeQueueEvents } from "./queue/resumeQueueEvents";
+import { browserPool } from "./lib/browserPool";
 initializeBackendSentry();
 
 const PORT = env.PORT;
@@ -36,6 +37,11 @@ const startServer = async () => {
   }
   void ensureAtsQueueReady().catch((error) => {
     logger.error({ error }, "ATS queue connection failed during startup");
+  });
+
+  // Pre-warm Puppeteer browser pool for PDF generation
+  void browserPool.start().catch((error) => {
+    logger.error({ error }, "Puppeteer browser pool warmup failed");
   });
 
   const server = app.listen(PORT, () => {
@@ -75,6 +81,7 @@ const startServer = async () => {
         }
         await closeResumeQueue();
         await closeAtsQueue();
+        await browserPool.shutdown();
         logger.info("Shutdown completed successfully");
         process.exit(0);
       } catch (error) {

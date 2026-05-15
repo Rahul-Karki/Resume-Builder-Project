@@ -15,6 +15,7 @@ const envPath = path.join(distRoot, "config", "env.js");
 const observabilityPath = path.join(distRoot, "observability.js");
 const controllerObservabilityPath = path.join(distRoot, "utils", "controllerObservability.js");
 const errorResponsePath = path.join(distRoot, "utils", "errorResponse.js");
+const tokenBlacklistPath = path.join(distRoot, "utils", "tokenBlacklist.js");
 
 function loadRefreshController(overrides = {}) {
   return loadWithMocks(refreshControllerPath, {
@@ -28,6 +29,7 @@ function loadRefreshController(overrides = {}) {
     [authCookiesPath]: {
       setAccessTokenCookie: overrides.setAccessTokenCookie ?? (() => {}),
       setCsrfCookie: overrides.setCsrfCookie ?? (() => "csrf-token"),
+      setAuthCookies: overrides.setAuthCookies ?? ((req, res, accessToken, refreshToken) => "csrf-token"),
     },
     [envPath]: {
       env: {
@@ -51,6 +53,11 @@ function loadRefreshController(overrides = {}) {
       markSpanSuccess: overrides.markSpanSuccess ?? (() => {}),
       markSpanError: overrides.markSpanError ?? (() => {}),
       finishControllerSpan: overrides.finishControllerSpan ?? (() => {}),
+    },
+    [tokenBlacklistPath]: {
+      isTokenBlacklisted: overrides.isTokenBlacklisted ?? (async () => false),
+      blacklistRefreshToken: overrides.blacklistRefreshToken ?? (async () => {}),
+      blacklistAccessToken: overrides.blacklistAccessToken ?? (async () => {}),
     },
     [errorResponsePath]: {
       sendErrorResponse: (_res, _error, fallback = {}) => {
@@ -133,9 +140,8 @@ test("refreshAccessToken returns 401 when refresh token cookie is missing", () =
   assert.equal(calls.setCsrfCookie, 0);
 });
 
-test("refreshAccessToken refreshes access cookie and returns csrf token for a valid refresh token", () => {
-  const setAccessTokenCalls = [];
-  const setCsrfCalls = [];
+test("refreshAccessToken refreshes access cookie and returns csrf token for a valid refresh token", async () => {
+  const setAuthCalls = [];
 
   const { refreshAccessToken } = loadRefreshController({
     parseCookies: () => ({ refreshToken: "refresh-token" }),
@@ -148,11 +154,8 @@ test("refreshAccessToken refreshes access cookie and returns csrf token for a va
       assert.equal(userId, "user-123");
       return "new-access-token";
     },
-    setAccessTokenCookie: (req, res, accessToken) => {
-      setAccessTokenCalls.push({ req, res, accessToken });
-    },
-    setCsrfCookie: (req, res) => {
-      setCsrfCalls.push({ req, res });
+    setAuthCookies: (_req, _res, accessToken, refreshToken) => {
+      setAuthCalls.push({ accessToken, refreshToken });
       return "csrf-token";
     },
   });
@@ -165,17 +168,17 @@ test("refreshAccessToken refreshes access cookie and returns csrf token for a va
   };
   const res = createRes();
 
-  refreshAccessToken(req, res);
+  await refreshAccessToken(req, res);
 
   assert.equal(res.jsonBody?.message, "Token refreshed");
   assert.equal(res.jsonBody?.csrfToken, "csrf-token");
   assert.equal(res.sendStatusCode, null);
-  assert.equal(setAccessTokenCalls.length, 1);
-  assert.equal(setAccessTokenCalls[0].accessToken, "new-access-token");
-  assert.equal(setCsrfCalls.length, 1);
+  assert.equal(setAuthCalls.length, 1);
+  assert.equal(setAuthCalls[0].accessToken, "new-access-token");
+  assert.ok(setAuthCalls[0].refreshToken.length > 0);
 });
 
-test("refreshAccessToken returns 403 when refresh token verification fails", () => {
+test("refreshAccessToken returns 403 when refresh token verification fails", async () => {
   const { refreshAccessToken } = loadRefreshController({
     parseCookies: () => ({ refreshToken: "refresh-token" }),
     verify: () => {
@@ -191,7 +194,7 @@ test("refreshAccessToken returns 403 when refresh token verification fails", () 
   };
   const res = createRes();
 
-  refreshAccessToken(req, res);
+  await refreshAccessToken(req, res);
 
   assert.equal(res.statusCode, 403);
   assert.equal(res.jsonBody.message, "Invalid refresh token");

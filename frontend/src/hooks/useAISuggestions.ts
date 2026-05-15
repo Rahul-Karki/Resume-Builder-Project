@@ -80,7 +80,7 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
         requestManager.completeRequest(requestKey);
         return { success: true, data };
       } catch (error) {
-        const axiosErr = error as { code?: string; message?: string; response?: { status?: number } };
+        const axiosErr = error as { code?: string; message?: string; response?: { status?: number; data?: unknown } };
         const isAborted = axiosErr?.code === "ERR_CANCELED" || (error instanceof Error && error.name === "AbortError");
         const isTimeout = axiosErr?.code === "ECONNABORTED" || axiosErr?.message === "Request timeout";
         const status = axiosErr?.response?.status;

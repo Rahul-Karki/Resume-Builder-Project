@@ -69,7 +69,6 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
     "@types/passport-google-oauth20": "^2.0.17",
-    "@types/react": "^19.2.14",
     "@types/redis-info": "^3.0.3",
     "@types/supertest": "^6.0.3",
     "mongodb-memory-server": "^10.2.3",
