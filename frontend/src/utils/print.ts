@@ -2,7 +2,7 @@ export async function printResume(selector = '.resume-preview') {
   const root = document.querySelector<HTMLElement>(selector);
   if (!root) throw new Error('Resume element not found for printing');
 
-  // Wait for fonts
+  // ── Wait for fonts ──
   await document.fonts?.ready;
   const usedFamilies = new Set<string>();
   const allEls = root.querySelectorAll<HTMLElement>('*');
@@ -14,7 +14,7 @@ export async function printResume(selector = '.resume-preview') {
     Array.from(usedFamilies).map(f => document.fonts?.load(`1em "${f}"`))
   );
 
-  // Wait for images
+  // ── Wait for images ──
   const imgs = Array.from(root.querySelectorAll<HTMLImageElement>('img'));
   await Promise.all(imgs.map(img => {
     if (img.complete) return Promise.resolve();
@@ -23,48 +23,114 @@ export async function printResume(selector = '.resume-preview') {
 
   await new Promise(resolve => setTimeout(resolve, 200));
 
-  // Clone the visible DOM (no separate render — exact same element tree)
+  // ── Pre-compute styles from IN-DOM elements (always reliable) ──
+  const origAll = [root, ...root.querySelectorAll<HTMLElement>('*')];
+  const origStyles = origAll.map(e => window.getComputedStyle(e));
+
+  // ── Clone the visible DOM ──
   const clone = root.cloneNode(true) as HTMLElement;
   clone.classList.add('__print-clone');
   clone.querySelectorAll('style, script').forEach((n) => n.remove());
+  const cloneAll = [clone, ...clone.querySelectorAll<HTMLElement>('*')];
 
-  // Remove all transforms and overflow:hidden so layout is at full 1:1 size
-  clone.style.transform = 'none';
-  clone.style.webkitTransform = 'none';
-  clone.style.overflow = 'visible';
-  const allChildren = Array.from(clone.querySelectorAll<HTMLElement>('*'));
-  for (const el of allChildren) {
-    const cs = window.getComputedStyle(el);
-    if (cs.overflow === 'hidden' || cs.overflow === 'scroll' || cs.overflow === 'auto') {
-      el.style.overflow = 'visible';
+  // ── Fix transform/overflow on clone using ORIGINAL computed styles ──
+  for (let i = 0; i < origAll.length && i < cloneAll.length; i++) {
+    const os = origStyles[i];
+    const c = cloneAll[i];
+
+    const ov = os.overflow;
+    if (ov === 'hidden' || ov === 'scroll' || ov === 'auto') {
+      c.style.overflow = 'visible';
     }
-    if (cs.transform && cs.transform !== 'none') {
-      el.style.transform = 'none';
-      el.style.webkitTransform = 'none';
+    const tr = os.transform;
+    if (tr && tr !== 'none') {
+      c.style.transform = 'none';
+      c.style.webkitTransform = 'none';
     }
   }
 
-  // Measure content at A4 width (794px @ 96dpi = 210mm)
+  // ── Copy computed background colors (only solid — never overwrite gradients) ──
+  for (let i = 0; i < origAll.length && i < cloneAll.length; i++) {
+    const os = origStyles[i];
+    const c = cloneAll[i];
+
+    const bg = os.backgroundColor;
+    if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== '') {
+      c.style.backgroundColor = bg;
+    }
+    const shadow = os.boxShadow;
+    if (shadow && shadow !== 'none') {
+      c.style.boxShadow = shadow;
+    }
+    const border = os.border;
+    if (border && border !== 'none' && border !== '') {
+      c.style.border = border;
+    }
+    const radius = os.borderRadius;
+    if (radius && radius !== 'none' && radius !== '') {
+      c.style.borderRadius = radius;
+    }
+  }
+
+  // ── Measure content at A4 width ──
   const A4_W_PX = 794;
   const A4_H_PX = 1123;
+
   clone.style.position = 'fixed';
   clone.style.left = '-9999px';
   clone.style.top = '0';
   clone.style.width = A4_W_PX + 'px';
+  clone.style.margin = '0';
+  clone.style.padding = '0';
+  clone.style.boxShadow = 'none';
+  clone.style.borderRadius = '0';
+  clone.style.backgroundColor = '#ffffff';
   document.body.appendChild(clone);
 
   const contentHeight = clone.scrollHeight;
-  const fitScale = Math.min(1, A4_H_PX / contentHeight);
-
-  // Rebuild for print: outer A4 container, inner scaled content
   document.body.removeChild(clone);
 
+  // ── Rebuild for print: outer A4 container, inner auto-scaled ──
   const printClone = root.cloneNode(true) as HTMLElement;
   printClone.classList.add('__print-clone');
   printClone.querySelectorAll('style, script').forEach((n) => n.remove());
 
-  // Set printClone to A4 size with overflow hidden
-  printClone.style.cssText = '';
+  const pcAll = [printClone, ...printClone.querySelectorAll<HTMLElement>('*')];
+
+  // Apply same fixes to printClone
+  for (let i = 0; i < origAll.length && i < pcAll.length; i++) {
+    const os = origStyles[i];
+    const c = pcAll[i];
+
+    const ov = os.overflow;
+    if (ov === 'hidden' || ov === 'scroll' || ov === 'auto') {
+      c.style.overflow = 'visible';
+    }
+    const tr = os.transform;
+    if (tr && tr !== 'none') {
+      c.style.transform = 'none';
+      c.style.webkitTransform = 'none';
+    }
+
+    const bg = os.backgroundColor;
+    if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== '') {
+      c.style.backgroundColor = bg;
+    }
+    const shadow = os.boxShadow;
+    if (shadow && shadow !== 'none') {
+      c.style.boxShadow = shadow;
+    }
+    const border = os.border;
+    if (border && border !== 'none' && border !== '') {
+      c.style.border = border;
+    }
+    const radius = os.borderRadius;
+    if (radius && radius !== 'none' && radius !== '') {
+      c.style.borderRadius = radius;
+    }
+  }
+
+  // Set printClone to A4 size
   printClone.style.width = A4_W_PX + 'px';
   printClone.style.height = A4_H_PX + 'px';
   printClone.style.overflow = 'hidden';
@@ -72,60 +138,27 @@ export async function printResume(selector = '.resume-preview') {
   printClone.style.padding = '0';
   printClone.style.boxSizing = 'border-box';
   printClone.style.backgroundColor = '#ffffff';
-  printClone.style.background = '#ffffff';
+  printClone.style.boxShadow = 'none';
+  printClone.style.borderRadius = '0';
 
-  // Fix overflow/transform on all children of the print clone
-  for (const c of [printClone, ...printClone.querySelectorAll<HTMLElement>('*')]) {
-    const ov = c.style.overflow;
-    if (ov === 'hidden' || ov === 'scroll' || ov === 'auto') {
-      c.style.overflow = 'visible';
+  // Scale inner content to fit single page if needed
+  const fitScale = Math.min(1, A4_H_PX / contentHeight);
+  if (fitScale < 1) {
+    const inner = document.createElement('div');
+    inner.style.width = (A4_W_PX / fitScale) + 'px';
+    inner.style.transformOrigin = 'top left';
+    inner.style.transform = `scale(${fitScale})`;
+    inner.style.overflow = 'visible';
+    inner.style.backgroundColor = '#ffffff';
+    while (printClone.firstChild) {
+      inner.appendChild(printClone.firstChild);
     }
-    const tr = c.style.transform;
-    if (tr && tr !== 'none') {
-      c.style.transform = 'none';
-      c.style.webkitTransform = 'none';
-    }
+    printClone.appendChild(inner);
   }
 
-  // ── Copy computed background colors to clone (only solid — never overwrite gradients) ──
-  const originals = [root, ...root.querySelectorAll<HTMLElement>('*')];
-  const clones = [printClone, ...printClone.querySelectorAll<HTMLElement>('*')];
-  for (let i = 0; i < originals.length && i < clones.length; i++) {
-    const cs = window.getComputedStyle(originals[i]);
-    // Only copy backgroundColor if it's a solid visible color
-    const bg = cs.backgroundColor;
-    if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== '') {
-      clones[i].style.backgroundColor = bg;
-    }
-    // Copy boxShadow if present
-    const shadow = cs.boxShadow;
-    if (shadow && shadow !== 'none') {
-      clones[i].style.boxShadow = shadow;
-    }
-    // Copy border if present
-    const border = cs.border;
-    if (border && border !== 'none' && border !== '') {
-      clones[i].style.border = border;
-    }
-    const radius = cs.borderRadius;
-    if (radius && radius !== 'none' && radius !== '') {
-      clones[i].style.borderRadius = radius;
-    }
-  }
-
-  // Wrap all children in a scaled inner div
-  const inner = document.createElement('div');
-  inner.style.width = fitScale < 1 ? (A4_W_PX / fitScale) + 'px' : '100%';
-  inner.style.transformOrigin = 'top left';
-  if (fitScale < 1) inner.style.transform = `scale(${fitScale})`;
-  inner.style.overflow = 'visible';
-
-  while (printClone.firstChild) {
-    inner.appendChild(printClone.firstChild);
-  }
-  printClone.appendChild(inner);
   document.body.appendChild(printClone);
 
+  // ── Inject print CSS ──
   const style = document.createElement('style');
   style.setAttribute('data-print-helper', 'true');
   style.textContent = `

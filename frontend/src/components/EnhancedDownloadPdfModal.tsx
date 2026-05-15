@@ -33,34 +33,40 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       setMessage('Preparing layout...');
       setProgress(10);
 
-      // ── Clone the visible DOM — NEVER modify the original ──
+      // ── Pre-compute styles from IN-DOM elements (always reliable) ──
+      const origAll = [el, ...el.querySelectorAll<HTMLElement>('*')];
+      const origStyles = origAll.map(e => window.getComputedStyle(e));
+
+      // ── Clone — never modify the original DOM ──
       const clone = el.cloneNode(true) as HTMLElement;
+      const cloneAll = [clone, ...clone.querySelectorAll<HTMLElement>('*')];
 
-      // Remove transform/overflow from clone so layout is at 1:1
-      clone.style.transform = 'none';
-      clone.style.webkitTransform = 'none';
-      clone.style.overflow = 'visible';
-      clone.style.height = 'auto';
-      clone.style.position = 'static';
-      clone.style.margin = '0';
-      clone.style.boxShadow = 'none';
-      clone.style.borderRadius = '0';
+      // ── Fix transform/overflow on clone using ORIGINAL computed styles ──
+      for (let i = 0; i < origAll.length && i < cloneAll.length; i++) {
+        const os = origStyles[i];
+        const c = cloneAll[i];
 
-      // Also fix inner overflow/transform on all clone children
-      const cloneChildren = Array.from(clone.querySelectorAll<HTMLElement>('*'));
-      for (const c of [clone, ...cloneChildren]) {
-        const ov = c.style.overflow;
+        // Fix overflow (class-based or inline)
+        const ov = os.overflow;
         if (ov === 'hidden' || ov === 'scroll' || ov === 'auto') {
           c.style.overflow = 'visible';
         }
-        const tr = c.style.transform;
+
+        // Fix transform
+        const tr = os.transform;
         if (tr && tr !== 'none') {
           c.style.transform = 'none';
           c.style.webkitTransform = 'none';
         }
       }
 
-      // Place clone offscreen for measurement
+      // Root-specific fixes
+      clone.style.position = 'static';
+      clone.style.margin = '0';
+      clone.style.boxShadow = 'none';
+      clone.style.borderRadius = '0';
+
+      // ── Place clone offscreen ──
       wrapper = document.createElement('div');
       wrapper.style.position = 'fixed';
       wrapper.style.left = '-9999px';
@@ -80,62 +86,65 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       await document.fonts?.ready;
       await waitForFonts();
 
-      // ── Copy computed background colors to clone (only solid colors — skip transparent/gradients) ──
+      // ── Copy computed background colors (only solid — never overwrite gradients) ──
       setMessage('Applying styles...');
       setProgress(35);
 
-      const originals = [el, ...el.querySelectorAll<HTMLElement>('*')];
-      const clones = [clone, ...clone.querySelectorAll<HTMLElement>('*')];
+      for (let i = 0; i < origAll.length && i < cloneAll.length; i++) {
+        const os = origStyles[i];
+        const c = cloneAll[i];
 
-      for (let i = 0; i < originals.length && i < clones.length; i++) {
-        const cs = window.getComputedStyle(originals[i]);
-
-        // Only copy backgroundColor if it's a solid visible color
-        const bg = cs.backgroundColor;
+        // backgroundColor: only if solid visible color
+        const bg = os.backgroundColor;
         if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== '') {
-          clones[i].style.backgroundColor = bg;
+          c.style.backgroundColor = bg;
         }
 
-        // Copy boxShadow if present (class-based shadows may not render in canvas)
-        const shadow = cs.boxShadow;
+        // boxShadow
+        const shadow = os.boxShadow;
         if (shadow && shadow !== 'none') {
-          clones[i].style.boxShadow = shadow;
+          c.style.boxShadow = shadow;
         }
 
-        // Copy border styles if present
-        const border = cs.border;
+        // border
+        const border = os.border;
         if (border && border !== 'none' && border !== '') {
-          clones[i].style.border = border;
+          c.style.border = border;
         }
-        const radius = cs.borderRadius;
+        const radius = os.borderRadius;
         if (radius && radius !== 'none' && radius !== '') {
-          clones[i].style.borderRadius = radius;
+          c.style.borderRadius = radius;
         }
       }
 
-      // Ensure root container has explicit white background
+      // Ensure root has white background
       clone.style.backgroundColor = '#ffffff';
 
-      // Measure content height for scaling
+      // ── Measure + auto-scale to fit single A4 page ──
       const contentHeight = clone.scrollHeight;
-      const fitScale = Math.min(1, A4_H_PX / contentHeight);
 
-      if (fitScale < 1) {
-        // Wrap in scaled inner div to fit one page
+      if (contentHeight > A4_H_PX) {
+        const fitScale = A4_H_PX / contentHeight;
         const inner = document.createElement('div');
         inner.style.width = (A4_W_PX / fitScale) + 'px';
         inner.style.transformOrigin = 'top left';
         inner.style.transform = `scale(${fitScale})`;
         inner.style.overflow = 'visible';
+        // Set background on inner to ensure full coverage
+        inner.style.backgroundColor = '#ffffff';
+
         while (clone.firstChild) {
           inner.appendChild(clone.firstChild);
         }
         clone.appendChild(inner);
       }
 
-      // ── Capture the clone ──
+      // ── Capture ──
       setMessage('Rendering canvas...');
       setProgress(50);
+
+      // Ensure clean white backdrop
+      clone.style.backgroundColor = '#ffffff';
 
       const canvas = await html2canvas(clone, {
         scale: 3,
@@ -192,6 +201,7 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
     }
   };
 
+  // ... JSX (unchanged)
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape' && !generating) onClose();
   };
