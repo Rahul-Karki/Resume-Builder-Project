@@ -58,6 +58,7 @@ const baseEnvSchema = z.object({
   RESUME_DOWNLOAD_JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(2),
   RESUME_DOWNLOAD_BACKOFF_DELAY_MS: z.coerce.number().int().min(1000).default(5000),
   RESUME_DOWNLOAD_STALE_PENDING_MS: z.coerce.number().int().min(60000).default(900000),
+  RESUME_DOWNLOAD_JOB_TIMEOUT_MS: z.coerce.number().int().min(5000).default(120000),
   ATS_ANALYSIS_QUEUE_PREFIX: z.string().min(1).default("resume-builder-ats"),
   ATS_ANALYSIS_JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(2),
   ATS_ANALYSIS_BACKOFF_DELAY_MS: z.coerce.number().int().min(1000).default(3000),

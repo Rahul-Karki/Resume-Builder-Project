@@ -378,7 +378,11 @@ export const processResumeDownloadJob = async (job: Job<ResumeDownloadJobData>) 
     const previewToken = crypto.randomBytes(12).toString("hex");
     await ResumeDownloadJob.updateOne({ jobId: String(job.id) }, { $set: { previewToken } });
 
-    const artifact = await generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id), previewToken);
+    // Guard against indefinite PDF generation by enforcing a timeout.
+    const timeoutMs = env.RESUME_DOWNLOAD_JOB_TIMEOUT_MS ?? 120000;
+    const generatePromise = generateResumePdfArtifact(job.data.resume as ResumeSnapshot, job.data.preset, String(job.id), previewToken);
+    const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Resume PDF generation timeout")), timeoutMs));
+    const artifact = await Promise.race([generatePromise, timeoutPromise]);
 
     const pdfSizeBytes = artifact.pdfBuffer.length;
     const pdfSizeMb = pdfSizeBytes / (1024 * 1024);
