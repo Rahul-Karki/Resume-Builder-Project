@@ -83,12 +83,31 @@ const toBuffer = (value: unknown) => {
   if (value && typeof value === "object") {
     const record = value as Record<string, unknown>;
 
-    // Handle MongoDB Binary BSON type: { type: 0, data: [...] }
+    // Handle MongoDB / BSON Binary explicitly
+    if (record._bsontype === "Binary") {
+      if (record.buffer instanceof Uint8Array) {
+        return Buffer.from(record.buffer);
+      }
+      if (Buffer.isBuffer(record.buffer)) {
+        return record.buffer;
+      }
+      // sometimes binary data is exposed differently in older/newer bson
+      const binData = (record as any).value?.();
+      if (binData instanceof Uint8Array) {
+        return Buffer.from(binData);
+      }
+    }
+
+    // Handle MongoDB Binary BSON type JSON stringified: { type: 'Buffer', data: [...] }
     if (Array.isArray(record.data)) {
       return Buffer.from(record.data as number[]);
     }
 
     // Handle nested buffer objects
+    if (record.buffer instanceof Uint8Array) {
+      return Buffer.from(record.buffer);
+    }
+
     if (record.buffer instanceof ArrayBuffer) {
       return Buffer.from(record.buffer);
     }
