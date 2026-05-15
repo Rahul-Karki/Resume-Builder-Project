@@ -1,19 +1,28 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
-import Login from "./pages/Login"
-import Signup from "./pages/Signup"
-import ForgotPassword from "./pages/ResetPassword"
-import Home from "./pages/Home"
-import Templates from "./pages/Templates"
-import ResumeBuilder from "./pages/ResumeBuilder"
-import MyResumePage from "./pages/MyResumePage"
+import { lazy, Suspense } from "react"
 import { RequireRole } from "./components/auth/RequireRole"
-import AdminLayout from "./pages/AdminLayout"
-import { AdminDashboard } from "./pages/AdminDashboard"
-import { AdminTemplates } from "./pages/AdminTemplates"
-import { AdminQueues } from "./pages/AdminQueues"
-import Unauthorized from "./pages/Unauthorized"
-import NotFound from "./pages/NotFound"
 import { ErrorBoundary } from "./components/ErrorBoundary"
+
+// Lazy-loaded route components — loaded only when navigated to
+const Login = lazy(() => import("./pages/Login"))
+const Signup = lazy(() => import("./pages/Signup"))
+const ForgotPassword = lazy(() => import("./pages/ResetPassword"))
+const Home = lazy(() => import("./pages/Home"))
+const Templates = lazy(() => import("./pages/Templates"))
+const ResumeBuilder = lazy(() => import("./pages/ResumeBuilder"))
+const MyResumePage = lazy(() => import("./pages/MyResumePage"))
+const AdminLayout = lazy(() => import("./pages/AdminLayout"))
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard").then(m => ({ default: m.AdminDashboard })))
+const AdminTemplates = lazy(() => import("./pages/AdminTemplates").then(m => ({ default: m.AdminTemplates })))
+const AdminQueues = lazy(() => import("./pages/AdminQueues").then(m => ({ default: m.AdminQueues })))
+const Unauthorized = lazy(() => import("./pages/Unauthorized"))
+const NotFound = lazy(() => import("./pages/NotFound"))
+
+const PageLoading = () => (
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#0A0A0A", color: "#888", fontFamily: "sans-serif" }}>
+    Loading...
+  </div>
+)
 
 function App() {
   return (
@@ -23,29 +32,31 @@ function App() {
       }}
     >
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Home />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/reset-password" element={<ForgotPassword />} />
-          <Route path ="/templates" element={<Templates />} />
-          <Route path="/builder" element={<ResumeBuilder />} />
-          <Route path="/resumes" element={<MyResumePage />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route
-            path="/admin"
-            element={
-              <RequireRole allowedRoles={["admin"]}>
-                <AdminLayout />
-              </RequireRole>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="templates" element={<AdminTemplates />} />
-            <Route path="queues" element={<AdminQueues />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/reset-password" element={<ForgotPassword />} />
+            <Route path="/templates" element={<Templates />} />
+            <Route path="/builder" element={<ResumeBuilder />} />
+            <Route path="/resumes" element={<MyResumePage />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route
+              path="/admin"
+              element={
+                <RequireRole allowedRoles={["admin"]}>
+                  <AdminLayout />
+                </RequireRole>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="templates" element={<AdminTemplates />} />
+              <Route path="queues" element={<AdminQueues />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </ErrorBoundary>
   )

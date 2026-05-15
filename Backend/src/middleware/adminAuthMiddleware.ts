@@ -61,7 +61,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     req.user = { id: String(user._id), role: user.role, name: user.name };
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Invalid or expired token." });
+    return sendErrorResponse(res, new AuthError("Invalid or expired token.", { code: "AUTH_REQUIRED" }));
   }
 }
 

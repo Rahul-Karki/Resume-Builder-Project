@@ -154,11 +154,7 @@ export function ExternalLinkIcon() {
 }
 
 export function isLinkedInUrl(url: string): boolean {
-  const linkedinPatterns = [
-    /linkedin\.com/i,
-    /in\.com/i,
-  ];
-  return linkedinPatterns.some(pattern => pattern.test(url));
+  return /linkedin\.com/i.test(url);
 }
 
 export function isGitHubUrl(url: string): boolean {

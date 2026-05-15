@@ -68,5 +68,6 @@ export const authMiddleware = async (
     }
     logAuthFailure(req, "Invalid token");
     sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
+    return;
   }
 };

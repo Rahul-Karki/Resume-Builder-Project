@@ -119,7 +119,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
               <div key={i} className="res-entry">
                 <div className="res-head">
                   <div className="res-left">
-                    <div className="res-main" style={{ color: style.headingColor }}><span className="res-major-bullet">●</span>{entry.institution}</div>
+                    <div className="res-main" style={{ color: style.headingColor }}><span className="res-major-bullet">{style.bulletStyle}</span>{entry.institution}</div>
                     <div className="res-sub">{entry.degree}{entry.field ? ` in ${entry.field}` : ""}{entry.cgpa ? `; GPA: ${entry.cgpa}` : ""}</div>
                   </div>
                   <div className="res-right" style={{ color: style.mutedColor }}>{entry.year}</div>
@@ -137,7 +137,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
               <div key={i} className="res-entry">
                 <div className="res-head">
                   <div className="res-left">
-                    <div className="res-main" style={{ color: style.headingColor }}><span className="res-major-bullet">●</span>{entry.company}</div>
+                    <div className="res-main" style={{ color: style.headingColor }}><span className="res-major-bullet">{style.bulletStyle}</span>{entry.company}</div>
                     <div className="res-sub">{entry.role}</div>
                   </div>
                   <div className="res-right" style={{ color: style.mutedColor }}>
@@ -166,7 +166,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
             {s.projects.map((project, i) => (
               <div key={i} className="res-project">
                 <span className="res-project-name" style={{ color: style.headingColor }}>
-                  <span className="res-major-bullet">●</span>
+                  <span className="res-major-bullet">{style.bulletStyle}</span>
                   {project.link ? (
                     <a className="res-link" href={toAbsoluteUrl(project.link)} target="_blank" rel="noreferrer">{project.name}<ExternalLinkIcon /></a>
                   ) : (

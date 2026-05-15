@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { AdminTemplate, TemplateFormData, TemplateStatus } from "../types/admin.types";
 import { api } from "@/services/api";
 import type { AxiosError } from "axios";
@@ -27,10 +27,22 @@ export function useAdminTemplates() {
   const [error,     setError]     = useState<string | null>(null);
   const [toast,     setToast]     = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [saving,    setSaving]    = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((msg: string, type: "success" | "error" = "success") => {
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3200);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 3200);
+  }, []);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
   }, []);
 
   // ── Fetch all ─────────────────────────────────────────────────────────────

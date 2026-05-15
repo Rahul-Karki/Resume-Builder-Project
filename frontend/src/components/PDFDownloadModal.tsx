@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { generateAndDownloadPDF } from "../utils/enhancedPDFGenerator";
 import { openPrintPreviewForSelector } from "../utils/printPreview";
 
 type Props = {
@@ -31,8 +32,7 @@ export default function PDFDownloadModal({ open, onClose, resumeSelector, onDown
       setMessage('Preparing preview...');
       setProgress(10);
 
-      // Use the existing PDF generation logic
-      await generatePDFWithFallback(root, {
+      await generateAndDownloadPDF(root, {
         filename,
         orientation,
         pageSize,
@@ -234,17 +234,3 @@ export default function PDFDownloadModal({ open, onClose, resumeSelector, onDown
   );
 }
 
-// Simple PDF generation function for fallback
-async function generatePDFWithFallback(element: HTMLElement, options: any): Promise<void> {
-  try {
-    // Try to use existing logic if available
-    if (typeof generateAndDownloadPDF === 'function') {
-      await generateAndDownloadPDF(element, options);
-    } else {
-      // Fallback to basic implementation
-      throw new Error('PDF generation not available');
-    }
-  } catch (error) {
-    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}

@@ -1,4 +1,4 @@
-import { ResumeDocument, marginMap, spacingMap } from "../../types/resume-types";
+import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   ExternalLinkIcon,
   formatCertification,

@@ -203,10 +203,12 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     const user = await User.findOne({ email });
 
+    // Always return the same message regardless of whether the user exists
+    // to prevent email enumeration attacks
     if (!user) {
       logger.warn({ email }, "Forgot password user not found");
-      return res.status(404).json({
-        message: "User not found",
+      return res.status(200).json({
+        message: "If an account with that email exists, a password reset link has been sent.",
       });
     }
 
@@ -327,8 +329,8 @@ const resetPassword = async (req: Request, res: Response) => {
 
     if (!user) {
       logger.warn({ route: req.originalUrl }, "Reset password user not found");
-      return res.status(404).json({
-        message: "User not found",
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
       });
     }
 
@@ -371,8 +373,8 @@ const resendResetLink = async (req: Request, res: Response) => {
 
     if (!user) {
       logger.warn({ email }, "Resend reset link user not found");
-      return res.status(404).json({
-        message: "User not found",
+      return res.status(200).json({
+        message: "If an account with that email exists, a password reset link has been sent.",
       });
     }
 
