@@ -106,11 +106,10 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
           c.style.boxShadow = shadow;
         }
 
-        // border
-        const border = os.border;
-        if (border && border !== 'none' && border !== '') {
-          c.style.border = border;
-        }
+        // Do NOT copy computed border shorthand — it overwrites
+        // inline border-top/bottom/left/right on elements like <hr>.
+        // Inline borders are preserved by cloneNode. Class-based borders
+        // are preserved by className on the clone.
         const radius = os.borderRadius;
         if (radius && radius !== 'none' && radius !== '') {
           c.style.borderRadius = radius;

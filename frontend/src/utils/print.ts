@@ -62,10 +62,6 @@ export async function printResume(selector = '.resume-preview') {
     if (shadow && shadow !== 'none') {
       c.style.boxShadow = shadow;
     }
-    const border = os.border;
-    if (border && border !== 'none' && border !== '') {
-      c.style.border = border;
-    }
     const radius = os.borderRadius;
     if (radius && radius !== 'none' && radius !== '') {
       c.style.borderRadius = radius;
@@ -120,15 +116,15 @@ export async function printResume(selector = '.resume-preview') {
     if (shadow && shadow !== 'none') {
       c.style.boxShadow = shadow;
     }
-    const border = os.border;
-    if (border && border !== 'none' && border !== '') {
-      c.style.border = border;
-    }
     const radius = os.borderRadius;
     if (radius && radius !== 'none' && radius !== '') {
       c.style.borderRadius = radius;
     }
   }
+  // Note: we do NOT copy computed border shorthand — it would overwrite
+  // inline border-top/bottom/left/right on <hr> dividers and similar.
+  // Inline borders are preserved by cloneNode. Class-based borders are
+  // preserved by className.
 
   // Set printClone to A4 size
   printClone.style.width = A4_W_PX + 'px';
