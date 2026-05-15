@@ -177,6 +177,23 @@
     overflow: visible !important;
   }
 
+  /* When preparing to print, make the on-screen preview match printed dimensions
+     We add/remove this class dynamically from the print helper so the preview
+     doesn't jump for normal editing but matches the printed output during print. */
+  .resume-preview.printing {
+    position: relative !important;
+    display: block !important;
+    left: auto !important;
+    top: auto !important;
+    width: calc(210mm - 24mm) !important;
+    max-width: none !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    background: white !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+  }
+
   /* Preserve layout and avoid transforms */
   .resume-preview, .resume-preview * {
     -webkit-transform: none !important;

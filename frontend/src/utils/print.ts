@@ -17,7 +17,24 @@ export async function printResume(selector = '.resume-preview') {
   // Small delay to ensure styles/layout stabilized
   await new Promise(r => setTimeout(r, 120));
 
-  window.print();
+  // Apply a temporary printing class so the on-screen preview matches printed layout
+  const printingClass = 'printing';
+  root.classList.add(printingClass);
+
+  // Ensure we remove the class after printing — use afterprint if available
+  const cleanup = () => {
+    try { root.classList.remove(printingClass); } catch {}
+    try { window.removeEventListener('afterprint', cleanup); } catch {}
+  };
+  window.addEventListener('afterprint', cleanup);
+
+  // Call print (this blocks in many browsers until print dialog closes)
+  try {
+    window.print();
+  } finally {
+    // Fallback cleanup in case afterprint doesn't fire
+    setTimeout(cleanup, 1000);
+  }
 }
 
 export default printResume;
