@@ -21,6 +21,7 @@ export async function printResume(selector = '.resume-preview') {
   const clone = root.cloneNode(true) as HTMLElement;
   clone.classList.add('__print-clone');
   clone.setAttribute('aria-hidden', 'true');
+  clone.querySelectorAll('style, script').forEach((node) => node.remove());
   // ensure clone is direct child of body
   document.body.appendChild(clone);
 
