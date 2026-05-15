@@ -64,7 +64,29 @@ const openPdfBlobInNewTab = (downloadUrl: string, preopenedWindow?: Window | nul
 
     try {
       if (preopenedWindow && !preopenedWindow.closed) {
-        preopenedWindow.location.href = objectUrl;
+        const html = `<!doctype html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>Resume PDF</title>
+              <style>
+                html, body { margin: 0; width: 100%; height: 100%; background: #111; color: #f3f4f6; font-family: system-ui, sans-serif; }
+                .shell { display: flex; flex-direction: column; height: 100%; }
+                .toolbar { padding: 12px 16px; background: #18181b; border-bottom: 1px solid #27272a; font-size: 14px; }
+                .viewer { flex: 1; width: 100%; border: 0; background: #111; }
+                a { color: #c8f55a; }
+              </style>
+            </head>
+            <body>
+              <div class="shell">
+                <div class="toolbar">Loading PDF preview. If it does not appear, <a href="${objectUrl}" target="_blank" rel="noreferrer">open the PDF directly</a>.</div>
+                <iframe class="viewer" src="${objectUrl}"></iframe>
+              </div>
+            </body>
+          </html>`;
+        preopenedWindow.document.open();
+        preopenedWindow.document.write(html);
+        preopenedWindow.document.close();
       } else {
         window.open(objectUrl, '_blank');
       }
