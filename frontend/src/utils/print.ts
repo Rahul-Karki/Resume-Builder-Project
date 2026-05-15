@@ -71,26 +71,46 @@ export async function printResume(selector = '.resume-preview') {
   printClone.style.margin = '0';
   printClone.style.padding = '0';
   printClone.style.boxSizing = 'border-box';
+  printClone.style.backgroundColor = '#ffffff';
+  printClone.style.background = '#ffffff';
 
-  // ── Freeze ALL computed visual styles as inline (critical for backgrounds) ──
-  const allPc = [printClone, ...printClone.querySelectorAll<HTMLElement>('*')];
-  for (const e of allPc) {
-    const cs = window.getComputedStyle(e);
-    e.style.background = cs.background;
-    e.style.backgroundColor = cs.backgroundColor;
-    e.style.backgroundImage = cs.backgroundImage;
-    e.style.backgroundSize = cs.backgroundSize;
-    e.style.backgroundPosition = cs.backgroundPosition;
-    e.style.backgroundRepeat = cs.backgroundRepeat;
-    e.style.color = cs.color;
-    e.style.boxShadow = cs.boxShadow;
-    e.style.border = cs.border;
-    e.style.borderTop = cs.borderTop;
-    e.style.borderRight = cs.borderRight;
-    e.style.borderBottom = cs.borderBottom;
-    e.style.borderLeft = cs.borderLeft;
-    e.style.borderRadius = cs.borderRadius;
-    e.style.outline = cs.outline;
+  // Fix overflow/transform on all children of the print clone
+  for (const c of [printClone, ...printClone.querySelectorAll<HTMLElement>('*')]) {
+    const ov = c.style.overflow;
+    if (ov === 'hidden' || ov === 'scroll' || ov === 'auto') {
+      c.style.overflow = 'visible';
+    }
+    const tr = c.style.transform;
+    if (tr && tr !== 'none') {
+      c.style.transform = 'none';
+      c.style.webkitTransform = 'none';
+    }
+  }
+
+  // ── Copy computed background colors to clone (only solid — never overwrite gradients) ──
+  const originals = [root, ...root.querySelectorAll<HTMLElement>('*')];
+  const clones = [printClone, ...printClone.querySelectorAll<HTMLElement>('*')];
+  for (let i = 0; i < originals.length && i < clones.length; i++) {
+    const cs = window.getComputedStyle(originals[i]);
+    // Only copy backgroundColor if it's a solid visible color
+    const bg = cs.backgroundColor;
+    if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== '') {
+      clones[i].style.backgroundColor = bg;
+    }
+    // Copy boxShadow if present
+    const shadow = cs.boxShadow;
+    if (shadow && shadow !== 'none') {
+      clones[i].style.boxShadow = shadow;
+    }
+    // Copy border if present
+    const border = cs.border;
+    if (border && border !== 'none' && border !== '') {
+      clones[i].style.border = border;
+    }
+    const radius = cs.borderRadius;
+    if (radius && radius !== 'none' && radius !== '') {
+      clones[i].style.borderRadius = radius;
+    }
   }
 
   // Wrap all children in a scaled inner div

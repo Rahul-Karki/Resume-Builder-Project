@@ -10,6 +10,9 @@ type Props = {
   onDownloadComplete?: () => void;
 };
 
+const A4_W_PX = 794;
+const A4_H_PX = 1123;
+
 export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector, onDownloadComplete }: Props) {
   const [filename, setFilename] = useState("resume.pdf");
   const [generating, setGenerating] = useState(false);
@@ -21,6 +24,8 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
     setMessage(null);
     setProgress(0);
 
+    let wrapper: HTMLDivElement | null = null;
+
     try {
       const el = document.querySelector<HTMLElement>(resumeSelector);
       if (!el) throw new Error('Resume element not found');
@@ -28,30 +33,44 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       setMessage('Preparing layout...');
       setProgress(10);
 
-      // ── Save original inline styles + classNames for all elements ──
-      const allElements = [el, ...el.querySelectorAll<HTMLElement>('*')];
-      const savedCSS = new Map<HTMLElement, string>();
-      const savedClass = new Map<HTMLElement, string>();
-      for (const e of allElements) {
-        savedCSS.set(e, e.style.cssText);
-        savedClass.set(e, e.className);
-      }
+      // ── Clone the visible DOM — NEVER modify the original ──
+      const clone = el.cloneNode(true) as HTMLElement;
 
-      // Temporarily remove transform/overflow so html2canvas captures full-size content at 1:1
-      el.style.transform = 'none';
-      el.style.webkitTransform = 'none';
-      el.style.position = 'static';
-      el.style.overflow = 'visible';
-      el.style.height = 'auto';
-      // Also fix inner overflow-hidden containers
-      for (const e of allElements) {
-        const cs = window.getComputedStyle(e);
-        if (cs.overflow === 'hidden' || cs.overflow === 'scroll' || cs.overflow === 'auto') {
-          e.style.overflow = 'visible';
+      // Remove transform/overflow from clone so layout is at 1:1
+      clone.style.transform = 'none';
+      clone.style.webkitTransform = 'none';
+      clone.style.overflow = 'visible';
+      clone.style.height = 'auto';
+      clone.style.position = 'static';
+      clone.style.margin = '0';
+      clone.style.boxShadow = 'none';
+      clone.style.borderRadius = '0';
+
+      // Also fix inner overflow/transform on all clone children
+      const cloneChildren = Array.from(clone.querySelectorAll<HTMLElement>('*'));
+      for (const c of [clone, ...cloneChildren]) {
+        const ov = c.style.overflow;
+        if (ov === 'hidden' || ov === 'scroll' || ov === 'auto') {
+          c.style.overflow = 'visible';
+        }
+        const tr = c.style.transform;
+        if (tr && tr !== 'none') {
+          c.style.transform = 'none';
+          c.style.webkitTransform = 'none';
         }
       }
 
-      // Allow browser to re-layout
+      // Place clone offscreen for measurement
+      wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.left = '-9999px';
+      wrapper.style.top = '0';
+      wrapper.style.zIndex = '-1000';
+      wrapper.style.width = A4_W_PX + 'px';
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+
+      // Allow layout to settle
       await new Promise(r => requestAnimationFrame(r));
       await new Promise(r => setTimeout(r, 100));
 
@@ -61,58 +80,81 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       await document.fonts?.ready;
       await waitForFonts();
 
-      // ── Freeze ALL computed visual styles as inline (critical for backgrounds) ──
-      setMessage('Freezing styles...');
+      // ── Copy computed background colors to clone (only solid colors — skip transparent/gradients) ──
+      setMessage('Applying styles...');
       setProgress(35);
-      for (const e of allElements) {
-        const cs = window.getComputedStyle(e);
-        // Background (handles gradients, colors, images)
-        e.style.background = cs.background;
-        e.style.backgroundColor = cs.backgroundColor;
-        e.style.backgroundImage = cs.backgroundImage;
-        e.style.backgroundSize = cs.backgroundSize;
-        e.style.backgroundPosition = cs.backgroundPosition;
-        e.style.backgroundRepeat = cs.backgroundRepeat;
-        // Colors
-        e.style.color = cs.color;
-        // Borders and shadows
-        e.style.boxShadow = cs.boxShadow;
-        e.style.border = cs.border;
-        e.style.borderTop = cs.borderTop;
-        e.style.borderRight = cs.borderRight;
-        e.style.borderBottom = cs.borderBottom;
-        e.style.borderLeft = cs.borderLeft;
-        e.style.borderRadius = cs.borderRadius;
-        e.style.outline = cs.outline;
+
+      const originals = [el, ...el.querySelectorAll<HTMLElement>('*')];
+      const clones = [clone, ...clone.querySelectorAll<HTMLElement>('*')];
+
+      for (let i = 0; i < originals.length && i < clones.length; i++) {
+        const cs = window.getComputedStyle(originals[i]);
+
+        // Only copy backgroundColor if it's a solid visible color
+        const bg = cs.backgroundColor;
+        if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== '') {
+          clones[i].style.backgroundColor = bg;
+        }
+
+        // Copy boxShadow if present (class-based shadows may not render in canvas)
+        const shadow = cs.boxShadow;
+        if (shadow && shadow !== 'none') {
+          clones[i].style.boxShadow = shadow;
+        }
+
+        // Copy border styles if present
+        const border = cs.border;
+        if (border && border !== 'none' && border !== '') {
+          clones[i].style.border = border;
+        }
+        const radius = cs.borderRadius;
+        if (radius && radius !== 'none' && radius !== '') {
+          clones[i].style.borderRadius = radius;
+        }
       }
 
-      // Ensure explicit container background
-      el.style.background = '#ffffff';
+      // Ensure root container has explicit white background
+      clone.style.backgroundColor = '#ffffff';
 
-      // ── Capture the EXACT rendered DOM ──
+      // Measure content height for scaling
+      const contentHeight = clone.scrollHeight;
+      const fitScale = Math.min(1, A4_H_PX / contentHeight);
+
+      if (fitScale < 1) {
+        // Wrap in scaled inner div to fit one page
+        const inner = document.createElement('div');
+        inner.style.width = (A4_W_PX / fitScale) + 'px';
+        inner.style.transformOrigin = 'top left';
+        inner.style.transform = `scale(${fitScale})`;
+        inner.style.overflow = 'visible';
+        while (clone.firstChild) {
+          inner.appendChild(clone.firstChild);
+        }
+        clone.appendChild(inner);
+      }
+
+      // ── Capture the clone ──
       setMessage('Rendering canvas...');
-      setProgress(45);
+      setProgress(50);
 
-      const canvas = await html2canvas(el, {
+      const canvas = await html2canvas(clone, {
         scale: 3,
         useCORS: true,
         allowTaint: true,
         foreignObjectRendering: true,
         logging: false,
         backgroundColor: '#ffffff',
-        width: el.scrollWidth,
-        height: el.scrollHeight,
-        windowWidth: el.scrollWidth,
-        windowHeight: el.scrollHeight,
+        width: clone.scrollWidth,
+        height: clone.scrollHeight,
+        windowWidth: clone.scrollWidth,
+        windowHeight: clone.scrollHeight,
       });
 
-      // ── Restore ALL original styles and classNames immediately ──
-      for (const e of allElements) {
-        e.style.cssText = savedCSS.get(e) || '';
-        e.className = savedClass.get(e) || '';
-      }
+      // Remove clone from DOM
+      wrapper.remove();
+      wrapper = null;
 
-      // ── Generate single-page PDF (scale to fit A4) ──
+      // ── Generate single-page PDF ──
       setMessage('Assembling PDF...');
       setProgress(70);
 
@@ -120,9 +162,8 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       const pw = 210, ph = 297;
       const imgW = pw;
       const imgH = (canvas.height * pw) / canvas.width;
-      const fitScale = Math.min(1, ph / imgH);
-      const displayH = imgH * fitScale;
-      // Center vertically if smaller than page
+      const pdfFitScale = Math.min(1, ph / imgH);
+      const displayH = imgH * pdfFitScale;
       const offsetY = (ph - displayH) / 2;
 
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, offsetY, imgW, displayH);
@@ -144,18 +185,9 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
       setTimeout(() => { onClose(); onDownloadComplete?.(); }, 1000);
     } catch (err: any) {
       console.error('PDF generation error:', err);
-      // Restore styles in case of error
-      try {
-        const el = document.querySelector<HTMLElement>(resumeSelector);
-        if (el) {
-          el.style.transform = '';
-          el.style.webkitTransform = '';
-          el.style.overflow = '';
-          el.style.height = '';
-        }
-      } catch {}
       setMessage(err?.message || 'Failed to generate PDF');
     } finally {
+      if (wrapper) wrapper.remove();
       setGenerating(false);
     }
   };
@@ -208,7 +240,7 @@ export default function EnhancedDownloadPdfModal({ open, onClose, resumeSelector
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm text-blue-800">
-            Captures your on-screen resume directly at 3x resolution for crisp output.
+            Captures your on-screen resume at 3x resolution for crisp PDF output.
           </div>
 
           {generating && (
