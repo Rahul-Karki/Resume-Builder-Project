@@ -47,20 +47,20 @@ const getPrintPreviewUrl = (resumeId: string, payloadKey: string) => `/resume/pr
 
 const openPrintPreview = (resumeId: string, payloadKey: string) => {
   const previewUrl = getPrintPreviewUrl(resumeId, payloadKey);
-  const popup = window.open(previewUrl, '_blank', 'noopener,noreferrer');
+  const popup = window.open(previewUrl, '_blank');
 
   if (!popup) {
-    window.location.assign(previewUrl);
-    return;
+    return false;
   }
+
+  return true;
 };
 
-const downloadResume = async (resume: ResumeDocument, resumeId?: string, onStatus?: (status: string) => void) => {
+const downloadResume = async (resume: ResumeDocument, resumeId?: string) => {
   if (!resumeId) {
     throw new Error('Save the resume first before downloading it as PDF.');
   }
 
-  onStatus?.('Opening print preview...');
   const payloadKey = storePrintPayload(resumeId, resume);
   try {
     openPrintPreview(resumeId, payloadKey);
@@ -455,10 +455,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     setApiError(null);
     setIsExporting(true);
     try {
-      // Open a blank window immediately to avoid popup blockers when the
-      // async export finishes and we try to open the PDF.
-      await downloadResume(resume, resume.id, setStatusMessage);
-      setStatusMessage('Print dialog opened. Choose Save as PDF to download.');
+      await downloadResume(resume, resume.id);
+      setStatusMessage(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to export PDF.';
       setApiError(message);

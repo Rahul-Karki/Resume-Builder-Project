@@ -101,7 +101,6 @@ export default function ResumePreviewPage() {
             if (payloadKey) {
               window.localStorage.removeItem(payloadKey);
             }
-            window.close();
           } catch {
             // ignore
           }
@@ -131,7 +130,7 @@ export default function ResumePreviewPage() {
   }
 
   if (!resume) {
-    return <div style={{ padding: 24, color: "#ccc" }}>Loading preview…</div>;
+    return null;
   }
 
   // Minimal, print-friendly container used by Puppeteer
