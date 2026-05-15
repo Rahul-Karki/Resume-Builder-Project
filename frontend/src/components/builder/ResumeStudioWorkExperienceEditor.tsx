@@ -35,23 +35,39 @@ type TemplateOption = {
 
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
+const RESUME_PRINT_PAYLOAD_PREFIX = "resume-print-payload:";
 
-const openPrintPreview = (resumeId: string) => {
-  const previewUrl = `/resume/preview/${encodeURIComponent(resumeId)}?print=1`;
+const storePrintPayload = (resumeId: string, resume: ResumeDocument) => {
+  const payloadKey = `${RESUME_PRINT_PAYLOAD_PREFIX}${resumeId}`;
+  window.localStorage.setItem(payloadKey, JSON.stringify({ resume, createdAt: Date.now() }));
+  return payloadKey;
+};
+
+const getPrintPreviewUrl = (resumeId: string, payloadKey: string) => `/resume/preview/${encodeURIComponent(resumeId)}?print=1&payloadKey=${encodeURIComponent(payloadKey)}`;
+
+const openPrintPreview = (resumeId: string, payloadKey: string) => {
+  const previewUrl = getPrintPreviewUrl(resumeId, payloadKey);
   const popup = window.open(previewUrl, '_blank', 'noopener,noreferrer');
 
   if (!popup) {
-    throw new Error('Please allow popups for this site to download the PDF.');
+    window.location.assign(previewUrl);
+    return;
   }
 };
 
-const downloadResume = async (resumeId?: string, onStatus?: (status: string) => void) => {
+const downloadResume = async (resume: ResumeDocument, resumeId?: string, onStatus?: (status: string) => void) => {
   if (!resumeId) {
     throw new Error('Save the resume first before downloading it as PDF.');
   }
 
   onStatus?.('Opening print preview...');
-  openPrintPreview(resumeId);
+  const payloadKey = storePrintPayload(resumeId, resume);
+  try {
+    openPrintPreview(resumeId, payloadKey);
+  } catch (error) {
+    window.localStorage.removeItem(payloadKey);
+    throw error;
+  }
 };
 
 const getEntryDescription = (entry: WorkEntry): string => {
@@ -441,7 +457,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     try {
       // Open a blank window immediately to avoid popup blockers when the
       // async export finishes and we try to open the PDF.
-      await downloadResume(resume.id, setStatusMessage);
+      await downloadResume(resume, resume.id, setStatusMessage);
       setStatusMessage('Print dialog opened. Choose Save as PDF to download.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to export PDF.';

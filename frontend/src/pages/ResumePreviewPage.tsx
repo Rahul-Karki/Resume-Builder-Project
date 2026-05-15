@@ -10,12 +10,30 @@ export default function ResumePreviewPage() {
   const [resume, setResume] = useState<ResumeDocument | null>(null);
   const [error, setError] = useState<string | null>(null);
   const printTriggeredRef = useRef(false);
+  const [payloadKey] = useState(() => new URLSearchParams(search).get("payloadKey") ?? "");
   const isPrintMode = new URLSearchParams(search).get("print") === "1";
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       if (!id) return setError("Missing preview id");
+
+      if (isPrintMode && payloadKey) {
+        const rawPayload = window.localStorage.getItem(payloadKey);
+        if (rawPayload) {
+          try {
+            const parsed = JSON.parse(rawPayload) as { resume?: ResumeDocument };
+            if (parsed.resume) {
+              if (!mounted) return;
+              setResume(parsed.resume);
+              return;
+            }
+          } catch {
+            // fall back to API
+          }
+        }
+      }
+
       try {
         const params = new URLSearchParams(window.location.search);
         const previewToken = params.get("previewToken");
@@ -26,6 +44,22 @@ export default function ResumePreviewPage() {
         if (!mounted) return;
         setResume(res.data?.resume ?? null);
       } catch (err: any) {
+        if (isPrintMode && payloadKey) {
+          const rawPayload = window.localStorage.getItem(payloadKey);
+          if (rawPayload) {
+            try {
+              const parsed = JSON.parse(rawPayload) as { resume?: ResumeDocument };
+              if (parsed.resume) {
+                if (!mounted) return;
+                setResume(parsed.resume);
+                return;
+              }
+            } catch {
+              // ignore and surface API error below
+            }
+          }
+        }
+
         setError(err?.response?.data?.message || "Failed to load preview");
       }
     };
@@ -64,6 +98,9 @@ export default function ResumePreviewPage() {
 
         window.addEventListener("afterprint", () => {
           try {
+            if (payloadKey) {
+              window.localStorage.removeItem(payloadKey);
+            }
             window.close();
           } catch {
             // ignore
@@ -87,7 +124,7 @@ export default function ResumePreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [isPrintMode, resume]);
+  }, [isPrintMode, resume, payloadKey]);
 
   if (error) {
     return <div style={{ padding: 24, color: "#f55" }}>Preview error: {error}</div>;
