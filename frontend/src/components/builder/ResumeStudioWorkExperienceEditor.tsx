@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
-import { api, getResumeDownloadJobStatus, improveResumeText, queueResumeDownload, getLatestAtsAnalysis } from '@/services/api';
+import { api, improveResumeText, getLatestAtsAnalysis } from '@/services/api';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { ResumeRenderer } from '@/templates/ResumeRenderer';
@@ -33,213 +33,25 @@ type TemplateOption = {
   sortOrder?: number;
 };
 
-const RESUME_DOWNLOAD_POLL_INTERVAL_MS = 2000;
-const RESUME_DOWNLOAD_MAX_POLLS = 60;
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
 
-const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const openPrintPreview = (resumeId: string) => {
+  const previewUrl = `/resume/preview/${encodeURIComponent(resumeId)}?print=1`;
+  const popup = window.open(previewUrl, '_blank', 'noopener,noreferrer');
 
-const normalizeDownloadUrl = (downloadUrl: string) => {
-  if (/^https?:\/\//i.test(downloadUrl)) return downloadUrl;
-
-  if (downloadUrl.startsWith('/api/')) {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-    const backendBase = apiBaseUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
-    return `${backendBase}${downloadUrl}`;
+  if (!popup) {
+    throw new Error('Please allow popups for this site to download the PDF.');
   }
-
-  return downloadUrl;
 };
 
-const openPdfBlobInNewTab = (downloadUrl: string, preopenedWindow?: Window | null) => {
-  const normalizedUrl = normalizeDownloadUrl(downloadUrl);
-
-  return api.get(normalizedUrl, {
-    responseType: 'blob',
-    timeout: 30000,
-  }).then((response) => {
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const objectUrl = URL.createObjectURL(blob);
-
-    try {
-      if (preopenedWindow && !preopenedWindow.closed) {
-        const html = `<!doctype html>
-          <html>
-            <head>
-              <meta charset="utf-8" />
-              <title>Resume PDF</title>
-              <style>
-                html, body { margin: 0; width: 100%; height: 100%; background: #111; color: #f3f4f6; font-family: system-ui, sans-serif; }
-                .shell { display: flex; flex-direction: column; height: 100%; }
-                .toolbar { padding: 12px 16px; background: #18181b; border-bottom: 1px solid #27272a; font-size: 14px; }
-                .viewer { flex: 1; width: 100%; border: 0; background: #111; }
-                a { color: #c8f55a; }
-              </style>
-            </head>
-            <body>
-              <div class="shell">
-                <div class="toolbar">Loading PDF preview. If it does not appear, <a href="${objectUrl}" target="_blank" rel="noreferrer">open the PDF directly</a>.</div>
-                <iframe class="viewer" src="${objectUrl}"></iframe>
-              </div>
-            </body>
-          </html>`;
-        preopenedWindow.document.open();
-        preopenedWindow.document.write(html);
-        preopenedWindow.document.close();
-      } else {
-        window.open(objectUrl, '_blank');
-      }
-    } catch {
-      window.open(objectUrl, '_blank');
-    }
-
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-  });
-};
-
-const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) => void) => {
-  // Try using SSE first (better than polling). Fall back to polling on error.
-  const sseUrl = normalizeDownloadUrl(`/api/resumes/job-events/${encodeURIComponent(jobId)}`);
-
-  const fallbackPolling = async () => {
-    for (let attempt = 1; attempt <= RESUME_DOWNLOAD_MAX_POLLS; attempt += 1) {
-      const status = await getResumeDownloadJobStatus(jobId);
-
-      if (status.status === 'completed') return status;
-      if (status.status === 'failed') throw new Error(status.lastError || 'Resume download failed');
-
-      onStatus?.(`Generating PDF... (${attempt}/${RESUME_DOWNLOAD_MAX_POLLS})`);
-      await sleep(RESUME_DOWNLOAD_POLL_INTERVAL_MS);
-    }
-
-    throw new Error('Resume download is taking longer than expected. Please try again later.');
-  };
-
-  if (typeof window !== 'undefined' && 'EventSource' in window) {
-      try {
-        return await new Promise<any>((resolve, reject) => {
-          const es = new EventSource(sseUrl, { withCredentials: true });
-
-          // Short open timeout: if SSE doesn't open quickly, fallback to polling.
-          const OPEN_TIMEOUT_MS = 5000;
-          let opened = false;
-
-          const overallTimeout = setTimeout(() => {
-            try { es.close(); } catch {}
-            void fallbackPolling().then(resolve).catch(reject);
-          }, RESUME_DOWNLOAD_MAX_POLLS * RESUME_DOWNLOAD_POLL_INTERVAL_MS);
-
-          const openTimeout = setTimeout(() => {
-            if (!opened) {
-              try { es.close(); } catch {}
-              void fallbackPolling().then(resolve).catch(reject);
-            }
-          }, OPEN_TIMEOUT_MS);
-
-          es.addEventListener('open', () => {
-            opened = true;
-            clearTimeout(openTimeout);
-          });
-
-          es.addEventListener('init', (e: MessageEvent) => {
-            try {
-              const payload = JSON.parse((e as MessageEvent).data);
-              if (payload?.status === 'completed') {
-                clearTimeout(overallTimeout);
-                clearTimeout(openTimeout);
-                try { es.close(); } catch {}
-                resolve(payload);
-              }
-            } catch {
-              // ignore
-            }
-          });
-
-          es.addEventListener('update', (e: MessageEvent) => {
-            try {
-              const payload = JSON.parse((e as MessageEvent).data);
-
-              if (payload?.status === 'completed') {
-                clearTimeout(overallTimeout);
-                clearTimeout(openTimeout);
-                try { es.close(); } catch {}
-                resolve(payload);
-              }
-
-              if (payload?.status === 'failed') {
-                clearTimeout(overallTimeout);
-                clearTimeout(openTimeout);
-                try { es.close(); } catch {}
-                reject(new Error(payload.lastError || 'Resume download failed'));
-              }
-
-              onStatus?.(typeof payload === 'string' ? payload : `Generating PDF...`);
-            } catch {
-              // ignore
-            }
-          });
-
-          es.onerror = () => {
-            try { es.close(); } catch {}
-            clearTimeout(overallTimeout);
-            clearTimeout(openTimeout);
-            // On SSE errors, fallback to polling
-            void fallbackPolling().then(resolve).catch(reject);
-          };
-        });
-      } catch (err) {
-        // fallthrough to polling fallback
-        return fallbackPolling();
-      }
+const downloadResume = async (resumeId?: string, onStatus?: (status: string) => void) => {
+  if (!resumeId) {
+    throw new Error('Save the resume first before downloading it as PDF.');
   }
 
-  return fallbackPolling();
-};
-
-const downloadResume = async (
-  resume: ResumeDocument,
-  resumeId?: string,
-  onStatus?: (status: string) => void,
-  preopenedWindow?: Window | null,
-) => {
-  onStatus?.('Queuing PDF export...');
-
-  const queueResponse = await queueResumeDownload(
-    resumeId
-      ? { resumeId, preset: 'standard' }
-      : { resume, preset: 'standard' },
-  );
-
-  const initialDownloadUrl = queueResponse.resultUrl || queueResponse.downloadUrl;
-
-  if (queueResponse.status === 'failed') {
-    throw new Error(queueResponse.message || 'Resume download failed');
-  }
-
-  if (queueResponse.status === 'completed' && initialDownloadUrl) {
-    onStatus?.('Opening PDF...');
-    try {
-      await openPdfBlobInNewTab(initialDownloadUrl, preopenedWindow);
-    } catch {
-      throw new Error('Failed to open generated PDF.');
-    }
-
-    return;
-  }
-
-  onStatus?.('Generating PDF...');
-  const completedJob = await waitForResumeDownload(queueResponse.jobId, onStatus);
-  const downloadUrl = completedJob.resultUrl || initialDownloadUrl;
-
-  if (!downloadUrl) throw new Error('Resume download finished without a download URL.');
-
-  onStatus?.('Opening PDF...');
-  try {
-    await openPdfBlobInNewTab(downloadUrl, preopenedWindow);
-  } catch {
-    throw new Error('Failed to open generated PDF.');
-  }
+  onStatus?.('Opening print preview...');
+  openPrintPreview(resumeId);
 };
 
 const getEntryDescription = (entry: WorkEntry): string => {
@@ -629,9 +441,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     try {
       // Open a blank window immediately to avoid popup blockers when the
       // async export finishes and we try to open the PDF.
-      const preopened = typeof window !== 'undefined' ? window.open('', '_blank') : null;
-      await downloadResume(resume, resume.id, setStatusMessage, preopened);
-      setStatusMessage('PDF opened in a new tab.');
+      await downloadResume(resume.id, setStatusMessage);
+      setStatusMessage('Print dialog opened. Choose Save as PDF to download.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to export PDF.';
       setApiError(message);
