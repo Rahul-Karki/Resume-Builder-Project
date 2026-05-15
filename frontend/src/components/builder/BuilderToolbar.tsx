@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import printResume from "@/utils/print";
 import { api } from "@/services/api";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { templates as localTemplateCatalog } from "@/data/templateMeta";
@@ -253,7 +254,7 @@ export function BuilderToolbar({ onDownload, canDownload, isEditingExistingResum
 
         <div className="flex w-full flex-1 items-center justify-end gap-2 sm:flex-none lg:w-auto">
           <button
-            onClick={onDownload}
+            onClick={() => { void printResume('.resume-preview'); }}
             disabled={!canDownload || isExporting}
             title={isExporting ? (exportStatus ?? "Preparing PDF export") : canDownload ? "Download as PDF" : "Save resume first to enable download"}
             className="inline-flex items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-[12px] font-medium text-zinc-300 transition hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-50"
