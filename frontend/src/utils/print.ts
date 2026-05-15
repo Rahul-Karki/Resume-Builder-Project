@@ -17,22 +17,30 @@ export async function printResume(selector = '.resume-preview') {
   // Small delay to ensure styles/layout stabilized
   await new Promise(r => setTimeout(r, 120));
 
-  // Apply a temporary printing class so the on-screen preview matches printed layout
-  const printingClass = 'printing';
-  root.classList.add(printingClass);
+  // Create a printable clone appended to body so it's not affected by hidden ancestors
+  const clone = root.cloneNode(true) as HTMLElement;
+  clone.classList.add('__print-clone');
+  clone.classList.add('printing');
+  // ensure clone is direct child of body
+  document.body.appendChild(clone);
 
-  // Ensure we remove the class after printing — use afterprint if available
+  // Hide original to avoid duplication
+  const originalVisibility = root.style.visibility;
+  root.style.visibility = 'hidden';
+
   const cleanup = () => {
-    try { root.classList.remove(printingClass); } catch {}
+    try { root.style.visibility = originalVisibility || ''; } catch {}
+    try { clone.remove(); } catch {}
     try { window.removeEventListener('afterprint', cleanup); } catch {}
   };
+
   window.addEventListener('afterprint', cleanup);
 
-  // Call print (this blocks in many browsers until print dialog closes)
+  // Call print
   try {
     window.print();
   } finally {
-    // Fallback cleanup in case afterprint doesn't fire
+    // Fallback cleanup
     setTimeout(cleanup, 1000);
   }
 }

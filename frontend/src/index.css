@@ -149,14 +149,14 @@
     background: white !important;
   }
 
-  /* Hide everything by default */
-  body * {
+  /* Hide everything by default at the top-level, leave room for a print clone */
+  body > * {
     visibility: hidden !important;
     display: none !important;
   }
 
-  /* Reveal the resume preview and its children */
-  .resume-preview, .resume-preview * {
+  /* Reveal any printable clone appended to body, or the resume-preview itself */
+  .__print-clone, .resume-preview, .__print-clone * , .resume-preview * {
     visibility: visible !important;
     display: block !important;
   }
