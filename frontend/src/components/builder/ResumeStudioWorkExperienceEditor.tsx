@@ -75,62 +75,81 @@ const waitForResumeDownload = async (jobId: string, onStatus?: (status: string) 
   };
 
   if (typeof window !== 'undefined' && 'EventSource' in window) {
-    try {
-      return await new Promise<any>((resolve, reject) => {
-        const es = new EventSource(sseUrl, { withCredentials: true });
+      try {
+        return await new Promise<any>((resolve, reject) => {
+          const es = new EventSource(sseUrl, { withCredentials: true });
 
-        const timeout = setTimeout(() => {
-          es.close();
-          // fallback to polling on timeout
-          void fallbackPolling().then(resolve).catch(reject);
-        }, RESUME_DOWNLOAD_MAX_POLLS * RESUME_DOWNLOAD_POLL_INTERVAL_MS);
+          // Short open timeout: if SSE doesn't open quickly, fallback to polling.
+          const OPEN_TIMEOUT_MS = 5000;
+          let opened = false;
 
-        es.addEventListener('init', (e: MessageEvent) => {
-          try {
-            const payload = JSON.parse((e as MessageEvent).data);
-            if (payload?.status === 'completed') {
-              clearTimeout(timeout);
-              es.close();
-              resolve(payload);
+          const overallTimeout = setTimeout(() => {
+            try { es.close(); } catch {}
+            void fallbackPolling().then(resolve).catch(reject);
+          }, RESUME_DOWNLOAD_MAX_POLLS * RESUME_DOWNLOAD_POLL_INTERVAL_MS);
+
+          const openTimeout = setTimeout(() => {
+            if (!opened) {
+              try { es.close(); } catch {}
+              void fallbackPolling().then(resolve).catch(reject);
             }
-          } catch {
-            // ignore
-          }
+          }, OPEN_TIMEOUT_MS);
+
+          es.addEventListener('open', () => {
+            opened = true;
+            clearTimeout(openTimeout);
+          });
+
+          es.addEventListener('init', (e: MessageEvent) => {
+            try {
+              const payload = JSON.parse((e as MessageEvent).data);
+              if (payload?.status === 'completed') {
+                clearTimeout(overallTimeout);
+                clearTimeout(openTimeout);
+                try { es.close(); } catch {}
+                resolve(payload);
+              }
+            } catch {
+              // ignore
+            }
+          });
+
+          es.addEventListener('update', (e: MessageEvent) => {
+            try {
+              const payload = JSON.parse((e as MessageEvent).data);
+
+              if (payload?.status === 'completed') {
+                clearTimeout(overallTimeout);
+                clearTimeout(openTimeout);
+                try { es.close(); } catch {}
+                resolve(payload);
+              }
+
+              if (payload?.status === 'failed') {
+                clearTimeout(overallTimeout);
+                clearTimeout(openTimeout);
+                try { es.close(); } catch {}
+                reject(new Error(payload.lastError || 'Resume download failed'));
+              }
+
+              onStatus?.(typeof payload === 'string' ? payload : `Generating PDF...`);
+            } catch {
+              // ignore
+            }
+          });
+
+          es.onerror = () => {
+            try { es.close(); } catch {}
+            clearTimeout(overallTimeout);
+            clearTimeout(openTimeout);
+            // On SSE errors, fallback to polling
+            void fallbackPolling().then(resolve).catch(reject);
+          };
         });
-
-        es.addEventListener('update', (e: MessageEvent) => {
-          try {
-            const payload = JSON.parse((e as MessageEvent).data);
-
-            if (payload?.status === 'completed') {
-              clearTimeout(timeout);
-              es.close();
-              resolve(payload);
-            }
-
-            if (payload?.status === 'failed') {
-              clearTimeout(timeout);
-              es.close();
-              reject(new Error(payload.lastError || 'Resume download failed'));
-            }
-
-            onStatus?.(typeof payload === 'string' ? payload : `Generating PDF...`);
-          } catch {
-            // ignore
-          }
-        });
-
-        es.onerror = () => {
-          try { es.close(); } catch {}
-          clearTimeout(timeout);
-          // On SSE errors, fallback to polling
-          void fallbackPolling().then(resolve).catch(reject);
-        };
-      });
-    } catch (err) {
-      // fallthrough to polling fallback
-      return fallbackPolling();
-    }
+      } catch (err) {
+        // fallthrough to polling fallback
+        return fallbackPolling();
+      }
   }
 
   return fallbackPolling();
