@@ -14,7 +14,6 @@ export default function ResumePreviewPage() {
   const isPrintMode = new URLSearchParams(search).get("print") === "1";
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [printScale, setPrintScale] = useState<number>(1);
-  const [printAttempted, setPrintAttempted] = useState<boolean>(false);
 
   useEffect(() => {
     let mounted = true;
@@ -68,96 +67,74 @@ export default function ResumePreviewPage() {
     };
 
     void load();
-    return () => { mounted = false; };
-  }, [id]);
+    useEffect(() => {
+      if (!isPrintMode || !resume || printTriggeredRef.current) return;
+      printTriggeredRef.current = true;
 
-  useEffect(() => {
-    if (!isPrintMode || !resume || printTriggeredRef.current) {
-      return;
-    }
-
-    printTriggeredRef.current = true;
-
-    let cancelled = false;
-    const waitForAssets = async () => {
-      try {
-        if (document.fonts?.ready) {
-          await document.fonts.ready;
-        }
-
-        await Promise.all(Array.from(document.images).map((image) => {
-          if (image.complete && image.naturalWidth > 0) {
-            return Promise.resolve();
-          }
-
-          return new Promise<void>((resolve) => {
-            const finish = () => resolve();
-            image.addEventListener("load", finish, { once: true });
-            image.addEventListener("error", finish, { once: true });
-          });
-        }));
-
-        if (cancelled) return;
-
-        // compute a print scale so content fits a single A4 page if it slightly exceeds it
+      let cancelled = false;
+      const waitForAssets = async () => {
         try {
-          const el = document.getElementById('resume-export-root');
-          if (el) {
-            contentRef.current = el as HTMLDivElement;
-            const contentHeight = el.scrollHeight;
-            const contentWidth = el.scrollWidth;
-            const mmToPx = (mm: number) => mm * (96 / 25.4);
-            const pageHeightPx = 297 * (96 / 25.4); // A4 height in px at 96dpi (≈1122.52)
-            const pageWidthPx = 210 * (96 / 25.4); // A4 width in px
-            const marginPxV = mmToPx(12) * 2; // top+bottom margins
-            const marginPxH = mmToPx(12) * 2; // left+right margins
-            // Reserve extra space for browser headers/footers (they consume printable area if enabled)
-            const headerFooterReservePx = mmToPx(18);
+          if (document.fonts?.ready) await document.fonts.ready;
 
-            const printableHeight = pageHeightPx - marginPxV - headerFooterReservePx;
-            const printableWidth = pageWidthPx - marginPxH;
+          await Promise.all(Array.from(document.images).map((img) => {
+            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+            return new Promise<void>((resolve) => {
+              const finish = () => resolve();
+              img.addEventListener('load', finish, { once: true });
+              img.addEventListener('error', finish, { once: true });
+            });
+          }));
 
-            const scaleH = printableHeight / contentHeight;
-            const scaleW = printableWidth / contentWidth;
-            const scale = Math.min(scaleH, scaleW, 1);
-            // don't scale below 0.7 to maintain readability
-            setPrintScale(Math.max(0.7, scale));
-          }
-        } catch {
-          // ignore
-        }
+          if (cancelled) return;
 
-        window.addEventListener("afterprint", () => {
+          // compute a print scale so content fits a single A4 page if it slightly exceeds it
           try {
-            if (payloadKey) {
-              window.localStorage.removeItem(payloadKey);
+            const el = document.getElementById('resume-export-root');
+            if (el) {
+              contentRef.current = el as HTMLDivElement;
+              const contentHeight = el.scrollHeight;
+              const contentWidth = el.scrollWidth;
+              const mmToPx = (mm: number) => mm * (96 / 25.4);
+              const pageHeightPx = 297 * (96 / 25.4);
+              const pageWidthPx = 210 * (96 / 25.4);
+              const marginPxV = mmToPx(12) * 2;
+              const marginPxH = mmToPx(12) * 2;
+              const headerFooterReservePx = mmToPx(18);
+
+              const printableHeight = pageHeightPx - marginPxV - headerFooterReservePx;
+              const printableWidth = pageWidthPx - marginPxH;
+
+              const scaleH = printableHeight / contentHeight;
+              const scaleW = printableWidth / contentWidth;
+              const scale = Math.min(scaleH, scaleW, 1);
+              setPrintScale(Math.max(0.7, scale));
             }
           } catch {
             // ignore
           }
-          // mark that we attempted printing so UI can offer retry
-          setPrintAttempted(true);
-        }, { once: true });
 
-        window.setTimeout(() => {
-          if (!cancelled) {
-            try { window.print(); } finally { setPrintAttempted(true); }
-          }
-        }, 100);
-      } catch {
-        if (!cancelled) {
-          window.print();
+          window.addEventListener('afterprint', () => {
+            try {
+              if (payloadKey) window.localStorage.removeItem(payloadKey);
+            } catch {
+              // ignore
+            }
+          }, { once: true });
+
+          window.setTimeout(() => {
+            if (!cancelled) window.print();
+          }, 100);
+        } catch {
+          if (!cancelled) window.print();
         }
-      }
-    };
+      };
 
-    void waitForAssets();
+      void waitForAssets();
 
-    return () => {
-      cancelled = true;
-    };
+      return () => { cancelled = true; };
+    }, [isPrintMode, resume, payloadKey]);
   }, [isPrintMode, resume, payloadKey]);
-
+                  window.print();
   if (error) {
     return <div style={{ padding: 24, color: "#f55" }}>Preview error: {error}</div>;
   }
@@ -231,15 +208,7 @@ export default function ResumePreviewPage() {
         <ResumeRenderer resume={resume} />
       </div>
 
-      {printAttempted && (
-        <div style={{ position: 'fixed', right: 18, top: 18, zIndex: 9999 }}>
-          <div style={{ background: 'rgba(0,0,0,0.7)', color: 'white', padding: '8px 12px', borderRadius: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 13 }}>Print dialog completed or cancelled.</span>
-            <button onClick={() => { try { window.print(); } catch {} }} style={{ background: '#C8F55A', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>Print again</button>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginLeft: 8 }}>Tip: disable browser headers/footers in the print dialog for exact single-page export.</div>
-          </div>
-        </div>
-      )}
+      {/* No retry banner — keep preview available after cancel */}
       <script dangerouslySetInnerHTML={{ __html: "window.__RESUME_PREVIEW_READY = true;" }} />
     </div>
   );

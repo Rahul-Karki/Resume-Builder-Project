@@ -47,12 +47,8 @@ const getPrintPreviewUrl = (resumeId: string, payloadKey: string) => `/resume/pr
 
 const openPrintPreview = (resumeId: string, payloadKey: string) => {
   const previewUrl = getPrintPreviewUrl(resumeId, payloadKey);
-  const popup = window.open(previewUrl, '_blank');
-
-  if (!popup) {
-    return false;
-  }
-
+  // Navigate the current window to the print preview (same-tab flow)
+  window.location.assign(previewUrl);
   return true;
 };
 
