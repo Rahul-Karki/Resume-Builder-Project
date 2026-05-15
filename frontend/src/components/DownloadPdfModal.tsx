@@ -156,6 +156,49 @@ export default function DownloadPdfModal({ open, onClose, resumeSelector }: Prop
     }
   };
 
+  const openPrintPreview = async () => {
+    setGenerating(true);
+    setMessage('Preparing print preview...');
+    try {
+      const root = document.querySelector<HTMLElement>(resumeSelector);
+      if (!root) throw new Error('Resume element not found');
+
+      const clone = cloneNodeWithInlineStyles(root);
+      await inlineImages(clone);
+
+      // Collect stylesheets and inline styles to include in the new window
+      const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+        .map((n) => (n as HTMLElement).outerHTML)
+        .join('\n');
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) throw new Error('Failed to open print window');
+
+      const doc = printWindow.document;
+      doc.open();
+      doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print Preview</title>${styles}</head><body></body></html>`);
+      doc.body.appendChild(clone);
+      doc.close();
+      printWindow.focus();
+
+      // Give the new window a moment to load fonts and images, then open print dialog
+      setTimeout(() => {
+        try {
+          printWindow.print();
+        } catch (e) {
+          // ignore
+        }
+      }, 250);
+
+      onClose();
+    } catch (err: any) {
+      setMessage(err?.message || 'Failed to open print preview');
+    } finally {
+      setGenerating(false);
+      document.querySelectorAll('.__pdf-export-clone').forEach(n => n.remove());
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -185,11 +228,11 @@ export default function DownloadPdfModal({ open, onClose, resumeSelector }: Prop
             <div className="flex items-center gap-3">
               <button
                 disabled={generating}
-                onClick={() => void generatePdf()}
+                onClick={() => void openPrintPreview()}
                 className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded disabled:opacity-60"
               >
                 {generating ? <span className="loader mr-2" /> : null}
-                Generate & Download
+                Open Print Preview
               </button>
               <button className="px-3 py-2 border rounded" onClick={() => { if (!generating) onClose(); }}>Cancel</button>
             </div>

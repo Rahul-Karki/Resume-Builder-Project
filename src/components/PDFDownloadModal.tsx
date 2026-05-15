@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { generateAndDownloadPDF } from '../utils/pdfGenerator';
+import { openPrintPreviewForElement } from '../utils/printPreview';
 
 interface PDFDownloadModalProps {
   isOpen: boolean;
@@ -134,6 +135,27 @@ const PDFDownloadModal: React.FC<PDFDownloadModalProps> = ({
                 )}
                 {loading ? 'Generating...' : 'Generate & Download'}
               </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={async () => {
+                    setInternalLoading(true);
+                    try {
+                      const target = document.querySelector<HTMLElement>('#resume-preview-root') || document.querySelector<HTMLElement>('.resume-preview');
+                      if (!target) throw new Error('Resume preview element not found for print preview');
+                      await openPrintPreviewForElement(target);
+                    } catch (e: any) {
+                      // eslint-disable-next-line no-console
+                      console.error('Print preview failed', e);
+                      alert(e?.message || 'Failed to open print preview');
+                    } finally {
+                      setInternalLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Open Print Preview
+                </button>
             </div>
           </form>
         </div>

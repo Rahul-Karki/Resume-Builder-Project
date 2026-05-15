@@ -1,31 +1,31 @@
-import React from 'react';
+import type { FC } from 'react';
 
 interface ResumeData {
-  name: string;
-  title: string;
-  email: string;
-  phone: string;
-  address: string;
-  summary: string;
-  experience: Array<{
-    company: string;
-    position: string;
-    period: string;
-    description: string;
+  name?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  summary?: string;
+  experience?: Array<{
+    company?: string;
+    position?: string;
+    period?: string;
+    description?: string;
   }>;
-  education: Array<{
-    school: string;
-    degree: string;
-    period: string;
+  education?: Array<{
+    school?: string;
+    degree?: string;
+    period?: string;
   }>;
-  skills: string[];
+  skills?: string[];
 }
 
 interface ResumePreviewProps {
   data?: ResumeData | null;
 }
 
-const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
+const ResumePreview: FC<ResumePreviewProps> = ({ data }) => {
   if (!data) {
     return (
       <div className="resume-preview bg-white p-8 shadow-lg max-w-4xl mx-auto">

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { openPrintPreviewForSelector } from "../utils/printPreview";
 
 type Props = {
   open: boolean;
@@ -219,6 +220,13 @@ export default function PDFDownloadModal({ open, onClose, resumeSelector, onDown
             ) : (
               'Generate & Download'
             )}
+          </button>
+          <button
+            onClick={() => { if (!generating) { setGenerating(true); openPrintPreviewForSelector(resumeSelector).catch(e => setMessage(e?.message || 'Failed to open print preview')).finally(()=>setGenerating(false)); } }}
+            disabled={generating}
+            className="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Open Print Preview
           </button>
         </div>
       </div>
