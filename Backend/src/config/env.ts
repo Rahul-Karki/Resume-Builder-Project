@@ -37,6 +37,7 @@ const baseEnvSchema = z.object({
     .default("info"),
   SERVICE_NAME: z.string().min(1).default("resume-builder-backend"),
   SERVICE_VERSION: z.string().min(1).default("1.0.0"),
+  REQUEST_BODY_LIMIT: z.string().default("100kb"),
   SENTRY_DSN: z.string().url().optional().default(""),
   SENTRY_ENVIRONMENT: z.string().optional().default(""),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),

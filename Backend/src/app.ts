@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { env } from "./config/env";
+import apiVersionMiddleware from "./middleware/apiVersion";
 import { csrfProtection } from "./middleware/csrfProtection";
 import { correlationIdMiddleware } from "./middleware/correlationId";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
@@ -31,9 +32,10 @@ export const createApp = () => {
     .map((origin) => origin?.trim())
     .filter((origin): origin is string => Boolean(origin));
 
-  app.use(express.json());
+  app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
   app.use(correlationIdMiddleware);
   app.use(requestLogger);
+  app.use(apiVersionMiddleware);
 
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
