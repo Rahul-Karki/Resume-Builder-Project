@@ -1,9 +1,21 @@
-import { Schema, Document, model, Query } from "mongoose";
+import { Schema, Document, Query } from "mongoose";
+
+// Global module augmentation for Mongoose types
+declare module "mongoose" {
+  interface Document {
+    deletedAt?: globalThis.Date | null;
+    softDelete?(): Promise<void>;
+    restore?(): Promise<void>;
+  }
+  interface Query<ResultType, DocType, THelpers = {}, RawDocType = unknown, QueryOp = 'find', TDocOverrides = Record<string, never>> {
+    withDeleted(): this;
+  }
+}
 
 interface SoftDeleteDocument extends Document {
-  deletedAt?: Date | null;
-  softDelete?: () => Promise<void>;
-  restore?: () => Promise<void>;
+  deletedAt?: globalThis.Date | null;
+  softDelete?(): Promise<void>;
+  restore?(): Promise<void>;
 }
 
 export function softDeletePlugin(schema: Schema) {
