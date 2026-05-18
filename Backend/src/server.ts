@@ -11,6 +11,7 @@ import { createAllIndexes } from "./config/indexes";
 import app from "./app";
 import { initResumeQueueEvents, closeResumeQueueEvents } from "./queue/resumeQueueEvents";
 import { browserPool } from "./lib/browserPool";
+import { dataIntegrityChecker } from "./services/dataIntegrityService";
 initializeBackendSentry();
 
 const PORT = env.PORT;
@@ -18,6 +19,10 @@ const PORT = env.PORT;
 const startServer = async () => {
   await connectDB();
   await createAllIndexes();
+  
+  // Initialize data integrity checker for compliance monitoring
+  dataIntegrityChecker.startPeriodicChecks(env.INTEGRITY_CHECK_INTERVAL_MS || 3600000);
+  
   await ensureDefaultTemplatesInBackend();
   const cacheProvider = getCacheProvider();
   // Skip cache warmup when using memory-only cache — avoids wasting a Redis/Upstash PING
@@ -68,6 +73,9 @@ const startServer = async () => {
 
     isShuttingDown = true;
     logger.info({ signal }, "Shutting down server");
+
+    // Stop data integrity checker
+    dataIntegrityChecker.stopPeriodicChecks();
 
     // Stop accepting new connections
     server.close(async () => {
