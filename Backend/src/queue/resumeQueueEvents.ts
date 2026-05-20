@@ -5,11 +5,18 @@ import { env } from "../config/env";
 import { RESUME_DOWNLOAD_QUEUE_NAME } from "../../../shared/src/bullmq";
 import { jobEvents } from "../events/jobEvents";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
+import { getResumeQueueRuntimeInfo } from "./resumeQueue";
 
 let queueEvents: QueueEvents | null = null;
 
 export const initResumeQueueEvents = () => {
   if (queueEvents) return queueEvents;
+
+  const runtime = getResumeQueueRuntimeInfo();
+  if (!runtime.enabled) {
+    logger.info({ reason: runtime.reason }, "Resume QueueEvents disabled");
+    return null;
+  }
 
   const connection = getSharedBullmqConnection();
   queueEvents = new QueueEvents(RESUME_DOWNLOAD_QUEUE_NAME, {

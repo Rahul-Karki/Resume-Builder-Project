@@ -15,11 +15,13 @@ export const createPuppeteerLaunchOptions = () => {
         // (do not throw here to avoid startup failure)
         // eslint-disable-next-line no-console
         console.warn(`Configured PUPPETEER_EXECUTABLE_PATH not found: ${configured}; falling back to bundled Chromium`);
+        delete process.env.PUPPETEER_EXECUTABLE_PATH;
       }
     } catch (err) {
       // If checking the path fails for any reason, fall back gracefully
       // eslint-disable-next-line no-console
       console.warn(`Failed to validate PUPPETEER_EXECUTABLE_PATH: ${configured}; falling back to bundled Chromium`, err);
+      delete process.env.PUPPETEER_EXECUTABLE_PATH;
     }
   }
 

@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { logger } from "../observability";
 import AuditLog from "../models/AuditLog";
 import {
@@ -7,6 +6,7 @@ import {
 } from "../observability/complianceMetrics";
 import ReferentialIntegrityValidator from "../middleware/referentialIntegrity";
 import { alertDataIntegrityIssue } from "../observability/alerting";
+import { getModelIfRegistered, resolveModelByCollection } from "../utils/mongooseModelResolver";
 
 /**
  * Data Integrity Check Service
@@ -22,6 +22,7 @@ export class DataIntegrityChecker {
   private validator: ReferentialIntegrityValidator;
   private checkInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private missingModelsLogged = new Set<string>();
 
   constructor() {
     this.validator = new ReferentialIntegrityValidator();
@@ -122,9 +123,11 @@ export class DataIntegrityChecker {
       // Check soft delete counts
       for (const collection of collections) {
         try {
-          const Model = mongoose.model(
-            collection.charAt(0).toUpperCase() + collection.slice(1)
-          ) as any;
+          const Model = resolveModelByCollection(collection);
+          if (!Model) {
+            this.logMissingModel(`collection:${collection}`);
+            continue;
+          }
           const query: Record<string, any> = { deletedAt: { $exists: true, $ne: null } };
           const softDeletedCount = await (Model as any).countDocuments(query);
           results.softDeletedCounts[collection] = softDeletedCount;
@@ -168,7 +171,11 @@ export class DataIntegrityChecker {
 
       for (const collectionName of collections) {
         try {
-          const Model = mongoose.model(collectionName) as any;
+          const Model = getModelIfRegistered(collectionName) as any;
+          if (!Model) {
+            this.logMissingModel(collectionName);
+            continue;
+          }
           const recentDocs = await (Model as any).find({})
             .select("_id createdAt")
             .lean();
@@ -243,6 +250,12 @@ export class DataIntegrityChecker {
       totalOrphans: Object.values(orphanCounts).reduce((a, b) => a + b, 0),
       isHealthy: Object.values(orphanCounts).every((count) => count === 0),
     };
+  }
+
+  private logMissingModel(modelName: string) {
+    if (this.missingModelsLogged.has(modelName)) return;
+    this.missingModelsLogged.add(modelName);
+    logger.warn({ modelName }, "Mongoose model not registered");
   }
 }
 

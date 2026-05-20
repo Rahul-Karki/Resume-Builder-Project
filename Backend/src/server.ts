@@ -1,5 +1,6 @@
 import "./instrumentation";
 import connectDB from "./config/db";
+import "./models";
 import { env } from "./config/env";
 import { flushBackendSentry, initializeBackendSentry } from "./config/sentry";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";

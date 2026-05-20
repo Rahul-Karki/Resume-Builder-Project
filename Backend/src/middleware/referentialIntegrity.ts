@@ -1,8 +1,8 @@
 import { Response, Request, NextFunction } from "express";
-import mongoose from "mongoose";
 import { logger } from "../observability";
 import AuditLog, { IAuditLog } from "../models/AuditLog";
 import { getAuditContext, runWithAuditContext } from "../models/plugins/auditTrail";
+import { getModelIfRegistered, resolveModelByCollection } from "../utils/mongooseModelResolver";
 
 /**
  * Referential Integrity Validator
@@ -38,6 +38,7 @@ interface ValidationRule {
 export class ReferentialIntegrityValidator {
   private rules: ValidationRule[] = [];
   private referenceCache = new Map<string, Set<string>>();
+  private missingModelsLogged = new Set<string>();
 
   constructor(rules: ValidationRule[] = []) {
     this.rules = rules;
@@ -110,18 +111,21 @@ export class ReferentialIntegrityValidator {
       }
 
       // Validate reference exists
-      const Model = mongoose.model(rule.references.model);
-      if (Model) {
-        const exists = await this.documentExists(
-          rule.references.model,
-          value
-        );
+      const Model = getModelIfRegistered(rule.references.model);
+      if (!Model) {
+        this.logMissingModel(rule.references.model);
+        continue;
+      }
 
-        if (!exists) {
-          errors.push(
-            `Reference error: ${rule.references.model} with ${rule.references.field} '${value}' does not exist`
-          );
-        }
+      const exists = await this.documentExists(
+        rule.references.model,
+        value
+      );
+
+      if (!exists) {
+        errors.push(
+          `Reference error: ${rule.references.model} with ${rule.references.field} '${value}' does not exist`
+        );
       }
     }
 
@@ -140,12 +144,18 @@ export class ReferentialIntegrityValidator {
 
     for (const rule of relevantRules) {
       try {
-        const Model = mongoose.model(rule.references.model);
-        const ChildModel = mongoose.model(
-          collection.charAt(0).toUpperCase() + collection.slice(1)
-        );
+        const Model = getModelIfRegistered(rule.references.model);
+        const ChildModel = resolveModelByCollection(collection);
 
-        if (!Model || !ChildModel) continue;
+        if (!Model) {
+          this.logMissingModel(rule.references.model);
+          continue;
+        }
+
+        if (!ChildModel) {
+          this.logMissingModel(`collection:${collection}`);
+          continue;
+        }
 
         // Find documents with non-existent references
         const parentIds = await Model.find({}, { _id: 1 }).lean();
@@ -178,7 +188,11 @@ export class ReferentialIntegrityValidator {
     }
 
     try {
-      const Model = mongoose.model(model);
+      const Model = getModelIfRegistered(model);
+      if (!Model) {
+        this.logMissingModel(model);
+        return false;
+      }
       const doc = await Model.findById(id).select("_id").lean();
 
       // Cache result for 5 seconds
@@ -190,6 +204,12 @@ export class ReferentialIntegrityValidator {
       logger.warn({ error, model, id }, "Error checking document existence");
       return false;
     }
+  }
+
+  private logMissingModel(modelName: string) {
+    if (this.missingModelsLogged.has(modelName)) return;
+    this.missingModelsLogged.add(modelName);
+    logger.warn({ modelName }, "Mongoose model not registered");
   }
 
   /**
