@@ -7,8 +7,10 @@ import { csrfProtection } from "./middleware/csrfProtection";
 import { correlationIdMiddleware } from "./middleware/correlationId";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { requestTimeoutMiddleware } from "./middleware/requestTimeout";
+import { requestSizeLimitMiddleware } from "./middleware/requestSizeLimit";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { openAPISpec } from "./config/openapi";
+import { auditContextMiddleware, referentialIntegrityMiddleware } from "./middleware/referentialIntegrity";
 
 import authRoutes from "./router/auth.routes";
 import refreshRoutes from "./router/refresh.route";
@@ -34,6 +36,8 @@ export const createApp = () => {
 
   app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
   app.use(correlationIdMiddleware);
+  app.use(auditContextMiddleware);
+  app.use(requestSizeLimitMiddleware);
   app.use(requestLogger);
   app.use(apiVersionMiddleware);
 
@@ -82,6 +86,7 @@ export const createApp = () => {
   app.use(cors(corsOptions));
   app.use(requestTimeoutMiddleware);
   app.use(csrfProtection);
+  app.use(referentialIntegrityMiddleware);
   app.use(metricsMiddleware);
 
   if (env.ENABLE_METRICS) {
@@ -93,15 +98,30 @@ export const createApp = () => {
     res.json(openAPISpec);
   });
 
+  // Versioned API routes — accept header negotiation
+  // Clients can use Accept: application/vnd.resume-builder.v1+json
+  const apiVersionRouter = express.Router();
+
+  apiVersionRouter.use("/auth", authRoutes);
+  apiVersionRouter.use("/", refreshRoutes);
+  apiVersionRouter.use("/ai", aiRoutes);
+  apiVersionRouter.use("/resumes", resumeRoutes);
+  apiVersionRouter.use("/admin", adminRoutes);
+  apiVersionRouter.use("/templates", templateRoutes);
+
+  // Unversioned routes
+  app.use("/api", apiVersionRouter);
+  // Version-prefixed routes for explicit versioning: /api/v1/...
+  app.use("/api/v1", apiVersionRouter);
+  // Legacy routes
   app.use("/api/auth", authRoutes);
-  app.use("/api", refreshRoutes);
   app.use("/api/ai", aiRoutes);
   app.use("/api/resumes", resumeRoutes);
   app.use("/api/admin", adminRoutes);
+  app.use("/api/templates", templateRoutes);
   if (env.NODE_ENV !== "test") {
     app.use("/admin/queues", adminGuard, setupBullBoard());
   }
-  app.use("/api/templates", templateRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);
   app.use(notFoundHandler);

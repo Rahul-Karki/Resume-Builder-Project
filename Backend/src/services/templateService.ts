@@ -94,15 +94,24 @@ export class TemplateService {
     return Array.from(new Set(combined)).slice(0, 12);
   }
 
-  // GET all templates (admin sees all statuses)
-  static async getAll(filter: { status?: string; category?: string; audience?: string } = {}): Promise<ITemplate[]> {
+  // GET all templates (admin sees all statuses) with pagination
+  static async getAll(
+    filter: { status?: string; category?: string; audience?: string } = {},
+    page = 1,
+    limit = 50
+  ): Promise<{ templates: ITemplate[]; total: number; page: number; totalPages: number }> {
     const query: Record<string, string> = {};
     if (filter.status)   query.status   = filter.status;
     const category = this.normalizeCategory(filter.category);
     const audience = this.normalizeCategory(filter.audience);
     if (category) query.category = category;
     if (audience) query.audience = audience;
-    return Template.find(query).sort({ sortOrder: 1, createdAt: -1 }).lean();
+    const skip = (page - 1) * limit;
+    const [templates, total] = await Promise.all([
+      Template.find(query).sort({ sortOrder: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Template.countDocuments(query),
+    ]);
+    return { templates, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   // GET single template

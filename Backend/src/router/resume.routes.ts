@@ -25,6 +25,7 @@ import {
 import { createRedisCacheMiddleware } from "../middleware/redisCache";
 import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
 import { validateRequest } from "../middleware/validateRequest";
+import { createReferentialIntegrityMiddleware } from "../middleware/referentialIntegrity";
 // creditDeductionMiddleware removed - was used for ATS analysis which was removed
 import {
   createResumeSchema,
@@ -69,11 +70,27 @@ router.get(
   resumeCacheMiddleware,
   baseGetResumeById,
 );
-router.post("/", validateRequest({ body: createResumeSchema }), resumeMutationLimiter, baseCreateResume);
-router.put("/:id", validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }), resumeMutationLimiter, baseUpdateResume);
+router.post(
+  "/",
+  validateRequest({ body: createResumeSchema }),
+  resumeMutationLimiter,
+  createReferentialIntegrityMiddleware("resumes", (req) => ({ userId: req.user?.id })),
+  baseCreateResume,
+);
+router.put(
+  "/:id",
+  validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }),
+  resumeMutationLimiter,
+  createReferentialIntegrityMiddleware("resumes", (req) => ({ userId: req.user?.id }), "update"),
+  baseUpdateResume,
+);
 router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
 
-router.post("/download-resume", downloadResume);
+router.post(
+  "/download-resume",
+  createReferentialIntegrityMiddleware("resumedownloadjobs", (req) => ({ userId: req.user?.id })),
+  downloadResume,
+);
 router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
 router.get("/job-events/:id", validateRequest({ params: jobStatusParamSchema }), streamResumeDownloadJobEvents);
 router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
@@ -81,8 +98,18 @@ router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }
 
 // export-pdf endpoint removed - was related to BullMQ PDF generation
 
-router.post("/:id/analyze-ats", validateRequest({ params: objectIdParamSchema }), analyzeAts);
-router.post("/:id/ats-analysis", validateRequest({ params: objectIdParamSchema }), analyzeAts);
+router.post(
+  "/:id/analyze-ats",
+  validateRequest({ params: objectIdParamSchema }),
+  createReferentialIntegrityMiddleware("atsanalyses", (req) => ({ resumeId: req.params.id })),
+  analyzeAts,
+);
+router.post(
+  "/:id/ats-analysis",
+  validateRequest({ params: objectIdParamSchema }),
+  createReferentialIntegrityMiddleware("atsanalyses", (req) => ({ resumeId: req.params.id })),
+  analyzeAts,
+);
 router.get("/:id/ats-analysis/latest", validateRequest({ params: objectIdParamSchema }), getLatestAtsAnalysis);
 router.get("/:id/ats-analysis/:jobId", validateRequest({ params: objectIdParamSchema }), getAtsAnalysisByJobId);
 router.post("/:id/apply-suggestion", validateRequest({ params: objectIdParamSchema }), applyAtsSuggestion);

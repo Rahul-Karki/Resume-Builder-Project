@@ -310,9 +310,9 @@ const resolveTemplateStyle = (templateId: string) => getTemplateBaseStyle(templa
 const resolveTemplateVisibility = (templateId: string) => getTemplateBaseVisibility(templateId);
 
 const resolveTemplateConfig = (templateId: string) => {
-  let normalizedTemplateId = normalizeResumeTemplateId(templateId);
-  let baseStyle = resolveTemplateStyle(normalizedTemplateId);
-  let baseVisibility = resolveTemplateVisibility(normalizedTemplateId);
+  const normalizedTemplateId = normalizeResumeTemplateId(templateId);
+  const baseStyle = resolveTemplateStyle(normalizedTemplateId);
+  const baseVisibility = resolveTemplateVisibility(normalizedTemplateId);
 
   try {
     const matchedTemplate = localTemplateCatalog.find((template) => template.id === normalizedTemplateId);
@@ -820,29 +820,38 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
       }));
     },
 
-    // ─── Save ────────────────────────────────────────────────────────────────
+    // ─── Save with optimistic updates ─────────────────────────────────────────
     saveResume: async () => {
-      set(s => ({ ui: { ...s.ui, isSaving: true, saveError: null } }));
-      try {
-        const { resume } = get();
-        const payload = toResumePayload(resume);
+      const { resume } = get();
+      const previousResume = { ...resume };
+      const timestamp = new Date().toISOString();
 
+      // Optimistic update: immediately reflect saving state
+      set(s => ({
+        ui: { ...s.ui, isSaving: true, isSaved: false, saveError: null },
+      }));
+
+      try {
+        const payload = toResumePayload(resume);
         const hasServerId = !!(resume.id && !resume.id.startsWith('res_'));
         const response = hasServerId
           ? await api.put(`/resumes/${resume.id}`, payload)
           : await api.post(`/resumes`, payload);
 
         const savedResume = response.data?.resume ?? response.data;
-        // Only use server-assigned IDs — never fabricate one
         const savedId = savedResume?._id ?? savedResume?.id;
         if (!savedId) throw new Error('Server did not return a resume ID');
 
         set(s => ({
-          resume: { ...s.resume, id: savedId, updatedAt: savedResume?.updatedAt ?? new Date().toISOString() },
+          resume: { ...s.resume, id: savedId, updatedAt: savedResume?.updatedAt ?? timestamp },
           ui: { ...s.ui, isSaving: false, isSaved: true, isDirty: false },
         }));
       } catch (err) {
-        set(s => ({ ui: { ...s.ui, isSaving: false, saveError: "Failed to save. Please try again." } }));
+        // Rollback: restore previous state on failure
+        set({
+          resume: previousResume,
+          ui: { ...get().ui, isSaving: false, saveError: "Failed to save. Your changes have been preserved locally." },
+        });
       }
     },
 

@@ -91,7 +91,7 @@ export async function openPrintPreviewForSelector(selector: string) {
   printWindow.focus();
 
   setTimeout(() => {
-    try { printWindow.print(); } catch { }
+    try { printWindow.print(); } catch { /* ignore */ }
   }, 250);
 
   // cleanup marker elements in the parent document
@@ -113,6 +113,6 @@ export async function openPrintPreviewForElement(root: HTMLElement) {
   doc.body.appendChild(clone);
   doc.close();
   printWindow.focus();
-  setTimeout(() => { try { printWindow.print(); } catch {} }, 250);
+  setTimeout(() => { try { printWindow.print(); } catch { /* ignore */ } }, 250);
   document.querySelectorAll('.__pdf-export-clone').forEach(n => n.remove());
 }

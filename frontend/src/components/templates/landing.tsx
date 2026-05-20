@@ -23,6 +23,8 @@ const SLOT_FALLBACK_SECTIONS: ResumeDocument["sections"] = {
       ],
 };
 
+const PAGE_SIZE = 24;
+
 const mergeWithLocalTemplateCatalog = (apiTemplates: TemplateMeta[]): TemplateMeta[] => {
   const byId = new Map<string, TemplateMeta>();
   apiTemplates.forEach((template) => byId.set(template.id, template));
@@ -47,6 +49,31 @@ const mergeWithLocalTemplateCatalog = (apiTemplates: TemplateMeta[]): TemplateMe
   });
 
   return Array.from(byId.values());
+};
+
+const enrichWithLocalTemplateCatalog = (apiTemplates: TemplateMeta[]): TemplateMeta[] => {
+  const localById = new Map(localTemplateCatalog.map((template) => [template.id, template]));
+
+  return apiTemplates.map((template) => {
+    const local = localById.get(template.id);
+    if (!local) return template;
+    return {
+      ...local,
+      ...template,
+      cssVars: { ...local.cssVars, ...template.cssVars },
+      slots: { ...local.slots, ...template.slots },
+    };
+  });
+};
+
+const resolveTemplateThumbnailUrl = (rawUrl?: string) => {
+  if (!rawUrl) return "";
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  const cdnBase = String(import.meta.env.VITE_CDN_BASE_URL ?? "").trim();
+  if (!cdnBase) return rawUrl;
+  const cleanBase = cdnBase.replace(/\/+$/, "");
+  const cleanPath = rawUrl.replace(/^\/+/, "");
+  return `${cleanBase}/${cleanPath}`;
 };
 
 const buildPreviewSample = (template: TemplateMeta): ResumeDocument => {
@@ -296,7 +323,7 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
  
     /* GRID */
     .tp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; padding: 0 40px 80px; max-width: 1400px; margin: 0 auto; }
-    .tp-card { border-radius: 16px; overflow: hidden; background: #141414; border: 1px solid #1F1F1F; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); cursor: pointer; animation: fadein 0.5s ease both; }
+    .tp-card { border-radius: 16px; overflow: hidden; background: #141414; border: 1px solid #1F1F1F; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); cursor: pointer; animation: fadein 0.5s ease both; content-visibility: auto; contain-intrinsic-size: 420px; }
     .tp-card:hover { border-color: #333; transform: translateY(-4px); box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
     @keyframes fadein { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
  
@@ -407,6 +434,9 @@ export default function TemplatesPage() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState("Loading templates...");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [activeAudience, setActiveAudience] = useState<"All" | "Tech" | "Non-Tech">("All");
   const [previewId, setPreviewId] = useState<string | null>(() => searchParams.get("preview"));
   const [activePreviewId, setActivePreviewId] = useState<string | null>(() => searchParams.get("preview"));
@@ -434,7 +464,7 @@ export default function TemplatesPage() {
     }
   };
 
-  const fetchTemplatesWithRetry = async () => {
+  const fetchTemplatesWithRetry = async (nextPage: number, audience?: "tech" | "non-tech") => {
     const retryDelaysMs = [0, 1500, 3000, 5000];
     let lastError: unknown = null;
 
@@ -450,13 +480,29 @@ export default function TemplatesPage() {
       }
 
       try {
-        const response = await api.get("/templates", { timeout: 35000 });
-        const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
+        const response = await api.get("/templates", {
+          timeout: 35000,
+          params: {
+            page: nextPage,
+            limit: PAGE_SIZE,
+            ...(audience ? { audience } : {}),
+          },
+        });
+
+        const payload = response?.data?.data ?? response?.data;
+        const rows = Array.isArray(payload?.templates)
+          ? payload.templates
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload)
+              ? payload
+              : [];
 
         const mapped: TemplateMeta[] = rows.map((row: any) => {
           const category = row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech";
           const accent = row.cssVars?.accentColor ?? "#1a1a1a";
           const font = String(row.cssVars?.bodyFont ?? "Outfit").split(",")[0].trim();
+          const rawThumbnail = typeof row.thumbnailUrl === "string" ? row.thumbnailUrl : "";
 
           return {
             id: row.layoutId,
@@ -468,7 +514,7 @@ export default function TemplatesPage() {
             font,
             description: row.description ?? "",
             isPremium: Boolean(row.isPremium),
-            thumbnailUrl: row.thumbnailUrl ?? "",
+            thumbnailUrl: resolveTemplateThumbnailUrl(rawThumbnail),
             palette: [
               row.cssVars?.backgroundColor ?? "#ffffff",
               accent,
@@ -479,7 +525,11 @@ export default function TemplatesPage() {
           };
         });
 
-        return mergeWithLocalTemplateCatalog(mapped);
+        return {
+          templates: enrichWithLocalTemplateCatalog(mapped),
+          page: Number(payload?.page ?? nextPage),
+          totalPages: Number(payload?.totalPages ?? 1),
+        };
       } catch (error) {
         lastError = error;
       }
@@ -488,20 +538,43 @@ export default function TemplatesPage() {
     throw lastError;
   };
 
-  const loadTemplatesData = async () => {
-    setLoadingTemplates(true);
-    setLoadingMessage("Loading templates...");
-    setLoadError(null);
+  const loadTemplatesData = async (reset = false) => {
+    const nextPage = reset ? 1 : page + 1;
+    const audience = activeAudience === "All"
+      ? undefined
+      : activeAudience === "Tech" ? "tech" : "non-tech";
+
+    if (reset) {
+      setLoadingTemplates(true);
+      setLoadingMessage("Loading templates...");
+      setLoadError(null);
+    } else {
+      setIsLoadingMore(true);
+    }
 
     try {
-      const mapped = await fetchTemplatesWithRetry();
-      setTemplates(mapped);
+      const result = await fetchTemplatesWithRetry(nextPage, audience);
+      setTotalPages(result.totalPages);
+      setPage(result.page);
+      setTemplates((prev) => {
+        if (reset) return result.templates;
+        const existing = new Set(prev.map((template) => template.id));
+        const combined = [...prev, ...result.templates.filter((template) => !existing.has(template.id))];
+        return combined;
+      });
     } catch {
-      // If API fails completely, fall back to local templates
-      setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
-      setTemplates(mergeWithLocalTemplateCatalog([]));
+      if (reset) {
+        // If API fails completely, fall back to local templates
+        setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
+        setTemplates(mergeWithLocalTemplateCatalog([]));
+        setPage(1);
+        setTotalPages(1);
+      }
     } finally {
-      setLoadingTemplates(false);
+      if (reset) {
+        setLoadingTemplates(false);
+      }
+      setIsLoadingMore(false);
     }
   };
 
@@ -537,17 +610,17 @@ export default function TemplatesPage() {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
+    let active = true;
 
     void (async () => {
-      await loadTemplatesData();
-      if (!mounted) return;
+      if (!active) return;
+      await loadTemplatesData(true);
     })();
 
     return () => {
-      mounted = false;
+      active = false;
     };
-  }, []);
+  }, [activeAudience]);
  
   useEffect(() => {
     if (previewId) document.body.style.overflow = "hidden";
@@ -652,7 +725,13 @@ export default function TemplatesPage() {
           <div className="tp-card-thumb-inner">
             <div className="tp-card-thumb-paper" style={{ aspectRatio: "240/310" }}>
               {t.thumbnailUrl ? (
-                <img src={t.thumbnailUrl} alt={t.name} style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+                <img
+                  src={t.thumbnailUrl}
+                  alt={t.name}
+                  loading="lazy"
+                  decoding="async"
+                  style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}
+                />
               ) : (
                 <ThumbnailSVG template={t} />
               )}
@@ -735,7 +814,7 @@ export default function TemplatesPage() {
             <span>{loadError}</span>
             <button
               type="button"
-              onClick={() => { void loadTemplatesData(); }}
+              onClick={() => { void loadTemplatesData(true); }}
               style={{
                 padding: "8px 14px",
                 borderRadius: 10,
@@ -802,6 +881,27 @@ export default function TemplatesPage() {
 
           {!loadingTemplates && activeAudience !== "All" && renderTemplateCards(filtered, 0)}
         </div>
+
+        {!loadingTemplates && !loadError && page < totalPages && (
+          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 40px" }}>
+            <button
+              type="button"
+              onClick={() => { void loadTemplatesData(false); }}
+              disabled={isLoadingMore}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 10,
+                border: "1px solid #2A2A2A",
+                background: "#141414",
+                color: "#C8C7C0",
+                cursor: isLoadingMore ? "not-allowed" : "pointer",
+                fontWeight: 700,
+              }}
+            >
+              {isLoadingMore ? "Loading more templates..." : "Load more templates"}
+            </button>
+          </div>
+        )}
  
         {/* ATS INFO */}
         <div className="tp-ats">

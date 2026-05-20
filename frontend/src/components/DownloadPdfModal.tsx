@@ -121,7 +121,7 @@ export default function DownloadPdfModal({ open, onClose, resumeSelector }: Prop
 
       setMessage('Waiting for fonts...');
       if ((document as any).fonts?.ready) {
-        try { await (document as any).fonts.ready; } catch {}
+        try { await (document as any).fonts.ready; } catch { /* ignore */ }
       }
 
       const mmToPx = (mm: number) => mm * (96 / 25.4);

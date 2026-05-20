@@ -260,6 +260,16 @@ const mergeTemplates = (apiTemplates: LandingTemplate[]): LandingTemplate[] => {
   return Array.from(byId.values());
 };
 
+const resolveTemplateThumbnailUrl = (rawUrl?: string) => {
+  if (!rawUrl) return "";
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  const cdnBase = String(import.meta.env.VITE_CDN_BASE_URL ?? "").trim();
+  if (!cdnBase) return rawUrl;
+  const cleanBase = cdnBase.replace(/\/+$/, "");
+  const cleanPath = rawUrl.replace(/^\/+/, "");
+  return `${cleanBase}/${cleanPath}`;
+};
+
 export function TemplatesPreview() {
   const navigate = useNavigate();
   const [hovered, setHovered] = useState<string | null>(null);
@@ -299,17 +309,28 @@ export function TemplatesPreview() {
         if (!mounted) return;
 
       try {
-        const response = await api.get("/templates", { timeout: 35000 });
-        const rows = Array.isArray(response?.data?.data) ? response.data.data : [];
+        const response = await api.get("/templates", {
+          timeout: 35000,
+          params: { page: 1, limit: 12 },
+        });
+        const payload = response?.data?.data ?? response?.data;
+        const rows = Array.isArray(payload?.templates)
+          ? payload.templates
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload)
+              ? payload
+              : [];
 
         const mapped: LandingTemplate[] = rows.map((row: any) => {
           const accent = row.cssVars?.accentColor ?? "#1a1a1a";
-          return {
+            const rawThumbnail = typeof row.thumbnailUrl === "string" ? row.thumbnailUrl : "";
+            return {
             id: String(row.layoutId ?? "classic"),
             name: String(row.name ?? "Template"),
             tag: String(row.tag ?? "General"),
             category: row.category === "tech" || row.audience === "tech" ? "tech" : "non-tech",
-            thumbnailUrl: String(row.thumbnailUrl ?? ""),
+              thumbnailUrl: resolveTemplateThumbnailUrl(rawThumbnail),
             accent,
             primary: row.cssVars?.headingColor ?? accent,
             secondary: row.cssVars?.mutedColor ?? row.cssVars?.textColor ?? "#555",
@@ -493,7 +514,13 @@ export function TemplatesPreview() {
                     transform: isHov ? "scale(1.04)" : "scale(1)", transition: "transform 0.3s ease",
                   }}>
                     {t.thumbnailUrl ? (
-                      <img src={t.thumbnailUrl} alt={t.name} style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }} />
+                      <img
+                        src={t.thumbnailUrl}
+                        alt={t.name}
+                        loading="lazy"
+                        decoding="async"
+                        style={{ width: "100%", height: "100%", display: "block", objectFit: "cover" }}
+                      />
                     ) : (
                       <svg viewBox="0 0 240 310" style={{ width: "100%", height: "100%", display: "block" }} xmlns="http://www.w3.org/2000/svg">
                         {renderThumb(t.id, t.primary, t.secondary)}

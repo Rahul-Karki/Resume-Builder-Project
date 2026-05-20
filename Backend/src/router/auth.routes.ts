@@ -65,4 +65,12 @@ router.post("/unlink-oauth", authMiddleware, validateRequest({ body: oauthUnlink
 router.post("/logout", validateRequest({ body: emptyObjectSchema }), authMiddleware, logout);
 router.get("/me", authMiddleware, getCurrentUser);
 
+// ─── MFA Routes ─────────────────────────────────────────────────────────────────
+import { setupMfa, verifyMfa, disableMfa, getMfaStatus } from "../controllers/mfaController";
+
+router.post("/mfa/setup", authMiddleware, setupMfa);
+router.post("/mfa/verify", authMiddleware, verifyMfa);
+router.post("/mfa/disable", authMiddleware, disableMfa);
+router.get("/mfa/status", authMiddleware, getMfaStatus);
+
 export default router;

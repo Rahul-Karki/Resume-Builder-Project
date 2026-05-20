@@ -112,11 +112,15 @@ const templateListQuerySchema = z.object({
   category: templateCategorySchema.optional(),
   audience: templateAudienceSchema.optional(),
   tags: z.array(z.string().trim().min(1).max(30)).optional(),
+  page: z.coerce.number().int().min(1).max(1000).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 }).strict();
 
 const publicTemplateListQuerySchema = z.object({
   category: templateCategorySchema.optional(),
   audience: templateAudienceSchema.optional(),
+  page: z.coerce.number().int().min(1).max(1000).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 }).strict();
 
 const analyticsQuerySchema = z.object({

@@ -70,9 +70,9 @@ test("listPublicTemplates requests published tech templates", async () => {
   const calls = [];
   const { listPublicTemplates } = loadController({
     serviceMock: {
-      getAll: async (filter) => {
-        calls.push(filter);
-        return [{ layoutId: "modern", category: "tech" }];
+      getAll: async (filter, page, limit) => {
+        calls.push({ filter, page, limit });
+        return { templates: [{ layoutId: "modern", category: "tech" }], total: 1, page: 1, totalPages: 1 };
       },
     },
   });
@@ -82,10 +82,10 @@ test("listPublicTemplates requests published tech templates", async () => {
 
   await listPublicTemplates(req, res);
 
-  assert.deepEqual(calls, [{ status: "published", category: "tech", audience: "tech" }]);
+  assert.deepEqual(calls, [{ filter: { status: "published", category: "tech", audience: "tech" }, page: 1, limit: 50 }]);
   assert.equal(res.statusCode, 200);
   assert.equal(res.jsonBody.ok, true);
-  assert.equal(res.jsonBody.data[0].layoutId, "modern");
+  assert.equal(res.jsonBody.data.templates[0].layoutId, "modern");
 });
 
 test("createTemplate normalizes tags and tech category fields", async () => {

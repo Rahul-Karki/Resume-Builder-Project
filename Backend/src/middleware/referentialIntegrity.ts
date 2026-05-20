@@ -1,8 +1,9 @@
 import { Response, Request, NextFunction } from "express";
 import { logger } from "../observability";
-import AuditLog, { IAuditLog } from "../models/AuditLog";
-import { getAuditContext, runWithAuditContext } from "../models/plugins/auditTrail";
+import { runWithAuditContext } from "../models/plugins/auditTrail";
 import { getModelIfRegistered, resolveModelByCollection } from "../utils/mongooseModelResolver";
+import { AppError } from "../errors/AppError";
+import { sendErrorResponse } from "../utils/errorResponse";
 
 /**
  * Referential Integrity Validator
@@ -236,8 +237,9 @@ export const auditContextMiddleware = (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = (req as any).userId; // Set by auth middleware
-  const userEmail = (req as any).userEmail;
+  const user = req.user as { id?: string; email?: string } | undefined;
+  const userId = user?.id;
+  const userEmail = user?.email;
 
   // Create audit context and run next middleware with it
   const context = {
@@ -251,14 +253,38 @@ export const auditContextMiddleware = (
 
   (req as any).auditContext = context;
 
-  // Wrap response.send to capture status code
-  const originalSend = res.send;
-  res.send = function (data: any) {
+  res.on("finish", () => {
     (req as any).auditContext.statusCode = res.statusCode;
-    return originalSend.call(this, data);
-  };
+  });
 
-  next();
+  runWithAuditContext(context, () => {
+    next();
+  });
+};
+
+const sharedReferentialValidator = new ReferentialIntegrityValidator();
+
+export const referentialIntegrityMiddleware = sharedReferentialValidator.middleware.bind(sharedReferentialValidator);
+
+export const createReferentialIntegrityMiddleware = (
+  collection: string,
+  buildData: (req: Request) => Record<string, any>,
+  operation: "create" | "update" = "create"
+) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const data = buildData(req);
+    const { valid, errors } = await sharedReferentialValidator.validate(collection, data, operation);
+    if (!valid) {
+      return sendErrorResponse(res, new AppError("Referential integrity validation failed", {
+        statusCode: 422,
+        code: "REFERENTIAL_INTEGRITY",
+        expose: true,
+        details: { errors },
+      }));
+    }
+
+    next();
+  };
 };
 
 export default ReferentialIntegrityValidator;

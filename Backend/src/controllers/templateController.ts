@@ -36,10 +36,12 @@ export async function listTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.listTemplates", req);
   try {
     const { status, category, audience } = req.query as Record<string, string>;
-    const templates = await TemplateService.getAll({ status, category, audience });
-    logger.info({ status, category, audience, count: templates.length }, "Templates listed");
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10));
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10)));
+    const result = await TemplateService.getAll({ status, category, audience }, page, limit);
+    logger.info({ status, category, audience, count: result.templates.length, page, totalPages: result.totalPages, total: result.total }, "Templates listed");
     markSpanSuccess(span);
-    return ok(res, templates);
+    return ok(res, result);
   } catch (err: any) {
     markSpanError(span, err as Error, "List templates failed");
     logger.error({ error: err }, "List templates failed");
@@ -55,10 +57,12 @@ export async function listPublicTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.listPublicTemplates", req);
   try {
     const { category, audience } = req.query as Record<string, string>;
-    const templates = await TemplateService.getAll({ status: "published", category, audience });
-    logger.info({ category, audience, count: templates.length }, "Public templates listed");
+    const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10));
+    const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10)));
+    const result = await TemplateService.getAll({ status: "published", category, audience }, page, limit);
+    logger.info({ category, audience, count: result.templates.length, page, totalPages: result.totalPages, total: result.total }, "Public templates listed");
     markSpanSuccess(span);
-    return ok(res, templates);
+    return ok(res, result);
   } catch (err: any) {
     markSpanError(span, err as Error, "List public templates failed");
     logger.error({ error: err }, "List public templates failed");

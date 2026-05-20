@@ -6,6 +6,7 @@ import { env } from "../config/env";
 import { logAuthFailure } from "../utils/securityLogger";
 import { AuthError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { getAuditContext } from "../models/plugins/auditTrail";
 
 const JWT_SECRET = env.JWT_ACCESS_SECRET;
 const AUTH_QUERY_TIMEOUT_MS = 5000; // 5 second timeout for auth queries
@@ -31,7 +32,7 @@ export const authMiddleware = async (
 
     // Query with timeout to prevent hanging requests; cancel the query on timeout
     const query = User.findById(decoded.userId)
-      .select("name role")
+      .select("name role email")
       .lean();
 
     const queryPromise = typeof (query as { exec?: () => Promise<unknown>; cancel?: () => void }).exec === "function"
@@ -58,13 +59,20 @@ export const authMiddleware = async (
       return;
     }
 
-    const authenticatedUser = user as { _id: unknown; role: unknown; name: unknown };
+    const authenticatedUser = user as { _id: unknown; role: unknown; name: unknown; email?: unknown };
 
     req.user = {
       id: String(authenticatedUser._id),
       role: String(authenticatedUser.role),
       name: String(authenticatedUser.name),
+      email: authenticatedUser.email ? String(authenticatedUser.email) : undefined,
     };
+
+    const auditContext = getAuditContext();
+    if (auditContext) {
+      auditContext.userId = req.user.id;
+      auditContext.userEmail = req.user.email;
+    }
 
     next();
   } catch (error) {

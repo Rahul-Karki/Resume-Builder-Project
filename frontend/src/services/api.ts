@@ -128,6 +128,12 @@ export type AiSectionRequest = {
   variationSeed?: string;
 };
 
+export type AiRequestOptions = {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  requestId?: string;
+};
+
 export type AtsAnalysisQueueResponse = {
   message: string;
   jobId: string;
@@ -155,7 +161,7 @@ export const getResumeDownloadJobStatus = async (jobId: string) => {
   return response.data as ResumeDownloadJobStatusResponse;
 };
 
-export const improveResumeText = async (payload: AiSectionRequest) => {
+export const improveResumeText = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
   const operation = 'improve-text';
   const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
 
@@ -164,7 +170,11 @@ export const improveResumeText = async (payload: AiSectionRequest) => {
     
     const response = await performanceMonitor.measureApiCall(
       'improveResumeText',
-      () => api.post("/ai/improve-text", payload, { timeout: 20000 }),
+      () => api.post("/ai/improve-text", payload, {
+        timeout: options.timeoutMs ?? 20000,
+        signal: options.signal,
+        headers: options.requestId ? { "X-Request-ID": options.requestId } : undefined,
+      }),
       { operation, textLength: payload.text.length }
     );
 
@@ -194,7 +204,7 @@ export const improveResumeText = async (payload: AiSectionRequest) => {
   }
 };
 
-export const checkResumeGrammar = async (payload: AiSectionRequest) => {
+export const checkResumeGrammar = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
   const operation = 'check-grammar';
   const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
 
@@ -203,7 +213,11 @@ export const checkResumeGrammar = async (payload: AiSectionRequest) => {
     
     const response = await performanceMonitor.measureApiCall(
       'checkResumeGrammar',
-      () => api.post("/ai/check-grammar", payload, { timeout: 20000 }),
+      () => api.post("/ai/check-grammar", payload, {
+        timeout: options.timeoutMs ?? 20000,
+        signal: options.signal,
+        headers: options.requestId ? { "X-Request-ID": options.requestId } : undefined,
+      }),
       { operation, textLength: payload.text.length }
     );
 
@@ -233,7 +247,7 @@ export const checkResumeGrammar = async (payload: AiSectionRequest) => {
   }
 };
 
-export const enhanceResumeBullet = async (payload: AiSectionRequest) => {
+export const enhanceResumeBullet = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
   const operation = 'enhance-bullet';
   const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
 
@@ -242,7 +256,11 @@ export const enhanceResumeBullet = async (payload: AiSectionRequest) => {
     
     const response = await performanceMonitor.measureApiCall(
       'enhanceResumeBullet',
-      () => api.post("/ai/enhance-bullet", payload, { timeout: 20000 }),
+      () => api.post("/ai/enhance-bullet", payload, {
+        timeout: options.timeoutMs ?? 20000,
+        signal: options.signal,
+        headers: options.requestId ? { "X-Request-ID": options.requestId } : undefined,
+      }),
       { operation, textLength: payload.text.length }
     );
 

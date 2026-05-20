@@ -200,9 +200,9 @@ export async function printResume(selector = '.resume-preview') {
   document.head.appendChild(style);
 
   const cleanup = () => {
-    try { printClone.remove(); } catch {}
-    try { style.remove(); } catch {}
-    try { window.removeEventListener('afterprint', cleanup); } catch {}
+    try { printClone.remove(); } catch { /* ignore */ }
+    try { style.remove(); } catch { /* ignore */ }
+    try { window.removeEventListener('afterprint', cleanup); } catch { /* ignore */ }
   };
   window.addEventListener('afterprint', cleanup);
 

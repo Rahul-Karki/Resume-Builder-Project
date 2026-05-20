@@ -5,6 +5,7 @@ import { parseCookies } from "../utils/cookieParser";
 import { env } from "../config/env";
 import { AuthError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
+import { getAuditContext } from "../models/plugins/auditTrail";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ declare global {
         id:   string;
         role: string;
         name: string;
+        email?: string;
       };
     }
   }
@@ -52,13 +54,18 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       return sendErrorResponse(res, new AuthError("Invalid token payload.", { code: "AUTH_REQUIRED" }));
     }
 
-    const user = await User.findById(userId).select("name role").lean();
+    const user = await User.findById(userId).select("name role email").lean();
 
     if (!user) {
       return sendErrorResponse(res, new AuthError("User not found.", { code: "AUTH_REQUIRED" }));
     }
 
-    req.user = { id: String(user._id), role: user.role, name: user.name };
+    req.user = { id: String(user._id), role: user.role, name: user.name, email: user.email ? String(user.email) : undefined };
+    const auditContext = getAuditContext();
+    if (auditContext) {
+      auditContext.userId = req.user.id;
+      auditContext.userEmail = req.user.email;
+    }
     next();
   } catch (err) {
     return sendErrorResponse(res, new AuthError("Invalid or expired token.", { code: "AUTH_REQUIRED" }));

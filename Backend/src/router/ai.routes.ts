@@ -8,6 +8,7 @@ import { env } from "../config/env";
 import { aiGrammarSchema, aiTextSchema } from "../validation/schemas";
 import { checkGrammarHandler, enhanceBulletHandler, improveTextHandler } from "../controllers/aiController";
 import { getAiUsageStats, getAiRequestHistory } from "../controllers/aiUsageController";
+import { createReferentialIntegrityMiddleware } from "../middleware/referentialIntegrity";
 
 const router = express.Router();
 
@@ -39,9 +40,27 @@ router.use("/improve-text", createOperationDeduplication("improve-text", 600)); 
 router.use("/check-grammar", createOperationDeduplication("check-grammar", 300)); // 5 minutes
 router.use("/enhance-bullet", createOperationDeduplication("enhance-bullet", 600)); // 10 minutes
 
-router.post("/improve-text", validateRequest({ body: aiTextSchema }), aiLimiter, improveTextHandler);
-router.post("/check-grammar", validateRequest({ body: aiGrammarSchema }), aiLimiter, checkGrammarHandler);
-router.post("/enhance-bullet", validateRequest({ body: aiTextSchema }), aiLimiter, enhanceBulletHandler);
+router.post(
+  "/improve-text",
+  validateRequest({ body: aiTextSchema }),
+  aiLimiter,
+  createReferentialIntegrityMiddleware("aiusages", (req) => ({ userId: req.user?.id })),
+  improveTextHandler,
+);
+router.post(
+  "/check-grammar",
+  validateRequest({ body: aiGrammarSchema }),
+  aiLimiter,
+  createReferentialIntegrityMiddleware("aiusages", (req) => ({ userId: req.user?.id })),
+  checkGrammarHandler,
+);
+router.post(
+  "/enhance-bullet",
+  validateRequest({ body: aiTextSchema }),
+  aiLimiter,
+  createReferentialIntegrityMiddleware("aiusages", (req) => ({ userId: req.user?.id })),
+  enhanceBulletHandler,
+);
 
 // AI usage stats endpoints
 router.get("/usage-stats", getAiUsageStats);

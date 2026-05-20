@@ -104,6 +104,7 @@ test("authMiddleware attaches the current user when the token is valid", async (
     id: "user-123",
     role: "admin",
     name: "Rahul",
+    email: undefined,
   });
 });
 

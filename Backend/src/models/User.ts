@@ -4,7 +4,7 @@ import { UserRole } from "../enums/userRole";
 export interface IUser extends Document {
   name: string;
   email: string;
-  password?: string; // 👈 optional now
+  password?: string;
   role: UserRole;
   jobsApplied: mongoose.Types.ObjectId[];
   passwordResetAt: Date;
@@ -14,6 +14,12 @@ export interface IUser extends Document {
   aiCreditsRemaining: number;
   aiCreditsResetAt: Date;
   aiCreditsPlan: "free" | "basic" | "premium" | "enterprise";
+  // MFA fields
+  mfaEnabled: boolean;
+  mfaMethod: "totp" | "none";
+  mfaSecret: string | null;
+  mfaBackupCodes: string[];
+  mfaVerifiedAt: Date | null;
 }
 
 const getNextCreditsResetAt = () => {
@@ -95,6 +101,29 @@ const UserSchema: Schema = new Schema<IUser>(
       type: String,
       enum: ["free", "basic", "premium", "enterprise"],
       default: "free",
+    },
+
+    // MFA fields
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    mfaMethod: {
+      type: String,
+      enum: ["totp", "none"],
+      default: "none",
+    },
+    mfaSecret: {
+      type: String,
+      default: null,
+    },
+    mfaBackupCodes: {
+      type: [String],
+      default: [],
+    },
+    mfaVerifiedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

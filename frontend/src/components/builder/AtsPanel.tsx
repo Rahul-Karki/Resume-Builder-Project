@@ -152,6 +152,7 @@ function SuggestionCard({
   );
 }
 
+/** @deprecated Use ATSAnalysisPanel instead. This file is dead code. */
 export function AtsPanel() {
   const { resume } = useResumeBuilderStore();
   const resumeId = resume.id ?? resume._id;

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AiGrammarResult, AiRewriteResult, AiTone } from "@/types/resume-types";
 import { useRequestManager } from "./useRequestManager";
-import { api } from "@/services/api";
 
 /**
  * Hook for debounced AI suggestion requests with automatic deduplication and cancellation.
@@ -13,6 +12,14 @@ export interface SuggestionState {
   error: string | null;
   requestId: string | null;
 }
+
+export type AiRequestOptions = {
+  signal: AbortSignal;
+  timeoutMs: number;
+  requestId: string;
+};
+
+export type AiRequestFn<T = unknown> = (body: Record<string, unknown>, options: AiRequestOptions) => Promise<T>;
 
 interface DebounceConfig {
   debounceMs?: number;
@@ -56,25 +63,22 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
    * Fetch suggestions from backend with retry logic and timeout.
    */
   const fetchWithRetry = useCallback(
-    async (
-      endpoint: string,
+    async function fetchWithRetryInner(
+      requestFn: AiRequestFn,
       body: Record<string, unknown>,
       requestKey: string,
       currentRetry: number = 0
-    ): Promise<{ success: boolean; data?: unknown; error?: string }> => {
+    ): Promise<{ success: boolean; data?: unknown; error?: string }> {
       const { requestId, controller } = requestManager.createRequest(requestKey);
 
       setState({ loading: true, error: null, requestId });
 
       try {
-        // Use the configured axios api instance (includes CSRF token, auth refresh, retry interceptors)
-        const response = await api.post(endpoint, body, {
+        const data = await requestFn(body, {
           signal: controller.signal,
-          timeout: finalConfig.timeoutMs,
-          headers: { "X-Request-ID": requestId },
+          timeoutMs: finalConfig.timeoutMs,
+          requestId,
         });
-
-        const data = response.data;
         setSuggestions(data);
         setState({ loading: false, error: null, requestId });
         requestManager.completeRequest(requestKey);
@@ -99,7 +103,7 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
           retryCountRef.current.set(requestKey, currentRetry + 1);
           const backoffMs = Math.pow(3, currentRetry) * 100;
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
-          return fetchWithRetry(endpoint, body, requestKey, currentRetry + 1);
+          return fetchWithRetryInner(requestFn, body, requestKey, currentRetry + 1);
         }
 
         // Use server message if available, otherwise the generic message
@@ -120,13 +124,13 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
    * Automatically cancels previous request if a new one is initiated.
    */
   const requestSuggestions = useCallback(
-    (endpoint: string, body: Record<string, unknown>, fieldId: string) => {
+    (requestFn: AiRequestFn, body: Record<string, unknown>, fieldId: string, requestType: string) => {
       // Clear existing debounce timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
 
-      const requestKey = requestManager.getRequestKey(endpoint.split("/").pop() || "unknown", fieldId);
+      const requestKey = requestManager.getRequestKey(requestType, fieldId);
 
       // Skip if request already in-flight
       if (requestManager.isRequestInFlight(requestKey)) {
@@ -136,7 +140,7 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
       // Debounce the actual request
       debounceTimerRef.current = setTimeout(() => {
         retryCountRef.current.set(requestKey, 0);
-        void fetchWithRetry(endpoint, body, requestKey);
+        void fetchWithRetry(requestFn, body, requestKey);
       }, finalConfig.debounceMs);
     },
     [requestManager, finalConfig, fetchWithRetry]

@@ -3,6 +3,7 @@ import { captureBackendException } from "../config/sentry";
 import { logger } from "../observability";
 import { buildErrorResponse, toAppError } from "../utils/errorResponse";
 import { redactRequestData } from "../utils/redactSensitive";
+import { recordError } from "../observability/complianceMetrics";
 
 export const notFoundHandler = (req: Request, _res: Response, next: NextFunction) => {
   next(toAppError(new Error(`Route not found: ${req.method} ${req.originalUrl}`), {
@@ -23,6 +24,13 @@ export const errorHandler = (error: unknown, req: Request, res: Response, next: 
 
   if (statusCode >= 500) {
     captureBackendException(error, req);
+  }
+
+  try {
+    const errorType = appError.code || appError.name || "UNKNOWN_ERROR";
+    recordError(errorType, req.originalUrl, req.method, statusCode, statusCode >= 500);
+  } catch {
+    // Best-effort metric tracking only.
   }
 
   const { params, query } = redactRequestData(req.params, req.query);
