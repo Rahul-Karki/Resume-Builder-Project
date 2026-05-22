@@ -7,10 +7,24 @@ import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSp
 import { invalidateRedisCache, redisCacheScopes } from "../middleware/redisCache";
 import { AppError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
-// ─── Helper: consistent response shape ────────────────────────────────────────
+import { parseCookies } from "../utils/cookieParser";
+// ─── Helper: consistent response shape with CSRF token ────────────────────────
 
-const ok   = (res: Response, data: unknown, status = 200) => res.status(status).json({ ok: true,  data });
-const fail = (res: Response, msg: string,   status = 400) => res.status(status).json({ ok: false, error: msg });
+const getCsrfFromCookie = (req: Request) => {
+  const cookies = parseCookies(req.headers?.cookie ?? "");
+  return cookies.csrfToken ?? "";
+};
+
+const ok   = (res: Response, data: unknown, status = 200, csrfToken?: string) => {
+  const payload: Record<string, unknown> = { ok: true, data };
+  if (csrfToken) payload.csrfToken = csrfToken;
+  return res.status(status).json(payload);
+};
+const fail = (res: Response, msg: string, status = 400, csrfToken?: string) => {
+  const payload: Record<string, unknown> = { ok: false, error: msg };
+  if (csrfToken) payload.csrfToken = csrfToken;
+  return res.status(status).json(payload);
+};
 
 const invalidateTemplateCaches = async () => {
   await invalidateRedisCache([
@@ -41,7 +55,7 @@ export async function listTemplates(req: Request, res: Response) {
     const result = await TemplateService.getAll({ status, category, audience }, page, limit);
     logger.info({ status, category, audience, count: result.templates.length, page, totalPages: result.totalPages, total: result.total }, "Templates listed");
     markSpanSuccess(span);
-    return ok(res, result);
+    return ok(res, result.templates, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "List templates failed");
     logger.error({ error: err }, "List templates failed");
@@ -82,8 +96,8 @@ export async function getTemplate(req: Request, res: Response) {
       logger.info({ templateId: String(req.params.id) }, "Template fetched");
       markSpanSuccess(span);
     }
-    if (!tpl) return fail(res, "Template not found.", 404);
-    return ok(res, tpl);
+    if (!tpl) return fail(res, "Template not found.", 404, getCsrfFromCookie(req));
+    return ok(res, tpl, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Get template failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Get template failed");
@@ -115,14 +129,14 @@ export async function createTemplate(req: Request, res: Response) {
 
     // Validate required fields
     if (!dto.layoutId || !dto.name) {
-      return fail(res, "layoutId and name are required.", 422);
+      return fail(res, "layoutId and name are required.", 422, getCsrfFromCookie(req));
     }
 
     const template = await TemplateService.create(dto, req.user!.id);
     await invalidateTemplateCaches();
     logger.info({ templateId: String(template._id), userId: req.user?.id }, "Template created");
     markSpanSuccess(span);
-    return ok(res, template, 201);
+    return ok(res, template, 201, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Create template failed");
     logger.error({ error: err }, "Create template failed");
@@ -145,8 +159,8 @@ export async function updateTemplate(req: Request, res: Response) {
       logger.info({ templateId: String(req.params.id), userId: req.user?.id }, "Template updated");
       markSpanSuccess(span);
     }
-    if (!updated) return fail(res, "Template not found.", 404);
-    return ok(res, updated);
+    if (!updated) return fail(res, "Template not found.", 404, getCsrfFromCookie(req));
+    return ok(res, updated, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Update template failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Update template failed");
@@ -163,7 +177,7 @@ export async function setTemplateStatus(req: Request, res: Response) {
   try {
     const { status } = req.body;
     if (!["draft", "published", "archived"].includes(status)) {
-      return fail(res, "status must be draft | published | archived.", 422);
+      return fail(res, "status must be draft | published | archived.", 422, getCsrfFromCookie(req));
     }
     const updated = await TemplateService.setStatus(String(req.params.id), status, req.user!.id);
     if (updated) {
@@ -171,8 +185,8 @@ export async function setTemplateStatus(req: Request, res: Response) {
       logger.info({ templateId: String(req.params.id), status, userId: req.user?.id }, "Template status updated");
       markSpanSuccess(span);
     }
-    if (!updated) return fail(res, "Template not found.", 404);
-    return ok(res, updated);
+    if (!updated) return fail(res, "Template not found.", 404, getCsrfFromCookie(req));
+    return ok(res, updated, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Set template status failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Set template status failed");
@@ -193,8 +207,8 @@ export async function togglePremium(req: Request, res: Response) {
       logger.info({ templateId: String(req.params.id), userId: req.user?.id }, "Template premium toggled");
       markSpanSuccess(span);
     }
-    if (!updated) return fail(res, "Template not found.", 404);
-    return ok(res, updated);
+    if (!updated) return fail(res, "Template not found.", 404, getCsrfFromCookie(req));
+    return ok(res, updated, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Toggle premium failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Toggle premium failed");
@@ -215,8 +229,8 @@ export async function deleteTemplate(req: Request, res: Response) {
       logger.info({ templateId: String(req.params.id), userId: req.user?.id }, "Template deleted");
       markSpanSuccess(span);
     }
-    if (!deleted) return fail(res, "Template not found.", 404);
-    return ok(res, { deleted: true });
+    if (!deleted) return fail(res, "Template not found.", 404, getCsrfFromCookie(req));
+    return ok(res, { deleted: true }, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Delete template failed");
     logger.error({ error: err, templateId: String(req.params.id) }, "Delete template failed");
@@ -232,12 +246,12 @@ export async function reorderTemplates(req: Request, res: Response) {
   const span = startControllerSpan("template.reorderTemplates", req);
   try {
     const { orderedIds } = req.body;
-    if (!Array.isArray(orderedIds)) return fail(res, "orderedIds must be an array.", 422);
+    if (!Array.isArray(orderedIds)) return fail(res, "orderedIds must be an array.", 422, getCsrfFromCookie(req));
     await TemplateService.reorder(orderedIds, req.user!.id);
     await invalidateTemplateCaches();
     logger.info({ userId: req.user?.id, count: orderedIds.length }, "Templates reordered");
     markSpanSuccess(span);
-    return ok(res, { reordered: true });
+    return ok(res, { reordered: true }, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Reorder templates failed");
     logger.error({ error: err, userId: req.user?.id }, "Reorder templates failed");
@@ -255,7 +269,7 @@ export async function getDashboardStats(req: Request, res: Response) {
     const stats = await TemplateService.getDashboardStats();
     logger.info({ userId: req.user?.id }, "Dashboard stats fetched");
     markSpanSuccess(span);
-    return ok(res, stats);
+    return ok(res, stats, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Get dashboard stats failed");
     logger.error({ error: err }, "Get dashboard stats failed");
@@ -275,11 +289,11 @@ export async function getAnalytics(req: Request, res: Response) {
     const analytics = await TemplateService.getAllAnalytics(days);
     logger.info({ userId: req.user?.id, days }, "Template analytics fetched");
     markSpanSuccess(span);
-    return ok(res, analytics);
+    return ok(res, analytics, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Get template analytics failed");
     logger.error({ error: err }, "Get template analytics failed");
-    return fail(res, err.message, 500);
+    return fail(res, err.message, 500, getCsrfFromCookie(req));
   } finally {
     finishControllerSpan(span);
   }
@@ -291,12 +305,12 @@ export async function recordUsage(req: Request, res: Response) {
   const span = startControllerSpan("template.recordUsage", req);
   try {
     const { templateId, layoutId, type } = req.body;
-    if (!layoutId) return fail(res, "layoutId required.", 422);
+    if (!layoutId) return fail(res, "layoutId required.", 422, getCsrfFromCookie(req));
 
     let resolvedTemplateId = templateId as string | undefined;
     if (!resolvedTemplateId) {
       const tpl = await Template.findOne({ layoutId }).select("_id").lean();
-      if (!tpl?._id) return fail(res, "Template not found for layoutId.", 404);
+      if (!tpl?._id) return fail(res, "Template not found for layoutId.", 404, getCsrfFromCookie(req));
       resolvedTemplateId = String(tpl._id);
     }
 
@@ -304,11 +318,11 @@ export async function recordUsage(req: Request, res: Response) {
     await invalidateTemplateAnalyticsCaches();
     logger.info({ templateId: resolvedTemplateId, layoutId, type: type ?? "create" }, "Template usage recorded");
     markSpanSuccess(span);
-    return ok(res, { recorded: true });
+    return ok(res, { recorded: true }, 200, getCsrfFromCookie(req));
   } catch (err: any) {
     markSpanError(span, err as Error, "Record usage failed");
     logger.error({ error: err }, "Record usage failed");
-    return fail(res, err.message, 500);
+    return fail(res, err.message, 500, getCsrfFromCookie(req));
   } finally {
     finishControllerSpan(span);
   }

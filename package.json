@@ -2,7 +2,7 @@
   "name": "resume-builder-platform",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix Backend && npm run build --prefix frontend && npm run build --prefix worker",
+    "build": "npm run build --prefix Backend && npm run build --prefix frontend",
     "lint": "npm run lint --prefix frontend",
     "test": "npm run test --prefix Backend",
     "verify": "npm run lint && npm run build && npm run test"

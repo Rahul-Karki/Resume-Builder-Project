@@ -12,7 +12,6 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379/0
-      # BullMQ removed; resume PDF and ATS run synchronously in the API
     networks:
       - app-network
     depends_on:
@@ -37,8 +36,6 @@ services:
       - app-network
     depends_on:
       - backend
-
-  # worker service removed — PDF generation and ATS analysis now run in the backend process
 
   mongo:
     image: mongo:7

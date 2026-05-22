@@ -2,12 +2,10 @@ import { existsSync, readFileSync } from "fs";
 import path from "path";
 
 const PROMPT_FILE_CANDIDATES = (fileName: string) => [
-  path.resolve(__dirname, "../../../prompts", fileName),
-  path.resolve(__dirname, "../../../../../prompts", fileName),
+  path.resolve(__dirname, "../../../../prompts", fileName),
+  path.resolve(__dirname, "../../prompts", fileName),
   path.resolve(process.cwd(), "prompts", fileName),
   path.resolve(process.cwd(), "../prompts", fileName),
-  path.resolve(process.cwd(), "../../prompts", fileName),
-  path.resolve(process.cwd(), "../../../prompts", fileName),
 ];
 
 const readPromptFile = (fileName: string) => {

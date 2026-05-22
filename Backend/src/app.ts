@@ -120,7 +120,6 @@ export const createApp = () => {
   apiVersionRouter.use("/ai", aiRoutes);
   apiVersionRouter.use("/resumes", resumeRoutes);
   apiVersionRouter.use("/admin", adminRoutes);
-  apiVersionRouter.use("/templates", templateRoutes);
 
   // Unversioned routes
   app.use("/api", apiVersionRouter);
@@ -130,8 +129,9 @@ export const createApp = () => {
   app.use("/api/auth", authRoutes);
   app.use("/api/ai", aiRoutes);
   app.use("/api/resumes", resumeRoutes);
-  app.use("/api/admin", adminRoutes);
   app.use("/api/templates", templateRoutes);
+  // Admin routes — already mounted via apiVersionRouter at /api/admin
+  // (no duplicate mount needed)
   if (env.NODE_ENV !== "test") {
     app.use("/admin/queues", adminGuard, setupBullBoard());
   }

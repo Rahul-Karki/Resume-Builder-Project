@@ -77,25 +77,3 @@ jobs:
 
     - name: Build
       run: npm run build
-
-  test-worker:
-    runs-on: ubuntu-latest
-    
-    defaults:
-      run:
-        working-directory: ./worker
-
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js 20.x
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-        cache-dependency-path: './worker/package-lock.json'
-        
-    - run: npm ci
-    
-    - name: Build Worker
-      run: npm run build
