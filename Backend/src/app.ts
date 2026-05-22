@@ -30,7 +30,7 @@ export const createApp = () => {
     env.FRONTEND_URL,
     ...env.FRONTEND_URLS,
   ]
-    .map((origin) => origin?.trim())
+    .map((origin) => origin?.trim().replace(/\/$/, ""))
     .filter((origin): origin is string => Boolean(origin));
 
   app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
@@ -47,16 +47,19 @@ export const createApp = () => {
         return;
       }
 
-      if (configuredOrigins.includes(origin)) {
+      const normalizedOrigin = origin.trim().replace(/\/$/, "");
+
+      if (configuredOrigins.includes(normalizedOrigin)) {
         callback(null, true);
         return;
       }
 
       // Allow Vercel preview deployments and custom domains
       if (
-        origin.endsWith(".vercel.app") ||
-        origin.endsWith(".onrender.com") ||
-        origin.startsWith("http://localhost:")
+        normalizedOrigin.endsWith(".vercel.app") ||
+        normalizedOrigin.endsWith(".onrender.com") ||
+        normalizedOrigin.startsWith("http://localhost:") ||
+        normalizedOrigin.startsWith("https://localhost:")
       ) {
         callback(null, true);
         return;
@@ -66,7 +69,14 @@ export const createApp = () => {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-CSRF-Token", "X-Request-ID"],
+    allowedHeaders: [
+      "Content-Type",
+      "X-CSRF-Token",
+      "X-Request-ID",
+      "X-Requested-With",
+      "X-XSRF-Token",
+      "Authorization",
+    ],
     exposedHeaders: [
       "X-CSRF-Token",
       "x-ai-cached",
