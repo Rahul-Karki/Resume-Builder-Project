@@ -43,17 +43,21 @@ export const createApp = () => {
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
-        // Allow absent Origin header for server-to-server requests in production
-        // and all server-to-server + browser requests in development/test
-        if (env.NODE_ENV === "production") {
-          callback(null, true);
-          return;
-        }
         callback(null, true);
         return;
       }
 
       if (configuredOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Allow Vercel preview deployments and custom domains
+      if (
+        origin.endsWith(".vercel.app") ||
+        origin.endsWith(".onrender.com") ||
+        origin.startsWith("http://localhost:")
+      ) {
         callback(null, true);
         return;
       }
