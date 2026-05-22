@@ -29,6 +29,8 @@ const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
 const MAX_RESET_RESEND_ATTEMPTS = 3;
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 min
 const frontendBaseUrl = env.FRONTEND_URL;
 
 const getAuthProviders = (user: { authProvider?: string[] }) => Array.isArray(user.authProvider) ? user.authProvider : [];
@@ -135,7 +137,7 @@ const login = async (req: Request, res: Response) => {
     }
 
     // 2. Find user
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email }).select("+password +loginAttempts +lockUntil");
 
     if (!user) {
       logger.warn({ email }, "Login failed: unknown user");
@@ -144,7 +146,21 @@ const login = async (req: Request, res: Response) => {
       return sendUnauthorized(res, "Invalid email or password");
     }
 
-    if(!user.password) {
+    // 3. Check account lockout
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      const remainingMs = user.lockUntil.getTime() - Date.now();
+      const remainingMin = Math.ceil(remainingMs / 60000);
+      logger.warn({ email, remainingMin }, "Login blocked: account locked");
+      recordLoginFailure("account_locked");
+      logLoginAttempt(req, email, false, "Account locked");
+      return sendErrorResponse(res, new Error(`Account locked. Try again in ${remainingMin} minute(s).`), {
+        statusCode: 429,
+        code: "ACCOUNT_LOCKED",
+        message: `Account locked. Try again in ${remainingMin} minute(s).`,
+      });
+    }
+
+    if (!user.password) {
       logger.warn({ email }, "Login failed: password not set for account");
       recordLoginFailure("no_password");
       logLoginAttempt(req, email, false, "No password set");
@@ -155,7 +171,14 @@ const login = async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.password!);
 
     if (!isMatch) {
-      logger.warn({ email }, "Login failed: invalid password");
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+      if (user.loginAttempts >= MAX_LOGIN_ATTEMPTS) {
+        user.lockUntil = new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS);
+        user.loginAttempts = 0;
+        logger.warn({ email, lockoutDurationMin: LOGIN_LOCKOUT_DURATION_MS / 60000 }, "Account locked due to too many failed attempts");
+      }
+      await user.save();
+      logger.warn({ email, attempts: user.loginAttempts }, "Login failed: invalid password");
       recordLoginFailure("invalid_password");
       logLoginAttempt(req, email, false, "Invalid password");
       return sendUnauthorized(res, "Invalid email or password");
@@ -167,10 +190,14 @@ const login = async (req: Request, res: Response) => {
     }
     if (!user.authProvider.includes("local")) {
       user.authProvider.push("local");
-      await user.save();
     }
 
-    // 6. Generate tokens
+    // 6. Reset login attempts on success
+    user.loginAttempts = 0;
+    user.lockUntil = null;
+    await user.save();
+
+    // 7. Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
@@ -181,7 +208,7 @@ const login = async (req: Request, res: Response) => {
     logger.info({ userId: user._id.toString(), email: user.email }, "User login successful");
     markSpanSuccess(span);
 
-    // 7. Send response
+    // 8. Send response
     return sendSuccess(res, {
       user: {
         id: user._id,

@@ -82,6 +82,19 @@ export const createApp = () => {
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "no-referrer" },
     crossOriginResourcePolicy: { policy: "same-site" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https://*.googleusercontent.com"],
+        fontSrc: ["'self'", "data:"],
+        connectSrc: ["'self'", "https://*.ingest.sentry.io", "https://accounts.google.com"],
+        frameSrc: ["'self'", "https://accounts.google.com"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
   }));
   app.use(cors(corsOptions));
   app.use(requestTimeoutMiddleware);

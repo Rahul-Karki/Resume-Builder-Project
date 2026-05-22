@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Logo } from "@/components/Logo";
 import { api } from "@/services/api";
 import { ResumeDocument, SavedResume, SortOption } from "@/types/resume-types";
@@ -101,7 +102,35 @@ export default function Compiled() {
     () => rawResumes.find((resume) => mapResumeDocumentToSavedResume(resume).id === delResume?.id),
     [delResume?.id, rawResumes],
   );
- 
+
+  // Virtualization
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  const cardWidth = isMobile ? 220 : 280;
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setGridWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const columns = Math.max(1, Math.floor(gridWidth / (cardWidth + 20)));
+  const CARD_GAP = 20;
+  const CARD_HEIGHT = isMobile ? 340 : 380;
+
+  const rowVirtualizer = useVirtualizer({
+    count: Math.ceil(displayed.length / columns),
+    getScrollElement: () => gridRef.current?.closest('[data-virtualize-scroll]') as HTMLElement || null,
+    estimateSize: () => CARD_HEIGHT + CARD_GAP,
+    overscan: 2,
+  });
+  
   const SORT_OPTS: {v:SortOption;l:string}[] = [{v:"updatedAt",l:"Last Modified"},{v:"createdAt",l:"Date Created"},{v:"title",l:"Title A–Z"},{v:"completion",l:"Completion %"}];
  
   const css = `
@@ -257,38 +286,61 @@ export default function Compiled() {
               {!loading&&!error&&resumes.length>0&&(
                 <>
                   {displayed.length>0?(
-                    <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(${isMobile ? 220 : 280}px,1fr))`,gap:20}}>
-                      {displayed.map((resume,i)=>(
-                        <Card key={resume.id} resume={resume} delay={i*55}
-                          onEdit={id=>{
-                            const selected = rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id);
-                            navigate(`/builder?resume=${encodeURIComponent(id)}`, {
-                              state: selected ? { preloadedResume: selected } : undefined,
-                            });
-                          }}
-                          onPreview={id=>setPrevResume(rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id) ?? null)}
-                          onDuplicate={async id=>{
-                            const source = rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id);
-                            if (!source) return;
+                    <div ref={gridRef} data-virtualize-scroll style={{overflowY:"auto",maxHeight:"calc(100vh - 280px)"}}>
+                      <div style={{height:`${rowVirtualizer.getTotalSize()}px`,position:"relative"}}>
+                        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                          const rowIdx = virtualRow.index;
+                          const startIdx = rowIdx * columns;
+                          const rowItems = displayed.slice(startIdx, startIdx + columns);
+                          return (
+                            <div
+                              key={rowIdx}
+                              style={{
+                                position:"absolute",
+                                top:0,
+                                left:0,
+                                width:"100%",
+                                transform:`translateY(${virtualRow.start}px)`,
+                                display:"grid",
+                                gridTemplateColumns:`repeat(${columns},1fr)`,
+                                gap:CARD_GAP,
+                              }}
+                            >
+                              {rowItems.map((resume) => (
+                                <Card key={resume.id} resume={resume} delay={0}
+                                  onEdit={id=>{
+                                    const selected = rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id);
+                                    navigate(`/builder?resume=${encodeURIComponent(id)}`, {
+                                      state: selected ? { preloadedResume: selected } : undefined,
+                                    });
+                                  }}
+                                  onPreview={id=>setPrevResume(rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id) ?? null)}
+                                  onDuplicate={async id=>{
+                                    const source = rawResumes.find((item)=>mapResumeDocumentToSavedResume(item).id===id);
+                                    if (!source) return;
 
-                            try {
-                              const payload = getResumePayload(source);
-                              const response = await api.post("/resumes", {
-                                ...payload,
-                                title: `${payload.title || source.title || "Untitled Resume"} (Copy)`,
-                              });
+                                    try {
+                                      const payload = getResumePayload(source);
+                                      const response = await api.post("/resumes", {
+                                        ...payload,
+                                        title: `${payload.title || source.title || "Untitled Resume"} (Copy)`,
+                                      });
 
-                              if (response.data?.resume) {
-                                showMsg(`"${source.title || "Resume"}" duplicated`);
-                                await refresh();
-                              }
-                            } catch {
-                              showMsg("Failed to duplicate resume");
-                            }
-                          }}
-                          onDelete={id=>{ const r=resumes.find(r=>r.id===id); if(r) setDelResume(r); }}
-                        />
-                      ))}
+                                      if (response.data?.resume) {
+                                        showMsg(`"${source.title || "Resume"}" duplicated`);
+                                        await refresh();
+                                      }
+                                    } catch {
+                                      showMsg("Failed to duplicate resume");
+                                    }
+                                  }}
+                                  onDelete={id=>{ const r=resumes.find(r=>r.id===id); if(r) setDelResume(r); }}
+                                />
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   ):(
                     <div style={{textAlign:"center",padding:"60px 0"}}>

@@ -20,6 +20,9 @@ export interface IUser extends Document {
   mfaSecret: string | null;
   mfaBackupCodes: string[];
   mfaVerifiedAt: Date | null;
+  // Account lockout fields
+  loginAttempts: number;
+  lockUntil: Date | null;
 }
 
 const getNextCreditsResetAt = () => {
@@ -122,6 +125,15 @@ const UserSchema: Schema = new Schema<IUser>(
       default: [],
     },
     mfaVerifiedAt: {
+      type: Date,
+      default: null,
+    },
+    loginAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lockUntil: {
       type: Date,
       default: null,
     },
