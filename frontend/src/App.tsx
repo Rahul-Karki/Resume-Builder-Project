@@ -14,7 +14,6 @@ const MyResumePage = lazy(() => import("./pages/MyResumePage"))
 const AdminLayout = lazy(() => import("./pages/AdminLayout"))
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard").then(m => ({ default: m.AdminDashboard })))
 const AdminTemplates = lazy(() => import("./pages/AdminTemplates").then(m => ({ default: m.AdminTemplates })))
-const AdminQueues = lazy(() => import("./pages/AdminQueues").then(m => ({ default: m.AdminQueues })))
 const Unauthorized = lazy(() => import("./pages/Unauthorized"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
@@ -52,7 +51,6 @@ function App() {
             >
               <Route index element={<AdminDashboard />} />
               <Route path="templates" element={<AdminTemplates />} />
-              <Route path="queues" element={<AdminQueues />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

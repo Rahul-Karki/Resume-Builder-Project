@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AdminPage } from "../types/admin.types";
-import { api, getBullBoardUrl } from "@/services/api";
+import { api } from "@/services/api";
 
 // ─── Global CSS (same design system as landing + my-resumes pages) ─────────────
 const GLOBAL_CSS = `
@@ -51,12 +51,10 @@ function TopBar({ page, onLogout, isMobile }: { page: AdminPage; onLogout: () =>
   const titles: Record<AdminPage, string> = {
     dashboard: "Dashboard",
     templates: "Template Management",
-    queues: "Queue Monitor",
   };
   const subtitles: Record<AdminPage, string> = {
     dashboard: "Usage analytics and performance overview",
     templates: "Create, publish, and configure resume templates",
-    queues: "Bull Board is served by the backend API host",
   };
   return (
     <div style={{
@@ -111,7 +109,7 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
   const navigate = useNavigate();
 
   const page: AdminPage = location.pathname.includes("/admin/templates") ? "templates" : "dashboard";
-  const resolvedPage: AdminPage = location.pathname.includes("/admin/queues") ? "queues" : page;
+  const resolvedPage: AdminPage = page;
 
   useEffect(() => {
     const updateViewport = () => setIsMobile(window.innerWidth < 1024);
@@ -132,11 +130,6 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
   };
 
   const handleNavigate = (nextPage: AdminPage) => {
-    if (nextPage === "queues") {
-      window.location.href = getBullBoardUrl();
-      return;
-    }
-
     navigate(nextPage === "dashboard" ? "/admin" : "/admin/templates");
   };
 

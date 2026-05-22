@@ -166,7 +166,7 @@ export const REGISTERED_LAYOUT_IDS = [
 
 // ─── Sidebar nav ──────────────────────────────────────────────────────────────
 
-export type AdminPage = "dashboard" | "templates" | "queues";
+export type AdminPage = "dashboard" | "templates";
 
 export interface NavItem {
   id:    AdminPage;
@@ -177,5 +177,4 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { id: "dashboard",  label: "Dashboard",  icon: "◈" },
   { id: "templates",  label: "Templates",  icon: "◉" },
-  { id: "queues",     label: "Queues",     icon: "◎" },
 ];

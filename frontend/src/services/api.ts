@@ -92,8 +92,6 @@ const resolveBackendOrigin = (baseUrl: string) => {
   }
 };
 
-export const getBullBoardUrl = () => `${resolveBackendOrigin(apiBaseURL)}/admin/queues`;
-
 export const api = axios.create({
   baseURL: apiBaseURL,
   withCredentials: true,

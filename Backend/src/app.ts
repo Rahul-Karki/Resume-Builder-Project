@@ -20,7 +20,6 @@ import adminRoutes from "./router/admin.routes";
 import templateRoutes from "./router/template.routes";
 import healthRoutes from "./router/health.routes";
 import { adminGuard } from "./middleware/adminAuthMiddleware";
-import { setupBullBoard } from "./observability/bullBoard";
 
 export const createApp = () => {
   const app = express();
@@ -132,9 +131,6 @@ export const createApp = () => {
   app.use("/api/templates", templateRoutes);
   // Admin routes — already mounted via apiVersionRouter at /api/admin
   // (no duplicate mount needed)
-  if (env.NODE_ENV !== "test") {
-    app.use("/admin/queues", adminGuard, setupBullBoard());
-  }
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);
   app.use(notFoundHandler);
