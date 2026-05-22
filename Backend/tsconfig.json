@@ -11,5 +11,11 @@
     "ignoreDeprecations": "5.0"
   },
   "include": ["src/**/*.ts", "../shared/src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/__tests__/**/*.ts",
+    "src/__mocks__/**/*.ts",
+    "tests"
+  ]
 }

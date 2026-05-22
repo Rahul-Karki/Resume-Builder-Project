@@ -167,7 +167,7 @@ curl -X GET http://localhost:5000/api/resumes \
 
 ### Testing
 
-**Backend (Native Node Test Runner & Supertest):**
+**Backend (Node Test Runner & Supertest):**
 ```bash
 cd Backend
 npm run test           # Run all automated tests
@@ -179,7 +179,8 @@ npm run test:integration # Run integration tests
 ```bash
 cd frontend
 npm run lint           # Run ESLint
-npm run test:e2e       # Run Playwright E2E tests (if configured)
+npm run test           # Run Vitest unit tests
+npm run test:e2e       # Run Playwright E2E tests
 ```
 
 ### Linting & Formatting

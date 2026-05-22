@@ -1,7 +1,7 @@
 # Testing & Documentation Standards
 # Resume Builder SaaS — Conventional Reference Guide
 
-Last updated: 2026-05-22  
+Last updated: 2026-05-23  
 Applies to: All modules, all contributors
 
 > This document is the single source of truth for how we write tests and documentation.  
@@ -70,8 +70,9 @@ resume-builder/
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Unit test | `<source-file>.test.ts` | `resume.service.test.ts` |
-| Integration test | `<flow-name>.test.ts` inside `integration/` | `resume-create.test.ts` |
+| Backend automated test | `<module>.test.js` or `<module>.test.ts` in `automated-tests/` | `authMiddleware.test.js` |
+| Backend integration test | `<flow>.test.js` or `<flow>.test.ts` inside `automated-tests/integration/` | `resume.test.js` |
+| Frontend unit test | `<module>.test.ts` inside `src/__tests__/` | `api.test.ts` |
 | E2E test | `<feature>.spec.ts` inside `e2e/` | `resume-editor.spec.ts` |
 | Mock file | mirrors source path, inside `__mocks__/` | `__mocks__/prisma.ts` |
 | Feature doc | `<kebab-feature-name>.md` | `pdf-export.md` |
@@ -80,7 +81,7 @@ resume-builder/
 
 ## 2. Test File Anatomy
 
-Every test file — unit, integration, or E2E — must begin with this header block:
+Every scaffolded Vitest-style test file — currently the frontend unit-test corpus — must begin with this header block:
 
 ```typescript
 // ─────────────────────────────────────────────────────────────
@@ -140,7 +141,7 @@ describe('ResumeService', () => {
 
 ## 3. Unit Tests
 
-Unit tests live at `src/modules/<module>/__tests__/<file>.test.ts`.
+Backend automated tests live at `Backend/automated-tests/`. Frontend unit tests live at `frontend/src/__tests__/`.
 
 They test **one function in isolation** — all dependencies are mocked.
 
@@ -237,7 +238,7 @@ expect(JSON.stringify(result)).toBe(...)  // brittle
 
 ## 4. Integration Tests
 
-Integration tests live at `src/__tests__/integration/<flow>.test.ts`.
+Backend integration tests live at `Backend/automated-tests/integration/`.
 
 They test **a full request-response flow** — real service + real DB queries (test DB) or realistic mocks at the network boundary only.
 
@@ -315,7 +316,7 @@ describe('POST /api/resumes — create resume flow', () => {
 
 E2E tests live at `e2e/<feature>.spec.ts` and run against the full running app.
 
-Use **Playwright** (preferred) or Cypress.
+Use **Playwright**.
 
 ### Template (Playwright)
 
@@ -624,7 +625,7 @@ Last updated: YYYY-MM-DD
 | Auth | NextAuth.js | 5 |
 | Email | Resend | — |
 | Storage | AWS S3 / local | — |
-| Testing | Vitest + Playwright | — |
+| Testing | Node test + Vitest + Playwright | — |
 | Deployment | Vercel | — |
 
 ## Project structure

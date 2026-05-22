@@ -18,89 +18,88 @@ interface RequestManagerState {
   requests: Map<RequestKey, ManagedRequest>;
 }
 
-export const useRequestManager = () => {
-  const stateRef = useRef<RequestManagerState>({ requests: new Map() });
+export interface RequestManager {
+  getRequestKey: (type: string, fieldId: string) => RequestKey;
+  isRequestInFlight: (key: RequestKey) => boolean;
+  createRequest: (key: RequestKey) => { requestId: string; controller: AbortController };
+  completeRequest: (key: RequestKey) => void;
+  cancelRequest: (key: RequestKey) => void;
+  cancelAll: () => void;
+  getActiveRequests: () => string[];
+}
 
-  /**
-   * Generate a unique key for deduplication based on request parameters.
-   * Example: "improve-text:experience" for improving experience section
-   */
-  const getRequestKey = useCallback((type: string, fieldId: string): RequestKey => {
+export const createRequestManager = (): RequestManager => {
+  const state: RequestManagerState = { requests: new Map() };
+
+  const getRequestKey = (type: string, fieldId: string): RequestKey => {
     return `${type}:${fieldId}`;
-  }, []);
+  };
 
-  /**
-   * Check if a request is already in-flight.
-   */
-  const isRequestInFlight = useCallback(
-    (key: RequestKey): boolean => {
-      return stateRef.current.requests.has(key);
-    },
-    []
-  );
+  const isRequestInFlight = (key: RequestKey): boolean => {
+    return state.requests.has(key);
+  };
 
-  /**
-   * Create a new managed request. Cancels any previous request with the same key.
-   * Returns the request ID and AbortController for the new request.
-   */
-  const createRequest = useCallback(
-    (key: RequestKey): { requestId: string; controller: AbortController } => {
-      // Cancel previous request with same key if it exists
-      const previous = stateRef.current.requests.get(key);
-      if (previous) {
-        previous.controller.abort();
-      }
+  const createRequest = (key: RequestKey): { requestId: string; controller: AbortController } => {
+    const previous = state.requests.get(key);
+    if (previous) {
+      previous.controller.abort();
+    }
 
-      const requestId = crypto.randomUUID();
-      const controller = new AbortController();
-      const request: ManagedRequest = {
-        requestId,
-        controller,
-        createdAt: Date.now(),
-      };
+    const requestId = crypto.randomUUID();
+    const controller = new AbortController();
+    const request: ManagedRequest = {
+      requestId,
+      controller,
+      createdAt: Date.now(),
+    };
 
-      stateRef.current.requests.set(key, request);
+    state.requests.set(key, request);
 
-      return { requestId, controller };
-    },
-    []
-  );
+    return { requestId, controller };
+  };
 
-  /**
-   * Clean up a completed request (success or error).
-   */
-  const completeRequest = useCallback((key: RequestKey): void => {
-    stateRef.current.requests.delete(key);
-  }, []);
+  const completeRequest = (key: RequestKey): void => {
+    state.requests.delete(key);
+  };
 
-  /**
-   * Cancel a request and remove it from tracking.
-   */
-  const cancelRequest = useCallback((key: RequestKey): void => {
-    const request = stateRef.current.requests.get(key);
+  const cancelRequest = (key: RequestKey): void => {
+    const request = state.requests.get(key);
     if (request) {
       request.controller.abort();
-      stateRef.current.requests.delete(key);
+      state.requests.delete(key);
     }
-  }, []);
+  };
 
-  /**
-   * Cancel all in-flight requests. Useful on unmount or navigation.
-   */
-  const cancelAll = useCallback((): void => {
-    // Convert to array first to avoid Map mutation during iteration
-    Array.from(stateRef.current.requests.values()).forEach((request) => {
+  const cancelAll = (): void => {
+    Array.from(state.requests.values()).forEach((request) => {
       request.controller.abort();
     });
-    stateRef.current.requests.clear();
-  }, []);
+    state.requests.clear();
+  };
 
-  /**
-   * Get all in-flight request IDs for debugging.
-   */
-  const getActiveRequests = useCallback((): string[] => {
-    return Array.from(stateRef.current.requests.values()).map((r) => r.requestId);
-  }, []);
+  const getActiveRequests = (): string[] => {
+    return Array.from(state.requests.values()).map((request) => request.requestId);
+  };
+
+  return {
+    getRequestKey,
+    isRequestInFlight,
+    createRequest,
+    completeRequest,
+    cancelRequest,
+    cancelAll,
+    getActiveRequests,
+  };
+};
+
+export const useRequestManager = () => {
+  const managerRef = useRef<RequestManager | null>(null);
+
+  if (!managerRef.current) {
+    managerRef.current = createRequestManager();
+  }
+
+  const { getRequestKey, isRequestInFlight, createRequest, completeRequest, cancelRequest, cancelAll, getActiveRequests } = managerRef.current;
 
   return useMemo(() => ({
     getRequestKey,
