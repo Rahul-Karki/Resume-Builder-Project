@@ -48,11 +48,22 @@ const parseCookieValue = (name: string): string => {
   return match ? decodeURIComponent(match[1]) : "";
 };
 
-const getStoredCsrfToken = () => parseCookieValue("csrfToken");
+// In-memory CSRF token storage for cross-origin environments (e.g., Render)
+// where the cookie is set by the API domain but frontend JS can't read it
+// from document.cookie. The token is returned in response bodies and stored here.
+let _csrfToken = "";
+
+const getStoredCsrfToken = () => {
+  // Prefer in-memory token (populated via setStoredCsrfToken from response bodies)
+  if (_csrfToken) return _csrfToken;
+  // Fallback to cookie for same-origin setups
+  return parseCookieValue("csrfToken");
+};
 
 const setStoredCsrfToken = (token?: unknown) => {
-  // CSRF token is set via HTTP cookie by the server; this is a no-op on the client.
-  // We keep the function signature for compatibility but the cookie is the source of truth.
+  if (typeof token === "string" && token.length > 0) {
+    _csrfToken = token;
+  }
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
