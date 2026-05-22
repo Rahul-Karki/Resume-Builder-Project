@@ -2,32 +2,39 @@ import puppeteer from "puppeteer";
 import { env } from "./env";
 import fs from "fs";
 
+const isBinaryExecutable = (filePath: string): boolean => {
+  try {
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return false;
+    // On Unix, check executable bit
+    if (process.platform !== "win32") {
+      // eslint-disable-next-line no-bitwise
+      return !!(stat.mode & 0o111);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const createPuppeteerLaunchOptions = () => {
   const configured = String(env.PUPPETEER_EXECUTABLE_PATH ?? "").trim();
   let executablePath: string | undefined = undefined;
 
   if (configured) {
-    try {
-      if (fs.existsSync(configured)) {
-        executablePath = configured;
-      } else {
-        // configured path doesn't exist; ignore and let Puppeteer use its managed binary
-        // (do not throw here to avoid startup failure)
-        // eslint-disable-next-line no-console
-        console.warn(`Configured PUPPETEER_EXECUTABLE_PATH not found: ${configured}; falling back to bundled Chromium`);
-        delete process.env.PUPPETEER_EXECUTABLE_PATH;
-      }
-    } catch (err) {
-      // If checking the path fails for any reason, fall back gracefully
-      // eslint-disable-next-line no-console
-      console.warn(`Failed to validate PUPPETEER_EXECUTABLE_PATH: ${configured}; falling back to bundled Chromium`, err);
+    if (isBinaryExecutable(configured)) {
+      executablePath = configured;
+    } else {
+      console.warn(
+        `PUPPETEER_EXECUTABLE_PATH="${configured}" is not a valid executable; falling back to managed Chromium`
+      );
       delete process.env.PUPPETEER_EXECUTABLE_PATH;
     }
   }
 
   return {
     headless: true,
-    executablePath: executablePath || undefined,
+    executablePath,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -43,14 +50,14 @@ export const launchPuppeteerBrowser = async () => {
   try {
     return await puppeteer.launch(primaryOptions);
   } catch (error) {
-    // Some deployments keep an outdated executable path env; retry with Puppeteer's managed binary.
-    if (!env.PUPPETEER_EXECUTABLE_PATH) {
-      throw error;
+    if (primaryOptions.executablePath) {
+      // Retry without custom executable path — fall back to Puppeteer's managed binary
+      delete process.env.PUPPETEER_EXECUTABLE_PATH;
+      return puppeteer.launch({
+        ...primaryOptions,
+        executablePath: undefined,
+      });
     }
-
-    return puppeteer.launch({
-      ...primaryOptions,
-      executablePath: undefined,
-    });
+    throw error;
   }
 };

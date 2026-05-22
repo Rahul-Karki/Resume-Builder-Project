@@ -6,6 +6,13 @@ const POOL_SIZE = 2;
 const BROWSER_IDLE_TIMEOUT_MS = 60_000;
 const RECYCLE_AFTER_USES = 10;
 
+class NoBrowserAvailableError extends Error {
+  constructor() {
+    super("No Puppeteer browser available. Chromium may not be installed.");
+    this.name = "NoBrowserAvailableError";
+  }
+}
+
 class BrowserPool {
   private browsers: { browser: Browser; uses: number; lastUsed: number }[] = [];
   private starting = false;
@@ -26,7 +33,7 @@ class BrowserPool {
         this.browsers.push({ browser, uses: 0, lastUsed: Date.now() });
         logger.info({ poolIndex: i }, "Puppeteer browser added to pool");
       } catch (error) {
-        logger.error({ error, poolIndex: i }, "Failed to launch Puppeteer browser for pool");
+        logger.warn({ error, poolIndex: i }, "Failed to launch Puppeteer browser for pool — PDF generation unavailable until resolved");
       }
     }
 
@@ -36,7 +43,6 @@ class BrowserPool {
   }
 
   async acquire(): Promise<Browser> {
-    // Find the least-used available browser
     const sorted = [...this.browsers].sort((a, b) => a.uses - b.uses);
 
     for (const entry of sorted) {
@@ -45,7 +51,6 @@ class BrowserPool {
           entry.uses += 1;
           entry.lastUsed = Date.now();
 
-          // Recycle if too many uses
           if (entry.uses >= RECYCLE_AFTER_USES) {
             this._recycleBrowser(entry).catch(() => {});
           }
@@ -57,7 +62,7 @@ class BrowserPool {
       }
     }
 
-    // All browsers are stale; replace one and retry
+    // Try to recycle the first stale browser
     if (this.browsers.length > 0) {
       const entry = this.browsers[0];
       await this._recycleBrowser(entry);
@@ -66,15 +71,20 @@ class BrowserPool {
         this.browsers.push({ browser, uses: 0, lastUsed: Date.now() });
         return browser;
       } catch (error) {
-        logger.error({ error }, "Failed to launch replacement browser");
-        throw error;
+        logger.error({ error }, "Failed to launch replacement browser — pool empty");
+        throw new NoBrowserAvailableError();
       }
     }
 
-    // Pool is empty, launch fresh
-    const browser = await launchPuppeteerBrowser();
-    this.browsers.push({ browser, uses: 1, lastUsed: Date.now() });
-    return browser;
+    // Pool is empty — try a fresh launch
+    try {
+      const browser = await launchPuppeteerBrowser();
+      this.browsers.push({ browser, uses: 1, lastUsed: Date.now() });
+      return browser;
+    } catch (error) {
+      logger.error({ error }, "Failed to launch initial browser — pool empty");
+      throw new NoBrowserAvailableError();
+    }
   }
 
   private async _recycleBrowser(entry: { browser: Browser; uses: number; lastUsed: number }): Promise<void> {
@@ -88,7 +98,7 @@ class BrowserPool {
       const browser = await launchPuppeteerBrowser();
       this.browsers.push({ browser, uses: 0, lastUsed: Date.now() });
     } catch (error) {
-      logger.error({ error }, "Failed to replace recycled browser");
+      logger.warn({ error }, "Failed to replace recycled browser — pool may be degraded");
     }
   }
 
@@ -103,6 +113,10 @@ class BrowserPool {
 
   get size(): number {
     return this.browsers.length;
+  }
+
+  get available(): boolean {
+    return this.browsers.length > 0;
   }
 
   async shutdown(): Promise<void> {
@@ -123,4 +137,5 @@ class BrowserPool {
   }
 }
 
+export { NoBrowserAvailableError };
 export const browserPool = new BrowserPool();
