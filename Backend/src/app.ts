@@ -62,7 +62,7 @@ export const createApp = () => {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-CSRF-Token"],
+    allowedHeaders: ["Content-Type", "X-CSRF-Token", "X-Request-ID"],
     exposedHeaders: [
       "X-CSRF-Token",
       "x-ai-cached",
