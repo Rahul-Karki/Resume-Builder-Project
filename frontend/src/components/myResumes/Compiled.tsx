@@ -118,7 +118,7 @@ export default function Compiled() {
       <style>{css}</style>
         <div style={{minHeight:"100vh",background:"#080808",color:"#F0EFE8",fontFamily:"'Outfit',sans-serif"}}>
  
-        <nav style={{minHeight:58,background:"#0A0A0A",borderBottom:"1px solid #111",display:"flex",alignItems:"center",padding:isMobile ? "8px 12px" : "0 28px",gap:isMobile ? 10 : 24,position:"sticky",top:0,zIndex:40,flexWrap:isMobile ? "wrap" : "nowrap"}}>
+        <nav style={{minHeight:52,background:"#0A0A0A",borderBottom:"1px solid #111",display:"flex",alignItems:"center",padding:isMobile ? "8px 12px" : "0 28px",gap:isMobile ? 8 : 24,position:"sticky",top:0,zIndex:40,flexWrap:"wrap"}}>
           <Logo isCompact={isMobile} />
           <Link
             to="/templates"
@@ -200,9 +200,9 @@ export default function Compiled() {
 
               {/* Toolbar */}
               {!loading&&resumes.length>0&&(
-                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24,flexWrap:"wrap"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,flexWrap:"wrap"}}>
                   {/* Search */}
-                  <div style={{position:"relative",flex:1,minWidth:200,maxWidth:isMobile ? "100%" : 300,width:isMobile ? "100%" : "auto"}}>
+                  <div style={{position:"relative",flex:1,minWidth:isMobile ? "100%" : 200,maxWidth:isMobile ? "100%" : 300,width:isMobile ? "100%" : "auto"}}>
                     <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#333",pointerEvents:"none"}}>⌕</span>
                     <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search resumes…"
                       style={{width:"100%",padding:"8px 12px 8px 32px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#C8C7C0",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}
@@ -210,9 +210,9 @@ export default function Compiled() {
                     {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:14}}>×</button>}
                   </div>
                   {/* Sort */}
-                  <div style={{position:"relative",width:isMobile ? "100%" : "auto"}}>
+                  <div style={{position:"relative",width:isMobile ? "100%" : "auto",flex:isMobile ? "1 1 auto" : "none"}}>
                     <button onClick={()=>setSortOpen(o=>!o)}
-                      style={{padding:"8px 14px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#666",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "space-between" : "flex-start"}}>
+                      style={{padding:"8px 14px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#666",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,minHeight:36,width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "space-between" : "flex-start"}}>
                       ⇅ {SORT_OPTS.find(o=>o.v===sortBy)?.l}<span style={{fontSize:10,opacity:0.5}}>▾</span>
                     </button>
                     {sortOpen&&<>
@@ -228,9 +228,9 @@ export default function Compiled() {
                     </>}
                   </div>
                   <span style={{fontSize:12,color:"#2A2A2A",width:isMobile ? "100%" : "auto"}}>{displayed.length} result{displayed.length!==1?"s":""}</span>
-                  <div style={{flex:1,minWidth:isMobile ? "100%" : "auto"}}/>
+                  <div style={{flex:1,minWidth:isMobile ? "100%" : "auto",order:isMobile ? 99 : 0}}/>
                   <button onClick={()=>setTemplateOverlayOpen(true)}
-                    style={{padding:"9px 20px",background:"#C8F55A",border:"none",borderRadius:9,color:"#0E0E0E",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:7,whiteSpace:"nowrap",width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "center" : "flex-start"}}
+                    style={{padding:"10px 20px",background:"#C8F55A",border:"none",borderRadius:9,color:"#0E0E0E",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:7,minHeight:38,whiteSpace:"nowrap",width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "center" : "flex-start",order:isMobile ? 100 : 0}}
                     onMouseEnter={e=>e.currentTarget.style.opacity="0.88"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
                     + Create Resume
                   </button>

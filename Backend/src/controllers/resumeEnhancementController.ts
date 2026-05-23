@@ -142,7 +142,7 @@ export const analyzeAts: RequestHandler = async (req, res) => {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
-    // Run ATS analysis synchronously (no BullMQ)
+    // Run ATS analysis synchronously
     const job = {
       id: jobId,
       data: {

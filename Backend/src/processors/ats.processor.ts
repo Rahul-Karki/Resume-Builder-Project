@@ -1,5 +1,4 @@
-import type { Job } from "bullmq";
-import type { AtsAnalysisJobData } from "../../../shared/src/bullmq";
+import type { AtsAnalysisJobData } from "../../../shared/src/jobs";
 import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
@@ -480,7 +479,7 @@ const buildResumeSnippetForAi = (resume: Record<string, unknown>) => {
   return sliceText(parts, 9000);
 };
 
-const enhanceWithAi = async (job: Job<AtsAnalysisJobData>, base: AtsAnalysisReport): Promise<{ report: AtsAnalysisReport; aiUsed: boolean }> => {
+const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base: AtsAnalysisReport): Promise<{ report: AtsAnalysisReport; aiUsed: boolean }> => {
   if (!providerIsConfigured()) return { report: base, aiUsed: false };
 
   const resumeSnippet = buildResumeSnippetForAi(job.data.resume);
@@ -740,7 +739,7 @@ const buildReportSummary = (jobTitle: string | undefined, overall: number, match
   return `${title} scored ${overall}/100 with a ${matchScore}% keyword match.${missingKeywords.length > 0 ? ` Missing keywords: ${missingKeywords.slice(0, 6).join(", ")}.` : ""}`;
 };
 
-const buildAtsReport = (job: Job<AtsAnalysisJobData>): AtsAnalysisReport => {
+const buildAtsReport = (job: { id: string; data: AtsAnalysisJobData }): AtsAnalysisReport => {
   const reportType = job.data.reportType ?? (job.data.jobDescription ? "job-description-match" : "resume-analysis");
   const keywords = Array.from(new Set((job.data.keywords.length > 0 ? job.data.keywords : []).map((keyword) => compactText(keyword)).filter(Boolean)));
   const keywordResult = analyzeKeywordMatch(job.data.resume, keywords, job.data.jobDescription);
@@ -772,7 +771,7 @@ const buildAtsReport = (job: Job<AtsAnalysisJobData>): AtsAnalysisReport => {
   };
 };
 
-export const processAtsAnalysisJob = async (job: Job<AtsAnalysisJobData>) => {
+export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysisJobData }) => {
   try {
     const baseReport = buildAtsReport(job);
     const { report } = await enhanceWithAi(job, baseReport);

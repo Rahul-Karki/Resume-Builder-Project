@@ -201,10 +201,10 @@ export function HeroSection() {
 
   return (
     <section style={{
-      minHeight: "100vh",
+      minHeight: "100dvh",
       background: "#080808",
       display: "flex", alignItems: "center",
-      padding: isMobile ? "88px 16px 44px" : "80px 40px 60px",
+      padding: isMobile ? "76px 16px 48px" : "80px 40px 60px",
       position: "relative",
       overflow: "hidden",
     }}>

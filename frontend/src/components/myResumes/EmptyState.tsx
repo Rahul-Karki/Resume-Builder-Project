@@ -146,7 +146,7 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
         </p>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(185px,1fr))",gap:16,marginBottom:40}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:12,marginBottom:40}}>
         {loadingTemplates ? (
           <div style={{gridColumn:"1 / -1",textAlign:"center",fontSize:13,color:"#555",padding:"14px 0"}}>Loading templates...</div>
         ) : cardTemplates.length > 0 ? (

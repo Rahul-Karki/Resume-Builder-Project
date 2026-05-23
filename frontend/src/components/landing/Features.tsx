@@ -198,7 +198,7 @@ export function FeaturesSection() {
               onMouseLeave={() => setHovered(null)}
               style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "64px 1fr 360px",
+                gridTemplateColumns: isMobile ? "1fr" : "64px 1fr minmax(240px, 360px)",
                 gap: isMobile ? 16 : 40,
                 alignItems: "center",
                 padding: isMobile ? "20px 14px" : "48px 32px",

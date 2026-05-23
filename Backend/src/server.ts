@@ -5,12 +5,9 @@ import { env } from "./config/env";
 import { flushBackendSentry, initializeBackendSentry } from "./config/sentry";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
-import { closeAtsQueue, ensureAtsQueueReady } from "./queue/atsQueue";
-import { closeResumeQueue, ensureResumeQueueReady } from "./queue/resumeQueue";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
 import { createAllIndexes } from "./config/indexes";
 import app from "./app";
-import { initResumeQueueEvents, closeResumeQueueEvents } from "./queue/resumeQueueEvents";
 import { browserPool } from "./lib/browserPool";
 import { dataIntegrityChecker } from "./services/dataIntegrityService";
 initializeBackendSentry();
@@ -32,18 +29,6 @@ const startServer = async () => {
       logger.error({ error }, "Cache warmup failed");
     });
   }
-  void ensureResumeQueueReady().catch((error) => {
-    logger.error({ error }, "Resume queue connection failed during startup");
-  });
-  // Initialize queue events to propagate job updates to SSE subscribers
-  try {
-    initResumeQueueEvents();
-  } catch (err) {
-    logger.warn({ err }, "Failed to init resume queue events (non-fatal)");
-  }
-  void ensureAtsQueueReady().catch((error) => {
-    logger.error({ error }, "ATS queue connection failed during startup");
-  });
 
   // Pre-warm Puppeteer browser pool for PDF generation
   void browserPool.start().catch((error) => {
@@ -82,14 +67,6 @@ const startServer = async () => {
     server.close(async () => {
       try {
         await closeRedisClient();
-        // Close QueueEvents bridge if initialized
-        try {
-          await closeResumeQueueEvents();
-        } catch (err) {
-          logger.warn({ err }, "Error closing resume queue events");
-        }
-        await closeResumeQueue();
-        await closeAtsQueue();
         await browserPool.shutdown();
         logger.info("Shutdown completed successfully");
         process.exit(0);
@@ -132,4 +109,3 @@ void startServer().catch((error) => {
   logger.error({ error }, "Server startup failed");
   process.exit(1);
 });
-

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Thumb } from "./ResumeThumbnail";
 import { SavedResume } from "@/types/resume-types";
 import { TEMPLATES } from "@/utils/templateMapping";
@@ -61,6 +61,8 @@ export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
   onDuplicate:(id:string)=>void; onDelete:(id:string)=>void; delay?:number;
 }) {
   const [hov,setHov]=useState(false);
+  const [isMobile,setIsMobile]=useState(false);
+  useEffect(()=>{const u=()=>setIsMobile(window.innerWidth<640);u();window.addEventListener("resize",u);return ()=>window.removeEventListener("resize",u);},[]);
   const tpl=TEMPLATES.find(t=>t.id===resume.templateId);
   const thumbTpl=tpl??TEMPLATES[0];
   const templateName = tpl?.name ?? resume.templateId
@@ -134,16 +136,16 @@ export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
             </span>)}
         </div>
         <div style={{display:"flex",gap:2,marginTop:"auto",background:"#0A0A0A",borderRadius:8,padding:"3px",border:"1px solid #191919"}}>
-          <button type="button" onClick={()=>onEdit(resume.id)} style={{flex:1,border:0,background:"#111",color:"#CFCFCF",fontSize:11,fontWeight:700,padding:"7px 6px",borderRadius:6,cursor:"pointer"}}>
+          <button type="button" onClick={()=>onEdit(resume.id)} style={{flex:1,border:0,background:"#111",color:"#CFCFCF",fontSize:isMobile?10:11,fontWeight:700,padding:isMobile?"9px 4px":"7px 6px",borderRadius:6,cursor:"pointer",minHeight:isMobile?36:32}}>
             ✎ Edit
           </button>
-          <button type="button" onClick={()=>onPreview(resume.id)} style={{flex:1,border:0,background:"#111",color:"#CFCFCF",fontSize:11,fontWeight:700,padding:"7px 6px",borderRadius:6,cursor:"pointer"}}>
+          <button type="button" onClick={()=>onPreview(resume.id)} style={{flex:1,border:0,background:"#111",color:"#CFCFCF",fontSize:isMobile?10:11,fontWeight:700,padding:isMobile?"9px 4px":"7px 6px",borderRadius:6,cursor:"pointer",minHeight:isMobile?36:32}}>
             ◎ Preview
           </button>
-          <button type="button" onClick={()=>onDuplicate(resume.id)} style={{flex:1,border:0,background:"#111",color:"#CFCFCF",fontSize:11,fontWeight:700,padding:"7px 6px",borderRadius:6,cursor:"pointer"}}>
+          <button type="button" onClick={()=>onDuplicate(resume.id)} style={{flex:1,border:0,background:"#111",color:"#CFCFCF",fontSize:isMobile?10:11,fontWeight:700,padding:isMobile?"9px 4px":"7px 6px",borderRadius:6,cursor:"pointer",minHeight:isMobile?36:32}}>
             ⊕ Copy
           </button>
-          <button type="button" onClick={()=>onDelete(resume.id)} style={{flex:1,border:0,background:"#111",color:"#F87171",fontSize:11,fontWeight:700,padding:"7px 6px",borderRadius:6,cursor:"pointer"}}>
+          <button type="button" onClick={()=>onDelete(resume.id)} style={{flex:1,border:0,background:"#111",color:"#F87171",fontSize:isMobile?10:11,fontWeight:700,padding:isMobile?"9px 4px":"7px 6px",borderRadius:6,cursor:"pointer",minHeight:isMobile?36:32}}>
             ✕ Delete
           </button>
         </div>

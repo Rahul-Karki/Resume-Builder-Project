@@ -107,7 +107,7 @@ export function HowItWorks() {
         </div>
 
         {/* Steps */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 40px 1fr 40px 1fr", alignItems: "start", gap: 0 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 32px 1fr 32px 1fr", alignItems: "start", gap: 0 }}>
           {STEPS.map((step, i) => (
             <>
               <div

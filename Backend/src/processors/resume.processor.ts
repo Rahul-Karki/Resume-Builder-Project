@@ -1,5 +1,4 @@
-import type { Job } from "bullmq";
-import { createResumeDownloadFileName, resolveResumeDownloadUrl, type ResumeDownloadJobData } from "../../../shared/src/bullmq";
+import { createResumeDownloadFileName, resolveResumeDownloadUrl, type ResumeDownloadJobData } from "../../../shared/src/jobs";
 import { env } from "../config/env";
 import crypto from "crypto";
 import { browserPool } from "../lib/browserPool";
@@ -376,7 +375,7 @@ export const generateResumePdfArtifact = async (
   };
 };
 
-export const processResumeDownloadJob = async (job: Job<ResumeDownloadJobData>) => {
+export const processResumeDownloadJob = async (job: { id: string; data: ResumeDownloadJobData; attemptsMade: number; opts: { attempts: number } }) => {
   const startedAt = Date.now();
 
   await ResumeDownloadJob.updateOne(

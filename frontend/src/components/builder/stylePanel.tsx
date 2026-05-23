@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { fontOptions, ResumeStyle } from "@/types/resume-types";
 
@@ -91,6 +91,8 @@ export function StylePanel() {
   const { resume, updateStyle, resetStyle } = useResumeBuilderStore();
   const { style } = resume;
   const [activeSection, setActiveSection] = useState("Color Theme");
+  const [isCompact, setIsCompact] = useState(false);
+  useEffect(() => { const u = () => setIsCompact(window.innerWidth < 480); u(); window.addEventListener("resize", u); return () => window.removeEventListener("resize", u); }, []);
 
   const applyPreset = (preset: typeof COLOR_PRESETS[0]) => {
     updateStyle("accentColor", preset.accent);
@@ -125,7 +127,7 @@ export function StylePanel() {
         setActiveSection={setActiveSection}
       >
         <Label>Quick Presets</Label>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isCompact ? "repeat(3, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
           {COLOR_PRESETS.map(preset => (
             <button
               key={preset.label}

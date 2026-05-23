@@ -106,7 +106,7 @@ const upstashCall = async (
 export const getCacheProvider = (): CacheProvider => {
   // When USE_MEMORY_ONLY_CACHE is true, skip Redis/Upstash for cache and
   // rate-limit entirely. This saves thousands of commands per day on the
-  // Upstash free tier. BullMQ still uses Redis for job queues separately.
+  // Upstash free tier.
   if (env.USE_MEMORY_ONLY_CACHE) {
     return "none";
   }

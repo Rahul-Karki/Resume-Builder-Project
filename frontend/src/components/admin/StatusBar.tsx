@@ -13,7 +13,7 @@ function StatCard({ label, value, sub, accent = "#C8F55A" }: StatCardProps) {
   return (
     <div style={{
       background: "#111", border: "1px solid #1A1A1A", borderRadius: 12,
-      padding: "18px 20px", flex: 1, minWidth: 0,
+      padding: "18px 20px", flex: 1, minWidth: 200,
     }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10, fontFamily: "'Outfit', sans-serif" }}>
         {label}

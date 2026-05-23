@@ -30,8 +30,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@bull-board/api": "^7.0.0",
-    "@bull-board/express": "^7.0.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.72.0",
     "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
@@ -48,7 +46,6 @@
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@sentry/node": "^10.22.0",
     "bcrypt": "^6.0.0",
-    "bullmq": "^5.76.5",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",

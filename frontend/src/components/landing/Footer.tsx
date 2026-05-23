@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 // ─── Footer.tsx ───────────────────────────────────────────────────────────────
 // Minimal footer with nav columns and copyright.
 
@@ -13,11 +15,24 @@ const LINKS = {
 };
 
 export function Footer() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsCompact(window.innerWidth < 480);
+    };
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
   return (
     <footer style={{
       background: "#060606",
       borderTop: "1px solid #111",
-      padding: "48px 40px 36px",
+      padding: isMobile ? "36px 16px 28px" : isCompact ? "40px 24px 32px" : "48px 40px 36px",
       fontFamily: "'Outfit', sans-serif",
     }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>

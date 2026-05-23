@@ -1,7 +1,7 @@
 import express from "express";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { env } from "../config/env";
-// Removed BullMQ-related imports to reduce Redis usage
+
 import {
   createResume as baseCreateResume,
   deleteResume as baseDeleteResume,
@@ -36,7 +36,7 @@ import {
 
 const router = express.Router();
 
-// Preview-data endpoint removed - was related to BullMQ worker access
+
 
 const resumeReadCacheTtlSeconds = Math.min(env.REDIS_CACHE_TTL_SECONDS, 60);
 const resumeUserScope = (req: express.Request) => `resumes-user:${req.user?.id ?? "anonymous"}`;
@@ -53,11 +53,11 @@ const resumeMutationLimiter = createRedisRateLimitMiddleware({
   keyBuilder: resumeRateLimitKeyBuilder,
   message: "Too many resume changes. Please try again later.",
 });
-// resumeExportLimiter removed - no longer needed after removing BullMQ endpoints
+
 
 router.use(authMiddleware);
 
-// BullMQ endpoints removed to reduce Redis usage
+
 
 router.get(
   "/",
@@ -96,7 +96,7 @@ router.get("/job-events/:id", validateRequest({ params: jobStatusParamSchema }),
 router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
 router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }), getResumePreviewData);
 
-// export-pdf endpoint removed - was related to BullMQ PDF generation
+
 
 router.post(
   "/:id/analyze-ats",
@@ -114,6 +114,6 @@ router.get("/:id/ats-analysis/latest", validateRequest({ params: objectIdParamSc
 router.get("/:id/ats-analysis/:jobId", validateRequest({ params: objectIdParamSchema }), getAtsAnalysisByJobId);
 router.post("/:id/apply-suggestion", validateRequest({ params: objectIdParamSchema }), applyAtsSuggestion);
 
-// Resume version endpoints removed - were related to BullMQ functionality
+
 
 export default router;

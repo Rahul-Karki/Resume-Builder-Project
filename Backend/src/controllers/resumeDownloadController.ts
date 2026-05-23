@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import { jobEvents } from "../events/jobEvents";
 import Resume from "../models/Resume";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
-import { getResumeQueue } from "../queue/resumeQueue";
 import { processResumeDownloadJob } from "../lib/workerShim";
 import { env } from "../config/env";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
@@ -12,7 +11,7 @@ import { sendErrorResponse } from "../utils/errorResponse";
 import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
 import { AppError, AuthError, NotFoundError } from "../errors/AppError";
 import { createResumeDownloadJobId } from "../queue/resumeQueue";
-import { createResumeDownloadFileName, resolveResumeDownloadUrl } from "../../../shared/src/bullmq";
+import { createResumeDownloadFileName, resolveResumeDownloadUrl } from "../../../shared/src/jobs";
 
 type ResumeDownloadBody = {
   resumeId?: string;
@@ -22,10 +21,6 @@ type ResumeDownloadBody = {
 
 const allowedPresets = new Set(["web", "standard", "print"]);
 const stalePendingJobMs = env.RESUME_DOWNLOAD_STALE_PENDING_MS;
-const QUEUE_COUNTS_CACHE_TTL_MS = 10_000;
-
-let cachedQueueCounts: Record<string, number> | null = null;
-let cachedQueueCountsAt = 0;
 
 // jobEvents imported from centralized emitter
 
@@ -215,7 +210,7 @@ export const downloadResume: RequestHandler = async (req, res) => {
           // ignore
         }
 
-        // Run resume PDF generation synchronously (no BullMQ)
+        // Run resume PDF generation synchronously
         const requeueJob = {
           id: jobId,
           data: {
@@ -579,39 +574,4 @@ export const getResumePreviewData: RequestHandler = async (req, res) => {
   }
 };
 
-export const getResumeQueueMetrics: RequestHandler = async (req, res) => {
-  const span = startControllerSpan("resumeDownload.getResumeQueueMetrics", req);
-  try {
-    const userId = getUserId(req, res);
-    if (!userId) return;
 
-    const queue = getResumeQueue();
-    const now = Date.now();
-    const queueCounts = cachedQueueCounts && now - cachedQueueCountsAt < QUEUE_COUNTS_CACHE_TTL_MS
-      ? cachedQueueCounts
-      : await queue.getJobCounts().then((counts) => {
-          cachedQueueCounts = counts;
-          cachedQueueCountsAt = now;
-          return counts;
-        });
-
-    const agg = await ResumeDownloadJob.aggregate([
-      { $match: { userId } },
-      { $group: { _id: "$status", count: { $sum: 1 } } },
-    ]).exec();
-
-    const dbCounts: Record<string, number> = {};
-    for (const row of agg) {
-      dbCounts[row._id] = row.count;
-    }
-
-    markSpanSuccess(span);
-    res.status(200).json({ queueCounts, dbCounts });
-  } catch (error) {
-    markSpanError(span, error as Error, "Failed to fetch queue metrics");
-    logger.error({ error }, "Failed to fetch resume queue metrics");
-    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
-  } finally {
-    finishControllerSpan(span);
-  }
-};

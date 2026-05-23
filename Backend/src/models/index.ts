@@ -32,5 +32,4 @@ import "./Template";
 import "./TemplateUsage";
 import "./ResetToken";
 import "./AuditLog";
-import "./WorkerHeartbeat";
 import "./Jobs";

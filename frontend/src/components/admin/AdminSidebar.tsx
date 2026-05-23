@@ -18,11 +18,11 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
       borderRight: isMobile ? "none" : "1px solid #141414",
       borderBottom: isMobile ? "1px solid #141414" : "none",
       display: "flex", flexDirection: "column",
-      // Sticky + overflow-hidden parent causes jump/misalignment in this layout.
       height: isMobile ? "auto" : "100vh",
       position: isMobile ? "relative" : "sticky",
       top: 0,
       alignSelf: "stretch",
+      overflow: "hidden",
       fontFamily: "'Outfit', sans-serif",
     }}>
       {/* Logo */}

@@ -389,12 +389,12 @@ export function TemplatesPreview() {
           </h2>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexShrink: 0, alignSelf: isMobile ? "flex-start" : "auto" }}>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0, alignSelf: isMobile ? "flex-start" : "auto", flexWrap: "wrap" }}>
           {["←", "→"].map((arrow, i) => (
             <button key={arrow} onClick={() => scroll(i === 0 ? "left" : "right")}
               style={{
-                width: 40, height: 40, borderRadius: "50%", border: "1px solid #222",
-                background: "#111", color: "#555", fontSize: 16, cursor: "pointer",
+                width: isMobile ? 36 : 40, height: isMobile ? 36 : 40, borderRadius: "50%", border: "1px solid #222",
+                background: "#111", color: "#555", fontSize: isMobile ? 14 : 16, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.15s",
               }}
@@ -403,8 +403,8 @@ export function TemplatesPreview() {
             >{arrow}</button>
           ))}
           <Link to="/templates" style={{
-            padding: "0 20px", height: 40, borderRadius: 8, border: "1px solid #222",
-            background: "transparent", color: "#666", fontSize: 12, fontWeight: 700,
+            padding: "0 16px", height: isMobile ? 36 : 40, borderRadius: 8, border: "1px solid #222",
+            background: "transparent", color: "#666", fontSize: isMobile ? 11 : 12, fontWeight: 700,
             textDecoration: "none", display: "inline-flex", alignItems: "center",
             transition: "all 0.15s", fontFamily: "'Outfit', sans-serif",
           }}
