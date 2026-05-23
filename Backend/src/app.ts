@@ -1,3 +1,4 @@
+import compression from "compression";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -33,9 +34,17 @@ export const createApp = () => {
     .map((origin) => origin?.trim().replace(/\/$/, ""))
     .filter((origin): origin is string => Boolean(origin));
 
+  const allowPreviewOrigins = env.NODE_ENV !== "production" && env.ALLOW_PREVIEW_ORIGINS;
+
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
+      // In production, reject requests with no Origin header (non-browser clients).
+      // In development, allow them for tools like curl/Postman.
       if (!origin) {
+        if (env.NODE_ENV === "production") {
+          callback(new Error("Origin not allowed by CORS policy"));
+          return;
+        }
         callback(null, true);
         return;
       }
@@ -47,15 +56,17 @@ export const createApp = () => {
         return;
       }
 
-      // Allow Vercel preview deployments and custom domains
-      if (
-        normalizedOrigin.endsWith(".vercel.app") ||
-        normalizedOrigin.endsWith(".onrender.com") ||
-        normalizedOrigin.startsWith("http://localhost:") ||
-        normalizedOrigin.startsWith("https://localhost:")
-      ) {
-        callback(null, true);
-        return;
+      // Allow preview and localhost origins only when explicitly enabled.
+      if (allowPreviewOrigins) {
+        if (
+          normalizedOrigin.endsWith(".vercel.app") ||
+          normalizedOrigin.endsWith(".onrender.com") ||
+          normalizedOrigin.startsWith("http://localhost:") ||
+          normalizedOrigin.startsWith("https://localhost:")
+        ) {
+          callback(null, true);
+          return;
+        }
       }
 
       callback(new Error("Origin not allowed by CORS policy"));
@@ -87,7 +98,10 @@ export const createApp = () => {
   // 1. CORS MUST come first to handle preflight and error responses
   app.use(cors(corsOptions));
 
-  // 2. Helmet for security headers
+  // 2. Response compression (before Helmet to compress Helmet's output too)
+  app.use(compression({ level: 6 }));
+
+  // 3. Helmet for security headers
   app.use(helmet({
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "no-referrer" },
@@ -107,15 +121,15 @@ export const createApp = () => {
     },
   }));
 
-  // 3. Global instrumentation and size checks before body parsing
+  // 4. Global instrumentation and size checks before body parsing
   app.use(correlationIdMiddleware);
   app.use(auditContextMiddleware);
   app.use(requestSizeLimitMiddleware);
   
-  // 4. Body parsing
+  // 5. Body parsing
   app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
   
-  // 5. Logging and processing
+  // 6. Logging and processing
   app.use(requestLogger);
   app.use(apiVersionMiddleware);
   app.use(requestTimeoutMiddleware);

@@ -300,6 +300,7 @@ docker-compose up -d --build
 | `JWT_ACCESS_SECRET` | Yes | — | JWT signing key (min 32 chars) |
 | `JWT_REFRESH_SECRET` | Yes | — | Refresh token signing key (min 32 chars) |
 | `FRONTEND_URL` | Yes | — | CORS origin for frontend |
+| `ALLOW_PREVIEW_ORIGINS` | No | `false` | Allow preview/localhost origins for CORS in non-production |
 | `GOOGLE_CLIENT_ID` | For OAuth | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | For OAuth | — | Google OAuth client secret |
 | `RESEND_API_KEY` | For email | — | Resend API key for password reset emails |

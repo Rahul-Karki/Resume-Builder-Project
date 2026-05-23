@@ -6,6 +6,7 @@ import { env } from "../config/env";
 import { AuthError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { getAuditContext } from "../models/plugins/auditTrail";
+import { isTokenBlacklisted } from "../utils/tokenBlacklist";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,11 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
   }
 
   try {
-    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
+    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET, { algorithms: ["HS256"] }) as JwtPayload;
+    const revoked = await isTokenBlacklisted(token, "access");
+    if (revoked) {
+      return sendErrorResponse(res, new AuthError("Token revoked.", { code: "AUTH_REQUIRED" }));
+    }
     const userId = payload.userId ?? payload.id;
 
     if (!userId) {

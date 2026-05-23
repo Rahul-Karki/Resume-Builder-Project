@@ -139,8 +139,13 @@ const createResume: RequestHandler = async (req, res) => {
         if (!userId) return;
 
         const payload = {
-            ...req.body,
+            title: req.body?.title,
             templateId: normalizeResumeTemplateId(req.body?.templateId),
+            personalInfo: req.body?.personalInfo,
+            sections: req.body?.sections,
+            style: req.body?.style,
+            sectionOrder: req.body?.sectionOrder,
+            sectionVisibility: req.body?.sectionVisibility,
         };
 
         const resume = await Resume.create({

@@ -7,9 +7,12 @@ import { logAuthFailure } from "../utils/securityLogger";
 import { AuthError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { getAuditContext } from "../models/plugins/auditTrail";
+import { isTokenBlacklisted } from "../utils/tokenBlacklist";
+import { memoryCache } from "../utils/memoryCache";
 
 const JWT_SECRET = env.JWT_ACCESS_SECRET;
-const AUTH_QUERY_TIMEOUT_MS = 5000; // 5 second timeout for auth queries
+const AUTH_QUERY_TIMEOUT_MS = 5000;
+const AUTH_USER_CACHE_TTL_S = 60;
 
 export const authMiddleware = async (
   req: Request,
@@ -28,7 +31,28 @@ export const authMiddleware = async (
     }
 
     // Verify token and attach current user
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] }) as { userId: string };
+    const revoked = await isTokenBlacklisted(token, "access");
+    if (revoked) {
+      logAuthFailure(req, "Token revoked");
+      sendErrorResponse(res, new AuthError("Unauthorized: Token revoked", { code: "AUTH_REQUIRED" }));
+      return;
+    }
+
+    // Check in-memory cache first (avoids a DB round-trip for frequent auth checks)
+    const cacheKey = `auth-user:${decoded.userId}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      const cachedUser = JSON.parse(cached) as { id: string; role: string; name: string; email?: string };
+      req.user = cachedUser;
+      const auditCtx = getAuditContext();
+      if (auditCtx) {
+        auditCtx.userId = cachedUser.id;
+        auditCtx.userEmail = cachedUser.email;
+      }
+      next();
+      return;
+    }
 
     // Query with timeout to prevent hanging requests; cancel the query on timeout
     const query = User.findById(decoded.userId)
@@ -68,7 +92,10 @@ export const authMiddleware = async (
       email: authenticatedUser.email ? String(authenticatedUser.email) : undefined,
     };
 
-    const auditContext = getAuditContext();
+    // Cache for 60 seconds to reduce DB load on frequent auth checks
+    memoryCache.set(cacheKey, JSON.stringify(req.user), AUTH_USER_CACHE_TTL_S);
+
+    let auditContext = getAuditContext();
     if (auditContext) {
       auditContext.userId = req.user.id;
       auditContext.userEmail = req.user.email;

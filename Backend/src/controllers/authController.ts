@@ -25,6 +25,7 @@ import { sendSuccess, sendCreated, sendBadRequest, sendUnauthorized, sendServerE
 import { blacklistRefreshToken, blacklistAccessToken } from "../utils/tokenBlacklist";
 import { parseCookies } from "../utils/cookieParser";
 
+const BCRYPT_SALT_ROUNDS = 10;
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000; // 5 min
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 sec
 const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 min
@@ -82,9 +83,7 @@ const registerUser = async (req: Request, res: Response) => {
       return sendBadRequest(res, "User already exists");
     }
 
-    const saltRounds = 10;
-
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     const user = new User({
       name,
@@ -247,7 +246,7 @@ const forgotPassword = async (req: Request, res: Response) => {
     // to prevent email enumeration attacks
     if (!user) {
       logger.warn({ email }, "Forgot password user not found");
-      return res.status(200).json({
+      return sendSuccess(res, {
         message: "If an account with that email exists, a password reset link has been sent.",
       });
     }
@@ -317,7 +316,7 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     await sendEmail(user.email, link);
 
-    res.status(200).json({
+    sendSuccess(res, {
       message: "Password reset link sent to email",
     });
     logger.info({ userId: user._id.toString(), email: user.email }, "Password reset link sent");
@@ -374,15 +373,13 @@ const resetPassword = async (req: Request, res: Response) => {
       });
     }
 
-    const saltRounds = 10;
-
-    user.password = await bcrypt.hash(password, saltRounds);
+    user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     user.passwordResetAt = new Date();
     await user.save();
 
     await ResetToken.deleteMany({ userId: user._id }); // remove all tokens for user
 
-    res.status(200).json({
+    sendSuccess(res, {
       message: "Password reset successful",
     });
     logger.info({ userId: user._id.toString() }, "Password reset successful");
@@ -413,7 +410,7 @@ const resendResetLink = async (req: Request, res: Response) => {
 
     if (!user) {
       logger.warn({ email }, "Resend reset link user not found");
-      return res.status(200).json({
+      return sendSuccess(res, {
         message: "If an account with that email exists, a password reset link has been sent.",
       });
     }
@@ -478,7 +475,7 @@ const resendResetLink = async (req: Request, res: Response) => {
     const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
     await sendEmail(user.email, link);
 
-    res.status(200).json({
+    sendSuccess(res, {
       message: "Password reset link resent to email",
     });
     logger.info({ userId: user._id.toString(), email: user.email }, "Password reset link resent");
@@ -540,7 +537,7 @@ const googleLogin = async (req: Request, res: Response) => {
 
     logger.info({ userId: user._id.toString(), email: user.email }, "Google login successful");
     markSpanSuccess(span);
-    return res.json({
+    return sendSuccess(res, {
       csrfToken,
       user: {
         id: user._id,
@@ -608,7 +605,7 @@ const linkGoogleAccount = async (req: Request, res: Response) => {
 
     logger.info({ userId: user._id.toString(), email: user.email }, "Google provider linked");
     markSpanSuccess(span);
-    return res.status(200).json({
+    return sendSuccess(res, {
       message: "Google account linked successfully",
       user: {
         id: user._id,
@@ -674,7 +671,7 @@ const unlinkOAuthProvider = async (req: Request, res: Response) => {
     await user.save();
     logger.info({ userId: user._id.toString(), provider }, "OAuth provider unlinked");
     markSpanSuccess(span);
-    return res.status(200).json({
+    return sendSuccess(res, {
       message: "OAuth provider unlinked successfully",
       user: {
         id: user._id,
@@ -711,7 +708,7 @@ const getCurrentUser = async (req: Request, res: Response) => {
 
     logger.info({ userId }, "Current user fetched");
     markSpanSuccess(span);
-    return res.status(200).json({
+    return sendSuccess(res, {
       user: {
         id: user._id,
         name: user.name,

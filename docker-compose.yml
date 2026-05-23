@@ -12,6 +12,7 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379/0
+      - ALLOW_PREVIEW_ORIGINS=false
     networks:
       - app-network
     depends_on:

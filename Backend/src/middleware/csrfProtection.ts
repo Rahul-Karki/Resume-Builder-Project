@@ -30,7 +30,8 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
     return next();
   }
 
-  if (CSRF_EXEMPT_PATHS.has(req.path)) {
+  const normalizedPath = req.path.replace(/^\/api\/v\d+/, "/api");
+  if (CSRF_EXEMPT_PATHS.has(normalizedPath)) {
     return next();
   }
 

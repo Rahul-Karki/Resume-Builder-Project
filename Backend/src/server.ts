@@ -16,7 +16,9 @@ const PORT = env.PORT;
 
 const startServer = async () => {
   await connectDB();
-  await createAllIndexes();
+  if (env.CREATE_INDEXES_ON_STARTUP) {
+    await createAllIndexes();
+  }
   
   // Initialize data integrity checker for compliance monitoring
   dataIntegrityChecker.startPeriodicChecks(env.INTEGRITY_CHECK_INTERVAL_MS || 3600000);

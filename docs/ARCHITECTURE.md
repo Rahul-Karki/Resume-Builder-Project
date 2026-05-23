@@ -259,7 +259,7 @@ Three global Mongoose plugins apply to all models: `auditTrail` (logs creates/up
 
 - **CSRF stored in JS memory, not cookies.** Because the frontend (Vercel) and backend (Render) are on different origins, `document.cookie` cannot read the CSRF cookie. The backend sends the CSRF token in every response body, and the frontend keeps it in a module-level variable. This is refreshed on every response so page navigations or reloads do not lose the token.
 
-- **CORS allows broad Vercel and Render domains.** Rather than requiring an exact `FRONTEND_URL` environment variable match, the CORS configuration accepts any origin ending in `.vercel.app` or `.onrender.com`, plus any `localhost` port for development. This prevents deployment issues when Vercel assigns new preview URLs.
+- **CORS preview origins are opt-in.** The API accepts `FRONTEND_URL`/`FRONTEND_URLS` explicitly, and only allows broad Vercel/Render/localhost origins when `ALLOW_PREVIEW_ORIGINS=true` (intended for non-production preview environments).
 
 - **OpenTelemetry with Grafana Cloud.** Traces, metrics, and logs are exported via OTLP to Grafana Cloud when configured. A fallback Prometheus metrics endpoint (`/metrics`) is available for local or self-hosted monitoring. Sentry provides error tracking on both the backend and frontend.
 

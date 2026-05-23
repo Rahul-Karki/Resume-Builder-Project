@@ -106,8 +106,9 @@ const isAiRequest = (req: Request): boolean => {
     '/api/ai/enhance-bullet',
     '/api/ai/ats-analysis'
   ];
-  
-  return aiPaths.some(path => req.path.startsWith(path));
+  const fullPath = `${req.baseUrl}${req.path}`;
+
+  return aiPaths.some(path => fullPath.startsWith(path));
 };
 
 /**
