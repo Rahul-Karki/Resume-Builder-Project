@@ -7,64 +7,30 @@ import apiVersionMiddleware from "./middleware/apiVersion";
 import { csrfProtection } from "./middleware/csrfProtection";
 import { correlationIdMiddleware } from "./middleware/correlationId";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
-import { requestTimeoutMiddleware } from "./middleware/requestTimeout";
-import { requestSizeLimitMiddleware } from "./middleware/requestSizeLimit";
-import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
-import { openAPISpec } from "./config/openapi";
-import { auditContextMiddleware, referentialIntegrityMiddleware } from "./middleware/referentialIntegrity";
-
-import authRoutes from "./router/auth.routes";
-import refreshRoutes from "./router/refresh.route";
-import resumeRoutes from "./router/resume.routes";
-import aiRoutes from "./router/ai.routes";
-import adminRoutes from "./router/admin.routes";
-import templateRoutes from "./router/template.routes";
-import healthRoutes from "./router/health.routes";
-import { adminGuard } from "./middleware/adminAuthMiddleware";
-
-export const createApp = () => {
-  const app = express();
-  app.set("trust proxy", 1);
-  app.disable("x-powered-by");
-
-  const configuredOrigins = [
-    env.FRONTEND_URL,
-    ...env.FRONTEND_URLS,
-  ]
-    .map((origin) => origin?.trim().replace(/\/$/, ""))
-    .filter((origin): origin is string => Boolean(origin));
-
-  const allowPreviewOrigins = env.NODE_ENV !== "production" && env.ALLOW_PREVIEW_ORIGINS;
-
-  const corsOptions: cors.CorsOptions = {
-    origin: (origin, callback) => {
-      // In production, reject requests with no Origin header (non-browser clients).
-      // In development, allow them for tools like curl/Postman.
-      if (!origin) {
-        if (env.NODE_ENV === "production") {
-          callback(new Error("Origin not allowed by CORS policy"));
-          return;
-        }
-        callback(null, true);
-        return;
-      }
-
-      const normalizedOrigin = origin.trim().replace(/\/$/, "");
-
-      if (configuredOrigins.includes(normalizedOrigin)) {
-        callback(null, true);
-        return;
-      }
-
-      // Allow preview and localhost origins only when explicitly enabled.
-      if (allowPreviewOrigins) {
-        if (
-          normalizedOrigin.endsWith(".vercel.app") ||
-          normalizedOrigin.endsWith(".onrender.com") ||
-          normalizedOrigin.startsWith("http://localhost:") ||
-          normalizedOrigin.startsWith("https://localhost:")
-        ) {
-          callback(null, true);
+  const corsOptionsBase: cors.CorsOptions = {
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "X-CSRF-Token",
+      "X-Request-ID",
+      "X-Requested-With",
+      "X-XSRF-Token",
+      "Authorization",
+    ],
+    exposedHeaders: [
+      "X-CSRF-Token",
+      "x-ai-cached",
+      "x-ai-fallback",
+      "x-ai-provider",
+      "x-ai-model",
+      "x-ai-credits-estimated",
+      "x-ai-credits-deducted",
+      "x-ai-credits-remaining",
+      "x-ai-credits-reset-at",
+      "x-ai-credits-plan",
+    ],
+  };
           return;
         }
       }
@@ -96,7 +62,43 @@ export const createApp = () => {
   };
 
   // 1. CORS MUST come first to handle preflight and error responses
-  app.use(cors(corsOptions));
+    app.use(cors((req, callback) => {
+      const origin = req.header("origin");
+
+      if (!origin) {
+        callback(null, { ...corsOptionsBase, origin: true });
+        return;
+      }
+
+      const normalizedOrigin = origin.trim().replace(/\/$/, "");
+      const host = req.get("host") ?? "";
+      const requestOrigin = host ? `${req.protocol}://${host}`.replace(/\/$/, "") : "";
+
+      if (requestOrigin && normalizedOrigin === requestOrigin) {
+        callback(null, { ...corsOptionsBase, origin: true });
+        return;
+      }
+
+      if (configuredOrigins.includes(normalizedOrigin)) {
+        callback(null, { ...corsOptionsBase, origin: true });
+        return;
+      }
+
+      // Allow preview and localhost origins only when explicitly enabled.
+      if (allowPreviewOrigins) {
+        if (
+          normalizedOrigin.endsWith(".vercel.app") ||
+          normalizedOrigin.endsWith(".onrender.com") ||
+          normalizedOrigin.startsWith("http://localhost:") ||
+          normalizedOrigin.startsWith("https://localhost:")
+        ) {
+          callback(null, { ...corsOptionsBase, origin: true });
+          return;
+        }
+      }
+
+      callback(new Error("Origin not allowed by CORS policy"));
+    }));
 
   // 2. Response compression (before Helmet to compress Helmet's output too)
   app.use(compression({ level: 6 }));
