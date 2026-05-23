@@ -1,11 +1,27 @@
 ﻿// ─── Module: generateToken ───────────────────────────
-// Description: JWT access and refresh token generation
-// Coverage targets: generateAccessToken, generateRefreshToken
-// Last updated: 2026-05-22
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
+import jwt from "jsonwebtoken";
+import { generateAccessToken, generateRefreshToken } from "../../utils/generateToken";
 
 describe("generateToken", () => {
-  describe("generateAccessToken", () => { it("should sign a JWT with the user ID and access secret", () => {}); it("should set a short expiry (15 minutes)", () => {}); it("should include the user role in the payload", () => {}); });
-  describe("generateRefreshToken", () => { it("should sign a JWT with the user ID and refresh secret", () => {}); it("should set a long expiry (30 days)", () => {}); });
+  it("signs token with access secret", () => {
+    const userId = "user-123";
+    const token = generateAccessToken(userId);
+    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as any;
+
+    expect(payload.userId).toBe(userId);
+    expect(payload.exp).toBeGreaterThan(payload.iat);
+  });
+
+  it("signs token with refresh secret and long ttl", () => {
+    const userId = "user-abc";
+    const token = generateRefreshToken(userId);
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as any;
+
+    expect(payload.userId).toBe(userId);
+    expect(payload.exp).toBeGreaterThan(payload.iat);
+
+    const ttlSeconds = payload.exp - payload.iat;
+    expect(ttlSeconds).toBeGreaterThanOrEqual(6 * 24 * 60 * 60);
+  });
 });

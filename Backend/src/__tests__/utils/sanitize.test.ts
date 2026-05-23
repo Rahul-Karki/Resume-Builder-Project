@@ -1,11 +1,28 @@
-﻿// ─── Module: sanitize ───────────────────────────
-// Description: Input sanitization utilities
-// Coverage targets: sanitizeText, sanitizeHtml, stripScriptTags
-// Last updated: 2026-05-22
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect } from "vitest";
+import { sanitizePlainText } from "../../utils/sanitize";
 
 describe("sanitize", () => {
-  describe("sanitizeText", () => { it("should remove HTML tags from text", () => {}); it("should preserve safe characters", () => {}); it("should handle empty strings", () => {}); });
-  describe("stripScriptTags", () => { it("should remove script tags and their content", () => {}); });
+  describe("sanitizeText", () => {
+    it("should remove HTML tags from text", () => {
+      const result = sanitizePlainText("<p>Hello</p>") as string;
+      expect(result).toBe("Hello");
+    });
+
+    it("should preserve safe characters", () => {
+      const result = sanitizePlainText("Hello, World! 123") as string;
+      expect(result).toBe("Hello, World! 123");
+    });
+
+    it("should handle empty strings", () => {
+      const result = sanitizePlainText("") as string;
+      expect(result).toBe("");
+    });
+  });
+
+  describe("stripScriptTags", () => {
+    it("should remove script tags and their content", () => {
+      const result = sanitizePlainText("Hello<script>alert('xss')</script>World") as string;
+      expect(result).toBe("HelloWorld");
+    });
+  });
 });

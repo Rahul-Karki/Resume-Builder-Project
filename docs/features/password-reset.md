@@ -32,7 +32,7 @@ Allows users who have forgotten their password to securely reset it via a time-l
 | Backend/src/models/ResetToken.ts | Token schema with userId, token hash, expiresAt, resendCount |
 
 ### Data model
-`	ypescript
+```typescript
 // ResetToken model
 interface IResetToken {
   userId: ObjectId;       // ref User
@@ -41,7 +41,7 @@ interface IResetToken {
   resendCount: number;    // tracks how many times the link was re-sent
   lastSeenAt?: Date;
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -51,11 +51,11 @@ interface IResetToken {
 | POST | /api/auth/resend | No | Resend reset link (rate-limited) |
 
 ## Edge Cases & Error Handling
-- Email does not exist: returns 200 to prevent user enumeration (no indication of whether the email exists).
-- Token expired: returns 400 with EXPIRED_TOKEN code.
-- Token already used: returns 400 with TOKEN_USED code.
-- Rate limit exceeded: returns 429 with Retry-After header.
-- Resend API failure: logs error, returns 500. User can retry.
+- If the email does not exist, the system returns 200 to prevent user enumeration (no indication of whether the email exists).
+- If the token is expired, the system returns 400 with EXPIRED_TOKEN code.
+- If the token has already been used, the system returns 400 with TOKEN_USED code.
+- If the rate limit is exceeded, the system returns 429 with Retry-After header.
+- If the Resend API fails, the system logs the error and returns 500; the user can retry.
 
 ## Tests
 - Unit: __tests__/authController.test.ts, __tests__/utils/sendEmail.test.ts

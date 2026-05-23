@@ -46,7 +46,7 @@ Provides a comprehensive compliance layer that automatically logs all data chang
 | Backend/src/middleware/adminAudit.ts | Express middleware — logs admin action access |
 
 ### Data model
-`	ypescript
+```typescript
 // AuditLog model (simplified)
 interface IAuditLog {
   collectionName: string;
@@ -64,7 +64,7 @@ interface IAuditLog {
   errorMessage?: string;
   timestamp: Date;           // TTL index: auto-delete after 1 year
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -80,11 +80,11 @@ interface IAuditLog {
 | GET | /admin/metrics/compliance | Admin | Compliance metrics snapshot |
 
 ## Edge Cases & Error Handling
-- TTL cleanup removes old audit logs automatically (1-year retention).
+- TTL cleanup automatically removes old audit logs (1-year retention).
 - Soft-deleted documents are excluded from normal queries; withDeleted() exposes them.
-- Cascade delete is best-effort: if a child collection is missing, it logs a warning and continues.
-- Data integrity check runs on a configurable interval; overlaps are prevented.
-- Alert channel failure is non-fatal — errors are logged but the check continues.
+- Cascade delete is best-effort: if a child collection is missing, the system logs a warning and continues.
+- The data integrity check runs on a configurable interval and overlaps are prevented.
+- If an alert channel fails, the error is logged but the check continues (non-fatal).
 
 ## Tests
 - Unit: __tests__/models/plugins.test.ts, __tests__/models/auditLog.test.ts, __tests__/dataIntegrityService.test.ts, __tests__/complianceMetrics.test.ts, __tests__/alerting.test.ts, __tests__/referentialIntegrity.test.ts

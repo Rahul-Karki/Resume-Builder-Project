@@ -58,10 +58,10 @@ Provides comprehensive observability across the backend through structured loggi
 | GET | /metrics | Yes (ENABLE_METRICS) | Full Prometheus metrics (app registry) |
 
 ## Edge Cases & Error Handling
-- OTLP endpoint unreachable: OpenTelemetry SDK buffers and retries; non-blocking.
-- Sentry DSN empty: initialization skipped, no errors thrown.
-- Prometheus registry conflict: duplicate metric registration handled gracefully.
-- Pino log level configurable via LOG_LEVEL env var; production defaults to "info".
+- If the OTLP endpoint is unreachable, the OpenTelemetry SDK buffers and retries (non-blocking).
+- If the Sentry DSN is empty, initialization is skipped and no errors are thrown.
+- If a Prometheus registry conflict occurs, duplicate metric registration is handled gracefully.
+- The Pino log level is configurable via the LOG_LEVEL env var and defaults to "info" in production.
 
 ## Tests
 - Unit: __tests__/observability.test.ts, __tests__/aiMetrics.test.ts, __tests__/complianceMetrics.test.ts, __tests__/alerting.test.ts, __tests__/correlationId.test.ts, __tests__/utils/businessMetrics.test.ts, __tests__/utils/securityLogger.test.ts, __tests__/utils/controllerObservability.test.ts

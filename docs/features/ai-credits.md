@@ -45,10 +45,10 @@ Manages per-user AI usage budgets to prevent runaway costs, with soft enforcemen
 | GET | /api/ai/request-history | Yes | Get paginated request history with credit cost |
 
 ## Edge Cases & Error Handling
-- Credit count reaches 0 with enforcement off: request proceeds, response includes x-ai-credits-remaining: 0 header.
-- Credit count reaches 0 with enforcement on: returns 402 with CREDITS_EXHAUSTED and reset time.
-- Concurrent credit deduction: atomic MongoDB update to prevent overspend.
-- Reset time passes during a request: credits refresh on next assertion.
+- If the credit count reaches 0 with enforcement off, the request proceeds and the response includes an x-ai-credits-remaining: 0 header.
+- If the credit count reaches 0 with enforcement on, the system returns 402 with a CREDITS_EXHAUSTED error and the reset time.
+- If two requests attempt concurrent credit deduction, the system uses an atomic MongoDB update to prevent overspend.
+- If the reset time passes during a request, the credits refresh on the next assertion.
 
 ## Tests
 - Unit: __tests__/utils/aiCredits.test.ts, __tests__/utils/creditCalculator.test.ts, __tests__/creditDeduction.test.ts, __tests__/models/aiUsage.test.ts

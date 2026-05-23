@@ -48,7 +48,7 @@ Allows users to create accounts, sign in securely, and maintain sessions across 
 | frontend/src/services/api.ts | Axios client with CSRF management and auto-refresh |
 
 ### Data model
-`	ypescript
+```typescript
 // User model (key auth fields)
 interface IUser {
   name: string;
@@ -61,7 +61,7 @@ interface IUser {
   lockUntil: Date | null;
   passwordResetAt?: Date;
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -77,12 +77,12 @@ interface IUser {
 | POST | /api/refresh | No | Refresh access token using refresh token cookie |
 
 ## Edge Cases & Error Handling
-- Duplicate email during signup: returns 409 Conflict with description.
-- Wrong password during login: increments loginAttempts, returns 401. After 5+ failed attempts, locks account for a configurable duration.
-- Expired access token: frontend auto-refreshes via POST /api/refresh; CSRF middleware exempts the refresh route.
-- Missing CSRF token: returns 403 with CSRF_VALIDATION_FAILED code; frontend retries with fresh token.
-- Invalid/revoked refresh token: returns 401, frontend redirects to login.
-- Google token verification failure: returns 401; frontend shows Google login error.
+- If a user signs up with a duplicate email, the system returns 409 Conflict with a description of the conflict.
+- If a user enters a wrong password during login, the system increments loginAttempts and returns 401. After 5 or more failed attempts, the system locks the account for a configurable duration.
+- If the access token expires, the frontend auto-refreshes it via POST /api/refresh, and the CSRF middleware exempts the refresh route.
+- If the CSRF token is missing, the system returns 403 with a CSRF_VALIDATION_FAILED code, and the frontend retries with a fresh token.
+- If the refresh token is invalid or revoked, the system returns 401 and the frontend redirects the user to the login page.
+- If the Google token verification fails, the system returns 401 and the frontend shows a Google login error.
 
 ## Tests
 - Unit: __tests__/authController.test.ts, __tests__/authMiddleware.test.ts, __tests__/csrfProtection.test.ts, __tests__/refreshController.test.ts, __tests__/utils/authCookies.test.ts, __tests__/utils/generateToken.test.ts, __tests__/utils/tokenBlacklist.test.ts, __tests__/utils/google.test.ts, __tests__/utils/hashToken.test.ts

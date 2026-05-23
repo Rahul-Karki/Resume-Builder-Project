@@ -4,34 +4,8 @@ import { dataIntegrityChecker } from "../services/dataIntegrityService";
 import { alertingService } from "../observability/alerting";
 import { logger } from "../observability";
 
-/**
- * Compliance Management Routes
- * 
- * Admin endpoints for:
- * - Audit log queries and exports
- * - Data integrity checks
- * - Compliance reporting
- * - Alert management
- * 
- * Usage:
- * import complianceRoutes from "./compliance";
- * app.use("/admin", complianceRoutes);
- */
-
 const router = express.Router();
 
-/**
- * GET /admin/audit-logs
- * Query audit logs with filtering
- * 
- * Query Parameters:
- * - userId: Filter by user ID
- * - collection: Filter by collection name
- * - action: Filter by action (create, update, delete, restore)
- * - days: Look back N days (default: 30)
- * - limit: Max results (default: 100, max: 1000)
- * - offset: Pagination offset (default: 0)
- */
 router.get("/audit-logs", async (req: Request, res: Response) => {
   try {
     const {
@@ -73,10 +47,6 @@ router.get("/audit-logs", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /admin/audit-logs/:documentId
- * Get full history for a document
- */
 router.get("/audit-logs/:documentId", async (req: Request, res: Response) => {
   try {
     const { documentId } = req.params;
@@ -103,15 +73,6 @@ router.get("/audit-logs/:documentId", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /admin/audit-export
- * Export audit logs as CSV
- * 
- * Query Parameters:
- * - startDate: ISO date (default: 30 days ago)
- * - endDate: ISO date (default: now)
- * - collection: Filter by collection
- */
 router.get("/audit-export", async (req: Request, res: Response) => {
   try {
     const { startDate, endDate, collection } = req.query;
@@ -127,7 +88,6 @@ router.get("/audit-export", async (req: Request, res: Response) => {
 
     const logs = await AuditLog.find(query).lean();
 
-    // Convert to CSV
     const csv = [
       "timestamp,action,collection,documentId,userId,userEmail,ipAddress,endpoint,method,statusCode",
       ...logs.map(
@@ -148,10 +108,6 @@ router.get("/audit-export", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /admin/integrity-status
- * Get current data integrity status
- */
 router.get("/integrity-status", async (req: Request, res: Response) => {
   try {
     const status = await dataIntegrityChecker.getIntegrityStatus();
@@ -167,10 +123,6 @@ router.get("/integrity-status", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /admin/integrity-check
- * Manually trigger integrity check
- */
 router.post("/integrity-check", async (req: Request, res: Response) => {
   try {
     const results = await dataIntegrityChecker.runFullIntegrityCheck();
@@ -185,13 +137,6 @@ router.post("/integrity-check", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /admin/compliance-report
- * Generate compliance summary report
- * 
- * Query Parameters:
- * - days: Look back N days (default: 30)
- */
 router.get("/compliance-report", async (req: Request, res: Response) => {
   try {
     const { days = 30 } = req.query;
@@ -199,7 +144,6 @@ router.get("/compliance-report", async (req: Request, res: Response) => {
 
     const startDate = new Date(Date.now() - daysNum * 86400000);
 
-    // Get audit stats
     const auditStats = await AuditLog.aggregate([
       { $match: { timestamp: { $gte: startDate } } },
       {
@@ -210,7 +154,6 @@ router.get("/compliance-report", async (req: Request, res: Response) => {
       },
     ]);
 
-    // Get changes by user
     const changesByUser = await AuditLog.aggregate([
       { $match: { timestamp: { $gte: startDate } } },
       {
@@ -223,7 +166,6 @@ router.get("/compliance-report", async (req: Request, res: Response) => {
       { $limit: 20 },
     ]);
 
-    // Get changes by collection
     const changesByCollection = await AuditLog.aggregate([
       { $match: { timestamp: { $gte: startDate } } },
       {
@@ -235,7 +177,6 @@ router.get("/compliance-report", async (req: Request, res: Response) => {
       { $sort: { count: -1 } },
     ]);
 
-    // Get recent deletes
     const recentDeletes = await AuditLog.find({
       action: "delete",
       timestamp: { $gte: startDate },
@@ -244,7 +185,6 @@ router.get("/compliance-report", async (req: Request, res: Response) => {
       .limit(10)
       .lean();
 
-    // Get integrity status
     const integrityStatus = await dataIntegrityChecker.getIntegrityStatus();
 
     res.json({
@@ -273,21 +213,12 @@ router.get("/compliance-report", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /admin/compliance-violations
- * Get recent compliance violations
- * 
- * Query Parameters:
- * - severity: Filter by severity (critical, high, medium, low)
- * - days: Look back N days (default: 7)
- */
 router.get(
   "/compliance-violations",
   async (req: Request, res: Response) => {
     try {
       const { severity, days = 7 } = req.query;
 
-      // Get recent alerts
       const alerts = await AuditLog.find({
         errorMessage: { $exists: true },
         timestamp: {
@@ -319,10 +250,6 @@ router.get(
   }
 );
 
-/**
- * POST /admin/alert-test
- * Send test alert to configured channels
- */
 router.post("/alert-test", async (req: Request, res: Response) => {
   try {
     const { channel = "slack" } = req.body;
@@ -347,13 +274,8 @@ router.post("/alert-test", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * GET /admin/metrics/compliance
- * Get compliance metrics snapshot
- */
 router.get("/metrics/compliance", async (req: Request, res: Response) => {
   try {
-    // Get recent stats
     const lastHour = new Date(Date.now() - 3600000);
     const lastDay = new Date(Date.now() - 86400000);
 

@@ -1,11 +1,45 @@
-﻿// ─── Module: sentry ───────────────────────────
-// Description: Sentry SDK initialization and flush utilities
-// Coverage targets: initializeBackendSentry, flushBackendSentry
-// Last updated: 2026-05-22
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+vi.mock("@sentry/node", () => ({
+  init: vi.fn(),
+  flush: vi.fn().mockResolvedValue(true),
+  withScope: vi.fn(),
+  captureException: vi.fn(),
+}));
 
 describe("sentry", () => {
-  describe("initializeBackendSentry", () => { it("should initialize Sentry with the DSN from env", () => {}); it("should not throw when the DSN is empty", () => {}); });
-  describe("flushBackendSentry", () => { it("should flush pending events before shutdown", () => {}); });
+  beforeEach(() => {
+    vi.resetModules();
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  describe("initializeBackendSentry", () => {
+    it("should not initialize when NODE_ENV is test", async () => {
+      const sentry = await import("@sentry/node");
+      const { initializeBackendSentry } = await import("../config/sentry");
+      const result = initializeBackendSentry();
+      expect(result).toBe(false);
+      expect(sentry.init).not.toHaveBeenCalled();
+    });
+
+    it("should not initialize when DSN is empty in production", async () => {
+      const sentry = await import("@sentry/node");
+      const { initializeBackendSentry } = await import("../config/sentry");
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("SENTRY_DSN", undefined);
+      const result = initializeBackendSentry();
+      expect(result).toBe(false);
+      expect(sentry.init).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("flushBackendSentry", () => {
+    it("should not flush when not initialized", async () => {
+      const sentry = await import("@sentry/node");
+      const { flushBackendSentry } = await import("../config/sentry");
+      const result = await flushBackendSentry(1000);
+      expect(result).toBe(false);
+    });
+  });
 });

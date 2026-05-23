@@ -44,7 +44,7 @@ Provides a curated set of 12 resume templates that users can choose from, with a
 | frontend/src/components/templates/ | 12 template React components |
 
 ### Data model
-`	ypescript
+```typescript
 // Template model (simplified)
 interface ITemplate {
   layoutId: string;       // unique — e.g. "modern", "classic"
@@ -63,7 +63,7 @@ interface ITemplate {
   createdBy: ObjectId;
   publishedAt?: Date;
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -79,10 +79,10 @@ interface ITemplate {
 | DELETE | /api/admin/templates/:id | Admin | Delete a template |
 
 ## Edge Cases & Error Handling
-- Duplicate layoutId on create: returns 400 with LAYOUT_ID_EXISTS.
-- Reorder with missing IDs: returns 400 with validation error.
-- Delete a published template: admin must unpublish first or deletion also removes from public listing.
-- Public template list for unknown audience: returns empty array (no error).
+- If a duplicate layoutId is used on create, the system returns 400 with LAYOUT_ID_EXISTS.
+- If the reorder request contains missing IDs, the system returns 400 with a validation error.
+- If an admin tries to delete a published template, they must unpublish first, or the deletion also removes it from the public listing.
+- If the public template list is requested for an unknown audience, the system returns an empty array (no error).
 
 ## Tests
 - Unit: __tests__/templateController.test.ts, __tests__/models/template.test.ts, __tests__/utils/resumeTemplate.test.ts

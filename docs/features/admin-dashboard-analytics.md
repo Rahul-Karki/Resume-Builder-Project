@@ -47,9 +47,9 @@ Provides administrators with a centralized dashboard showing platform usage metr
 | GET | /api/admin/analytics/templates?days=7 | Admin | Per-template usage analytics (cached 300s) |
 
 ## Edge Cases & Error Handling
-- No data for the selected period: returns zero values for all metrics (no error).
-- Invalid days parameter: defaults to 7 days.
-- Cache miss: aggregates from database, caches result, returns.
+- If there is no data for the selected period, the system returns zero values for all metrics (no error).
+- If the days parameter is invalid, the system defaults to 7 days.
+- On a cache miss, the system aggregates from the database, caches the result, and returns it.
 
 ## Tests
 - Unit: __tests__/templateController.test.ts, __tests__/utils/businessMetrics.test.ts, __tests__/models/templateUsage.test.ts

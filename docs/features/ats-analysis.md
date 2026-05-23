@@ -37,7 +37,7 @@ Analyzes a resume against a target job description to calculate an ATS (Applican
 | Backend/src/models/AtsAnalysis.ts | Analysis schema with scores, keyword matches, section breakdown |
 
 ### Data model
-`	ypescript
+```typescript
 // AtsAnalysis model (simplified)
 interface IAtsAnalysis {
   jobId: string;              // unique — one analysis per job
@@ -61,7 +61,7 @@ interface IAtsAnalysis {
     missing: Array<{ keyword, importance }>;
   };
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -73,11 +73,11 @@ interface IAtsAnalysis {
 | POST | /api/resumes/:id/apply-suggestion | Yes | Apply an ATS suggestion to the resume |
 
 ## Edge Cases & Error Handling
-- Same resume + same job analyzed again: returns cached analysis, does not re-process.
-- Empty resume or job description: returns 400 with validation error.
-- AI provider rate limit (429): falls through to secondary provider (OpenAI <-> Gemini).
-- Both providers exhausted: returns 429 with categorized error.
-- Analysis takes too long: request timeout middleware returns 503.
+- If the same resume is analyzed against the same job again, the system returns the cached analysis without re-processing.
+- If the resume or job description is empty, the system returns 400 with a validation error.
+- If the primary AI provider returns a rate-limit error (429), the system falls through to the secondary provider (OpenAI or Gemini).
+- If both providers are exhausted, the system returns 429 with a categorized error.
+- If the analysis takes too long, the request timeout middleware returns 503.
 
 ## Tests
 - Unit: __tests__/resumeEnhancementController.test.ts, __tests__/atsQueue.test.ts, __tests__/aiProviders.test.ts, __tests__/utils/atsPromptTemplates.test.ts, __tests__/models/atsAnalysis.test.ts

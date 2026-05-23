@@ -126,6 +126,7 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 | `controllers/resumeEnhancementController.ts` | ATS analysis, suggestions, resume versioning, role-tailored variants, export presets |
 | `controllers/aiController.ts` | AI text improvement, grammar checking, bullet-point enhancement |
 | `controllers/aiUsageController.ts` | AI usage statistics and request history |
+| `controllers/mfaController.ts` | Multi-factor TOTP setup, verification, disable, and status |
 | `controllers/templateController.ts` | Template CRUD (admin), public template listing, dashboard analytics, usage recording |
 | `controllers/refreshController.ts` | Access token refresh and CSRF token issuance |
 | `middleware/authMiddleware.ts` | JWT access token verification from cookie, user lookup and attachment to request |
@@ -140,12 +141,40 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 | `middleware/aiErrorHandler.ts` | AI provider error categorization (timeout, rate-limit, auth, malformed) |
 | `middleware/aiValidation.ts` | AI input sanitization, length checks, hallucination detection |
 | `middleware/creditDeduction.ts` | AI credit cost estimation attached to request |
+| `middleware/adminAudit.ts` | Logs admin CRUD actions to AuditLog collection on response finish |
+| `middleware/apiVersion.ts` | Reads `x-api-version` header and sets `X-Service-Version` response header |
+| `middleware/errorHandler.ts` | Global Express error handler — Sentry capture, PII redaction, compliance metrics |
+| `middleware/requestSizeLimit.ts` | Rejects requests exceeding configured body size limit |
+| `middleware/requestTimeout.ts` | Configurable timeout (30s default, 120s for PDF routes) with `ETIMEDOUT` rejection |
+| `middleware/validate.ts` | Zod schema validation for request body, params, and query (generic middleware factory) |
 | `models/User.ts` | User schema with email/password, Google OAuth, MFA, role, AI credits |
 | `models/Resume.ts` | Resume document schema — personal info, sections, style, ATS scores |
 | `models/Template.ts` | Template schema with layout ID, CSS variables, slots, audience targeting |
 | `models/AuditLog.ts` | Compliance audit log — collection, document, user, action, changes, TTL 1 year |
+| `models/AiUsage.ts` | AI provider usage tracking — tokens, cost, provider, feature, success/failure |
+| `models/AtsAnalysis.ts` | Full ATS analysis results — scores, keyword analysis, grammar issues, action plan |
+| `models/Jobs.ts` | Recruiter job listings — title, company, description, required skills |
+| `models/ResetToken.ts` | Password reset tokens — hashed token, expiration TTL, resend tracking |
+| `models/ResumeDownloadJob.ts` | PDF download job — status, file data, retry counts, timestamps |
+| `models/ResumeVersion.ts` | Snapshot-based resume versioning for history diff and restore |
+| `models/TemplateUsage.ts` | Daily-bucketed template usage analytics with `recordUse()` helper |
+| `models/WorkerHeartbeat.ts` | Worker process health tracking (legacy, currently orphaned) |
 | `queue/resumeQueue.ts` | BullMQ resume-download queue shim — jobs run synchronously |
 | `queue/atsQueue.ts` | BullMQ ATS-analysis queue shim — jobs run synchronously |
+| `queue/resumeQueueEvents.ts` | BullMQ QueueEvents listener — bridges queue events to in-process EventEmitter for SSE |
+| `queue/sharedConnection.ts` | Singleton BullMQ Redis connection shared across all queue shims |
+| `events/jobEvents.ts` | Centralized in-process EventEmitter for job status SSE streaming |
+| `router/auth.routes.ts` | Auth routes — signup, login, logout, Google OAuth, MFA, password reset |
+| `router/resume.routes.ts` | Resume routes — CRUD, ATS analysis, download jobs, version history |
+| `router/admin.routes.ts` | Admin routes — template CRUD, analytics, dashboard stats (guarded by `adminGuard`) |
+| `router/ai.routes.ts` | AI routes — improve-text, check-grammar, enhance-bullet; rate-limited, credit-deducted |
+| `router/compliance.routes.ts` | Compliance routes — audit log queries, integrity checks, alert management, CSV export |
+| `router/health.routes.ts` | Health routes — readiness, Prometheus metrics, uptime, memory dumps |
+| `router/refresh.route.ts` | Refresh routes — POST /refresh (token rotation), GET /csrf (CSRF token issuance) |
+| `router/template.routes.ts` | Public template listing with Redis caching |
+| `models/plugins/auditTrail.ts` | Mongoose plugin — auto-creates AuditLog entries on create/update/delete/restore |
+| `models/plugins/softDelete.ts` | Mongoose plugin — adds `deletedAt`, filters soft-deleted docs, exposes `.softDelete()` / `.restore()` |
+| `models/plugins/cascadeDelete.ts` | Mongoose plugin — cascades deletes to child documents (e.g. User → Resume, AiUsage) |
 | `services/aiProviders.ts` | AI provider abstraction — OpenAI and Gemini calls with fallback logic |
 | `services/dataIntegrityService.ts` | Periodic data integrity checks, orphaned-document detection |
 | `observability.ts` | Pino logger, pino-http request logger, OpenTelemetry tracer and metrics |

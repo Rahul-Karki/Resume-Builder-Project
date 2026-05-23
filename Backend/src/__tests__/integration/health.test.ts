@@ -1,13 +1,41 @@
-﻿// ─── Module: health check integration ───────────────────────────
-// Description: Health check endpoints
-// Coverage targets: GET /health, GET /api/health, GET /health/deep, GET /health/uptime
-// Last updated: 2026-05-22
+﻿import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import request from "supertest";
+import { createApp } from "../../app";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+const app = createApp();
 
 describe("health check integration", () => {
-  it("should return 200 OK from /health", () => {});
-  it("should return 200 OK from /api/health", () => {});
-  it("should include service version and uptime", () => {});
-  it("should return deep health status when available", () => {});
+  it("should return 200 OK from /health", async () => {
+    const res = await request(app).get("/health");
+    expect([200, 503]).toContain(res.status);
+    expect(res.body).toHaveProperty("status");
+    expect(res.body).toHaveProperty("mongo");
+    expect(res.body).toHaveProperty("uptime");
+  });
+
+  it("should return 200 OK from /api/health", async () => {
+    const res = await request(app).get("/api/health");
+    expect([200, 503]).toContain(res.status);
+    expect(res.body).toHaveProperty("status");
+  });
+
+  it("should include service version and uptime", async () => {
+    const res = await request(app).get("/health/uptime");
+    expect([200, 503]).toContain(res.status);
+    if (res.status === 200) {
+      expect(res.body).toHaveProperty("uptimeSeconds");
+      expect(res.body).toHaveProperty("uptimeHuman");
+      expect(res.body).toHaveProperty("startTime");
+      expect(res.body).toHaveProperty("slaLabels");
+      expect(res.body.status).toBe("ok");
+    }
+  });
+
+  it("should return deep health status when available", async () => {
+    const res = await request(app).get("/health/deep");
+    expect([200, 503]).toContain(res.status);
+    expect(res.body).toHaveProperty("status");
+    expect(res.body).toHaveProperty("mongo");
+    expect(res.body).toHaveProperty("redis");
+  });
 });

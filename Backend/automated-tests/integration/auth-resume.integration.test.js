@@ -26,7 +26,7 @@ const getTestUser = () => {
   return {
     name: `Test User ${uniqueSuffix}`,
     email: `user-${uniqueSuffix}@example.com`,
-    password: "Test@1234",
+    password: process.env.TEST_PASSWORD ?? "TestPass@123",
   };
 };
 

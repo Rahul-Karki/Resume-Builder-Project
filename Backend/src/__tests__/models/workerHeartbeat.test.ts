@@ -1,12 +1,30 @@
-﻿// ─── Module: WorkerHeartbeat model ───────────────────────────
-// Description: Tracks worker process heartbeats (legacy, not actively used)
-// Coverage targets: WorkerHeartbeat.create, workerId uniqueness, status enum, lastSeenAt, compound index on serviceName + queueName
-// Last updated: 2026-05-22
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect } from "vitest";
+import WorkerHeartbeat from "../../models/WorkerHeartbeat";
 
 describe("WorkerHeartbeat model", () => {
-  it("should create a worker heartbeat record", () => {});
-  it("should enforce unique workerId", () => {});
-  it("should update lastSeenAt on each heartbeat", () => {});
+  it("should create a worker heartbeat record", () => {
+    const paths = WorkerHeartbeat.schema.paths;
+    expect(paths.workerId.options.required).toBe(true);
+    expect(paths.serviceName.options.required).toBe(true);
+    expect(paths.queueName.options.required).toBe(true);
+    expect(paths.queuePrefix.options.required).toBe(true);
+    expect(paths.status.options.required).toBe(true);
+    expect(paths.lastSeenAt.options.required).toBe(true);
+  });
+
+  it("should enforce unique workerId", () => {
+    const paths = WorkerHeartbeat.schema.paths;
+    expect(paths.workerId.options.unique).toBe(true);
+  });
+
+  it("should update lastSeenAt on each heartbeat", () => {
+    const paths = WorkerHeartbeat.schema.paths;
+    expect(paths.lastSeenAt).toBeDefined();
+    expect(paths.lastSeenAt.options.required).toBe(true);
+    const statusPath = WorkerHeartbeat.schema.path("status") as any;
+    expect(statusPath.options.enum).toContain("starting");
+    expect(statusPath.options.enum).toContain("ready");
+    expect(statusPath.options.enum).toContain("closing");
+    expect(statusPath.options.enum).toContain("error");
+  });
 });

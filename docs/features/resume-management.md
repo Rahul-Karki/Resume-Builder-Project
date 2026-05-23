@@ -40,7 +40,7 @@ Provides the backend API for creating, reading, updating, and deleting user resu
 | Backend/src/utils/resumeTemplate.ts | normalizeResumeTemplateId for legacy label mapping |
 
 ### Data model
-`	ypescript
+```typescript
 // Resume model (simplified)
 interface IResume {
   userId: ObjectId;
@@ -58,7 +58,7 @@ interface IResume {
   atsStatus?: string;
   atsAnalyzedAt?: Date;
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -70,11 +70,11 @@ interface IResume {
 | DELETE | /api/resumes/:id | Yes | Soft-delete the resume |
 
 ## Edge Cases & Error Handling
-- Resume not found: returns 404 with NOT_FOUND code.
-- Resume belongs to another user: returns 404 (not 403) to avoid leaking existence info.
-- Invalid ObjectId format: returns 400 with validation error.
-- Legacy template ID in payload: normalizeResumeTemplateId maps to current ID or falls back to "classic".
-- Concurrent updates: last-write-wins (Mongoose saves full document).
+- If the resume is not found, the system returns 404 with NOT_FOUND code.
+- If the resume belongs to another user, the system returns 404 (not 403) to avoid leaking existence info.
+- If the ObjectId format is invalid, the system returns 400 with a validation error.
+- If a legacy template ID is in the payload, normalizeResumeTemplateId maps it to the current ID or falls back to "classic".
+- When concurrent updates occur, the system uses last-write-wins (Mongoose saves the full document).
 
 ## Tests
 - Unit: __tests__/resumeController.test.ts, __tests__/models/resume.test.ts, __tests__/utils/resumeTemplate.test.ts

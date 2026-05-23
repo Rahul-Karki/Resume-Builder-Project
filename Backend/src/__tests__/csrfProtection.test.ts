@@ -1,14 +1,105 @@
 ﻿// ─── Module: csrfProtection ───────────────────────────
-// Description: Validates CSRF token cookie against x-csrf-token header
-// Coverage targets: csrfProtection
-// Last updated: 2026-05-22
+import { describe, it, expect, vi } from "vitest";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+vi.mock("../utils/securityLogger", () => ({
+  logCsrfFailure: vi.fn(),
+}));
+
+import { csrfProtection } from "../middleware/csrfProtection";
+
+function createRes() {
+  return {
+    statusCode: null as number | null,
+    jsonBody: null as any,
+    status(code: number) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body: any) {
+      this.jsonBody = body;
+      return this;
+    },
+  };
+}
+
+function createReq(overrides: Record<string, any> = {}) {
+  const headers = overrides.headers ?? {};
+
+  return {
+    method: overrides.method ?? "GET",
+    path: overrides.path ?? "/api/test",
+    headers,
+    header(name: string) {
+      return headers[name.toLowerCase()] ?? headers[name] ?? "";
+    },
+  };
+}
 
 describe("csrfProtection", () => {
-  it("should allow safe methods (GET, HEAD, OPTIONS) without a token", () => {});
-  it("should block unsafe requests with missing x-csrf-token header", () => {});
-  it("should block unsafe requests when the header does not match the cookie", () => {});
-  it("should allow unsafe requests when the header matches the cookie", () => {});
-  it("should exempt the refresh route from CSRF validation", () => {});
+  it("allows safe methods without a token", () => {
+    const req = createReq({ method: "GET" }) as any;
+    const res = createRes() as any;
+    let nextCalled = false;
+
+    csrfProtection(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(null);
+  });
+
+  it("exempts the refresh route", () => {
+    const req = createReq({ method: "POST", path: "/api/refresh" }) as any;
+    const res = createRes() as any;
+    let nextCalled = false;
+
+    csrfProtection(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(null);
+  });
+
+  it("blocks unsafe requests with missing or mismatched tokens", () => {
+    const req = createReq({
+      method: "POST",
+      headers: {
+        cookie: "csrfToken=csrf-cookie-token",
+        "x-csrf-token": "csrf-header-token",
+      },
+    }) as any;
+    const res = createRes() as any;
+    let nextCalled = false;
+
+    csrfProtection(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(false);
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody.message).toBe("CSRF validation failed");
+    expect(res.jsonBody.code).toBe("CSRF_VALIDATION_FAILED");
+    expect(typeof res.jsonBody.traceId).toBe("string");
+  });
+
+  it("allows matching CSRF tokens", () => {
+    const req = createReq({
+      method: "POST",
+      headers: {
+        cookie: "csrfToken=csrf-token",
+        "x-csrf-token": "csrf-token",
+      },
+    }) as any;
+    const res = createRes() as any;
+    let nextCalled = false;
+
+    csrfProtection(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(null);
+  });
 });

@@ -46,10 +46,10 @@ Provides lightweight and detailed health check endpoints for monitoring service 
 | GET | /health/metrics | No | Prometheus uptime metrics |
 
 ## Edge Cases & Error Handling
-- MongoDB connection lost: returns 503 unhealthy — the only hard dependency.
-- Redis unavailable with in-memory cache: returns 200 degraded — app continues with in-memory fallbacks.
-- Worker heartbeat stale: download health returns 503 degraded.
-- Queue job count aggregation fails: returns 503 with error details.
+- If the MongoDB connection is lost, the system returns 503 unhealthy (MongoDB is the only hard dependency).
+- If Redis is unavailable but the in-memory cache is active, the system returns 200 degraded — the app continues with in-memory fallbacks.
+- If the worker heartbeat is stale, the download health endpoint returns 503 degraded.
+- If the queue job count aggregation fails, the system returns 503 with error details.
 
 ## Tests
 - Unit: __tests__/integration/health.test.ts

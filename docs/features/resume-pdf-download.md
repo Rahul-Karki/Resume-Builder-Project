@@ -40,7 +40,7 @@ Generates a PDF version of a user's resume for download or printing, using serve
 | frontend/src/utils/printPreview.ts | Opens print preview in a new window |
 
 ### Data model
-`	ypescript
+```typescript
 // ResumeDownloadJob model (simplified)
 interface IResumeDownloadJob {
   jobId: string;              // unique
@@ -57,7 +57,7 @@ interface IResumeDownloadJob {
   lastError?: string;
   durationMs?: number;
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -69,11 +69,11 @@ interface IResumeDownloadJob {
 | GET | /api/resumes/preview-data/:id | Yes | Get rendered HTML preview data |
 
 ## Edge Cases & Error Handling
-- Resume not found: returns 404 before enqueuing.
-- Puppeteer crash: the browser pool auto-recovers; the job is marked as failed and retryable.
-- Large resumes: page split logic in client-side fallback handles multi-page content.
-- Concurrent download of same resume: the queue shim processes synchronously so no duplicate jobs.
-- SSE connection drops: client reconnects and polls job-status instead.
+- If the resume is not found, the system returns 404 before enqueuing.
+- If Puppeteer crashes, the browser pool auto-recovers and the job is marked as failed and retryable.
+- When resumes are large, the page split logic in the client-side fallback handles multi-page content.
+- If the same resume is downloaded concurrently, the queue shim processes synchronously so no duplicate jobs are created.
+- If the SSE connection drops, the client reconnects and polls job-status instead.
 
 ## Tests
 - Unit: __tests__/resumeDownloadController.test.ts, __tests__/resumeQueue.test.ts, __tests__/resumeQueueEvents.test.ts, __tests__/models/resumeDownloadJob.test.ts

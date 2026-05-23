@@ -53,12 +53,12 @@ Provides AI-powered writing improvements, grammar corrections, and bullet-point 
 | GET | /api/ai/request-history | Yes | Get paginated AI request history |
 
 ## Edge Cases & Error Handling
-- Empty input: returns 400 with validation error.
-- Input exceeds max length: returns 400 with TOO_LONG code.
-- AI provider timeout (12s default): falls through to secondary provider.
-- Hallucination detected: returns 422 with HALLUCINATION_DETECTED code and error details.
-- Credits exhausted and enforcement on: returns 402 with CREDITS_EXHAUSTED code.
-- Deduplicated request: returns cached result (no credit charged).
+- If the input is empty, the system returns 400 with a validation error.
+- If the input exceeds the max length, the system returns 400 with TOO_LONG code.
+- If the AI provider times out (12s default), the system falls through to the secondary provider.
+- If hallucination is detected, the system returns 422 with HALLUCINATION_DETECTED code and error details.
+- If credits are exhausted and enforcement is on, the system returns 402 with CREDITS_EXHAUSTED code.
+- If a request is a duplicate, the system returns the cached result (no credit charged).
 
 ## Tests
 - Unit: __tests__/aiController.test.ts, __tests__/aiValidation.test.ts, __tests__/aiErrorHandler.test.ts, __tests__/aiProviders.test.ts, __tests__/creditDeduction.test.ts, __tests__/requestDeduplication.test.ts, __tests__/aiUsageController.test.ts

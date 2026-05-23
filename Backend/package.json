@@ -10,6 +10,8 @@
     "test:unit": "npm run build && node --test --test-force-exit automated-tests/*.test.js",
     "test:integration": "npm run build && node --test --test-force-exit automated-tests/integration/*.test.js",
     "test:ci": "npm run build && npm run test",
+    "test:vitest": "vitest run",
+    "test:vitest:watch": "vitest",
     "test:automated": "npm run test",
     "test:manual": "echo \"Run one or more manual test scripts from ./manual-tests\"",
     "test:download:prod": "node manual-tests/download-resume-production.test.js",
@@ -76,6 +78,7 @@
     "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.7"
   }
 }

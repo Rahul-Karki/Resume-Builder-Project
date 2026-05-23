@@ -1,11 +1,32 @@
-﻿// ─── Module: validate ───────────────────────────
-// Description: Older Zod validation middleware for body/params/query
-// Coverage targets: validate
-// Last updated: 2026-05-22
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect, vi } from "vitest";
+import { z } from "zod";
+import { validate } from "../middleware/validate";
 
 describe("validate", () => {
-  it("should call next() when validation passes", () => {});
-  it("should return 400 with error details when validation fails", () => {});
+  it("should call next() when validation passes", () => {
+    const schema = z.object({ name: z.string() });
+    const req = { body: { name: "Alice" }, params: {}, query: {} } as any;
+    const res = {} as any;
+    const next = vi.fn();
+
+    validate({ body: schema })(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(req.body).toEqual({ name: "Alice" });
+  });
+
+  it("should return 400 with error details when validation fails", () => {
+    const schema = z.object({ name: z.string() });
+    const req = { body: { name: 123 }, params: {}, query: {} } as any;
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+    const next = vi.fn();
+
+    validate({ body: schema })(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: "validation_error" })
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
 });

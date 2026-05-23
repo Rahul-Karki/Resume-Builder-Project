@@ -51,7 +51,7 @@ Provides an interactive, real-time resume editing experience where users can fil
 | frontend/src/components/myResumes/Compiled.tsx | Resume card grid for saved/compiled view |
 
 ### Data model
-`	ypescript
+```typescript
 // Zustand store state (frontend only structure)
 interface ResumeDocument {
   templateId: string;
@@ -78,15 +78,15 @@ interface BuilderUIState {
   saving: boolean;
   lastSavedAt: Date | null;
 }
-`
+```
 
 ## Edge Cases & Error Handling
-- Unsaved changes on navigation: browser beforeunload warning.
-- Template switch with custom style: user styles are merged with template defaults (user overrides preserved).
-- Empty resume creation: pre-populated with sample data on first use.
-- Concurrent save conflicts: last-write-wins on the backend.
-- AI panel with no section selected: disabled state with prompt to select a section.
-- Completion score: dynamically calculated based on filled fields; shown as a circular ring.
+- If the user navigates away with unsaved changes, the browser shows a beforeunload warning.
+- When the user switches templates with custom styles, the user styles are merged with template defaults (user overrides preserved).
+- When creating an empty resume, the system pre-populates it with sample data on first use.
+- When concurrent save conflicts occur, the system uses last-write-wins on the backend.
+- If no section is selected in the AI panel, the system shows a disabled state with a prompt to select a section.
+- The completion score is dynamically calculated based on filled fields and shown as a circular ring.
 
 ## Tests
 - Unit (frontend): __tests__/useResumeBuilderStore.test.ts, __tests__/useAISuggestions.test.ts

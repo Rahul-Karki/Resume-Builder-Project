@@ -271,8 +271,6 @@ test.describe("Performance", () => {
     await expect(mainContent.first()).toBeVisible({ timeout: 3000 });
 
     const loadTime = Date.now() - startTime;
-    console.log(`Home page loaded in ${loadTime}ms`);
-
     expect(loadTime).toBeLessThan(3000);
   });
 
@@ -286,8 +284,6 @@ test.describe("Performance", () => {
     await expect(editorPanel.first()).toBeVisible({ timeout: 5000 });
 
     const loadTime = Date.now() - startTime;
-    console.log(`Builder loaded in ${loadTime}ms`);
-
     expect(loadTime).toBeLessThan(5000);
   });
 });

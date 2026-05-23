@@ -1,12 +1,41 @@
-﻿// ─── Module: requestSizeLimit ───────────────────────────
-// Description: Rejects requests exceeding the configured Content-Length limit
-// Coverage targets: requestSizeLimitMiddleware
-// Last updated: 2026-05-22
+﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { requestSizeLimitMiddleware } from "../middleware/requestSizeLimit";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+vi.mock("../config/env", () => ({ env: { REQUEST_BODY_LIMIT: "10kb" } }));
 
 describe("requestSizeLimitMiddleware", () => {
-  it("should allow requests within the configured size limit", () => {});
-  it("should return 413 when Content-Length exceeds the limit", () => {});
-  it("should allow requests without a Content-Length header", () => {});
+  it("should allow requests within the configured size limit", () => {
+    const req = { headers: { "content-length": "5000" } } as any;
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+    const next = vi.fn();
+
+    requestSizeLimitMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it("should return 413 when Content-Length exceeds the limit", () => {
+    const req = { headers: { "content-length": "50000" } } as any;
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+    const next = vi.fn();
+
+    requestSizeLimitMiddleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(413);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: false })
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("should allow requests without a Content-Length header", () => {
+    const req = { headers: {} } as any;
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+    const next = vi.fn();
+
+    requestSizeLimitMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+  });
 });

@@ -1,13 +1,20 @@
 ﻿// ─── Module: cookieParser ───────────────────────────
-// Description: Simple cookie parsing from Cookie header
-// Coverage targets: parseCookies
-// Last updated: 2026-05-22
-
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
+import { parseCookies } from "../../utils/cookieParser";
 
 describe("cookieParser", () => {
-  it("should parse a standard cookie string into key-value pairs", () => {});
-  it("should return an empty object when the cookie header is missing", () => {});
-  it("should decode URL-encoded keys and values", () => {});
-  it("should handle multiple cookies with the same key by keeping the last", () => {});
+  it("returns empty object when cookie header is missing", () => {
+    expect(parseCookies(undefined)).toEqual({});
+    expect(parseCookies("")).toEqual({});
+  });
+
+  it("decodes keys and values and preserves equals signs", () => {
+    const parsed = parseCookies("sessionId=abc123; csrfToken=hello%20world; nested=a%3Db%3Dc");
+
+    expect(parsed).toEqual({
+      sessionId: "abc123",
+      csrfToken: "hello world",
+      nested: "a=b=c",
+    });
+  });
 });

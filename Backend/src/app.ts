@@ -33,13 +33,6 @@ export const createApp = () => {
     .map((origin) => origin?.trim().replace(/\/$/, ""))
     .filter((origin): origin is string => Boolean(origin));
 
-  app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
-  app.use(correlationIdMiddleware);
-  app.use(auditContextMiddleware);
-  app.use(requestSizeLimitMiddleware);
-  app.use(requestLogger);
-  app.use(apiVersionMiddleware);
-
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
@@ -91,10 +84,14 @@ export const createApp = () => {
     ],
   };
 
+  // 1. CORS MUST come first to handle preflight and error responses
+  app.use(cors(corsOptions));
+
+  // 2. Helmet for security headers
   app.use(helmet({
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "no-referrer" },
-    crossOriginResourcePolicy: { policy: "same-site" },
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Enabled cross-origin access
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -109,7 +106,18 @@ export const createApp = () => {
       },
     },
   }));
-  app.use(cors(corsOptions));
+
+  // 3. Global instrumentation and size checks before body parsing
+  app.use(correlationIdMiddleware);
+  app.use(auditContextMiddleware);
+  app.use(requestSizeLimitMiddleware);
+  
+  // 4. Body parsing
+  app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
+  
+  // 5. Logging and processing
+  app.use(requestLogger);
+  app.use(apiVersionMiddleware);
   app.use(requestTimeoutMiddleware);
   app.use(csrfProtection);
   app.use(referentialIntegrityMiddleware);

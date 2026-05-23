@@ -31,7 +31,7 @@ Adds an optional second factor (TOTP via authenticator app) to user accounts, pr
 | Backend/src/models/User.ts | MFA fields: mfaEnabled, mfaMethod, mfaSecret, mfaBackupCodes, mfaVerifiedAt |
 
 ### Data model
-`	ypescript
+```typescript
 // User model MFA fields
 interface IUser {
   mfaEnabled: boolean;
@@ -40,7 +40,7 @@ interface IUser {
   mfaBackupCodes?: string[]; // One-time recovery codes
   mfaVerifiedAt?: Date;
 }
-`
+```
 
 ### API endpoints
 | Method | Route | Auth required | Description |
@@ -51,10 +51,10 @@ interface IUser {
 | GET | /api/auth/mfa/status | Yes | Return whether MFA is enabled and which method |
 
 ## Edge Cases & Error Handling
-- Setup called when MFA is already enabled: returns 409 Conflict.
-- Verify with expired or invalid TOTP code: returns 400 with description.
-- Disable with wrong password: returns 400.
-- Backup codes exhausted: user must disable and re-enable MFA.
+- If the user calls setup when MFA is already enabled, the system returns 409 Conflict.
+- If the user verifies with an expired or invalid TOTP code, the system returns 400 with a description.
+- If the user tries to disable MFA with the wrong password, the system returns 400.
+- When backup codes are exhausted, the user must disable and re-enable MFA.
 
 ## Tests
 - Unit: __tests__/mfaController.test.ts, __tests__/models/user.test.ts
