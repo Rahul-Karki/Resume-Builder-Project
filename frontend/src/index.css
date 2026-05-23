@@ -181,4 +181,107 @@
   }
 }
 
+/* ── Responsive: Template Preview (landing page carousel) ── */
+
+@media (max-width: 768px) {
+  .tp-preview-card {
+    width: 250px !important;
+  }
+  .tp-preview-thumb {
+    height: 230px !important;
+  }
+  .tp-preview-body {
+    padding: 12px 14px 14px !important;
+  }
+  .tp-preview-body span:first-child {
+    font-size: 13px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .tp-preview-card {
+    width: 210px !important;
+  }
+  .tp-preview-thumb {
+    height: 200px !important;
+  }
+  .tp-preview-section .tp-preview-row {
+    gap: 10px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .tp-preview-body {
+    padding: 10px 12px 12px !important;
+  }
+  .tp-preview-body span:first-child {
+    font-size: 12px !important;
+  }
+  .tp-preview-body p {
+    font-size: 10.5px !important;
+  }
+}
+
+/* ── Responsive: Resume (Studio) Builder ── */
+
+@media (max-width: 768px) {
+  .builder-header {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .builder-header select {
+    max-width: 120px;
+    font-size: 10px !important;
+  }
+  .builder-status {
+    font-size: 10px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .builder-aside {
+    width: 340px !important;
+  }
+  .builder-layout main {
+    margin-right: 0 !important;
+  }
+  .builder-layout main > div {
+    padding: 6px !important;
+  }
+  .builder-layout .preview-shift.shift-left {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .builder-header {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    height: auto !important;
+    min-height: 44px;
+    gap: 4px;
+  }
+  .builder-header select {
+    max-width: 100px;
+    font-size: 10px !important;
+    padding: 4px 6px !important;
+  }
+  .builder-header button,
+  .builder-header a {
+    min-height: 36px;
+    font-size: 11px !important;
+    padding: 6px 10px !important;
+  }
+  .builder-status {
+    font-size: 9px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    min-height: auto !important;
+    line-height: 1.3;
+  }
+  .builder-layout main > div {
+    padding: 4px !important;
+  }
+}
+
+
+
 

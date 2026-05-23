@@ -501,7 +501,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         @media (max-width: 1024px) { .preview-shift.shift-left { transform: none; } }
       `}</style>
 
-      <header className="h-12 border-b border-zinc-800/70 flex items-center justify-between px-3 md:px-4 lg:px-6 bg-[#0C0C0F]/95 backdrop-blur-sm sticky top-0 z-30">
+      <header className="h-12 border-b border-zinc-800/70 flex items-center justify-between px-3 md:px-4 lg:px-6 bg-[#0C0C0F]/95 backdrop-blur-sm sticky top-0 z-30 builder-header">
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setMobileEditorOpen((prev) => !prev)}
@@ -545,12 +545,12 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </div>
       </header>
 
-      <div className="text-[11px] text-zinc-500 border-b border-zinc-800/70 px-3 md:px-4 lg:px-6 py-1.5 min-h-7 bg-[#0B0B0D]">
+      <div className="text-[11px] text-zinc-500 border-b border-zinc-800/70 px-3 md:px-4 lg:px-6 py-1.5 min-h-7 bg-[#0B0B0D] builder-status">
         {statusMessage || ui.saveError || (ui.isDirty ? 'Unsaved changes' : 'All changes saved')}
       </div>
 
-      <div className="flex h-[calc(100vh-76px)] overflow-hidden">
-        <aside className="hidden md:flex w-105 shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar">
+      <div className="flex h-[calc(100vh-76px)] overflow-hidden builder-layout">
+        <aside className="hidden md:flex w-105 shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar builder-aside">
           <div className="p-3 border-b border-zinc-800/70">
             <div className="flex gap-2 bg-transparent p-1 rounded-xl">
               {([

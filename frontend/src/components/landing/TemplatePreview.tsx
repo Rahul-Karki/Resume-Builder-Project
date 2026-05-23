@@ -371,7 +371,7 @@ export function TemplatesPreview() {
   };
 
   return (
-    <section style={{
+    <section className="tp-preview-section" style={{
       background: "#080808",
       padding: isMobile ? "72px 0" : "100px 0",
       borderTop: "1px solid #111",
@@ -470,6 +470,7 @@ export function TemplatesPreview() {
       {/* Scrolling row */}
       <div
         ref={rowRef}
+        className="tp-preview-row"
         style={{
           display: "flex", gap: 16,
           overflowX: "auto", overflowY: "visible",
@@ -489,6 +490,7 @@ export function TemplatesPreview() {
           return (
             <div
               key={t.id}
+              className="tp-preview-card"
               onClick={() => handlePreviewTemplate(t.id)}
               onMouseEnter={() => setHovered(t.id)}
               onMouseLeave={() => setHovered(null)}
@@ -506,7 +508,7 @@ export function TemplatesPreview() {
               }}
             >
               {/* Thumbnail */}
-              <div style={{ height: 250, background: "#080808", overflow: "hidden", position: "relative" }}>
+              <div className="tp-preview-thumb" style={{ height: 250, background: "#080808", overflow: "hidden", position: "relative" }}>
                 <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 18px" }}>
                   <div style={{
                     width: "100%", maxWidth: 200, borderRadius: 5, overflow: "hidden",
@@ -563,7 +565,7 @@ export function TemplatesPreview() {
               </div>
 
               {/* Card body */}
-              <div style={{ padding: "14px 16px 16px", fontFamily: "'Outfit', sans-serif" }}>
+              <div className="tp-preview-body" style={{ padding: "14px 16px 16px", fontFamily: "'Outfit', sans-serif" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "#F0EFE8" }}>{t.name}</span>
                   <span style={{
