@@ -131,7 +131,7 @@ export function PaginatedResumePreview({
             key={`${offset}-${index}`}
             data-resume-page="true"
             data-page-index={index}
-            className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] rounded-sm"
+            className="bg-white rounded-sm"
             style={{
               width: `${scaledWidth}px`,
               height: `${scaledPageHeight}px`,
