@@ -120,10 +120,12 @@ export async function printResume(selector = ".resume-preview") {
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
+
       body > *:not(.__print-clone):not(style):not(script) {
         display: none !important;
         visibility: hidden !important;
       }
+
       .__print-clone,
       .__print-clone * {
         visibility: visible !important;
@@ -131,6 +133,7 @@ export async function printResume(selector = ".resume-preview") {
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
+
       .__print-clone {
         display: block !important;
         margin: 0 auto !important;
@@ -138,6 +141,8 @@ export async function printResume(selector = ".resume-preview") {
         max-width: 210mm !important;
         background: white !important;
       }
+
+      /* Page containers — each rendered page prints on its own sheet */
       .__print-clone [data-resume-page] {
         width: 210mm !important;
         height: 297mm !important;
@@ -146,26 +151,57 @@ export async function printResume(selector = ".resume-preview") {
         border-radius: 0 !important;
         page-break-after: always !important;
         break-after: page !important;
+        page-break-before: auto !important;
       }
       .__print-clone [data-resume-page]:last-child {
         page-break-after: auto !important;
         break-after: auto !important;
       }
+
       .__print-clone [data-preview-scale] {
         width: ${A4_W_PX}px !important;
         height: ${A4_H_PX}px !important;
         transform: none !important;
       }
+
+      /* Never break inside section containers, articles, list items, or paragraphs */
       .__print-clone section,
       .__print-clone article,
       .__print-clone li,
+      .__print-clone p,
       .__print-clone [data-pagination-block] {
-        break-inside: avoid !important;
         page-break-inside: avoid !important;
+        break-inside: avoid !important;
       }
+
+      /* Never break immediately after a heading */
+      .__print-clone h1,
+      .__print-clone h2,
+      .__print-clone h3,
+      .__print-clone h4,
+      .__print-clone h5,
+      .__print-clone h6,
+      .__print-clone [class*="section-title"],
+      .__print-clone [class*="sectionTitle"],
+      .__print-clone [class*="heading"],
+      .__print-clone [class*="label"] {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+
+      /* Never start a new page before a section heading if it can fit on current page */
+      .__print-clone section,
+      .__print-clone [class*="section"],
+      .__print-clone [class*="mod-section"],
+      .__print-clone [class*="exec-section"],
+      .__print-clone [class*="comp-row"] {
+        page-break-before: auto !important;
+      }
+
       .__print-clone .resume-page-continued {
         display: block !important;
       }
+
       .__print-clone img {
         max-width: 100% !important;
       }

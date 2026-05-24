@@ -151,13 +151,11 @@
     background: white !important;
   }
 
-  /* Hide everything not part of the print clone */
   body > *:not(.__print-clone):not(style):not(script) {
     display: none !important;
     visibility: hidden !important;
   }
 
-  /* Reveal the print clone */
   .__print-clone,
   .__print-clone * {
     visibility: visible !important;
@@ -175,6 +173,7 @@
   .__print-clone [data-resume-page] {
     page-break-after: always !important;
     break-after: page !important;
+    page-break-before: auto !important;
     overflow: hidden !important;
   }
   .__print-clone [data-resume-page]:last-child {
@@ -193,9 +192,32 @@
   .__print-clone section,
   .__print-clone article,
   .__print-clone li,
+  .__print-clone p,
   .__print-clone [data-pagination-block] {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+
+  .__print-clone h1,
+  .__print-clone h2,
+  .__print-clone h3,
+  .__print-clone h4,
+  .__print-clone h5,
+  .__print-clone h6,
+  .__print-clone [class*="section-title"],
+  .__print-clone [class*="sectionTitle"],
+  .__print-clone [class*="heading"],
+  .__print-clone [class*="label"] {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .__print-clone section,
+  .__print-clone [class*="section"],
+  .__print-clone [class*="mod-section"],
+  .__print-clone [class*="exec-section"],
+  .__print-clone [class*="comp-row"] {
+    page-break-before: auto !important;
   }
 
   .__print-clone img {

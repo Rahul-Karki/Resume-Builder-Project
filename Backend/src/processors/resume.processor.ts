@@ -220,10 +220,10 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
           h1 { font-family: ${headingFont}; font-size: 28pt; font-weight: 600; letter-spacing: -0.02em; color: ${headingColor}; text-align: ${headerAlign}; }
           h2 { font-family: ${headingFont}; font-size: 13pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: ${accentColor}; margin-bottom: 10px; ${showDividers ? `border-bottom: 1px solid ${borderColor}; padding-bottom: 6px;` : ""} }
           h3 { font-family: ${headingFont}; font-size: 10.5pt; font-weight: 600; color: ${headingColor}; margin-bottom: 4px; }
-          p { margin: 4px 0; }
+          p { margin: 4px 0; page-break-inside: avoid; break-inside: avoid; }
           .headline { margin-top: 8px; color: ${mutedColor}; font-size: 10pt; text-align: ${headerAlign}; }
           .meta { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; font-size: 9pt; color: ${mutedColor}; justify-content: ${headerAlign === "center" ? "center" : "flex-start"}; }
-          .section { margin-top: ${sectionSpacing}px; page-break-inside: avoid; break-inside: avoid; }
+          .section { margin-top: ${sectionSpacing}px; page-break-inside: avoid; break-inside: avoid; page-break-before: auto; }
           .item { margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid; }
           .item-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
           .muted { color: ${mutedColor}; font-size: 9pt; }
@@ -231,6 +231,7 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
           ul { margin: 8px 0 0 18px; padding: 0; list-style: none; }
           li { margin-bottom: 3px; font-size: ${fontSize}; display: flex; align-items: flex-start; gap: 8px; page-break-inside: avoid; break-inside: avoid; }
           li::before { content: "${bulletStyle}"; }
+          h2 { page-break-after: avoid; break-after: avoid; }
           .pill { display: inline-block; background: ${accentColor}20; color: ${accentColor}; padding: 4px 8px; border-radius: 999px; font-size: 9pt; margin: 0 6px 6px 0; }
           .two-col { display: grid; grid-template-columns: 2.1fr 1fr; gap: 18px; }
           @media print { body { background: #fff; } .page { border-radius: 0; } }

@@ -5,6 +5,7 @@ const MIN_PAGE_FILL_RATIO = 0.72;
 const MAX_FORWARD_SHIFT_RATIO = 0.22;
 const MIN_PAGE_DELTA_PX = 64;
 const ORPHAN_PROTECTION_ZONE = 50;
+const CLIP_SAFETY_MARGIN = 4;
 
 function roundPx(value: number): number {
   return Math.round(value);
@@ -14,6 +15,10 @@ function getTopOffset(root: HTMLElement, node: HTMLElement): number {
   const rootRect = root.getBoundingClientRect();
   const nodeRect = node.getBoundingClientRect();
   return roundPx(nodeRect.top - rootRect.top);
+}
+
+function getBottomOffset(root: HTMLElement, node: HTMLElement): number {
+  return roundPx(getTopOffset(root, node) + node.offsetHeight);
 }
 
 function isBlockCandidate(node: HTMLElement): boolean {
@@ -64,12 +69,11 @@ export function collectPaginationCandidates(root: HTMLElement): PaginationCandid
   ).forEach((node) => {
     if (!(node instanceof HTMLElement) || !isBlockCandidate(node)) return;
     const parent = node.parentElement;
-    // Only include if it's not a top-level direct child (i.e., it's inside a section)
     if (parent && parent !== root) add(entrySet, getTopOffset(root, node));
   });
 
-  // Tier 3: Fine-grained (list items, explicit break markers)
-  root.querySelectorAll("li, [data-pagination-block]").forEach((node) => {
+  // Tier 3: Fine-grained (paragraphs, list items, explicit break markers)
+  root.querySelectorAll("p, li, [data-pagination-block]").forEach((node) => {
     if (!(node instanceof HTMLElement) || !isBlockCandidate(node)) return;
     add(fineSet, getTopOffset(root, node));
   });
@@ -139,14 +143,19 @@ export function computePageOffsets(
       nextBreak = findBestBreak(entries, minimumBreak, idealBreak, maxForward);
     }
 
-    // Tier 3: Fall through to any candidate (list items, etc.)
+    // Tier 3: Fall through to any candidate (paragraphs, list items, etc.)
     if (nextBreak === null) {
       nextBreak = findBestBreak(allCandidates, minimumBreak, idealBreak, maxForward);
     }
 
-    // Fallback to ideal break if no candidate found
+    // Fallback: find the nearest element start after idealBreak
     if (nextBreak === null) {
-      nextBreak = idealBreak;
+      const nearestAfter = allCandidates.find((p) => p > idealBreak);
+      if (nearestAfter && nearestAfter <= cursor + pageHeight + 300) {
+        nextBreak = nearestAfter;
+      } else {
+        nextBreak = idealBreak;
+      }
     }
 
     if (nextBreak <= cursor + MIN_PAGE_DELTA_PX) {
@@ -195,6 +204,25 @@ function findOrphanSectionStart(
   return null;
 }
 
+function findClippedElementBreak(
+  root: HTMLElement,
+  pageStart: number,
+  pageEnd: number,
+): number | null {
+  const clipSelectors = "p, li, [data-pagination-block]";
+  const elements = root.querySelectorAll(clipSelectors);
+  for (const el of elements) {
+    if (!(el instanceof HTMLElement)) continue;
+    const top = getTopOffset(root, el);
+    const bottom = getBottomOffset(root, el);
+
+    if (top < pageEnd && bottom > pageEnd + CLIP_SAFETY_MARGIN) {
+      return top;
+    }
+  }
+  return null;
+}
+
 function enforceCleanBreaks(
   root: HTMLElement,
   pageHeight: number,
@@ -207,15 +235,24 @@ function enforceCleanBreaks(
     const currentPageStart = result[result.length - 1];
     const nextOriginalOffset = offsets[i];
 
+    const clippedElementStart = findClippedElementBreak(root, currentPageStart, nextOriginalOffset);
+    if (clippedElementStart !== null && clippedElementStart > currentPageStart) {
+      const minBreak = currentPageStart + Math.floor(pageHeight * MIN_PAGE_FILL_RATIO);
+      if (clippedElementStart >= minBreak) {
+        result.push(clippedElementStart);
+        continue;
+      }
+    }
+
     const orphanSectionStart = findOrphanSectionStart(root, currentPageStart, nextOriginalOffset);
     if (orphanSectionStart !== null && orphanSectionStart > currentPageStart) {
       const minBreak = currentPageStart + Math.floor(pageHeight * MIN_PAGE_FILL_RATIO);
-      // Only adjust if the section start is past the minimum fill threshold
       if (orphanSectionStart >= minBreak) {
         result.push(orphanSectionStart);
         continue;
       }
     }
+
     result.push(nextOriginalOffset);
   }
 
