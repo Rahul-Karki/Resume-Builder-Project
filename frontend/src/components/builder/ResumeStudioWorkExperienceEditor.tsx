@@ -6,13 +6,14 @@ import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry }
 import { api, improveResumeText, getLatestAtsAnalysis } from '@/services/api';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
-import { ResumeRenderer } from '@/templates/ResumeRenderer';
 import printResume from '@/utils/print';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
 import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
 import { Logo } from '@/components/Logo';
+import { PaginatedResumePreview } from '@/components/builder/PaginatedResumePreview';
+import { A4_WIDTH_PX } from '@/utils/resumePagination';
 
 type LeftTab = 'content' | 'style' | 'sections';
 type AssistantTab = 'tips' | 'ai' | 'ats';
@@ -33,9 +34,6 @@ type TemplateOption = {
   audience?: 'tech' | 'non-tech';
   sortOrder?: number;
 };
-
-const A4_WIDTH_PX = 794;
-const A4_HEIGHT_PX = 1123;
 
 const getEntryDescription = (entry: WorkEntry): string => {
   if (entry.description.trim()) return entry.description;
@@ -207,10 +205,9 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       if (!host) return;
 
       const maxW = host.clientWidth - 12;
-      const maxH = host.clientHeight - 12;
-      if (maxW <= 0 || maxH <= 0) return;
+      if (maxW <= 0) return;
 
-      const fitScale = Math.min(maxW / A4_WIDTH_PX, maxH / A4_HEIGHT_PX, 1.15);
+      const fitScale = Math.min(maxW / A4_WIDTH_PX, 1.15);
       setPreviewScale(Math.max(0.28, fitScale));
     };
 
@@ -577,20 +574,14 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </aside>
 
         <main className={`flex-1 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isMobile ? 'mr-90' : ''}`}>
-          <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-center justify-center overflow-hidden">
+          <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-start justify-center overflow-auto themed-scrollbar">
             <div
               id="resume-preview-root"
-              className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] relative rounded-sm"
               style={{
-                width: `${A4_WIDTH_PX}px`,
-                height: `${A4_HEIGHT_PX}px`,
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'center center',
+                width: `${A4_WIDTH_PX * previewScale}px`,
               }}
             >
-              <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
-                <ResumeRenderer resume={resume} />
-              </div>
+              <PaginatedResumePreview resume={resume} scale={previewScale} />
             </div>
           </div>
         </main>

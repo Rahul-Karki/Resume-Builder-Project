@@ -167,11 +167,12 @@
     display: block !important;
     margin: 0 auto !important;
     background: white !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
   }
 
-  .__print-clone * {
+  .__print-clone section,
+  .__print-clone article,
+  .__print-clone li,
+  .__print-clone [data-pagination-block] {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
