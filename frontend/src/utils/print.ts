@@ -15,6 +15,10 @@ function shouldPreservePaginationOverflow(node: HTMLElement): boolean {
   );
 }
 
+function shouldPreserveBoxSizing(node: HTMLElement): boolean {
+  return node.hasAttribute("data-page-slice");
+}
+
 function normalizeCloneTree(originalRoot: HTMLElement, cloneRoot: HTMLElement): void {
   const originalNodes = [originalRoot, ...Array.from(originalRoot.querySelectorAll<HTMLElement>("*"))];
   const cloneNodes = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>("*"))];

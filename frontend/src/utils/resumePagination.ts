@@ -1,7 +1,7 @@
 export const A4_WIDTH_PX = 794;
 export const A4_HEIGHT_PX = 1123;
 
-const MIN_PAGE_FILL_RATIO = 0.55;
+const MIN_PAGE_FILL_RATIO = 0.72;
 const MAX_FORWARD_SHIFT_RATIO = 0.22;
 const MIN_PAGE_DELTA_PX = 64;
 const ORPHAN_PROTECTION_ZONE = 50;

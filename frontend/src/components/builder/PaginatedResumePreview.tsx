@@ -1,6 +1,7 @@
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import type { ResumeDocument } from "@/types/resume-types";
+import { marginMap } from "@/types/resume-types";
 import {
   A4_HEIGHT_PX,
   A4_WIDTH_PX,
@@ -18,6 +19,11 @@ function offsetsEqual(a: number[], b: number[]): boolean {
   return true;
 }
 
+function parseTopMarginPx(marginStr: string): number {
+  const match = marginStr.match(/^(\d+)px/);
+  return match ? parseInt(match[1], 10) : 40;
+}
+
 type PaginatedResumePreviewProps = {
   resume: ResumeDocument;
   scale: number;
@@ -29,6 +35,11 @@ export function PaginatedResumePreview({
 }: PaginatedResumePreviewProps): ReactElement {
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [pageOffsets, setPageOffsets] = useState<number[]>([0]);
+
+  const topMarginPx = useMemo(
+    () => parseTopMarginPx(marginMap[resume.style.pageMargin]),
+    [resume.style.pageMargin],
+  );
 
   useEffect(() => {
     let timeoutId: number | null = null;
@@ -103,8 +114,17 @@ export function PaginatedResumePreview({
         const nextOffset = isLastPage
           ? offset + A4_HEIGHT_PX
           : pageOffsets[index + 1];
-        const contentHeight = nextOffset - offset;
-        const clipFromBottom = A4_HEIGHT_PX - Math.min(contentHeight, A4_HEIGHT_PX);
+        const contentHeight = Math.min(A4_HEIGHT_PX, nextOffset - offset);
+
+        // First page: uses the resume container's own padding, no extra spacing needed.
+        // Middle pages: add top padding matching the resume's page margin so content
+        //   starts at the same vertical position as on page 1.
+        // Last page: no extra spacing (natural end of content).
+        const isMiddlePage = index > 0 && !isLastPage;
+        const effectivePaddingTop = isMiddlePage ? topMarginPx : 0;
+        const effectiveHeight = isMiddlePage
+          ? Math.min(A4_HEIGHT_PX, contentHeight + effectivePaddingTop)
+          : contentHeight;
 
         return (
           <div
@@ -134,7 +154,9 @@ export function PaginatedResumePreview({
                 data-preserve-transform="true"
                 style={{
                   width: `${A4_WIDTH_PX}px`,
-                  height: `${contentHeight}px`,
+                  height: `${effectiveHeight}px`,
+                  paddingTop: `${effectivePaddingTop}px`,
+                  boxSizing: "border-box",
                   overflow: "hidden",
                   transform: `translateY(-${offset}px)`,
                   transformOrigin: "top left",
