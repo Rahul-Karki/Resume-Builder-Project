@@ -9,7 +9,10 @@ function shouldPreservePaginationTransforms(node: HTMLElement): boolean {
 }
 
 function shouldPreservePaginationOverflow(node: HTMLElement): boolean {
-  return node.hasAttribute("data-resume-page");
+  return (
+    node.hasAttribute("data-resume-page")
+    || node.hasAttribute("data-page-slice")
+  );
 }
 
 function normalizeCloneTree(originalRoot: HTMLElement, cloneRoot: HTMLElement): void {
@@ -155,6 +158,9 @@ export async function printResume(selector = ".resume-preview") {
       .__print-clone [data-pagination-block] {
         break-inside: avoid !important;
         page-break-inside: avoid !important;
+      }
+      .__print-clone .resume-page-continued {
+        display: block !important;
       }
       .__print-clone img {
         max-width: 100% !important;

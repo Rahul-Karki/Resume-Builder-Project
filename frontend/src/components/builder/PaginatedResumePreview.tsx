@@ -57,9 +57,7 @@ export function PaginatedResumePreview({
     if (measureEl && observer) observer.observe(measureEl);
 
     window.addEventListener("resize", schedule);
-    document.fonts?.ready.then(schedule).catch(() => {
-      // best effort
-    });
+    document.fonts?.ready.then(schedule).catch(() => {});
 
     return () => {
       if (timeoutId !== null) window.clearTimeout(timeoutId);
@@ -71,6 +69,8 @@ export function PaginatedResumePreview({
 
   const scaledWidth = useMemo(() => A4_WIDTH_PX * scale, [scale]);
   const scaledPageHeight = useMemo(() => A4_HEIGHT_PX * scale, [scale]);
+
+  const isMultiPage = pageOffsets.length > 1;
 
   return (
     <div
@@ -98,43 +98,75 @@ export function PaginatedResumePreview({
         <ResumeRenderer resume={resume} />
       </div>
 
-      {pageOffsets.map((offset, index) => (
-        <div
-          key={`${offset}-${index}`}
-          data-resume-page="true"
-          className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] rounded-sm"
-          style={{
-            width: `${scaledWidth}px`,
-            height: `${scaledPageHeight}px`,
-            overflow: "hidden",
-            position: "relative",
-            background: resume.style.backgroundColor,
-          }}
-        >
+      {pageOffsets.map((offset, index) => {
+        const isLastPage = index === pageOffsets.length - 1;
+        const nextOffset = isLastPage
+          ? offset + A4_HEIGHT_PX
+          : pageOffsets[index + 1];
+        const contentHeight = nextOffset - offset;
+        const clipFromBottom = A4_HEIGHT_PX - Math.min(contentHeight, A4_HEIGHT_PX);
+
+        return (
           <div
-            data-preview-scale="true"
+            key={`${offset}-${index}`}
+            data-resume-page="true"
+            data-page-index={index}
+            className="bg-white shadow-[0_24px_80px_rgba(0,0,0,0.55)] rounded-sm"
             style={{
-              width: `${A4_WIDTH_PX}px`,
-              height: `${A4_HEIGHT_PX}px`,
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
+              width: `${scaledWidth}px`,
+              height: `${scaledPageHeight}px`,
+              overflow: "hidden",
+              position: "relative",
+              background: resume.style.backgroundColor,
             }}
           >
             <div
-              data-page-slice="true"
-              data-preserve-transform="true"
+              data-preview-scale="true"
               style={{
                 width: `${A4_WIDTH_PX}px`,
-                transform: `translateY(-${offset}px)`,
+                height: `${A4_HEIGHT_PX}px`,
+                transform: `scale(${scale})`,
                 transformOrigin: "top left",
-                willChange: "transform",
               }}
             >
-              <ResumeRenderer resume={resume} />
+              <div
+                data-page-slice="true"
+                data-preserve-transform="true"
+                style={{
+                  width: `${A4_WIDTH_PX}px`,
+                  height: `${contentHeight}px`,
+                  overflow: "hidden",
+                  transform: `translateY(-${offset}px)`,
+                  transformOrigin: "top left",
+                  willChange: "transform",
+                }}
+              >
+                <ResumeRenderer resume={resume} />
+              </div>
             </div>
+
+            {isMultiPage && !isLastPage && (
+              <div
+                className="resume-page-continued"
+                style={{
+                  position: "absolute",
+                  bottom: `${12 * scale}px`,
+                  left: 0,
+                  right: 0,
+                  textAlign: "center",
+                  fontSize: `${8 * scale}px`,
+                  color: resume.style.mutedColor || "#999",
+                  letterSpacing: "0.5px",
+                  pointerEvents: "none",
+                  userSelect: "none",
+                }}
+              >
+                Continued on next page
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

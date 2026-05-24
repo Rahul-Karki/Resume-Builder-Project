@@ -161,12 +161,33 @@
   .__print-clone,
   .__print-clone * {
     visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .__print-clone {
     display: block !important;
     margin: 0 auto !important;
     background: white !important;
+  }
+
+  .__print-clone [data-resume-page] {
+    page-break-after: always !important;
+    break-after: page !important;
+    overflow: hidden !important;
+  }
+  .__print-clone [data-resume-page]:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  .__print-clone [data-page-slice] {
+    overflow: hidden !important;
+  }
+
+  .__print-clone [data-preview-scale] {
+    transform: none !important;
   }
 
   .__print-clone section,
@@ -179,6 +200,10 @@
 
   .__print-clone img {
     max-width: 100% !important;
+  }
+
+  .resume-page-continued {
+    display: block;
   }
 }
 

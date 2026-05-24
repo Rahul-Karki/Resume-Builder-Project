@@ -203,7 +203,7 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
       <head>
         <meta charset="utf-8" />
         <style>
-          @page { size: A4; margin: 14mm; }
+          @page { size: A4; margin: 0; }
           * { box-sizing: border-box; }
           body {
             margin: 0;
@@ -223,13 +223,13 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
           p { margin: 4px 0; }
           .headline { margin-top: 8px; color: ${mutedColor}; font-size: 10pt; text-align: ${headerAlign}; }
           .meta { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; font-size: 9pt; color: ${mutedColor}; justify-content: ${headerAlign === "center" ? "center" : "flex-start"}; }
-          .section { margin-top: ${sectionSpacing}px; }
-          .item { margin-bottom: 12px; }
+          .section { margin-top: ${sectionSpacing}px; page-break-inside: avoid; break-inside: avoid; }
+          .item { margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid; }
           .item-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
           .muted { color: ${mutedColor}; font-size: 9pt; }
           .align-right { text-align: right; }
           ul { margin: 8px 0 0 18px; padding: 0; list-style: none; }
-          li { margin-bottom: 3px; font-size: ${fontSize}; display: flex; align-items: flex-start; gap: 8px; }
+          li { margin-bottom: 3px; font-size: ${fontSize}; display: flex; align-items: flex-start; gap: 8px; page-break-inside: avoid; break-inside: avoid; }
           li::before { content: "${bulletStyle}"; }
           .pill { display: inline-block; background: ${accentColor}20; color: ${accentColor}; padding: 4px 8px; border-radius: 999px; font-size: 9pt; margin: 0 6px 6px 0; }
           .two-col { display: grid; grid-template-columns: 2.1fr 1fr; gap: 18px; }
