@@ -9,6 +9,7 @@ const Signup = lazy(() => import("./pages/Signup"))
 const ForgotPassword = lazy(() => import("./pages/ResetPassword"))
 const Home = lazy(() => import("./pages/Home"))
 const Templates = lazy(() => import("./pages/Templates"))
+const ResumeExportPage = lazy(() => import("./pages/ResumeExportPage"))
 const ResumeBuilder = lazy(() => import("./pages/ResumeBuilder"))
 const MyResumePage = lazy(() => import("./pages/MyResumePage"))
 const AdminLayout = lazy(() => import("./pages/AdminLayout"))
@@ -38,6 +39,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/reset-password" element={<ForgotPassword />} />
             <Route path="/templates" element={<Templates />} />
+            <Route path="/resume/export/:jobId" element={<ResumeExportPage />} />
             <Route path="/builder" element={<ResumeBuilder />} />
             <Route path="/resumes" element={<MyResumePage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />

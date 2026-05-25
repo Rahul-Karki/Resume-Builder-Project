@@ -3,7 +3,6 @@ import { env } from "../config/env";
 import crypto from "crypto";
 import { browserPool } from "../lib/browserPool";
 import { logger } from "../observability";
-import { buildResumeHtml } from "../modules/export/buildResumeHtml";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
 
 type ResumeSnapshot = Record<string, unknown> & {
@@ -187,8 +186,11 @@ export const generateResumePdfArtifact = async (
   let timedOut = false;
   let timeoutHandle: NodeJS.Timeout | null = null;
   const fileName = createResumeDownloadFileName(jobId);
-  const html = buildResumeHtml(resume, preset);
-  const useFrontendPreview = String(process.env.RESUME_PDF_USE_FRONTEND_PREVIEW || "").toLowerCase() === "true";
+  const frontendBase = (env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+  const tokenParam = previewToken ?? "";
+  const previewUrl = tokenParam
+    ? `${frontendBase}/resume/export/${encodeURIComponent(jobId)}?previewToken=${encodeURIComponent(tokenParam)}`
+    : `${frontendBase}/resume/export/${encodeURIComponent(jobId)}`;
   let pdfBuffer: Buffer | null = null;
 
   try {
@@ -204,26 +206,12 @@ export const generateResumePdfArtifact = async (
 
       await page.emulateMediaType("print");
 
-      let loadedFrontendPreview = false;
-
-      if (useFrontendPreview) {
-        const frontendBase = (env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
-        const tokenParam = previewToken ? `${previewToken}` : "";
-        const previewUrl = tokenParam
-          ? `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}?previewToken=${encodeURIComponent(tokenParam)}`
-          : `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}`;
-
-        try {
-          await page.goto(previewUrl, { waitUntil: "networkidle2", timeout: 20000 });
-          await page.waitForSelector("#resume-export-root", { timeout: 8000 });
-          loadedFrontendPreview = true;
-        } catch (error) {
-          logger.warn({ error, jobId, previewUrl }, "Frontend resume preview unavailable; falling back to backend-rendered PDF HTML");
-          await page.emulateMediaType("print");
-          await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 15000 });
-        }
-      } else {
-        await page.setContent(html, { waitUntil: "networkidle0", timeout: 20000 });
+      try {
+        await page.goto(previewUrl, { waitUntil: "networkidle2", timeout: 25000 });
+        await page.waitForSelector("#resume-export-root", { timeout: 15000 });
+      } catch (error) {
+        logger.error({ error, jobId, previewUrl }, "Failed to load frontend resume export page");
+        throw new Error(`Frontend resume export page unavailable: ${error instanceof Error ? error.message : String(error)}`);
       }
 
       try {
@@ -240,7 +228,7 @@ export const generateResumePdfArtifact = async (
         logger.debug({ jobId, err }, "document.fonts.ready timed out or failed, continuing");
       }
 
-      logger.debug({ jobId, loadedFrontendPreview, useFrontendPreview }, "Resume PDF render source selected");
+      logger.debug({ jobId, previewUrl }, "Resume PDF render source loaded from frontend export page");
 
       try {
         await page.evaluate(() => {
