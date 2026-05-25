@@ -23,7 +23,9 @@
     "migrate": "npm run build && ts-node scripts/migrate.ts",
     "migrate:up": "npm run build && ts-node scripts/migrate.ts up",
     "migrate:down": "npm run build && ts-node scripts/migrate.ts down",
-    "backup": "bash scripts/backup.sh"
+    "backup": "bash scripts/backup.sh",
+    "keep-alive": "node scripts/keep-alive.js",
+    "start:with-keepalive": "node scripts/keep-alive.js & npm run dev"
   },
   "keywords": [],
   "author": "",

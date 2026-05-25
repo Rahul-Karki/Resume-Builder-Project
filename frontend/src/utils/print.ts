@@ -198,10 +198,6 @@ export async function printResume(selector = ".resume-preview") {
         page-break-before: auto !important;
       }
 
-      .__print-clone .resume-page-continued {
-        display: block !important;
-      }
-
       .__print-clone img {
         max-width: 100% !important;
       }

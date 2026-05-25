@@ -117,12 +117,10 @@ export function PaginatedResumePreview({
         const contentHeight = Math.min(A4_HEIGHT_PX, nextOffset - offset);
 
         // First page: uses the resume container's own padding, no extra spacing needed.
-        // Middle pages: add top padding matching the resume's page margin so content
+        // Subsequent pages: add top padding matching the resume's page margin so content
         //   starts at the same vertical position as on page 1.
-        // Last page: no extra spacing (natural end of content).
-        const isMiddlePage = index > 0 && !isLastPage;
-        const effectivePaddingTop = isMiddlePage ? topMarginPx : 0;
-        const effectiveHeight = isMiddlePage
+        const effectivePaddingTop = index > 0 ? topMarginPx : 0;
+        const effectiveHeight = index > 0
           ? Math.min(A4_HEIGHT_PX, contentHeight + effectivePaddingTop)
           : contentHeight;
 
@@ -167,25 +165,7 @@ export function PaginatedResumePreview({
               </div>
             </div>
 
-            {isMultiPage && !isLastPage && (
-              <div
-                className="resume-page-continued"
-                style={{
-                  position: "absolute",
-                  bottom: `${12 * scale}px`,
-                  left: 0,
-                  right: 0,
-                  textAlign: "center",
-                  fontSize: `${8 * scale}px`,
-                  color: resume.style.mutedColor || "#999",
-                  letterSpacing: "0.5px",
-                  pointerEvents: "none",
-                  userSelect: "none",
-                }}
-              >
-                Continued on next page
-              </div>
-            )}
+
           </div>
         );
       })}
