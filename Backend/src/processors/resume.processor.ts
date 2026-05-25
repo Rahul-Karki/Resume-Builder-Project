@@ -223,7 +223,7 @@ const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
           p { margin: 4px 0; page-break-inside: avoid; break-inside: avoid; }
           .headline { margin-top: 8px; color: ${mutedColor}; font-size: 10pt; text-align: ${headerAlign}; }
           .meta { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; font-size: 9pt; color: ${mutedColor}; justify-content: ${headerAlign === "center" ? "center" : "flex-start"}; }
-          .section { margin-top: ${sectionSpacing}px; page-break-inside: avoid; break-inside: avoid; page-break-before: auto; }
+          .section { padding-top: ${sectionSpacing}px; page-break-inside: avoid; break-inside: avoid; page-break-before: auto; }
           .item { margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid; }
           .item-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
           .muted { color: ${mutedColor}; font-size: 9pt; }

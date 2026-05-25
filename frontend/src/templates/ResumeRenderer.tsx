@@ -60,7 +60,7 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
     if (!sectionVisibility[key] || !content) return null;
 
     return (
-      <div key={String(key)} style={{ marginBottom: sectionGap, paddingTop: `${Math.round(sectionGap / 2)}px` }}>
+      <div key={String(key)} style={{ marginBottom: sectionGap, paddingTop: "12px" }}>
         <SectionHeading title={title} />
         {content}
       </div>
@@ -291,7 +291,7 @@ function ClassicTemplate({ resume }: Props) {
 
   const sectionMap: Record<string, React.ReactNode> = {
     experience: s.experience.length > 0 && (
-      <div key="experience" style={{ marginBottom: sectionGap, paddingTop: `${Math.round(sectionGap / 2)}px` }}>
+      <div key="experience" style={{ marginBottom: sectionGap, paddingTop: "12px" }}>
         <SectionHeading title="Experience" />
         {s.experience.map((e) => (
           <div key={e.id} style={{ marginBottom: 12 }}>
@@ -324,7 +324,7 @@ function ClassicTemplate({ resume }: Props) {
       </div>
     ),
     education: s.education.length > 0 && (
-      <div key="education" style={{ marginBottom: sectionGap, paddingTop: `${Math.round(sectionGap / 2)}px` }}>
+      <div key="education" style={{ marginBottom: sectionGap, paddingTop: "12px" }}>
         <SectionHeading title="Education" />
         {s.education.map((e) => (
           <div key={e.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -338,7 +338,7 @@ function ClassicTemplate({ resume }: Props) {
       </div>
     ),
     skills: s.skills.length > 0 && (
-      <div key="skills" style={{ marginBottom: sectionGap, paddingTop: `${Math.round(sectionGap / 2)}px` }}>
+      <div key="skills" style={{ marginBottom: sectionGap, paddingTop: "12px" }}>
         <SectionHeading title="Skills" />
         {s.skills.map((sk) => (
           <div key={sk.id} style={{ display: "flex", gap: 16, marginBottom: 4 }}>
@@ -349,7 +349,7 @@ function ClassicTemplate({ resume }: Props) {
       </div>
     ),
     projects: s.projects.length > 0 && (
-      <div key="projects" style={{ marginBottom: sectionGap, paddingTop: `${Math.round(sectionGap / 2)}px` }}>
+      <div key="projects" style={{ marginBottom: sectionGap, paddingTop: "12px" }}>
         <SectionHeading title="Projects" />
         {s.projects.map((pr) => (
           <div key={pr.id} style={{ marginBottom: 8 }}>
@@ -377,7 +377,7 @@ function ClassicTemplate({ resume }: Props) {
       </div>
     ),
     certifications: s.certifications.length > 0 && (
-      <div key="certifications" style={{ marginBottom: sectionGap, paddingTop: `${Math.round(sectionGap / 2)}px` }}>
+      <div key="certifications" style={{ marginBottom: sectionGap, paddingTop: "12px" }}>
         <SectionHeading title="Certifications" />
         {s.certifications.map((c) => (
           <div key={c.id} style={{ fontSize: style.fontSize, color: style.textColor, marginBottom: 3 }}>
@@ -387,7 +387,7 @@ function ClassicTemplate({ resume }: Props) {
       </div>
     ),
     languages: s.languages.length > 0 && (
-      <div key="languages" style={{ marginBottom: sectionGap, paddingTop: `${Math.round(sectionGap / 2)}px` }}>
+      <div key="languages" style={{ marginBottom: sectionGap, paddingTop: "12px" }}>
         <SectionHeading title="Languages" />
         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 24px" }}>
           {s.languages.map((l) => (
