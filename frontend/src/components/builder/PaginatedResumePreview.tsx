@@ -119,9 +119,11 @@ export function PaginatedResumePreview({
         // First page: uses the resume container's own padding, no extra spacing needed.
         // Subsequent pages: add top padding matching the resume's page margin so content
         //   starts at the same vertical position as on page 1.
+        // The slice must be at least: offset + A4_HEIGHT_PX + paddingTop to ensure
+        // the full A4_HEIGHT_PX viewport is within the clip region after translateY(-offset).
         const effectivePaddingTop = index > 0 ? topMarginPx : 0;
         const effectiveHeight = index > 0
-          ? Math.min(A4_HEIGHT_PX, contentHeight + effectivePaddingTop)
+          ? offset + A4_HEIGHT_PX + effectivePaddingTop
           : contentHeight;
 
         return (
