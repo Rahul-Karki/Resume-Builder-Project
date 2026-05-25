@@ -1,4 +1,3 @@
-import compression from "compression";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -9,7 +8,7 @@ import { correlationIdMiddleware } from "./middleware/correlationId";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { requestTimeoutMiddleware } from "./middleware/requestTimeout";
 import { requestSizeLimitMiddleware } from "./middleware/requestSizeLimit";
-import { metricsHandler, metricsMiddleware, requestLogger } from "./observability";
+import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { openAPISpec } from "./config/openapi";
 import { auditContextMiddleware, referentialIntegrityMiddleware } from "./middleware/referentialIntegrity";
 
@@ -20,13 +19,13 @@ import aiRoutes from "./router/ai.routes";
 import adminRoutes from "./router/admin.routes";
 import templateRoutes from "./router/template.routes";
 import healthRoutes from "./router/health.routes";
+import { adminGuard } from "./middleware/adminAuthMiddleware";
 
 export const createApp = () => {
   const app = express();
   app.set("trust proxy", 1);
   app.disable("x-powered-by");
 
-  const allowPreviewOrigins = env.NODE_ENV !== "production" && env.ALLOW_PREVIEW_ORIGINS;
   const configuredOrigins = [
     env.FRONTEND_URL,
     ...env.FRONTEND_URLS,
@@ -34,7 +33,33 @@ export const createApp = () => {
     .map((origin) => origin?.trim().replace(/\/$/, ""))
     .filter((origin): origin is string => Boolean(origin));
 
-  const corsOptionsBase: cors.CorsOptions = {
+  const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const normalizedOrigin = origin.trim().replace(/\/$/, "");
+
+      if (configuredOrigins.includes(normalizedOrigin)) {
+        callback(null, true);
+        return;
+      }
+
+      // Allow Vercel preview deployments and custom domains
+      if (
+        normalizedOrigin.endsWith(".vercel.app") ||
+        normalizedOrigin.endsWith(".onrender.com") ||
+        normalizedOrigin.startsWith("http://localhost:") ||
+        normalizedOrigin.startsWith("https://localhost:")
+      ) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin not allowed by CORS policy"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -60,48 +85,9 @@ export const createApp = () => {
   };
 
   // 1. CORS MUST come first to handle preflight and error responses
-  app.use(cors((req, callback) => {
-    const origin = req.header("origin");
+  app.use(cors(corsOptions));
 
-    if (!origin) {
-      callback(null, { ...corsOptionsBase, origin: true });
-      return;
-    }
-
-    const normalizedOrigin = origin.trim().replace(/\/$/, "");
-    const host = req.get("host") ?? "";
-    const requestOrigin = host ? `${req.protocol}://${host}`.replace(/\/$/, "") : "";
-
-    if (requestOrigin && normalizedOrigin === requestOrigin) {
-      callback(null, { ...corsOptionsBase, origin: true });
-      return;
-    }
-
-    if (configuredOrigins.includes(normalizedOrigin)) {
-      callback(null, { ...corsOptionsBase, origin: true });
-      return;
-    }
-
-    // Allow preview and localhost origins only when explicitly enabled.
-    if (allowPreviewOrigins) {
-      if (
-        normalizedOrigin.endsWith(".vercel.app") ||
-        normalizedOrigin.endsWith(".onrender.com") ||
-        normalizedOrigin.startsWith("http://localhost:") ||
-        normalizedOrigin.startsWith("https://localhost:")
-      ) {
-        callback(null, { ...corsOptionsBase, origin: true });
-        return;
-      }
-    }
-
-    callback(new Error("Origin not allowed by CORS policy"));
-  }));
-
-  // 2. Response compression (before Helmet to compress Helmet's output too)
-  app.use(compression({ level: 6 }));
-
-  // 3. Helmet for security headers
+  // 2. Helmet for security headers
   app.use(helmet({
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "no-referrer" },
@@ -121,15 +107,15 @@ export const createApp = () => {
     },
   }));
 
-  // 4. Global instrumentation and size checks before body parsing
+  // 3. Global instrumentation and size checks before body parsing
   app.use(correlationIdMiddleware);
   app.use(auditContextMiddleware);
   app.use(requestSizeLimitMiddleware);
   
-  // 5. Body parsing
+  // 4. Body parsing
   app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
   
-  // 6. Logging and processing
+  // 5. Logging and processing
   app.use(requestLogger);
   app.use(apiVersionMiddleware);
   app.use(requestTimeoutMiddleware);
