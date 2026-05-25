@@ -16,6 +16,7 @@ import {
   getLatestAtsAnalysis,
 } from "../controllers/resumeEnhancementController";
 import {
+  cancelResumeDownload,
   downloadResume,
   downloadResumeResult,
   getResumeDownloadJobStatus,

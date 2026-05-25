@@ -235,7 +235,7 @@ export const generateResumePdfArtifact = async (
           new Promise((_, reject) => setTimeout(() => reject(new Error("Font loading timeout")), 7000)),
         ]).catch(() => undefined);
         // Allow any late-loading images to settle briefly
-        await page.waitForTimeout(250);
+        await new Promise((r) => setTimeout(r, 250));
       } catch (err) {
         logger.debug({ jobId, err }, "document.fonts.ready timed out or failed, continuing");
       }
@@ -267,7 +267,7 @@ export const generateResumePdfArtifact = async (
         } catch (err) {
           logger.warn({ jobId, attempt, err }, "PDF generation attempt failed");
           if (attempt < maxPdfAttempts) {
-            await page.waitForTimeout(300 * attempt);
+            await new Promise((r) => setTimeout(r, 300 * attempt));
           } else {
             throw err;
           }
