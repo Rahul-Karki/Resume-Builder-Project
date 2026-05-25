@@ -108,17 +108,59 @@ export async function printResume(selector = ".resume-preview") {
   const style = document.createElement("style");
   style.setAttribute("data-print-helper", "true");
   style.textContent = `
-    @page { size: A4; margin: 0; }
+    @page { size: ${A4_W_PX}px ${A4_H_PX}px; margin: 0; }
     @media print {
       html, body {
         margin: 0 !important;
         padding: 0 !important;
-        width: 210mm !important;
-        min-height: 297mm !important;
+        width: ${A4_W_PX}px !important;
+        min-height: ${A4_H_PX}px !important;
         background: white !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
+      }
+
+      body > *:not(.__print-clone):not(style):not(script) {
+        display: none !important;
+        visibility: hidden !important;
+      }
+
+      .__print-clone,
+      .__print-clone * {
+        visibility: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+
+      .__print-clone {
+        display: block !important;
+        margin: 0 auto !important;
+        width: ${A4_W_PX}px !important;
+        max-width: ${A4_W_PX}px !important;
+        background: white !important;
+      }
+
+      .__print-clone [data-resume-page] {
+        width: ${A4_W_PX}px !important;
+        height: ${A4_H_PX}px !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-before: auto !important;
+      }
+      .__print-clone [data-resume-page]:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+
+      .__print-clone [data-preview-scale] {
+        width: ${A4_W_PX}px !important;
+        height: ${A4_H_PX}px !important;
+        transform: none !important;
       }
 
       body > *:not(.__print-clone):not(style):not(script) {
