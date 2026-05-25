@@ -33,6 +33,7 @@ import {
   objectIdParamSchema,
   updateResumeSchema,
 } from "../validation/schemas";
+import { previewHtml } from "../controllers/resumePreviewController";
 
 const router = express.Router();
 
@@ -52,6 +53,14 @@ const resumeMutationLimiter = createRedisRateLimitMiddleware({
   max: Math.max(10, Math.floor(env.REDIS_RATE_LIMIT_MAX / 3)),
   keyBuilder: resumeRateLimitKeyBuilder,
   message: "Too many resume changes. Please try again later.",
+});
+
+const resumeExportLimiter = createRedisRateLimitMiddleware({
+  scope: "resume-pdf-exports",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(5, Math.floor(env.REDIS_RATE_LIMIT_MAX / 6)),
+  keyBuilder: resumeRateLimitKeyBuilder,
+  message: "Too many PDF export requests. Please try again later.",
 });
 
 
@@ -89,12 +98,16 @@ router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDele
 router.post(
   "/download-resume",
   createReferentialIntegrityMiddleware("resumedownloadjobs", (req) => ({ userId: req.user?.id })),
+  resumeExportLimiter,
   downloadResume,
 );
 router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
 router.get("/job-events/:id", validateRequest({ params: jobStatusParamSchema }), streamResumeDownloadJobEvents);
+router.post("/job-cancel/:id", validateRequest({ params: jobStatusParamSchema }), cancelResumeDownload);
 router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
 router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }), getResumePreviewData);
+
+router.post("/preview-html", previewHtml);
 
 
 

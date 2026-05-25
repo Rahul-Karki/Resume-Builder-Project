@@ -394,6 +394,33 @@ export const getResumeDownloadJobStatus: RequestHandler = async (req, res) => {
   }
 };
 
+export const cancelResumeDownload: RequestHandler = async (req, res) => {
+  const span = startControllerSpan('resumeDownload.cancelResumeDownload', req);
+  try {
+    const userId = getUserId(req, res);
+    if (!userId) return;
+
+    const jobId = String(req.params.id);
+    const existing = await ResumeDownloadJob.findOne({ jobId, userId }).lean();
+    if (!existing) {
+      throw new NotFoundError('Job not found');
+    }
+
+    await ResumeDownloadJob.updateOne({ jobId, userId }, { $set: { status: 'failed', failedAt: new Date(), lastError: 'Cancelled by user' } });
+
+    try { jobEvents.emit(String(jobId), { jobId, status: 'failed', failedAt: new Date(), lastError: 'Cancelled by user' }); } catch { /* ignore */ }
+
+    res.status(200).json({ message: 'Job cancelled', jobId });
+    markSpanSuccess(span);
+  } catch (error) {
+    markSpanError(span, error as Error, 'Failed to cancel resume job');
+    logger.error({ error, jobId: req.params.id }, 'Failed to cancel resume job');
+    sendErrorResponse(res, error, { statusCode: 500, code: 'SERVER_ERROR', message: 'Server error' });
+  } finally {
+    finishControllerSpan(span);
+  }
+};
+
 export const streamResumeDownloadJobEvents: RequestHandler = async (req, res) => {
   const span = startControllerSpan("resumeDownload.streamResumeDownloadJobEvents", req);
   try {

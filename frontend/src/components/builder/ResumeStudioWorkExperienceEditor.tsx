@@ -417,7 +417,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
   const handleDownload = async () => {
     setApiError(null);
-    setStatusMessage('Preparing print preview...');
+    setStatusMessage('Queuing PDF export...');
 
     try {
       if (!resume.id) {
@@ -431,10 +431,12 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         throw new Error('Save the resume first before downloading it.');
       }
 
-      await printResume('#resume-preview-root');
-      setStatusMessage('Browser print preview opened.');
+      setStatusMessage('Export requested — waiting for server PDF...');
+      const { default: downloadResumeAndOpen } = await import('@/utils/downloadPdf');
+      await downloadResumeAndOpen({ resumeId, preset: (latestResume as any)?.preset ?? 'standard' });
+      setStatusMessage('PDF opened in new tab.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to open print preview.';
+      const message = error instanceof Error ? error.message : 'Failed to download PDF.';
       setStatusMessage(message);
       setApiError(message);
     }

@@ -3,6 +3,7 @@ import { env } from "../config/env";
 import crypto from "crypto";
 import { browserPool } from "../lib/browserPool";
 import { logger } from "../observability";
+import { buildResumeHtml } from "../modules/export/buildResumeHtml";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
 
 type ResumeSnapshot = Record<string, unknown> & {
@@ -169,107 +170,7 @@ const getSectionSpacing = (spacing: string): number => {
   return spacingMap[spacing] || spacingMap.normal;
 };
 
-const buildResumeHtml = (resume: ResumeSnapshot, preset: string) => {
-  const title = normalizeText(resume.title) || "Resume";
-  const personalInfo = (resume.personalInfo ?? {}) as Record<string, unknown>;
-  const sections = (resume.sections ?? {}) as Record<string, unknown>;
-
-  const fullName = normalizeText(personalInfo.name) || title;
-  const headline = normalizeText(personalInfo.title);
-  const summary = normalizeText(personalInfo.summary);
-
-  const style = (resume.style ?? {}) as Record<string, unknown>;
-  const accentColor = normalizeText(style.accentColor) || "#1a1a1a";
-  const headingColor = normalizeText(style.headingColor) || "#111111";
-  const textColor = normalizeText(style.textColor) || "#333333";
-  const mutedColor = normalizeText(style.mutedColor) || "#666666";
-  const borderColor = normalizeText(style.borderColor) || "#cccccc";
-  const backgroundColor = normalizeText(style.backgroundColor) || "#ffffff";
-  const bodyFont = formatFontFamily(normalizeText(style.bodyFont) || "EB Garamond, serif");
-  const headingFont = formatFontFamily(normalizeText(style.headingFont) || "EB Garamond, serif");
-  const fontSize = normalizeText(style.fontSize) || "10.5pt";
-  const lineHeight = normalizeText(style.lineHeight) || "1.5";
-  const pageMargin = getPageMargin(normalizeText(style.pageMargin) || "normal");
-  const sectionSpacing = getSectionSpacing(normalizeText(style.sectionSpacing) || "normal");
-  const showDividers = style.showDividers !== false;
-  const bulletStyle = normalizeText(style.bulletStyle) || "•";
-  const headerAlign = normalizeText(style.headerAlign) || "left";
-
-  const [paddingV, paddingH] = pageMargin.split(" ");
-
-  return `
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <style>
-          @page { size: A4; margin: 0; }
-          * { box-sizing: border-box; }
-          body {
-            margin: 0;
-            font-family: ${bodyFont};
-            font-size: ${fontSize};
-            line-height: ${lineHeight};
-            color: ${textColor};
-            background: ${backgroundColor};
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .page { background: #fff; padding: ${paddingV} ${paddingH}; min-height: 100vh; }
-          h1, h2, h3, p { margin: 0; }
-          h1 { font-family: ${headingFont}; font-size: 28pt; font-weight: 600; letter-spacing: -0.02em; color: ${headingColor}; text-align: ${headerAlign}; }
-          h2 { font-family: ${headingFont}; font-size: 13pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: ${accentColor}; margin-bottom: 10px; ${showDividers ? `border-bottom: 1px solid ${borderColor}; padding-bottom: 6px;` : ""} }
-          h3 { font-family: ${headingFont}; font-size: 10.5pt; font-weight: 600; color: ${headingColor}; margin-bottom: 4px; }
-          p { margin: 4px 0; page-break-inside: avoid; break-inside: avoid; }
-          .headline { margin-top: 8px; color: ${mutedColor}; font-size: 10pt; text-align: ${headerAlign}; }
-          .meta { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; font-size: 9pt; color: ${mutedColor}; justify-content: ${headerAlign === "center" ? "center" : "flex-start"}; }
-          .section { padding-top: ${sectionSpacing}px; page-break-inside: avoid; break-inside: avoid; page-break-before: auto; }
-          .item { margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid; }
-          .item-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
-          .muted { color: ${mutedColor}; font-size: 9pt; }
-          .align-right { text-align: right; }
-          ul { margin: 8px 0 0 18px; padding: 0; list-style: none; }
-          li { margin-bottom: 3px; font-size: ${fontSize}; display: flex; align-items: flex-start; gap: 8px; page-break-inside: avoid; break-inside: avoid; }
-          li::before { content: "${bulletStyle}"; }
-          h2 { page-break-after: avoid; break-after: avoid; }
-          .pill { display: inline-block; background: ${accentColor}20; color: ${accentColor}; padding: 4px 8px; border-radius: 999px; font-size: 9pt; margin: 0 6px 6px 0; }
-          .two-col { display: grid; grid-template-columns: 2.1fr 1fr; gap: 18px; }
-          @media print { body { background: #fff; } .page { border-radius: 0; } }
-        </style>
-      </head>
-      <body>
-        <div class="page">
-          <div style="margin-bottom: ${sectionSpacing}px;">
-            <h1>${escapeHtml(fullName)}</h1>
-            ${headline ? `<div class="headline">${escapeHtml(headline)}</div>` : ""}
-            <div class="meta">
-              ${personalInfo.email ? `<span>${escapeHtml(personalInfo.email)}</span>` : ""}
-              ${personalInfo.phone ? `<span>${escapeHtml(personalInfo.phone)}</span>` : ""}
-              ${personalInfo.location ? `<span>${escapeHtml(personalInfo.location)}</span>` : ""}
-              ${personalInfo.linkedin ? `<span>${escapeHtml(personalInfo.linkedin)}</span>` : ""}
-              ${personalInfo.github ? `<span>${escapeHtml(personalInfo.github)}</span>` : ""}
-              ${personalInfo.portfolio ? `<span>${escapeHtml(personalInfo.portfolio)}</span>` : ""}
-            </div>
-          </div>
-          <div class="two-col">
-            <div>
-              ${resumeSection("Summary", summary ? `<p>${escapeHtml(summary)}</p>` : "")}
-              ${resumeSection("Experience", buildExperienceSection(sections.experience))}
-              ${resumeSection("Projects", buildProjectsSection(sections.projects))}
-            </div>
-            <div>
-              ${resumeSection("Skills", buildSkillsSection(sections.skills))}
-              ${resumeSection("Education", buildEducationSection(sections.education))}
-              ${resumeSection("Certifications", buildCertificationsSection(sections.certifications))}
-              ${resumeSection("Languages", buildLanguagesSection(sections.languages))}
-            </div>
-          </div>
-          <div class="muted" style="margin-top: 18px;">Generated with preset ${escapeHtml(preset)} on ${escapeHtml(new Date().toISOString())}</div>
-        </div>
-      </body>
-    </html>
-  `;
-};
+// buildResumeHtml is provided by the centralized builder module
 
 export const generateResumePdfArtifact = async (
   resume: ResumeSnapshot,
@@ -313,8 +214,8 @@ export const generateResumePdfArtifact = async (
           : `${frontendBase}/resume/preview/${encodeURIComponent(jobId)}`;
 
         try {
-          await page.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: 12000 });
-          await page.waitForSelector("#resume-export-root", { timeout: 4000 });
+          await page.goto(previewUrl, { waitUntil: "networkidle2", timeout: 20000 });
+          await page.waitForSelector("#resume-export-root", { timeout: 8000 });
           loadedFrontendPreview = true;
         } catch (error) {
           logger.warn({ error, jobId, previewUrl }, "Frontend resume preview unavailable; falling back to backend-rendered PDF HTML");
@@ -322,15 +223,19 @@ export const generateResumePdfArtifact = async (
           await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 15000 });
         }
       } else {
-        await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 15000 });
+        await page.setContent(html, { waitUntil: "networkidle0", timeout: 20000 });
       }
 
       try {
+        // Ensure fonts and network resources are settled before generating PDF
+        await page.waitForFunction('document.fonts && document.fonts.ready && document.fonts.ready.then', { timeout: 7000 }).catch(() => undefined);
         const fontLoadPromise = page.evaluateHandle("document.fonts.ready");
         await Promise.race([
           fontLoadPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error("Font loading timeout")), 5000)),
-        ]);
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Font loading timeout")), 7000)),
+        ]).catch(() => undefined);
+        // Allow any late-loading images to settle briefly
+        await page.waitForTimeout(250);
       } catch (err) {
         logger.debug({ jobId, err }, "document.fonts.ready timed out or failed, continuing");
       }
@@ -345,14 +250,29 @@ export const generateResumePdfArtifact = async (
         logger.debug({ jobId, err }, "Layout recalculation failed");
       }
 
-      const generatedBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        preferCSSPageSize: true,
-        margin: { top: 0, bottom: 0, left: 0, right: 0 },
-      });
+      // Attempt PDF generation with a small retry in case of transient rendering issues
+      const maxPdfAttempts = 2;
+      for (let attempt = 1; attempt <= maxPdfAttempts; attempt += 1) {
+        try {
+          const generatedBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            preferCSSPageSize: true,
+            margin: { top: 0, bottom: 0, left: 0, right: 0 },
+            scale: 1,
+          });
 
-      pdfBuffer = Buffer.isBuffer(generatedBuffer) ? generatedBuffer : Buffer.from(generatedBuffer);
+          pdfBuffer = Buffer.isBuffer(generatedBuffer) ? generatedBuffer : Buffer.from(generatedBuffer);
+          break;
+        } catch (err) {
+          logger.warn({ jobId, attempt, err }, "PDF generation attempt failed");
+          if (attempt < maxPdfAttempts) {
+            await page.waitForTimeout(300 * attempt);
+          } else {
+            throw err;
+          }
+        }
+      }
     } finally {
       await page.close().catch(() => undefined);
     }

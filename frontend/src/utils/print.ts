@@ -60,7 +60,65 @@ function normalizeCloneTree(originalRoot: HTMLElement, cloneRoot: HTMLElement): 
   }
 }
 
-export async function printResume(selector = ".resume-preview") {
+export async function printResume(selector = ".resume-preview", resume?: unknown, preset = "default") {
+  // If a resume object is provided, prefer server-rendered canonical HTML
+  if (resume) {
+    try {
+      const resp = await fetch('/api/resumes/preview-html', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume, preset }),
+      });
+
+      if (resp.ok) {
+        const html = await resp.text();
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.left = '0';
+        iframe.style.top = '0';
+        iframe.style.width = '100%';
+        iframe.style.height = '100%';
+        iframe.style.zIndex = '999999';
+        iframe.style.border = 'none';
+        iframe.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc) throw new Error('Failed to create print iframe');
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        // wait for fonts and images inside iframe
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const win = iframe.contentWindow as Window | null;
+            if (!win) return reject(new Error('No iframe window'));
+            const onLoaded = () => resolve();
+            // fonts
+            (win as any).document.fonts?.ready?.then(onLoaded).catch(() => setTimeout(onLoaded, 250));
+            // images fallback timeout
+            setTimeout(onLoaded, 1200);
+          });
+        } catch {
+          // continue even if resources didn't fully load
+        }
+
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } finally {
+          setTimeout(() => { try { iframe.remove(); } catch {} }, 800);
+        }
+        return;
+      }
+    } catch (err) {
+      // fallback to clone approach below
+      // eslint-disable-next-line no-console
+      console.warn('Server preview HTML unavailable, falling back to client clone', err);
+    }
+  }
+
   const root = document.querySelector<HTMLElement>(selector);
   if (!root) throw new Error("Resume element not found for printing");
 
