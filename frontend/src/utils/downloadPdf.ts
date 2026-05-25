@@ -6,8 +6,23 @@ type DownloadResponse = {
   resultUrl?: string | null;
 };
 
+const API_ORIGIN = (() => {
+  const base = import.meta.env.VITE_API_BASE_URL || "/api";
+  try {
+    const parsed = new URL(base, window.location.origin);
+    const path = parsed.pathname.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    return `${parsed.origin}${path}`;
+  } catch {
+    return "";
+  }
+})();
+
+function apiUrl(path: string) {
+  return `${API_ORIGIN}${path}`;
+}
+
 export async function requestResumeDownload(payload: { resumeId?: string; resume?: unknown; preset?: string }) {
-  const resp = await fetch('/api/resumes/download-resume', {
+  const resp = await fetch(apiUrl('/api/resumes/download-resume'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -19,7 +34,7 @@ export async function requestResumeDownload(payload: { resumeId?: string; resume
 export async function waitForJobCompletion(jobId: string, pollInterval = 1200, timeoutMs = 120000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    const resp = await fetch(`/api/resumes/job-status/${encodeURIComponent(jobId)}`);
+    const resp = await fetch(apiUrl(`/api/resumes/job-status/${encodeURIComponent(jobId)}`));
     if (!resp.ok) throw new Error('Failed to fetch job status');
     const json = await resp.json();
     if (json.status === 'completed') return json;
@@ -30,13 +45,12 @@ export async function waitForJobCompletion(jobId: string, pollInterval = 1200, t
 }
 
 export async function downloadResult(jobId: string) {
-  // Open the inline PDF result in a new tab
-  const url = `/api/resumes/download-result/${encodeURIComponent(jobId)}`;
+  const url = apiUrl(`/api/resumes/download-result/${encodeURIComponent(jobId)}`);
   window.open(url, '_blank');
 }
 
 export function streamJobEvents(jobId: string, onEvent: (event: { type: string; data: any }) => void) {
-  const url = `/api/resumes/job-events/${encodeURIComponent(jobId)}`;
+  const url = apiUrl(`/api/resumes/job-events/${encodeURIComponent(jobId)}`);
   const es = new EventSource(url);
   es.addEventListener('init', (ev: MessageEvent) => onEvent({ type: 'init', data: JSON.parse(String((ev as any).data)) }));
   es.addEventListener('update', (ev: MessageEvent) => onEvent({ type: 'update', data: JSON.parse(String((ev as any).data)) }));
@@ -45,7 +59,7 @@ export function streamJobEvents(jobId: string, onEvent: (event: { type: string; 
 }
 
 export async function cancelJob(jobId: string) {
-  const resp = await fetch(`/api/resumes/job-cancel/${encodeURIComponent(jobId)}`, { method: 'POST' });
+  const resp = await fetch(apiUrl(`/api/resumes/job-cancel/${encodeURIComponent(jobId)}`), { method: 'POST' });
   if (!resp.ok) throw new Error('Failed to cancel job');
   return await resp.json();
 }
@@ -58,7 +72,6 @@ export default async function downloadResumeAndOpen(payload: { resumeId?: string
     return { jobId, status: 'completed' };
   }
 
-  // Prefer live SSE updates where available, fallback to polling timeout
   let resolved = false;
   const finish = (status: string) => {
     resolved = true;
@@ -72,7 +85,6 @@ export default async function downloadResumeAndOpen(payload: { resumeId?: string
     }
   });
 
-  // Safety fallback: poll until timeout if SSE not informing
   try {
     await waitForJobCompletion(jobId, 2000, 120000);
     if (!resolved) finish('completed');
