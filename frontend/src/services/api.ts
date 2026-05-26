@@ -98,8 +98,6 @@ export const api = axios.create({
   timeout: 15000,
 });
 
-export { getStoredCsrfToken };
-
 export type ResumeDownloadRequest = {
   resumeId?: string;
   resume?: ResumeDocument;
