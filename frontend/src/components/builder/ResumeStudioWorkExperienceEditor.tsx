@@ -423,13 +423,9 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     setStatusMessage('Opening print preview...');
 
     try {
-      // Use the proper printResume utility which handles fonts, images, and creates correct print preview
-      const latestResume = useResumeBuilderStore.getState().resume;
-      const preset = (latestResume as any)?.preset ?? 'standard';
-      
-      // Pass empty selector to force server-rendered HTML (not the scaled preview DOM)
-      // This ensures print preview matches browser preview exactly at 1:1 scale
-      await printResume('', latestResume, preset);
+      // Capture the rendered resume DOM from the editor and print it
+      // This ensures the print preview matches the editor display exactly
+      await printResume('#resume-preview-root');
       
       setStatusMessage('Print dialog opened. Select "Save as PDF" to download with custom filename and location.');
     } catch (error) {

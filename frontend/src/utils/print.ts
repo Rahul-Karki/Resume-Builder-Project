@@ -63,6 +63,10 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
   // Always capture the actual rendered DOM from the page to ensure exact visual parity
   // This guarantees the print preview looks identical to the editor preview with all template styling
 
+  if (!selector) {
+    throw new Error("Selector must be provided to locate the resume element for printing");
+  }
+
   const root = document.querySelector<HTMLElement>(selector);
   if (!root) throw new Error("Resume element not found for printing");
 
