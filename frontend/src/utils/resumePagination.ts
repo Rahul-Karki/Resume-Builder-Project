@@ -132,9 +132,8 @@ export function buildPageOffsetsFromElement(
 ): number[] {
   const totalHeight = root.scrollHeight;
   
-  // Only create additional pages if content genuinely exceeds page height
-  // Add a 20px buffer to account for minor measurement variations
-  if (totalHeight <= pageHeight + 20) {
+  // Only create additional pages if content exceeds one page
+  if (totalHeight <= pageHeight) {
     return [0];
   }
 

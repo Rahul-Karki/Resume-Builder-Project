@@ -33,6 +33,7 @@ export function PaginatedResumePreview({
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let frameId: number | null = null;
 
     const compute = () => {
       const measureEl = measureRef.current;
@@ -47,18 +48,24 @@ export function PaginatedResumePreview({
       timeoutId = setTimeout(compute, RECALC_DEBOUNCE_MS);
     };
 
+    const scheduleFrame = () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(schedule);
+    };
+
     schedule();
 
     const measureEl = measureRef.current;
-    const observer = measureEl ? new ResizeObserver(schedule) : null;
+    const observer = measureEl ? new ResizeObserver(scheduleFrame) : null;
     if (measureEl && observer) observer.observe(measureEl);
 
-    const onResize = () => schedule();
+    const onResize = () => scheduleFrame();
     window.addEventListener("resize", onResize);
     document.fonts?.ready.then(schedule).catch(() => {});
 
     return () => {
       if (timeoutId !== null) clearTimeout(timeoutId);
+      if (frameId !== null) cancelAnimationFrame(frameId);
       if (observer) observer.disconnect();
       window.removeEventListener("resize", onResize);
     };
@@ -76,6 +83,7 @@ export function PaginatedResumePreview({
         flexDirection: "column",
         alignItems: "center",
         gap: `${PAGE_GAP_PX * scale}px`,
+        position: "relative",
       }}
     >
       <div
@@ -83,17 +91,17 @@ export function PaginatedResumePreview({
         aria-hidden
         className="resume-measure-container"
         style={{
-          position: "absolute",
-          left: "-9999px",
-          top: 0,
+          position: "relative",
           width: `${A4_WIDTH_PX}px`,
-          visibility: "hidden",
+          height: "auto",
+          visibility: "visible",
           pointerEvents: "none",
-          zIndex: -1,
           display: "block",
           overflow: "visible",
-          height: "auto",
-          minHeight: "auto",
+          transform: "translateX(-10000px)",
+          margin: 0,
+          padding: 0,
+          border: "none",
         }}
       >
         <ResumeRenderer resume={resume} />
@@ -145,6 +153,13 @@ export function PaginatedResumePreview({
       })}
 
       <style>{`
+        .resume-measure-container {
+          flex-shrink: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          gap: 0 !important;
+        }
+
         @media print {
           body { margin: 0; padding: 0; }
           .resume-pages-root { gap: 0 !important; }
