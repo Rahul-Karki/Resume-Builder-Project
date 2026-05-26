@@ -83,14 +83,17 @@ export function PaginatedResumePreview({
         aria-hidden
         className="resume-measure-container"
         style={{
-          position: "fixed",
+          position: "absolute",
           left: "-9999px",
           top: 0,
-          width: A4_WIDTH_PX,
+          width: `${A4_WIDTH_PX}px`,
           visibility: "hidden",
           pointerEvents: "none",
           zIndex: -1,
+          display: "block",
           overflow: "visible",
+          height: "auto",
+          minHeight: "auto",
         }}
       >
         <ResumeRenderer resume={resume} />

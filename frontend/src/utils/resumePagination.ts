@@ -131,6 +131,13 @@ export function buildPageOffsetsFromElement(
   pageHeight: number = CONTENT_HEIGHT_PX,
 ): number[] {
   const totalHeight = root.scrollHeight;
+  
+  // Only create additional pages if content genuinely exceeds page height
+  // Add a 20px buffer to account for minor measurement variations
+  if (totalHeight <= pageHeight + 20) {
+    return [0];
+  }
+
   const candidateSet = collectSectionCandidates(root);
   const candidates = Array.from(candidateSet).sort((a, b) => a - b);
   return computePageOffsets(totalHeight, pageHeight, candidates);
