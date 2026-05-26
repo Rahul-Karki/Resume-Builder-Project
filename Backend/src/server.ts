@@ -10,6 +10,7 @@ import { createAllIndexes } from "./config/indexes";
 import app from "./app";
 import { browserPool } from "./lib/browserPool";
 import { dataIntegrityChecker } from "./services/dataIntegrityService";
+import { keepAliveService } from "./utils/keepAlive";
 initializeBackendSentry();
 
 const PORT = env.PORT;
@@ -48,6 +49,12 @@ const startServer = async () => {
       },
       "Server started",
     );
+
+    // Initialize keep-alive service after server is running
+    keepAliveService.initialize({
+      port: PORT,
+      enabled: process.env.NODE_ENV === "production" || process.env.ENABLE_KEEP_ALIVE === "true",
+    });
   });
 
   let isShuttingDown = false;
@@ -61,6 +68,9 @@ const startServer = async () => {
 
     isShuttingDown = true;
     logger.info({ signal }, "Shutting down server");
+
+    // Stop keep-alive service
+    keepAliveService.stop();
 
     // Stop data integrity checker
     dataIntegrityChecker.stopPeriodicChecks();
