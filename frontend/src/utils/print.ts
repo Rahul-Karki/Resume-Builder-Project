@@ -1,4 +1,13 @@
 import { A4_WIDTH_PX as A4_W_PX, A4_HEIGHT_PX as A4_H_PX } from "@/utils/resumePagination";
+import { getStoredCsrfToken } from "@/services/api";
+
+/**
+ * Legacy helper for fallback - getCsrfToken() is now imported from api.ts
+ * Kept for compatibility but the real source is in the api interceptor
+ */
+function getCsrfToken(): string {
+  return getStoredCsrfToken();
+}
 
 function shouldPreservePaginationTransforms(node: HTMLElement): boolean {
   return (
@@ -64,9 +73,16 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
   if (resume) {
     try {
       const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+      const csrfToken = getCsrfToken();
+      
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+      }
+      
       const resp = await fetch(`${apiBaseURL}/resumes/preview-html`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ resume, preset }),
         credentials: 'include',
       });
