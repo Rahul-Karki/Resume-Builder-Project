@@ -1,10 +1,13 @@
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import type { ResumeDocument } from "@/types/resume-types";
+import { marginMap } from "@/types/resume-types";
 import {
   A4_HEIGHT_PX,
   A4_WIDTH_PX,
   buildPageOffsetsFromElement,
+  getEffectivePageHeight,
+  parsePageMarginTop,
 } from "@/utils/resumePagination";
 import { ResumePage } from "@/components/builder/ResumePage";
 
@@ -31,6 +34,11 @@ export function PaginatedResumePreview({
   const measureRef = useRef<HTMLDivElement | null>(null);
   const [pageOffsets, setPageOffsets] = useState<number[]>([0]);
 
+  const pageMarginTop = useMemo(
+    () => parsePageMarginTop(marginMap[resume.style.pageMargin]),
+    [resume.style.pageMargin],
+  );
+
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let frameId: number | null = null;
@@ -39,7 +47,7 @@ export function PaginatedResumePreview({
       const measureEl = measureRef.current;
       if (!measureEl) return;
 
-      const nextOffsets = buildPageOffsetsFromElement(measureEl, A4_HEIGHT_PX);
+      const nextOffsets = buildPageOffsetsFromElement(measureEl, A4_HEIGHT_PX, pageMarginTop);
       setPageOffsets((prev) => (offsetsEqual(prev, nextOffsets) ? prev : nextOffsets));
     };
 
@@ -84,10 +92,15 @@ export function PaginatedResumePreview({
       if (mutationObserver) mutationObserver.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [resume]);
+  }, [resume, pageMarginTop]);
 
   const scaledWidth = useMemo(() => A4_WIDTH_PX * scale, [scale]);
   const scaledPageHeight = useMemo(() => A4_HEIGHT_PX * scale, [scale]);
+
+  const effectivePageHeight = useMemo(
+    () => getEffectivePageHeight(pageMarginTop),
+    [pageMarginTop],
+  );
 
   return (
     <div
@@ -130,6 +143,7 @@ export function PaginatedResumePreview({
           ? offset + A4_HEIGHT_PX
           : pageOffsets[index + 1];
         const sliceHeight = nextOffset - offset;
+        const isFirstPage = index === 0;
 
         return (
           <ResumePage
@@ -152,11 +166,26 @@ export function PaginatedResumePreview({
                 position: "relative",
               }}
             >
+              {!isFirstPage && (
+                <div
+                  data-page-spacer="true"
+                  style={{
+                    width: A4_WIDTH_PX,
+                    height: pageMarginTop,
+                    flexShrink: 0,
+                    background: resume.style.backgroundColor,
+                  }}
+                />
+              )}
               <div
                 data-page-slice="true"
+                data-page-index={index}
                 style={{
                   width: A4_WIDTH_PX,
-                  height: Math.min(A4_HEIGHT_PX, sliceHeight),
+                  height: Math.min(
+                    isFirstPage ? A4_HEIGHT_PX : effectivePageHeight,
+                    sliceHeight,
+                  ),
                   overflow: "hidden",
                   transform: `translateY(-${offset}px)`,
                   transformOrigin: "top left",

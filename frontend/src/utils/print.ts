@@ -176,10 +176,10 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
       }
 
       /* KEEP the translateY transform on data-page-slice - it's essential for showing only one page's content */
+      /* Height is set by inline style per page (A4_H_PX for page 1, reduced for subsequent pages with spacer) */
       .__print-clone [data-page-slice] {
         overflow: hidden !important;
         width: ${A4_W_PX}px !important;
-        height: ${A4_H_PX}px !important;
       }
 
       /* Page containers — each rendered page prints on its own sheet */

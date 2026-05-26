@@ -2,6 +2,15 @@ export const A4_WIDTH_PX = 794;
 export const A4_HEIGHT_PX = 1123;
 export const CONTENT_HEIGHT_PX = A4_HEIGHT_PX;
 
+export function parsePageMarginTop(marginValue: string): number {
+  const match = marginValue.match(/^(\d+)px/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+export function getEffectivePageHeight(pageMarginTop: number): number {
+  return A4_HEIGHT_PX - pageMarginTop;
+}
+
 function roundPx(v: number): number {
   return Math.round(v);
 }
@@ -101,6 +110,7 @@ export function computePageOffsets(
   totalHeight: number,
   pageHeight: number,
   candidates: number[],
+  pageMarginTop: number = 0,
 ): number[] {
   if (!Number.isFinite(totalHeight) || totalHeight <= 0) return [0];
   if (totalHeight <= pageHeight) return [0];
@@ -114,9 +124,10 @@ export function computePageOffsets(
   const maxPages = Math.ceil(totalHeight / (pageHeight * 0.5)) + 4;
 
   for (let i = 0; i < maxPages; i++) {
-    if (cursor + pageHeight >= totalHeight) break;
+    const effectivePageHeight = i === 0 ? pageHeight : pageHeight - pageMarginTop;
+    if (cursor + effectivePageHeight >= totalHeight) break;
 
-    const breakPoint = findBestBreak(sortedCandidates, cursor, pageHeight);
+    const breakPoint = findBestBreak(sortedCandidates, cursor, effectivePageHeight);
     const clampedBreak = Math.min(Math.max(breakPoint, cursor + 32), totalHeight);
 
     offsets.push(roundPx(clampedBreak));
@@ -129,6 +140,7 @@ export function computePageOffsets(
 export function buildPageOffsetsFromElement(
   root: HTMLElement,
   pageHeight: number = CONTENT_HEIGHT_PX,
+  pageMarginTop: number = 0,
 ): number[] {
   const totalHeight = root.scrollHeight;
   
@@ -139,5 +151,5 @@ export function buildPageOffsetsFromElement(
 
   const candidateSet = collectSectionCandidates(root);
   const candidates = Array.from(candidateSet).sort((a, b) => a - b);
-  return computePageOffsets(totalHeight, pageHeight, candidates);
+  return computePageOffsets(totalHeight, pageHeight, candidates, pageMarginTop);
 }
