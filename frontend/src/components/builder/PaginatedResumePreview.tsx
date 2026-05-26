@@ -53,12 +53,26 @@ export function PaginatedResumePreview({
       frameId = requestAnimationFrame(schedule);
     };
 
+    // Initial computation
     schedule();
 
+    // ResizeObserver for the measure container
     const measureEl = measureRef.current;
     const observer = measureEl ? new ResizeObserver(scheduleFrame) : null;
     if (measureEl && observer) observer.observe(measureEl);
 
+    // MutationObserver to detect content changes
+    const mutationObserver = measureEl ? new MutationObserver(scheduleFrame) : null;
+    if (measureEl && mutationObserver) {
+      mutationObserver.observe(measureEl, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+      });
+    }
+
+    // Window resize
     const onResize = () => scheduleFrame();
     window.addEventListener("resize", onResize);
     document.fonts?.ready.then(schedule).catch(() => {});
@@ -67,6 +81,7 @@ export function PaginatedResumePreview({
       if (timeoutId !== null) clearTimeout(timeoutId);
       if (frameId !== null) cancelAnimationFrame(frameId);
       if (observer) observer.disconnect();
+      if (mutationObserver) mutationObserver.disconnect();
       window.removeEventListener("resize", onResize);
     };
   }, [resume]);
@@ -91,14 +106,16 @@ export function PaginatedResumePreview({
         aria-hidden
         className="resume-measure-container"
         style={{
-          position: "relative",
+          position: "fixed",
+          top: "-9999px",
+          left: "-9999px",
           width: `${A4_WIDTH_PX}px`,
           height: "auto",
           visibility: "visible",
           pointerEvents: "none",
+          zIndex: -1,
           display: "block",
           overflow: "visible",
-          transform: "translateX(-10000px)",
           margin: 0,
           padding: 0,
           border: "none",
@@ -153,13 +170,6 @@ export function PaginatedResumePreview({
       })}
 
       <style>{`
-        .resume-measure-container {
-          flex-shrink: 0 !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          gap: 0 !important;
-        }
-
         @media print {
           body { margin: 0; padding: 0; }
           .resume-pages-root { gap: 0 !important; }
