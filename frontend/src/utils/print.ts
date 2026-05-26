@@ -27,6 +27,22 @@ function normalizeCloneTree(originalRoot: HTMLElement, cloneRoot: HTMLElement): 
     const cloneNode = cloneNodes[i];
     const computed = window.getComputedStyle(originalNode);
 
+    // Remove preview scaling to get accurate print layout
+    // Preview containers use transform: scale() which needs to be removed for printing
+    if (cloneNode.hasAttribute("data-preview-scale")) {
+      cloneNode.style.transform = "none";
+      cloneNode.style.webkitTransform = "none";
+    }
+
+    // Reset width/height on scaled containers to their actual A4 dimensions
+    if (cloneNode.getAttribute("data-preview-scale") === "true" || 
+        cloneNode.classList.contains("resume-pages-root")) {
+      const rect = originalNode.getBoundingClientRect();
+      if (rect.width > 0) {
+        cloneNode.style.width = `${Math.round(rect.width / window.devicePixelRatio)}px`;
+      }
+    }
+
     if (!shouldPreservePaginationOverflow(cloneNode)) {
       const overflow = computed.overflow;
       if (overflow === "hidden" || overflow === "scroll" || overflow === "auto") {
@@ -148,52 +164,23 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
         background: white !important;
       }
 
-      .__print-clone [data-resume-page] {
-        width: ${A4_W_PX}px !important;
-        height: ${A4_H_PX}px !important;
-        overflow: hidden !important;
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        page-break-after: always !important;
-        break-after: page !important;
-        page-break-before: auto !important;
-      }
-      .__print-clone [data-resume-page]:last-child {
-        page-break-after: auto !important;
-        break-after: auto !important;
-      }
-
-      .__print-clone [data-preview-scale] {
-        width: ${A4_W_PX}px !important;
-        height: ${A4_H_PX}px !important;
+      /* Reset preview scaling transforms to render at full 100% size */
+      .__print-clone [data-preview-scale],
+      .__print-clone .resume-pages-root {
         transform: none !important;
+        width: ${A4_W_PX}px !important;
+        max-width: ${A4_W_PX}px !important;
       }
 
-      body > *:not(.__print-clone):not(style):not(script) {
-        display: none !important;
-        visibility: hidden !important;
-      }
-
-      .__print-clone,
-      .__print-clone * {
-        visibility: visible !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-
-      .__print-clone {
-        display: block !important;
-        margin: 0 auto !important;
-        width: 210mm !important;
-        max-width: 210mm !important;
-        background: white !important;
+      .__print-clone [data-page-slice] {
+        transform: none !important;
       }
 
       /* Page containers — each rendered page prints on its own sheet */
       .__print-clone [data-resume-page] {
-        width: 210mm !important;
-        height: 297mm !important;
+        width: ${A4_W_PX}px !important;
+        height: ${A4_H_PX}px !important;
+        min-height: ${A4_H_PX}px !important;
         overflow: hidden !important;
         box-shadow: none !important;
         border-radius: 0 !important;
@@ -204,12 +191,6 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
       .__print-clone [data-resume-page]:last-child {
         page-break-after: auto !important;
         break-after: auto !important;
-      }
-
-      .__print-clone [data-preview-scale] {
-        width: ${A4_W_PX}px !important;
-        height: ${A4_H_PX}px !important;
-        transform: none !important;
       }
 
       /* Never break inside section containers, articles, list items, or paragraphs */
