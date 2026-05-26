@@ -1,7 +1,6 @@
 export const A4_WIDTH_PX = 794;
 export const A4_HEIGHT_PX = 1123;
-export const PAGE_PADDING_PX = 24;
-export const CONTENT_HEIGHT_PX = A4_HEIGHT_PX - PAGE_PADDING_PX * 2;
+export const CONTENT_HEIGHT_PX = A4_HEIGHT_PX;
 
 function roundPx(v: number): number {
   return Math.round(v);

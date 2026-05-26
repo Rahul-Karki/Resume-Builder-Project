@@ -4,8 +4,6 @@ import type { ResumeDocument } from "@/types/resume-types";
 import {
   A4_HEIGHT_PX,
   A4_WIDTH_PX,
-  PAGE_PADDING_PX,
-  CONTENT_HEIGHT_PX,
   buildPageOffsetsFromElement,
 } from "@/utils/resumePagination";
 import { ResumePage } from "@/components/builder/ResumePage";
@@ -40,7 +38,7 @@ export function PaginatedResumePreview({
       const measureEl = measureRef.current;
       if (!measureEl) return;
 
-      const nextOffsets = buildPageOffsetsFromElement(measureEl, CONTENT_HEIGHT_PX);
+      const nextOffsets = buildPageOffsetsFromElement(measureEl, A4_HEIGHT_PX);
       setPageOffsets((prev) => (offsetsEqual(prev, nextOffsets) ? prev : nextOffsets));
     };
 
@@ -89,8 +87,6 @@ export function PaginatedResumePreview({
           left: "-9999px",
           top: 0,
           width: A4_WIDTH_PX,
-          padding: PAGE_PADDING_PX,
-          boxSizing: "border-box",
           visibility: "hidden",
           pointerEvents: "none",
           zIndex: -1,
@@ -103,7 +99,7 @@ export function PaginatedResumePreview({
       {pageOffsets.map((offset, index) => {
         const isLastPage = index === pageOffsets.length - 1;
         const nextOffset = isLastPage
-          ? offset + CONTENT_HEIGHT_PX
+          ? offset + A4_HEIGHT_PX
           : pageOffsets[index + 1];
         const sliceHeight = nextOffset - offset;
 
@@ -115,7 +111,6 @@ export function PaginatedResumePreview({
             style={{
               width: `${scaledWidth}px`,
               minHeight: `${scaledPageHeight}px`,
-              padding: `${PAGE_PADDING_PX * scale}px`,
             }}
           >
             <div
@@ -133,7 +128,7 @@ export function PaginatedResumePreview({
                 data-page-slice="true"
                 style={{
                   width: A4_WIDTH_PX,
-                  height: Math.min(CONTENT_HEIGHT_PX, sliceHeight),
+                  height: Math.min(A4_HEIGHT_PX, sliceHeight),
                   overflow: "hidden",
                   transform: `translateY(-${offset}px)`,
                   transformOrigin: "top left",

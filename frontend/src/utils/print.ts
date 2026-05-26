@@ -1,4 +1,4 @@
-import { A4_WIDTH_PX as A4_W_PX, A4_HEIGHT_PX as A4_H_PX, PAGE_PADDING_PX } from "@/utils/resumePagination";
+import { A4_WIDTH_PX as A4_W_PX, A4_HEIGHT_PX as A4_H_PX } from "@/utils/resumePagination";
 
 function shouldPreservePaginationTransforms(node: HTMLElement): boolean {
   return (

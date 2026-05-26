@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { A4_HEIGHT_PX, A4_WIDTH_PX, PAGE_PADDING_PX } from "@/utils/resumePagination";
+import { A4_HEIGHT_PX, A4_WIDTH_PX } from "@/utils/resumePagination";
 
 type ResumePageProps = {
   children: ReactNode;
@@ -12,7 +12,6 @@ type ResumePageProps = {
 const basePageStyle: CSSProperties = {
   width: A4_WIDTH_PX,
   minHeight: A4_HEIGHT_PX,
-  padding: PAGE_PADDING_PX,
   boxSizing: "border-box",
   overflow: "hidden",
   position: "relative",
