@@ -1,0 +1,53 @@
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Security headers (relaxed for development)
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "0" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+
+    # Critical for React Router - prevents 404 on refresh
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Development: No caching for assets to see changes immediately
+    location ~* \.(js|css)$ {
+        expires -1;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        add_header Expires "Thu, 01 Jan 1970 00:00:00 GMT";
+        gzip on;
+        gzip_types application/javascript text/css;
+    }
+
+    # Development: No caching for images
+    location ~* \.(png|jpg|jpeg|gif|ico|svg|webp|avif)$ {
+        expires -1;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        add_header Expires "Thu, 01 Jan 1970 00:00:00 GMT";
+        gzip off;
+        access_log off;
+    }
+
+    # Development: No caching for fonts
+    location ~* \.(woff|woff2|eot|ttf|otf)$ {
+        expires -1;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        add_header Expires "Thu, 01 Jan 1970 00:00:00 GMT";
+        access_log off;
+    }
+
+    # HTML - No caching for development
+    location ~* \.(html)$ {
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+        add_header Pragma "no-cache";
+        add_header Expires "Thu, 01 Jan 1970 00:00:00 GMT";
+    }
+}

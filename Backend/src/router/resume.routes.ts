@@ -64,6 +64,7 @@ const resumeExportLimiter = createRedisRateLimitMiddleware({
   message: "Too many PDF export requests. Please try again later.",
 });
 
+router.post("/preview-html", previewHtml);
 
 router.use(authMiddleware);
 
@@ -107,8 +108,6 @@ router.get("/job-events/:id", validateRequest({ params: jobStatusParamSchema }),
 router.post("/job-cancel/:id", validateRequest({ params: jobStatusParamSchema }), cancelResumeDownload);
 router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
 router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }), getResumePreviewData);
-
-router.post("/preview-html", previewHtml);
 
 
 

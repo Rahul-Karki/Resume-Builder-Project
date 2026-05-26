@@ -63,10 +63,12 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
   // If a resume object is provided, prefer server-rendered canonical HTML
   if (resume) {
     try {
-      const resp = await fetch('/api/resumes/preview-html', {
+      const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+      const resp = await fetch(`${apiBaseURL}/resumes/preview-html`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resume, preset }),
+        credentials: 'include',
       });
 
       if (!resp.ok) {
