@@ -419,20 +419,23 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
   const handleDownload = async () => {
     setApiError(null);
-    setStatusMessage('Opening print dialog...');
-    
+    setIsExporting(true);
+    setStatusMessage('Opening print preview...');
+
     try {
-      // Wait for fonts to load
-      await document.fonts?.ready;
+      // Use the proper printResume utility which handles fonts, images, and creates correct print preview
+      const latestResume = useResumeBuilderStore.getState().resume;
+      const preset = (latestResume as any)?.preset ?? 'standard';
       
-      // Trigger browser print dialog which allows "Save as PDF" and custom location
-      window.print();
+      await printResume('#resume-preview-root', latestResume, preset);
       
-      setStatusMessage('Print dialog opened. Choose "Save as PDF" from printer dropdown.');
+      setStatusMessage('Print dialog opened. Select "Save as PDF" to download with custom filename and location.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to open print dialog.';
+      const message = error instanceof Error ? error.message : 'Failed to open print preview.';
       setStatusMessage(message);
       setApiError(message);
+    } finally {
+      setIsExporting(false);
     }
   };
 
