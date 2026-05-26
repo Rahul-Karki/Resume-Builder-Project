@@ -427,7 +427,9 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       const latestResume = useResumeBuilderStore.getState().resume;
       const preset = (latestResume as any)?.preset ?? 'standard';
       
-      await printResume('#resume-preview-root', latestResume, preset);
+      // Pass empty selector to force server-rendered HTML (not the scaled preview DOM)
+      // This ensures print preview matches browser preview exactly at 1:1 scale
+      await printResume('', latestResume, preset);
       
       setStatusMessage('Print dialog opened. Select "Save as PDF" to download with custom filename and location.');
     } catch (error) {

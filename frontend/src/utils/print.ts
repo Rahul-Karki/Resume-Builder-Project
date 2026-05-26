@@ -112,6 +112,10 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
         return;
       }
     } catch (err) {
+      // If selector is empty, it means we should ONLY use server HTML, so don't fallback to cloning
+      if (!selector) {
+        throw err;
+      }
       // fallback to clone approach below
       // eslint-disable-next-line no-console
       console.warn('Server preview HTML unavailable, falling back to client clone', err);
