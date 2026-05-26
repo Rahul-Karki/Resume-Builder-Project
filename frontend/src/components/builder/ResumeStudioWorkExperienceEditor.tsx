@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, PanelLeftClose, PanelLeftOpen, X, Monitor } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api, improveResumeText, getLatestAtsAnalysis } from '@/services/api';
@@ -117,7 +117,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [userZoom, setUserZoom] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
   const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
-  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
@@ -420,36 +419,20 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
   const handleDownload = async () => {
     setApiError(null);
-    setIsExporting(true);
-    setStatusMessage('Generating PDF...');
-
+    setStatusMessage('Opening print dialog...');
+    
     try {
+      // Wait for fonts to load
       await document.fonts?.ready;
-      const { downloadResumePDF } = await import('@/utils/downloadPdfClient');
-      await downloadResumePDF();
-      setStatusMessage('PDF downloaded.');
+      
+      // Trigger browser print dialog which allows "Save as PDF" and custom location
+      window.print();
+      
+      setStatusMessage('Print dialog opened. Choose "Save as PDF" from printer dropdown.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to download PDF.';
-
-      try {
-        if (!resume.id) await saveResume();
-        const latestResume = useResumeBuilderStore.getState().resume;
-        const resumeId = latestResume.id ?? latestResume._id;
-        if (resumeId) {
-          setStatusMessage('Trying server PDF fallback...');
-          const { default: downloadResumeAndOpen } = await import('@/utils/downloadPdf');
-          await downloadResumeAndOpen({ resumeId, preset: (latestResume as any)?.preset ?? 'standard' });
-          setStatusMessage('PDF opened in new tab.');
-          return;
-        }
-      } catch {
-        /* server fallback also failed */
-      }
-
+      const message = error instanceof Error ? error.message : 'Failed to open print dialog.';
       setStatusMessage(message);
       setApiError(message);
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -543,15 +526,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             className="px-2.5 py-1 text-xs rounded-lg border border-zinc-700 bg-zinc-900 hover:border-[#C8F55A] disabled:opacity-50 transition-colors"
           >
             {ui.isSaving ? 'Saving...' : 'Save'}
-          </button>
-
-          <button
-            onClick={() => setShowPrintPreview(true)}
-            className="px-2.5 py-1 text-xs rounded-lg border border-zinc-700 bg-zinc-900 hover:border-zinc-500 transition-colors inline-flex items-center gap-1.5"
-            title="Preview PDF"
-          >
-            <Monitor size={14} />
-            Preview
           </button>
 
           <button
@@ -824,63 +798,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       {apiError && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-70 bg-red-950/95 border border-red-700 text-red-100 px-4 py-2.5 rounded-xl text-sm">
           {apiError}
-        </div>
-      )}
-
-      {showPrintPreview && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0A0A0D] border border-zinc-800/80 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] max-w-4xl w-full">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800/70">
-              <div className="flex items-center gap-2">
-                <Monitor size={18} className="text-[#C8F55A]" />
-                <h2 className="text-lg font-semibold text-white">Print Preview</h2>
-              </div>
-              <button
-                onClick={() => setShowPrintPreview(false)}
-                className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 inline-flex items-center justify-center transition-colors"
-                aria-label="Close preview"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-auto bg-[#05050a] p-6 themed-scrollbar">
-              <div className="flex items-center justify-center">
-                <div
-                  className="bg-white shadow-xl"
-                  style={{
-                    width: `${A4_WIDTH_PX * 0.8}px`,
-                  }}
-                >
-                  <PaginatedResumePreview resume={resume} scale={0.8} />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 p-4 border-t border-zinc-800/70 bg-[#0C0C0F]">
-              <p className="text-xs text-zinc-400">
-                This is how your resume will look when downloaded as PDF
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowPrintPreview(false)}
-                  className="px-3 py-2 text-xs rounded-lg border border-zinc-700 bg-zinc-900 hover:border-zinc-500 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setShowPrintPreview(false);
-                    void handleDownload();
-                  }}
-                  disabled={isExporting}
-                  className="px-3 py-2 text-xs rounded-lg bg-[#C8F55A] text-[#0A0A0A] font-semibold hover:bg-yellow-400 disabled:opacity-50 transition-colors"
-                >
-                  {isExporting ? 'Exporting...' : 'Download Now'}
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </div>
