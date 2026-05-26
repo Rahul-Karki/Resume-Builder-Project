@@ -8,6 +8,7 @@ import {
   CONTENT_HEIGHT_PX,
   buildPageOffsetsFromElement,
 } from "@/utils/resumePagination";
+import { ResumePage } from "@/components/builder/ResumePage";
 
 const PAGE_GAP_PX = 24;
 const RECALC_DEBOUNCE_MS = 200;
@@ -23,16 +24,6 @@ function offsetsEqual(a: number[], b: number[]): boolean {
 type PaginatedResumePreviewProps = {
   resume: ResumeDocument;
   scale: number;
-};
-
-const pageWrapperStyle: React.CSSProperties = {
-  width: A4_WIDTH_PX,
-  minHeight: A4_HEIGHT_PX,
-  padding: PAGE_PADDING_PX,
-  boxSizing: "border-box",
-  overflow: "hidden",
-  position: "relative",
-  background: "#ffffff",
 };
 
 export function PaginatedResumePreview({
@@ -78,8 +69,6 @@ export function PaginatedResumePreview({
   const scaledWidth = useMemo(() => A4_WIDTH_PX * scale, [scale]);
   const scaledPageHeight = useMemo(() => A4_HEIGHT_PX * scale, [scale]);
 
-  const hasMultiplePages = pageOffsets.length > 1;
-
   return (
     <div
       className="resume-pages-root"
@@ -119,14 +108,11 @@ export function PaginatedResumePreview({
         const sliceHeight = nextOffset - offset;
 
         return (
-          <div
+          <ResumePage
             key={`page-${index}`}
-            className="resume-page"
-            data-resume-page="true"
-            data-page-index={index}
+            index={index}
+            backgroundColor={resume.style.backgroundColor}
             style={{
-              ...pageWrapperStyle,
-              background: resume.style.backgroundColor,
               width: `${scaledWidth}px`,
               minHeight: `${scaledPageHeight}px`,
               padding: `${PAGE_PADDING_PX * scale}px`,
@@ -156,7 +142,7 @@ export function PaginatedResumePreview({
                 <ResumeRenderer resume={resume} />
               </div>
             </div>
-          </div>
+          </ResumePage>
         );
       })}
 
@@ -165,7 +151,7 @@ export function PaginatedResumePreview({
           body { margin: 0; padding: 0; }
           .resume-pages-root { gap: 0 !important; }
           .resume-measure-container { display: none !important; }
-          .resume-page {
+          [data-resume-page] {
             page-break-after: always !important;
             break-after: page !important;
             box-shadow: none !important;
@@ -176,9 +162,17 @@ export function PaginatedResumePreview({
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
-          .resume-page:last-child {
+          [data-resume-page]:last-child {
             page-break-after: auto !important;
             break-after: auto !important;
+          }
+          section, article, li, p, [class*='job'], [class*='entry'], [class*='item'], [class*='project'], [class*='skill'], [data-pagination-block] {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+          h1, h2, h3, h4, h5, h6, [class*='section-title'], [class*='sectionTitle'], [class*='heading'], [class*='label'] {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
           }
         }
       `}</style>

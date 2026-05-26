@@ -41,8 +41,11 @@ function collectSectionCandidates(root: HTMLElement): Set<number> {
     "[class*='comp-row']",
     "[class*='classic-section']",
     "[class*='side-section']",
+    "[class*='side-left-section']",
     "[class*='section']",
     "[class*='sec-']",
+    "[class*='cmb-sec']",
+    "[class*='chr-sec']",
     "[data-pagination-section]",
   ].join(",");
 
