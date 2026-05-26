@@ -928,6 +928,15 @@ function CertificationsSection() {
               />
             </div>
           </div>
+          <div style={{ marginTop: 16 }}>
+            <span style={label}>Credential URL</span>
+            <Input
+              value={entry.url ?? ""}
+              onChange={(v) => updateCertification(entry.id, "url", v)}
+              onFocus={() => setFocusedField({ section: "certifications", kind: "certification", entityId: entry.id, field: "url", label: "Credential URL" })}
+              placeholder="https://example.com/certificate"
+            />
+          </div>
         </EntryCard>
       ))}
 

@@ -682,7 +682,7 @@ export const useResumeBuilderStore = create<ResumeBuilderStore>()(
         resume: {
           ...s.resume, sections: {
             ...s.resume.sections,
-            certifications: [...s.resume.sections.certifications, { id: uid(), name: "", issuer: "", year: "" }],
+            certifications: [...s.resume.sections.certifications, { id: uid(), name: "", issuer: "", year: "", url: "" }],
           },
           sectionVisibility: { ...s.resume.sectionVisibility, certifications: true },
         },

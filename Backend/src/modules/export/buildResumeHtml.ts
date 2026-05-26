@@ -106,15 +106,18 @@ const buildLanguagesSection = (entries: unknown) => buildSimpleListSection(entri
   </div>
 `);
 
-const buildCertificationsSection = (entries: unknown) => buildSimpleListSection(entries, (item) => `
+const buildCertificationsSection = (entries: unknown) => buildSimpleListSection(entries, (item) => {
+  const url = normalizeText(item.url);
+  return `
   <div class="item-header">
     <div>
       <h3>${escapeHtml(item.name ?? "Certification")}</h3>
-      <p class="muted">${escapeHtml(item.issuer ?? "")}</p>
+      <p class="muted">${escapeHtml(item.issuer ?? "")}${url ? ` • <a href="${escapeHtml(url)}" target="_blank">${escapeHtml(url)}</a>` : ""}</p>
     </div>
     <div class="muted align-right">${escapeHtml(item.year ?? "")}</div>
   </div>
-`);
+`;
+});
 
 const mapToSystemFont = (font: string): string => {
   const fontName = font.toLowerCase();

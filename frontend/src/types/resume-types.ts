@@ -57,6 +57,7 @@ export interface CertEntry {
   name: string;
   issuer: string;
   year: string;
+  url?: string;
 }
 
 export interface LanguageEntry {

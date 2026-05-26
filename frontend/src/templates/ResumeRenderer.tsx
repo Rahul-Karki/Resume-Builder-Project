@@ -229,7 +229,7 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
             s.certifications.length > 0 ? (
               s.certifications.map((certification) => (
                 <div key={certification.id} style={{ fontSize: style.fontSize, color: style.textColor, marginBottom: 3 }}>
-                  {style.bulletStyle} <strong>{certification.name}</strong>{certification.issuer ? ` — ${certification.issuer}` : ""}{certification.year ? ` (${certification.year})` : ""}
+                  {style.bulletStyle} <strong>{certification.name}</strong>{certification.issuer ? ` — ${certification.issuer}` : ""}{certification.year ? ` (${certification.year})` : ""}{certification.url ? ` — ${certification.url}` : ""}
                 </div>
               ))
             ) : null,
@@ -381,7 +381,7 @@ function ClassicTemplate({ resume }: Props) {
         <SectionHeading title="Certifications" />
         {s.certifications.map((c) => (
           <div key={c.id} style={{ fontSize: style.fontSize, color: style.textColor, marginBottom: 3 }}>
-            {style.bulletStyle} <strong>{c.name}</strong>{c.issuer ? ` — ${c.issuer}` : ""}{c.year ? ` (${c.year})` : ""}
+            {style.bulletStyle} <strong>{c.name}</strong>{c.issuer ? ` — ${c.issuer}` : ""}{c.year ? ` (${c.year})` : ""}{c.url ? ` — ${c.url}` : ""}
           </div>
         ))}
       </div>

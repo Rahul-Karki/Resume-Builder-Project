@@ -22,11 +22,13 @@ export function formatProjectTech(project: Project): string {
 export function formatCertification(certification: CertEntry): string {
   const issuer = certification.issuer?.trim();
   const year = certification.year?.trim();
+  const url = certification.url?.trim();
 
-  if (issuer && year) return `${certification.name} - ${issuer} (${year})`;
-  if (issuer) return `${certification.name} - ${issuer}`;
-  if (year) return `${certification.name} (${year})`;
-  return certification.name;
+  let result = certification.name;
+  if (issuer) result += ` - ${issuer}`;
+  if (year) result += ` (${year})`;
+  if (url) result += ` — ${url}`;
+  return result;
 }
 
 export function getDisplayBullets(items: string[]): string[] {
