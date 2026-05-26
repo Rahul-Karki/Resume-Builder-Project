@@ -112,6 +112,9 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
   const printClone = root.cloneNode(true) as HTMLElement;
   printClone.classList.add("__print-clone");
   printClone.querySelectorAll("style, script").forEach((node) => node.remove());
+  
+  // Remove the hidden measure container - not needed for printing
+  printClone.querySelectorAll(".resume-measure-container").forEach((node) => node.remove());
 
   normalizeCloneTree(root, printClone);
 
@@ -172,8 +175,11 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
         max-width: ${A4_W_PX}px !important;
       }
 
+      /* KEEP the translateY transform on data-page-slice - it's essential for showing only one page's content */
       .__print-clone [data-page-slice] {
-        transform: none !important;
+        overflow: hidden !important;
+        width: ${A4_W_PX}px !important;
+        height: ${A4_H_PX}px !important;
       }
 
       /* Page containers — each rendered page prints on its own sheet */
