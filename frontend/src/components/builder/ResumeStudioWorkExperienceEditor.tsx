@@ -419,28 +419,36 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
   const handleDownload = async () => {
     setApiError(null);
-    setStatusMessage('Queuing PDF export...');
+    setIsExporting(true);
+    setStatusMessage('Generating PDF...');
 
     try {
-      if (!resume.id) {
-        await saveResume();
-      }
-
-      const latestResume = useResumeBuilderStore.getState().resume;
-      const resumeId = latestResume.id ?? latestResume._id;
-
-      if (!resumeId) {
-        throw new Error('Save the resume first before downloading it.');
-      }
-
-      setStatusMessage('Export requested — waiting for server PDF...');
-      const { default: downloadResumeAndOpen } = await import('@/utils/downloadPdf');
-      await downloadResumeAndOpen({ resumeId, preset: (latestResume as any)?.preset ?? 'standard' });
-      setStatusMessage('PDF opened in new tab.');
+      await document.fonts?.ready;
+      const { downloadResumePDF } = await import('@/utils/downloadPdfClient');
+      await downloadResumePDF();
+      setStatusMessage('PDF downloaded.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to download PDF.';
+
+      try {
+        if (!resume.id) await saveResume();
+        const latestResume = useResumeBuilderStore.getState().resume;
+        const resumeId = latestResume.id ?? latestResume._id;
+        if (resumeId) {
+          setStatusMessage('Trying server PDF fallback...');
+          const { default: downloadResumeAndOpen } = await import('@/utils/downloadPdf');
+          await downloadResumeAndOpen({ resumeId, preset: (latestResume as any)?.preset ?? 'standard' });
+          setStatusMessage('PDF opened in new tab.');
+          return;
+        }
+      } catch {
+        /* server fallback also failed */
+      }
+
       setStatusMessage(message);
       setApiError(message);
+    } finally {
+      setIsExporting(false);
     }
   };
 

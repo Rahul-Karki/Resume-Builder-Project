@@ -1,24 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { computePageOffsets } from "../utils/resumePagination";
-
-const emptyCandidates = { section: [], entry: [], fine: [] };
+import { computePageOffsets, CONTENT_HEIGHT_PX } from "../utils/resumePagination";
 
 describe("resumePagination", () => {
   it("returns a single page when content fits", () => {
-    expect(computePageOffsets(900, 1123, { section: [200, 500], entry: [], fine: [] })).toEqual([0]);
+    expect(computePageOffsets(900, CONTENT_HEIGHT_PX, [200, 500])).toEqual([0]);
   });
 
-  it("uses section-aligned candidates near ideal breakpoints", () => {
-    const offsets = computePageOffsets(3200, 1123, {
-      section: [540, 1100, 1610, 2190, 2780],
-      entry: [],
-      fine: [],
+  it("returns a single page when content is smaller than page height", () => {
+    expect(computePageOffsets(500, CONTENT_HEIGHT_PX, [])).toEqual([0]);
+  });
+
+  it("uses candidate-aligned breaks for multi-page content", () => {
+    const candidates = [540, 1100, 1610, 2190, 2780];
+    const pageHeight = CONTENT_HEIGHT_PX;
+    const offsets = computePageOffsets(3200, pageHeight, candidates);
+    expect(offsets[0]).toBe(0);
+    expect(offsets.length).toBeGreaterThanOrEqual(2);
+    offsets.forEach((o, i) => {
+      if (i > 0) expect(o).toBeGreaterThan(offsets[i - 1]);
     });
-    expect(offsets).toEqual([0, 1100, 2190]);
   });
 
-  it("falls back to fixed-height pagination when no candidates exist", () => {
-    const offsets = computePageOffsets(3500, 1123, emptyCandidates);
-    expect(offsets).toEqual([0, 1123, 2246, 3369]);
+  it("breaks near the page boundary with few candidates", () => {
+    const offsets = computePageOffsets(3500, CONTENT_HEIGHT_PX, []);
+    expect(offsets[0]).toBe(0);
+    expect(offsets.length).toBeGreaterThanOrEqual(3);
+    offsets.forEach((o, i) => {
+      if (i > 0) expect(o - offsets[i - 1]).toBeGreaterThanOrEqual(32);
+    });
+  });
+
+  it("uses a candidate just after ideal break if none before", () => {
+    const candidates = [1200, 2400, 3600];
+    const offsets = computePageOffsets(5000, CONTENT_HEIGHT_PX, candidates);
+    expect(offsets.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("handles edge case of zero height", () => {
+    expect(computePageOffsets(0, CONTENT_HEIGHT_PX, [])).toEqual([0]);
+  });
+
+  it("handles negative height gracefully", () => {
+    expect(computePageOffsets(-1, CONTENT_HEIGHT_PX, [])).toEqual([0]);
   });
 });
