@@ -69,48 +69,50 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
         body: JSON.stringify({ resume, preset }),
       });
 
-      if (resp.ok) {
-        const html = await resp.text();
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.left = '0';
-        iframe.style.top = '0';
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.style.zIndex = '999999';
-        iframe.style.border = 'none';
-        iframe.setAttribute('aria-hidden', 'true');
-        document.body.appendChild(iframe);
-
-        const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (!doc) throw new Error('Failed to create print iframe');
-        doc.open();
-        doc.write(html);
-        doc.close();
-
-        // wait for fonts and images inside iframe
-        try {
-          await new Promise<void>((resolve, reject) => {
-            const win = iframe.contentWindow as Window | null;
-            if (!win) return reject(new Error('No iframe window'));
-            const onLoaded = () => resolve();
-            // fonts
-            (win as any).document.fonts?.ready?.then(onLoaded).catch(() => setTimeout(onLoaded, 250));
-            // images fallback timeout
-            setTimeout(onLoaded, 1200);
-          });
-        } catch {
-          // continue even if resources didn't fully load
-        }
-
-        try {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-        } finally {
-          setTimeout(() => { try { iframe.remove(); } catch {} }, 800);
-        }
-        return;
+      if (!resp.ok) {
+        throw new Error(`Server returned ${resp.status}: ${resp.statusText}`);
       }
+
+      const html = await resp.text();
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.left = '0';
+      iframe.style.top = '0';
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.zIndex = '999999';
+      iframe.style.border = 'none';
+      iframe.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) throw new Error('Failed to create print iframe');
+      doc.open();
+      doc.write(html);
+      doc.close();
+
+      // wait for fonts and images inside iframe
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const win = iframe.contentWindow as Window | null;
+          if (!win) return reject(new Error('No iframe window'));
+          const onLoaded = () => resolve();
+          // fonts
+          (win as any).document.fonts?.ready?.then(onLoaded).catch(() => setTimeout(onLoaded, 250));
+          // images fallback timeout
+          setTimeout(onLoaded, 1200);
+        });
+      } catch {
+        // continue even if resources didn't fully load
+      }
+
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } finally {
+        setTimeout(() => { try { iframe.remove(); } catch {} }, 800);
+      }
+      return;
     } catch (err) {
       // If selector is empty, it means we should ONLY use server HTML, so don't fallback to cloning
       if (!selector) {
@@ -120,6 +122,11 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
       // eslint-disable-next-line no-console
       console.warn('Server preview HTML unavailable, falling back to client clone', err);
     }
+  }
+
+  // If we reach here with empty selector, it's an error - selector must be provided for DOM cloning
+  if (!selector) {
+    throw new Error('No selector provided and server HTML unavailable');
   }
 
   const root = document.querySelector<HTMLElement>(selector);
