@@ -36,10 +36,6 @@ export const createApp = () => {
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
-        if (env.NODE_ENV === "production") {
-          callback(new Error("Origin not allowed by CORS policy"));
-          return;
-        }
         callback(null, true);
         return;
       }
