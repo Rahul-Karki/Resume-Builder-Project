@@ -8,7 +8,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;700&display=swap');
     .side-wrap { display:flex; width:100%; height:100%; min-height:100%; max-width:none; margin:0; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
-    .side-left { flex-shrink:0; width:210px; background:#1E293B; color:#CBD5E1; padding:32px 22px; position:relative; z-index:1; }
+    .side-left { flex-shrink:0; width:210px; background:#1E293B; color:#CBD5E1; padding:32px 22px; position:relative; z-index:1; margin-right:-1px; }
     .side-name { font-family:'Nunito',sans-serif; font-size:18pt; font-weight:700; color:#F1F5F9; margin:0 0 2px; line-height:1.2; }
     .side-subtitle { font-size:8.5pt; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px; }
     .side-contact-item { display:flex; align-items:flex-start; gap:6px; font-size:8.5pt; color:#94A3B8; margin-bottom:6px; }
@@ -147,7 +147,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
         </div>
  
         {/* RIGHT MAIN */}
-        <div className="side-right" style={{ padding: pagePadding, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, printColorAdjust: "exact", WebkitPrintColorAdjust: "exact", boxShadow: `-1px 0 0 0 ${style.accentColor}` }}>
+        <div className="side-right" style={{ padding: pagePadding, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
           {p.summary && (
           <div className="side-section" style={{ marginBottom: sectionGap }}>
             <div className="side-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor }}>Profile</div>
