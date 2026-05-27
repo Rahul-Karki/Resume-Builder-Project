@@ -114,14 +114,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
-  const [userZoom, setUserZoom] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
   const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
-
-  const effectiveScale = useMemo(
-    () => userZoom ?? previewScale,
-    [userZoom, previewScale],
-  );
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
@@ -206,7 +200,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (userZoom !== null) return;
     const computeScale = () => {
       const host = previewHostRef.current;
       if (!host) return;
@@ -230,7 +223,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       if (observer) observer.disconnect();
       window.removeEventListener('resize', computeScale);
     };
-  }, [assistantOpen, mobileEditorOpen, isMobile, userZoom]);
+  }, [assistantOpen, mobileEditorOpen, isMobile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -576,42 +569,15 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </aside>
 
         <main className={`flex-1 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isMobile ? 'mr-90' : ''}`}>
-          <div className="flex items-center justify-end gap-2 px-3 py-1.5 bg-[#0A0A0D] border-b border-[#1A1A1D]">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setUserZoom((z) => {
-                  const next = Math.max(0.28, (z ?? previewScale) - 0.1);
-                  return Math.round(next * 100) / 100;
-                })}
-                className="text-[#888] hover:text-[#e4e4e7] text-xs px-1.5 py-0.5 rounded hover:bg-[#1A1A1D] transition-colors"
-                title="Zoom out"
-              >−</button>
-              <span className="text-[#888] text-xs font-mono tabular-nums w-10 text-center">{Math.round(effectiveScale * 100)}%</span>
-              <button
-                onClick={() => setUserZoom((z) => {
-                  const next = Math.min(2, (z ?? previewScale) + 0.1);
-                  return Math.round(next * 100) / 100;
-                })}
-                className="text-[#888] hover:text-[#e4e4e7] text-xs px-1.5 py-0.5 rounded hover:bg-[#1A1A1D] transition-colors"
-                title="Zoom in"
-              >+</button>
-              {userZoom !== null && (
-                <button
-                  onClick={() => setUserZoom(null)}
-                  className="text-[#888] hover:text-[#C8F55A] text-xs px-1.5 py-0.5 rounded hover:bg-[#1A1A1D] transition-colors ml-1"
-                  title="Reset zoom to fit"
-                >auto</button>
-              )}
-            </div>
-          </div>
+          <div className="flex items-center justify-end gap-2 px-3 py-1.5 bg-[#0A0A0D] border-b border-[#1A1A1D]" />
           <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-start justify-center overflow-auto themed-scrollbar">
             <div
               id="resume-preview-root"
               style={{
-                width: `${A4_WIDTH_PX * effectiveScale}px`,
+                width: `${A4_WIDTH_PX * previewScale}px`,
               }}
             >
-              <PaginatedResumePreview resume={resume} scale={effectiveScale} />
+              <PaginatedResumePreview resume={resume} scale={previewScale} />
             </div>
           </div>
         </main>
