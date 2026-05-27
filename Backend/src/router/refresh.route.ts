@@ -6,7 +6,7 @@ import { env } from "../config/env";
 const csrfLimiter = createRedisRateLimitMiddleware({
   scope: "csrf-token",
   windowMs: 60000,
-  max: 10,
+  max: 60,
   message: "Too many CSRF token requests. Please try again later.",
 });
 

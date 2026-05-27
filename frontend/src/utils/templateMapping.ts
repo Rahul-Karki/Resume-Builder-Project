@@ -1,30 +1,21 @@
 import { templates } from "@/data/templateMeta";
+import type { TemplateMeta, TemplateId } from "@/types/resume-types";
 
-export type TemplateMeta = {
-  id: string;
-  name: string;
-  tag: string;
-  category: string;
-  audience: string;
-  description: string;
-  isPremium: boolean;
-  accent: string;
-  palette: Record<string, string>;
-};
+export type { TemplateMeta };
 
-function mapPalette(t: typeof templates[number]): Record<string, string> {
+function mapPalette(t: typeof templates[number]): TemplateMeta["palette"] {
   const [bg = "#ffffff", primary = "#000000", secondary = "#666666", sidebar] = t.palette;
-  const result: Record<string, string> = { bg, primary, secondary };
+  const result: TemplateMeta["palette"] = { bg, primary, secondary };
   if (sidebar) result.sidebar = sidebar;
   return result;
 }
 
 export const TEMPLATES: TemplateMeta[] = templates.map((t) => ({
-  id: t.id,
+  id: t.id as TemplateId,
   name: t.name,
   tag: t.tag,
   category: t.category === "tech" ? "Technical" : "Professional",
-  audience: t.audience,
+  audience: t.audience as "tech" | "non-tech",
   description: t.description,
   isPremium: t.isPremium,
   accent: t.accent,

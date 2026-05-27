@@ -15,6 +15,7 @@ type AiOperation = 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-an
 
 type RetriableConfig = {
   _retry?: boolean;
+  _csrfRetried?: boolean;
   _retryCount?: number;
   url?: string;
   headers?: Record<string, string>;
@@ -346,10 +347,13 @@ api.interceptors.response.use(
     if (
       isCsrfFailure(error) &&
       originalRequest &&
-      !originalRequest._retry &&
+      !originalRequest._csrfRetried &&
       !excludedPath
     ) {
-      originalRequest._retry = true;
+      originalRequest._csrfRetried = true;
+
+      // Small backoff to allow bootstrap or concurrent CSRF rotation to complete
+      await wait(500);
 
       try {
         await fetchRotatedCsrfToken();
