@@ -14,7 +14,7 @@ describe("requestDeduplicationMiddleware", () => {
     const cachedData = JSON.stringify({ result: "cached" });
     vi.mocked(cacheGet).mockResolvedValue(cachedData);
 
-    const req = { path: "/api/ai/improve-text", headers: {}, user: { id: "user1" }, body: { text: "hello" } } as any;
+    const req = { baseUrl: "", path: "/api/ai/improve-text", headers: {}, user: { id: "user1" }, body: { text: "hello" } } as any;
     const res = { set: vi.fn(), status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
     const next = vi.fn();
 
@@ -29,7 +29,7 @@ describe("requestDeduplicationMiddleware", () => {
   it("should forward the request to the handler when the hash is new", async () => {
     vi.mocked(cacheGet).mockResolvedValue(null);
 
-    const req = { path: "/api/ai/improve-text", headers: {}, user: { id: "user1" }, body: { text: "new content" } } as any;
+    const req = { baseUrl: "", path: "/api/ai/improve-text", headers: {}, user: { id: "user1" }, body: { text: "new content" } } as any;
     const res = { json: vi.fn((body) => body), set: vi.fn(), statusCode: 200 } as any;
     const next = vi.fn();
 
@@ -41,7 +41,7 @@ describe("requestDeduplicationMiddleware", () => {
   it("should use a combination of user ID and content for the dedup key", async () => {
     vi.mocked(cacheGet).mockResolvedValue(null);
 
-    const req = { path: "/api/ai/improve-text", headers: {}, user: { id: "user1" }, body: { text: "my text", section: "summary", tone: "professional" } } as any;
+    const req = { baseUrl: "", path: "/api/ai/improve-text", headers: {}, user: { id: "user1" }, body: { text: "my text", section: "summary", tone: "professional" } } as any;
     const res = { json: vi.fn((body) => body), set: vi.fn(), statusCode: 200 } as any;
     const next = vi.fn();
 

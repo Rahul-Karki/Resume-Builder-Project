@@ -50,14 +50,12 @@ export const launchPuppeteerBrowser = async () => {
   try {
     return await puppeteer.launch(primaryOptions);
   } catch (error) {
-    if (primaryOptions.executablePath) {
-      // Retry without custom executable path — fall back to Puppeteer's managed binary
-      delete process.env.PUPPETEER_EXECUTABLE_PATH;
-      return puppeteer.launch({
-        ...primaryOptions,
-        executablePath: undefined,
-      });
-    }
-    throw error;
+    // Always fall back to Puppeteer's managed binary — the configured path may be
+    // missing, invalid, or not executable even if the file exists (e.g. Render stub).
+    delete process.env.PUPPETEER_EXECUTABLE_PATH;
+    return puppeteer.launch({
+      ...primaryOptions,
+      executablePath: undefined,
+    });
   }
 };

@@ -343,6 +343,8 @@ export const deleteByPattern = async (pattern: string): Promise<number> => {
       return deletedCount;
     });
 
+    memoryCache.deleteByPattern(pattern);
+
     return deleted ?? 0;
   }
 

@@ -11,6 +11,7 @@ services:
       - ./Backend/.env
     environment:
       - NODE_ENV=development
+      - USE_MEMORY_ONLY_CACHE=false
       - REDIS_URL=redis://redis:6379/0
       - FRONTEND_URL=http://localhost:5173
       - FRONTEND_URLS=http://localhost:5173,http://localhost:5000
