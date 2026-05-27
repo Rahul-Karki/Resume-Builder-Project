@@ -67,7 +67,7 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="mod-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding, height: "100%", minHeight: "100%" }}>
+      <div className="mod-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding, height: "100%", minHeight: "100%", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
         <h1 className="mod-name" style={{ color: style.headingColor, fontFamily: style.headingFont, textAlign: style.headerAlign }}>{p.name}</h1>
         {p.title && <div className="mod-tagline" style={{ color: style.mutedColor, textAlign: style.headerAlign }}>{p.title}</div>}
         {contactItems.length > 0 && (

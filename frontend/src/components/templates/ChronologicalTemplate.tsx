@@ -53,7 +53,7 @@ export function ChronologicalTemplate({ data }: { data: ResumeDocument }) {
     .chr-skills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; }
     .chr-skill-item { font-size: 9.8pt; }
     .chr-skill-item strong { display: inline-block; margin-right: 6px; }
-    @media (max-width: 900px) {
+    @media screen and (max-width: 900px) {
       .chr-timeline-item { grid-template-columns: 1fr; gap: 4px; }
       .chr-skills { grid-template-columns: 1fr; }
     }
@@ -71,6 +71,8 @@ export function ChronologicalTemplate({ data }: { data: ResumeDocument }) {
           fontSize: style.fontSize,
           lineHeight: style.lineHeight,
           padding: pagePadding,
+          printColorAdjust: "exact",
+          WebkitPrintColorAdjust: "exact",
         }}
       >
         <header className="chr-head" style={{ textAlign: style.headerAlign }}>

@@ -54,7 +54,7 @@ export function CombinationTemplate({ data }: { data: ResumeDocument }) {
     .cmb-bullets { margin: 4px 0 0; padding: 0; list-style: none; }
     .cmb-bullets li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; font-size: 9.8pt; }
     .cmb-edu-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 6px; }
-    @media (max-width: 900px) {
+    @media screen and (max-width: 900px) {
       .cmb-top-grid { grid-template-columns: 1fr; }
       .cmb-exp-top { grid-template-columns: 1fr; }
     }
@@ -72,6 +72,8 @@ export function CombinationTemplate({ data }: { data: ResumeDocument }) {
           fontSize: style.fontSize,
           lineHeight: style.lineHeight,
           padding: pagePadding,
+          printColorAdjust: "exact",
+          WebkitPrintColorAdjust: "exact",
         }}
       >
         <header className="cmb-header" style={{ textAlign: style.headerAlign }}>

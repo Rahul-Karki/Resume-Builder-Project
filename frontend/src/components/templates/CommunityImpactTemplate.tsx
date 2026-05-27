@@ -55,7 +55,7 @@ export function CommunityImpactTemplate({ data }: { data: ResumeDocument }) {
     .cim-skills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
     .cim-skill-row { font-size: 9.7pt; }
     .cim-skill-row strong { margin-right: 6px; }
-    @media (max-width: 900px) {
+    @media screen and (max-width: 900px) {
       .cim-entry-top { grid-template-columns: 1fr; }
       .cim-skills { grid-template-columns: 1fr; }
     }
@@ -77,6 +77,8 @@ export function CommunityImpactTemplate({ data }: { data: ResumeDocument }) {
           fontSize: style.fontSize,
           lineHeight: style.lineHeight,
           padding: pagePadding,
+          printColorAdjust: "exact",
+          WebkitPrintColorAdjust: "exact",
         }}
       >
         <header className="cim-header" style={{ textAlign: style.headerAlign }}>

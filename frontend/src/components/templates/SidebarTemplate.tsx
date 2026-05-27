@@ -147,7 +147,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
         </div>
  
         {/* RIGHT MAIN */}
-        <div className="side-right" style={{ padding: pagePadding, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight }}>
+        <div className="side-right" style={{ padding: pagePadding, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
           {p.summary && (
           <div className="side-section" style={{ marginBottom: sectionGap }}>
             <div className="side-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor }}>Profile</div>

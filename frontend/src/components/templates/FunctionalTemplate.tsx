@@ -53,7 +53,7 @@ export function FunctionalTemplate({ data }: { data: ResumeDocument }) {
     .fun-bullets { margin: 4px 0 0; padding: 0; list-style: none; }
     .fun-bullets li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 3px; font-size: 9.7pt; }
     .fun-edu { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 6px; }
-    @media (max-width: 900px) {
+    @media screen and (max-width: 900px) {
       .fun-head { grid-template-columns: 1fr; }
       .fun-contact { justify-content: flex-start; }
       .fun-skill-grid { grid-template-columns: 1fr; }
@@ -73,6 +73,8 @@ export function FunctionalTemplate({ data }: { data: ResumeDocument }) {
           fontSize: style.fontSize,
           lineHeight: style.lineHeight,
           padding: pagePadding,
+          printColorAdjust: "exact",
+          WebkitPrintColorAdjust: "exact",
         }}
       >
         <header className="fun-head" style={{ textAlign: style.headerAlign }}>

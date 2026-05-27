@@ -232,6 +232,8 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
           fontSize: style.fontSize,
           lineHeight: style.lineHeight,
           padding: pagePadding,
+          printColorAdjust: "exact",
+          WebkitPrintColorAdjust: "exact",
         }}
       >
         <div style={{ marginBottom: 18, textAlign: style.headerAlign }}>

@@ -77,6 +77,8 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
           padding: pagePadding,
           height: "100%",
           minHeight: "100%",
+          printColorAdjust: "exact",
+          WebkitPrintColorAdjust: "exact",
         }}
       >
         <h1 className="sch-name" style={{ fontFamily: style.headingFont, color: style.headingColor, textAlign: style.headerAlign }}>

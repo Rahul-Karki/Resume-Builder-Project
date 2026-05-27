@@ -22,22 +22,24 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;1,400&display=swap');
+    @page { margin:0; size:A4; }
     .res-wrap { font-family:'Libre Baskerville',serif; color:#1a1a1a; background:#fff; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
     .res-wrap, .res-wrap p, .res-wrap span, .res-wrap li, .res-wrap div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
-    .res-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:10px; }
+    .res-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:10px; overflow-wrap:break-word; word-break:break-word; }
     .res-name { font-size:18pt; font-weight:700; margin:0 0 2px; color:#101010; }
     .res-web { color:#333; }
-    .res-contact { text-align:right; min-width:180px; }
+    .res-contact { text-align:right; min-width:180px; max-width:50%; }
     .res-contact-line { color:#2f2f2f; margin-bottom:2px; }
     .res-link { color:inherit; text-decoration:none; }
     .res-link:hover { text-decoration:underline; }
     .res-social { display:flex; gap:10px; margin-top:6px; justify-content:flex-end; }
     .res-social-link { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:999px; }
     .res-social-link:hover { background:rgba(0,0,0,0.05); }
-    .res-section { margin-bottom:14px; }
+    .res-section { page-break-before:auto; }
+    .res-section:last-child { margin-bottom:0 !important; }
     .res-title { font-size:12.5pt; font-weight:400; text-transform:uppercase; letter-spacing:0.6px; margin:0 0 4px; color:#181818; }
     .res-rule { border:none; border-top:1px solid #8d8d8d; margin:0 0 8px; }
-    .res-entry { margin-bottom:8px; }
+    .res-entry { margin-bottom:8px; page-break-inside:avoid; }
     .res-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
     .res-left { min-width:0; }
     .res-right { text-align:right; white-space:nowrap; color:#3d3d3d; }
@@ -46,7 +48,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
     .res-bullets { margin:3px 0 0 0; padding:0; list-style:none; }
     .res-bullets li { margin-bottom:2px; display:flex; align-items:flex-start; gap:8px; }
     .res-bullets li::before { content:'${style.bulletStyle}'; color:${style.accentColor}; font-weight:700; line-height:inherit; flex-shrink:0; }
-    .res-project { margin-bottom:4px; }
+    .res-project { margin-bottom:8px; page-break-inside:avoid; }
     .res-project-name { font-weight:700; }
     .res-cert { margin-bottom:2px; }
     .res-major-bullet { font-size:10pt; margin-right:6px; }
@@ -75,6 +77,8 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
           padding: pagePadding,
           height: "100%",
           minHeight: "100%",
+          printColorAdjust: "exact",
+          WebkitPrintColorAdjust: "exact",
         }}
       >
         <header className="res-top">

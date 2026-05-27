@@ -65,7 +65,7 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
   return (
     <>
       <style>{css}</style>
-      <div className="exec-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, height: "100%", minHeight: "100%" }}>
+      <div className="exec-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, height: "100%", minHeight: "100%", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
         <div className="exec-header" style={{ background: style.accentColor, padding: `36px ${pagePadding.split(" ")[1]} 28px` }}>
           <div className="exec-name" style={{ fontFamily: style.headingFont, textAlign: style.headerAlign }}>{p.name}</div>
           {p.title && <div className="exec-title-bar" style={{ color: style.mutedColor, textAlign: style.headerAlign }}>{p.title}</div>}
