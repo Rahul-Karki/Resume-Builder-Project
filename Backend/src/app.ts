@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import compression from "compression";
 import { env } from "./config/env";
 import apiVersionMiddleware from "./middleware/apiVersion";
 import { csrfProtection } from "./middleware/csrfProtection";
@@ -90,7 +91,13 @@ export const createApp = () => {
   // 1. CORS MUST come first to handle preflight and error responses
   app.use(cors(corsOptions));
 
-  // 2. Helmet for security headers
+  // 2. Compression middleware to reduce response payload size
+  app.use(compression({
+    level: 6, // balance between compression ratio and CPU usage
+    threshold: 1024, // only compress responses larger than 1KB
+  }));
+
+  // 3. Helmet for security headers
   app.use(helmet({
     strictTransportSecurity: {
       maxAge: 31536000,
@@ -115,15 +122,15 @@ export const createApp = () => {
     },
   }));
 
-  // 3. Global instrumentation and size checks before body parsing
+  // 4. Global instrumentation and size checks before body parsing
   app.use(correlationIdMiddleware);
   app.use(auditContextMiddleware);
   app.use(requestSizeLimitMiddleware);
   
-  // 4. Body parsing
+  // 5. Body parsing
   app.use(express.json({ limit: env.REQUEST_BODY_LIMIT }));
   
-  // 5. Logging and processing
+  // 6. Logging and processing
   app.use(requestLogger);
   app.use(apiVersionMiddleware);
   app.use(requestTimeoutMiddleware);

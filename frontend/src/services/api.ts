@@ -11,6 +11,8 @@ import { performanceMonitor } from "@/utils/performance";
 import { errorTracker } from "@/utils/errorTracking";
 import { aiCreditsManager } from "@/utils/aiCredits";
 
+type AiOperation = 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
+
 type RetriableConfig = {
   _retry?: boolean;
   _retryCount?: number;
@@ -48,22 +50,14 @@ const parseCookieValue = (name: string): string => {
   return match ? decodeURIComponent(match[1]) : "";
 };
 
-// In-memory CSRF token storage for cross-origin environments (e.g., Render)
-// where the cookie is set by the API domain but frontend JS can't read it
-// from document.cookie. The token is returned in response bodies and stored here.
-let _csrfToken = "";
+// ⚠️ SECURITY: CSRF token is stored ONLY in HttpOnly cookie set by backend.
+// We read from the cookie for the request header, but NEVER store in memory.
+// This prevents XSS attackers from accessing the token via global scope.
+// withCredentials: true ensures the browser sends the cookie automatically.
 
-const getStoredCsrfToken = () => {
-  // Prefer in-memory token (populated via setStoredCsrfToken from response bodies)
-  if (_csrfToken) return _csrfToken;
-  // Fallback to cookie for same-origin setups
+const getCsrfToken = (): string => {
+  // Always read from cookie on each request (never cache in memory)
   return parseCookieValue("csrfToken");
-};
-
-const setStoredCsrfToken = (token?: unknown) => {
-  if (typeof token === "string" && token.length > 0) {
-    _csrfToken = token;
-  }
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -75,12 +69,13 @@ const isTransientFailure = (error: any) => {
 };
 
 const fetchRotatedCsrfToken = async () => {
+  // Backend will set new token in HttpOnly cookie
   const response = await api.get("/csrf");
-  setStoredCsrfToken(response.data?.csrfToken);
-  return response.data?.csrfToken;
+  // Token is automatically in the cookie now; no need to store in memory
+  return getCsrfToken();
 };
 
-const syncCreditsFromHeaders = (headers: Record<string, string | string[] | undefined>, deducted: number, operation: string, extra?: Record<string, unknown>) => {
+const syncCreditsFromHeaders = (headers: Record<string, string | string[] | undefined>, deducted: number, operation: AiOperation, extra?: Record<string, unknown>) => {
   const remaining = headers["x-ai-credits-remaining"];
   const resetAt = headers["x-ai-credits-reset-at"];
   const plan = headers["x-ai-credits-plan"];
@@ -189,7 +184,7 @@ export const getResumeDownloadJobStatus = async (jobId: string) => {
 };
 
 const performAiRequest = async <T>(
-  operation: string,
+  operation: AiOperation,
   url: string,
   payload: AiSectionRequest,
   options: AiRequestOptions,
@@ -281,14 +276,14 @@ export const getLatestAtsAnalysis = async (resumeId: string) => {
 export async function bootstrapAuthSession() {
   try {
     const response = await api.post("/refresh", {});
-    setStoredCsrfToken(response.data?.csrfToken);
+    // Token is automatically set in HttpOnly cookie by backend
     localStorage.setItem("accessToken", "session");
     return true;
   } catch {
     try {
       await fetchRotatedCsrfToken();
     } catch {
-      // If token rotation fails we fall back to the next successful auth response.
+      // If token rotation fails, the next auth response will set it
     }
     return false;
   }
@@ -297,7 +292,7 @@ export async function bootstrapAuthSession() {
 api.interceptors.request.use((config) => {
   const method = (config.method ?? "GET").toUpperCase();
   if (!SAFE_METHODS.has(method)) {
-    const csrfToken = getStoredCsrfToken();
+    const csrfToken = getCsrfToken();
     config.headers = config.headers ?? {};
     if (csrfToken) {
       config.headers["X-CSRF-Token"] = csrfToken;
@@ -309,7 +304,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => {
-    setStoredCsrfToken(response.data?.csrfToken);
+    // Token is set in HttpOnly cookie by backend; no need to extract from response
     return response;
   },
   async (error) => {
@@ -344,7 +339,7 @@ api.interceptors.response.use(
 
       try {
         const refreshResponse = await api.post("/refresh", {});
-        setStoredCsrfToken(refreshResponse.data?.csrfToken);
+        // Token is automatically set in HttpOnly cookie by backend
         localStorage.setItem("accessToken", "session");
         return api(originalRequest);
       } catch {
@@ -368,6 +363,32 @@ api.interceptors.response.use(
       }
     }
 
+    return Promise.reject(error);
+  },
+);
+
+// ⚠️ ERROR TRACKING: Capture all API errors (failed responses and network errors)
+// This provides observability into production issues without breaking the app
+api.interceptors.response.use(
+  undefined,
+  (error) => {
+    const status = error?.response?.status;
+    const url = error?.config?.url;
+    const method = error?.config?.method?.toUpperCase() ?? "UNKNOWN";
+    
+    // Track non-auth errors to error tracking service
+    if (status !== 401) {
+      const message = `API ${method} ${url} failed`;
+      errorTracker.trackError(message, error, {
+        status,
+        statusText: error?.response?.statusText,
+        method,
+        url,
+        type: 'api_error',
+        isNetworkError: !error?.response,
+      });
+    }
+    
     return Promise.reject(error);
   },
 );

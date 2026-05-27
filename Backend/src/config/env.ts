@@ -89,7 +89,7 @@ const baseEnvSchema = z.object({
   OTEL_TRACES_SAMPLER_ARG: z.coerce.number().min(0).max(1).default(1),
   OTEL_METRIC_EXPORT_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
   INTEGRITY_CHECK_INTERVAL_MS: z.coerce.number().int().min(60000).default(3600000),
-  CREATE_INDEXES_ON_STARTUP: booleanFromEnv.default(false),
+  CREATE_INDEXES_ON_STARTUP: booleanFromEnv.default(true),
 });
 
 const envSchema = baseEnvSchema

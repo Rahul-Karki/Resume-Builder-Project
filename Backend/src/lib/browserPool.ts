@@ -5,6 +5,8 @@ import { logger } from "../observability";
 const POOL_SIZE = 2;
 const BROWSER_IDLE_TIMEOUT_MS = 60_000;
 const RECYCLE_AFTER_USES = 10;
+const MAX_STARTUP_RETRIES = 3;
+const RETRY_BACKOFF_MS = 1000; // Initial backoff, exponential from here
 
 class NoBrowserAvailableError extends Error {
   constructor() {
@@ -27,13 +29,32 @@ class BrowserPool {
   }
 
   private async _init(): Promise<void> {
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
     for (let i = 0; i < POOL_SIZE; i++) {
-      try {
-        const browser = await launchPuppeteerBrowser();
-        this.browsers.push({ browser, uses: 0, lastUsed: Date.now() });
-        logger.info({ poolIndex: i }, "Puppeteer browser added to pool");
-      } catch (error) {
-        logger.warn({ error, poolIndex: i }, "Failed to launch Puppeteer browser for pool — PDF generation unavailable until resolved");
+      let lastError: Error | undefined;
+      for (let attempt = 0; attempt < MAX_STARTUP_RETRIES; attempt++) {
+        try {
+          const browser = await launchPuppeteerBrowser();
+          this.browsers.push({ browser, uses: 0, lastUsed: Date.now() });
+          logger.info({ poolIndex: i, attempt: attempt + 1 }, "Puppeteer browser added to pool");
+          break; // Success, move to next browser
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          if (attempt < MAX_STARTUP_RETRIES - 1) {
+            const backoffMs = RETRY_BACKOFF_MS * Math.pow(2, attempt);
+            logger.warn(
+              { error, poolIndex: i, attempt: attempt + 1, nextRetryMs: backoffMs },
+              "Failed to launch Puppeteer browser, retrying..."
+            );
+            await wait(backoffMs);
+          } else {
+            logger.error(
+              { error: lastError, poolIndex: i, totalAttempts: MAX_STARTUP_RETRIES },
+              "Failed to launch Puppeteer browser after all retries — PDF generation unavailable"
+            );
+          }
+        }
       }
     }
 

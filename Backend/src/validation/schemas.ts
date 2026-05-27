@@ -286,31 +286,65 @@ const jobStatusParamSchema = z.object({
 const createResumeSchema = resumeSchema;
 const updateResumeSchema = resumeSchema.partial().strict();
 
+// Compliance and audit route validation schemas
+const auditLogsQuerySchema = z.object({
+  userId: z.string().optional().nullable(),
+  collection: z.string().optional().nullable(),
+  action: z.string().optional().nullable(),
+  days: z.coerce.number().int().min(1).max(3650).default(30),
+  limit: z.coerce.number().int().min(1).max(10000).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
+}).strict();
+
+const auditExportQuerySchema = z.object({
+  startDate: z.string().datetime().optional().nullable(),
+  endDate: z.string().datetime().optional().nullable(),
+  collection: z.string().optional().nullable(),
+}).strict();
+
+const complianceReportQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(3650).default(30),
+}).strict();
+
+const complianceViolationsQuerySchema = z.object({
+  severity: z.string().optional().nullable(),
+  days: z.coerce.number().int().min(1).max(3650).default(7),
+}).strict();
+
+const alertTestBodySchema = z.object({
+  channel: z.enum(["slack", "email", "pagerduty"]).default("slack"),
+}).strict();
+
 export {
   analyticsQuerySchema,
+  alertTestBodySchema,
+  atsAnalysisLookupSchema,
+  atsAnalysisRequestSchema,
+  auditExportQuerySchema,
+  auditLogsQuerySchema,
   authEmailSchema,
   authLoginSchema,
   authResetPasswordSchema,
   authSignupSchema,
   aiGrammarSchema,
   aiTextSchema,
+  complianceReportQuerySchema,
+  complianceViolationsQuerySchema,
   createResumeSchema,
   createTemplateSchema,
   downloadResumeSchema,
   emptyObjectSchema,
   exportPresetSchema,
-  atsAnalysisLookupSchema,
-  atsAnalysisRequestSchema,
   googleLoginSchema,
+  jobStatusParamSchema,
   oauthLinkSchema,
   oauthUnlinkSchema,
-  jobStatusParamSchema,
   objectIdParamSchema,
   publicTemplateListQuerySchema,
   reorderTemplatesSchema,
+  resumeSchema,
   setTemplateStatusSchema,
   templateListQuerySchema,
-  resumeSchema,
   updateResumeSchema,
   updateTemplateSchema,
   usageSchema,

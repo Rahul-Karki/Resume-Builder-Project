@@ -385,6 +385,7 @@ const resendResetLink = async (req: Request, res: Response) => {
     if (!email) {
       logger.warn({ route: req.originalUrl }, "Resend reset link missing email");
       return sendErrorResponse(res, new ValidationError("Please provide an email"));
+    }
 
     const user = await User.findOne({ email });
 
@@ -458,7 +459,7 @@ const resendResetLink = async (req: Request, res: Response) => {
   } finally {
     finishControllerSpan(span);
   }
-}
+};
 
 const googleLogin = async (req: Request, res: Response) => {
   const span = startControllerSpan("auth.googleLogin", req);

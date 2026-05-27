@@ -3,10 +3,18 @@ import AuditLog from "../models/AuditLog";
 import { dataIntegrityChecker } from "../services/dataIntegrityService";
 import { alertingService } from "../observability/alerting";
 import { logger } from "../observability";
+import { validateRequest } from "../middleware/validateRequest";
+import {
+  auditLogsQuerySchema,
+  auditExportQuerySchema,
+  complianceReportQuerySchema,
+  complianceViolationsQuerySchema,
+  alertTestBodySchema,
+} from "../validation/schemas";
 
 const router = express.Router();
 
-router.get("/audit-logs", async (req: Request, res: Response) => {
+router.get("/audit-logs", validateRequest({ query: auditLogsQuerySchema }), async (req: Request, res: Response) => {
   try {
     const {
       userId,
@@ -15,7 +23,7 @@ router.get("/audit-logs", async (req: Request, res: Response) => {
       days = 30,
       limit = 100,
       offset = 0,
-    } = req.query;
+    } = req.query as any;
 
     const query: any = {
       timestamp: {
@@ -73,9 +81,9 @@ router.get("/audit-logs/:documentId", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/audit-export", async (req: Request, res: Response) => {
+router.get("/audit-export", validateRequest({ query: auditExportQuerySchema }), async (req: Request, res: Response) => {
   try {
-    const { startDate, endDate, collection } = req.query;
+    const { startDate, endDate, collection } = req.query as any;
 
     const query: any = {
       timestamp: {
@@ -137,10 +145,10 @@ router.post("/integrity-check", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/compliance-report", async (req: Request, res: Response) => {
+router.get("/compliance-report", validateRequest({ query: complianceReportQuerySchema }), async (req: Request, res: Response) => {
   try {
-    const { days = 30 } = req.query;
-    const daysNum = parseInt(days as string);
+    const { days = 30 } = req.query as any;
+    const daysNum = days as number;
 
     const startDate = new Date(Date.now() - daysNum * 86400000);
 
@@ -215,14 +223,15 @@ router.get("/compliance-report", async (req: Request, res: Response) => {
 
 router.get(
   "/compliance-violations",
+  validateRequest({ query: complianceViolationsQuerySchema }),
   async (req: Request, res: Response) => {
     try {
-      const { severity, days = 7 } = req.query;
+      const { severity, days = 7 } = req.query as any;
 
       const alerts = await AuditLog.find({
         errorMessage: { $exists: true },
         timestamp: {
-          $gte: new Date(Date.now() - parseInt(days as string) * 86400000),
+          $gte: new Date(Date.now() - (days as number) * 86400000),
         },
       })
         .sort({ timestamp: -1 })
@@ -250,9 +259,9 @@ router.get(
   }
 );
 
-router.post("/alert-test", async (req: Request, res: Response) => {
+router.post("/alert-test", validateRequest({ body: alertTestBodySchema }), async (req: Request, res: Response) => {
   try {
-    const { channel = "slack" } = req.body;
+    const { channel = "slack" } = req.body as any;
 
     const result = await alertingService.sendAlert({
       title: "Test Alert",

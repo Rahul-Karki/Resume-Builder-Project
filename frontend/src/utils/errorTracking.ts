@@ -61,8 +61,9 @@ class ErrorTracker {
   }
 
   private interceptAxios() {
-    // This will work with the axios instance in api.ts
-    // We'll enhance the api.ts file later
+    // ⚠️ NOTE: The primary axios error tracking is set up directly in api.ts
+    // via api.interceptors.response.use() to avoid circular dependencies.
+    // This function remains as a pattern template for manual error tracking.
   }
 
   trackError(message: string, error: Error | any, context?: Record<string, any>): string {
