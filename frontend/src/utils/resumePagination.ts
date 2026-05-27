@@ -104,7 +104,6 @@ export function computePageOffsets(
   totalHeight: number,
   pageHeight: number,
   candidates: number[],
-  pageMarginTop: number = 0,
 ): number[] {
   if (!Number.isFinite(totalHeight) || totalHeight <= 0) return [0];
   if (totalHeight <= pageHeight) return [0];
@@ -118,10 +117,9 @@ export function computePageOffsets(
   const maxPages = Math.ceil(totalHeight / (pageHeight * 0.5)) + 4;
 
   for (let i = 0; i < maxPages; i++) {
-    const effectivePageHeight = i === 0 ? pageHeight : pageHeight - pageMarginTop;
-    if (cursor + effectivePageHeight >= totalHeight) break;
+    if (cursor + pageHeight >= totalHeight) break;
 
-    const breakPoint = findBestBreak(sortedCandidates, cursor, effectivePageHeight);
+    const breakPoint = findBestBreak(sortedCandidates, cursor, pageHeight);
     const clampedBreak = Math.min(Math.max(breakPoint, cursor + 32), totalHeight);
 
     offsets.push(roundPx(clampedBreak));
@@ -134,16 +132,14 @@ export function computePageOffsets(
 export function buildPageOffsetsFromElement(
   root: HTMLElement,
   pageHeight: number = CONTENT_HEIGHT_PX,
-  pageMarginTop: number = 0,
 ): number[] {
   const totalHeight = root.scrollHeight;
   
-  // Only create additional pages if content exceeds one page
   if (totalHeight <= pageHeight) {
     return [0];
   }
 
   const candidateSet = collectSectionCandidates(root);
   const candidates = Array.from(candidateSet).sort((a, b) => a - b);
-  return computePageOffsets(totalHeight, pageHeight, candidates, pageMarginTop);
+  return computePageOffsets(totalHeight, pageHeight, candidates);
 }
