@@ -105,7 +105,7 @@ const registerUser = wrapController(async (req, res) => {
   const accessToken = generateAccessToken(user._id.toString());
   const refreshToken = generateRefreshToken(user._id.toString());
 
-  setAuthCookies(req, res, accessToken, refreshToken);
+  const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
   recordUserSignup({ email: user.email, provider: "local" });
 
@@ -118,7 +118,7 @@ const registerUser = wrapController(async (req, res) => {
       name: user.name,
       role: user.role,
     }
-  });
+  }, csrfToken);
 }, "auth.registerUser");
 
 const login = wrapController(async (req, res) => {
@@ -205,7 +205,7 @@ const login = wrapController(async (req, res) => {
   const accessToken = generateAccessToken(user._id.toString());
   const refreshToken = generateRefreshToken(user._id.toString());
 
-  setAuthCookies(req, res, accessToken, refreshToken);
+  const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
   recordLogin({ email: user.email });
   logLoginAttempt(req, email, true);
@@ -218,7 +218,7 @@ const login = wrapController(async (req, res) => {
       name: user.name,
       role: user.role,
     },
-  });
+  }, 200, csrfToken);
 }, "auth.login");
 
 const forgotPassword = wrapController(async (req, res) => {
@@ -466,7 +466,7 @@ const googleLogin = wrapController(async (req, res) => {
   const accessToken = generateAccessToken(user._id.toString());
   const refreshToken = generateRefreshToken(user._id.toString());
 
-  setAuthCookies(req, res, accessToken, refreshToken);
+  const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
   logger.info({ userId: user._id.toString(), email: user.email }, "Google login successful");
   return sendSuccess(res, {
@@ -477,7 +477,7 @@ const googleLogin = wrapController(async (req, res) => {
       role: user.role,
     },
     message: "Google login successful",
-  });
+  }, 200, csrfToken);
 }, "auth.googleLogin");
 
 const linkGoogleAccount = wrapController(async (req, res) => {

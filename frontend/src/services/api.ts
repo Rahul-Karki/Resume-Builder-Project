@@ -55,10 +55,21 @@ const parseCookieValue = (name: string): string => {
 // We read from the cookie for the request header, but NEVER store in memory.
 // This prevents XSS attackers from accessing the token via global scope.
 // withCredentials: true ensures the browser sends the cookie automatically.
+//
+// For cross-origin setups (frontend/backend on different origins), the cookie
+// is not readable via document.cookie. We store the token in a module-level
+// variable extracted from response bodies as a fallback.
+
+let _csrfToken: string | null = null;
+
+const setCsrfToken = (token: string) => {
+  _csrfToken = token;
+};
 
 const getCsrfToken = (): string => {
-  // Always read from cookie on each request (never cache in memory)
-  return parseCookieValue("csrfToken");
+  // Try memory first (set from response body in cross-origin setups)
+  // Fall back to cookie (same-origin setups where cookie is readable via JS)
+  return _csrfToken ?? parseCookieValue("csrfToken") ?? "";
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -70,9 +81,14 @@ const isTransientFailure = (error: any) => {
 };
 
 const fetchRotatedCsrfToken = async () => {
-  // Backend will set new token in HttpOnly cookie
   const response = await api.get("/csrf");
-  // Token is automatically in the cookie now; no need to store in memory
+  // Extract token from response body (works in cross-origin setups)
+  const token = response.data?.csrfToken as string | undefined;
+  if (token) {
+    setCsrfToken(token);
+    return token;
+  }
+  // Fallback: read from cookie (same-origin setups)
   return getCsrfToken();
 };
 
@@ -303,7 +319,11 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => {
-    // Token is set in HttpOnly cookie by backend; no need to extract from response
+    // Extract CSRF token from response body (set by /api/csrf, auth, and refresh endpoints)
+    const token = response.data?.csrfToken as string | undefined;
+    if (token) {
+      setCsrfToken(token);
+    }
     return response;
   },
   async (error) => {

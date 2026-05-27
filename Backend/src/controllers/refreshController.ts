@@ -31,14 +31,14 @@ const refreshAccessToken = wrapController(async (req, res) => {
 
   const newAccessToken = generateAccessToken(decoded.userId);
   const newRefreshToken = generateRefreshToken(decoded.userId);
-  setAuthCookies(req, res, newAccessToken, newRefreshToken);
+  const csrfToken = setAuthCookies(req, res, newAccessToken, newRefreshToken);
   logger.info({ userId: decoded.userId }, "Access token refreshed (rotation applied)");
-  return res.status(200).json({ message: "Token refreshed" });
+  return res.status(200).json({ message: "Token refreshed", csrfToken });
 }, "refresh.refreshAccessToken");
 
 const issueCsrfToken = wrapController(async (req, res) => {
-  setCsrfCookie(req, res);
-  return res.status(200).json({ message: "CSRF token issued" });
+  const csrfToken = setCsrfCookie(req, res);
+  return res.status(200).json({ message: "CSRF token issued", csrfToken });
 }, "refresh.issueCsrfToken");
 
 export { issueCsrfToken, refreshAccessToken };
