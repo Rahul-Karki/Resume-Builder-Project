@@ -11,10 +11,12 @@ type ResumePageProps = {
 
 const basePageStyle: CSSProperties = {
   width: A4_WIDTH_PX,
-  minHeight: A4_HEIGHT_PX,
+  height: A4_HEIGHT_PX,
   boxSizing: "border-box",
   overflow: "hidden",
   position: "relative",
+  display: "flex",
+  padding: 0,
   background: "#ffffff",
 };
 

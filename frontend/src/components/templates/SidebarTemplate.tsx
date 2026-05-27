@@ -8,7 +8,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;700&display=swap');
     .side-wrap { position:relative; display:flex; width:100%; height:100%; min-height:100%; max-width:none; margin:0; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
-    .side-left { position:absolute; top:0; left:0; bottom:0; width:211px; background:#1E293B; color:#CBD5E1; padding:32px 22px 32px 23px; z-index:1; }
+    .side-left { position:absolute; top:0; left:0; bottom:0; width:211px; height:100%; min-height:100%; border-radius:0; margin:0; background:#1E293B; color:#CBD5E1; padding:32px 22px; z-index:1; }
     .side-name { font-family:'Nunito',sans-serif; font-size:18pt; font-weight:700; color:#F1F5F9; margin:0 0 2px; line-height:1.2; }
     .side-subtitle { font-size:8.5pt; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px; }
     .side-contact-item { display:flex; align-items:flex-start; gap:6px; font-size:8.5pt; color:#94A3B8; margin-bottom:6px; }
