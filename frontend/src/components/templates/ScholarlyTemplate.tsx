@@ -53,8 +53,9 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
     .sch-right { text-align:right; white-space:nowrap; color:#4c4c4c; }
     .sch-strong { font-family:'EB Garamond',serif; font-size:12pt; font-weight:600; color:#181818; }
     .sch-italic { font-family:'EB Garamond',serif; font-size:11.2pt; font-style:italic; color:#3f3f3f; }
-    .sch-bullets { margin:3px 0 0 14px; padding:0 0 0 9px; }
-    .sch-bullets li { margin-bottom:2px; color:#2c2c2c; }
+    .sch-bullets { margin:3px 0 0 0; padding:0; list-style:none; }
+    .sch-bullets li { margin-bottom:2px; color:#2c2c2c; display:flex; align-items:flex-start; gap:8px; }
+    .sch-bullets li::before { content:'${style.bulletStyle}'; color:${style.accentColor}; font-weight:700; line-height:inherit; flex-shrink:0; }
     .sch-skills-row { margin-bottom:2px; }
     .sch-skill-label { font-weight:600; margin-right:6px; color:#111; }
     .sch-proj { margin-bottom:7px; }

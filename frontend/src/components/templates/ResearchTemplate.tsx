@@ -43,8 +43,9 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
     .res-right { text-align:right; white-space:nowrap; color:#3d3d3d; }
     .res-main { font-weight:700; color:#131313; }
     .res-sub { font-family:'Cormorant Garamond',serif; font-size:12pt; font-style:italic; color:#2f2f2f; }
-    .res-bullets { margin:3px 0 0 16px; padding:0 0 0 8px; }
-    .res-bullets li { margin-bottom:2px; }
+    .res-bullets { margin:3px 0 0 0; padding:0; list-style:none; }
+    .res-bullets li { margin-bottom:2px; display:flex; align-items:flex-start; gap:8px; }
+    .res-bullets li::before { content:'${style.bulletStyle}'; color:${style.accentColor}; font-weight:700; line-height:inherit; flex-shrink:0; }
     .res-project { margin-bottom:4px; }
     .res-project-name { font-weight:700; }
     .res-cert { margin-bottom:2px; }
