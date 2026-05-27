@@ -118,6 +118,11 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
   const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
 
+  const effectiveScale = useMemo(
+    () => userZoom ?? previewScale,
+    [userZoom, previewScale],
+  );
+
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
 
@@ -581,7 +586,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 className="text-[#888] hover:text-[#e4e4e7] text-xs px-1.5 py-0.5 rounded hover:bg-[#1A1A1D] transition-colors"
                 title="Zoom out"
               >−</button>
-              <span className="text-[#888] text-xs font-mono tabular-nums w-10 text-center">{Math.round((userZoom ?? previewScale) * 100)}%</span>
+              <span className="text-[#888] text-xs font-mono tabular-nums w-10 text-center">{Math.round(effectiveScale * 100)}%</span>
               <button
                 onClick={() => setUserZoom((z) => {
                   const next = Math.min(2, (z ?? previewScale) + 0.1);
@@ -603,10 +608,10 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             <div
               id="resume-preview-root"
               style={{
-                width: `${A4_WIDTH_PX * previewScale}px`,
+                width: `${A4_WIDTH_PX * effectiveScale}px`,
               }}
             >
-              <PaginatedResumePreview resume={resume} scale={previewScale} />
+              <PaginatedResumePreview resume={resume} scale={effectiveScale} />
             </div>
           </div>
         </main>
