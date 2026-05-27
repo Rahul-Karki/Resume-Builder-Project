@@ -187,6 +187,7 @@ export function PaginatedResumePreview({
                   style={{
                     position: "relative",
                     top: -offset,
+                    height: "100%",
                   }}
                 >
                   <ResumeRenderer resume={resume} />
