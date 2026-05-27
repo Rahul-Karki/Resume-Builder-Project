@@ -292,7 +292,8 @@ export const getLatestAtsAnalysis = async (resumeId: string) => {
 
 export async function bootstrapAuthSession() {
   try {
-    const response = await api.post("/refresh", {});
+    await api.post("/refresh", {}, { timeout: 3000 });
+    localStorage.setItem("accessToken", "session");
     return true;
   } catch {
     try {
@@ -357,7 +358,8 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshResponse = await api.post("/refresh", {});
+        await api.post("/refresh", {}, { timeout: 5000 });
+        localStorage.setItem("accessToken", "session");
         return api(originalRequest);
       } catch {
         // Token refresh failed
