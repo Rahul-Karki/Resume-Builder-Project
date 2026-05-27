@@ -24,7 +24,8 @@ pnpm-lock.yaml
 # ========================
 # JSON Config Files
 # ========================
-tsconfig.*.json
+# Note: tsconfig files are tracked — they are required for the build
+# tsconfig.*.json
 jsconfig.json
 
 # ========================

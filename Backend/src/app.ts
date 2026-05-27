@@ -36,6 +36,10 @@ export const createApp = () => {
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
+        if (env.NODE_ENV === "production") {
+          callback(new Error("Origin not allowed by CORS policy"));
+          return;
+        }
         callback(null, true);
         return;
       }
@@ -89,6 +93,11 @@ export const createApp = () => {
 
   // 2. Helmet for security headers
   app.use(helmet({
+    strictTransportSecurity: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "no-referrer" },
     crossOriginResourcePolicy: { policy: "cross-origin" }, // Enabled cross-origin access

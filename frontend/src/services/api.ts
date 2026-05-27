@@ -80,6 +80,24 @@ const fetchRotatedCsrfToken = async () => {
   return response.data?.csrfToken;
 };
 
+const syncCreditsFromHeaders = (headers: Record<string, string | string[] | undefined>, deducted: number, operation: string, extra?: Record<string, unknown>) => {
+  const remaining = headers["x-ai-credits-remaining"];
+  const resetAt = headers["x-ai-credits-reset-at"];
+  const plan = headers["x-ai-credits-plan"];
+
+  if (remaining !== undefined) {
+    aiCreditsManager.syncFromServer({
+      remaining: Number(remaining) || 0,
+      resetAt: typeof resetAt === "string" ? resetAt : undefined,
+      plan: (plan as any) || undefined,
+    });
+  }
+
+  if (deducted > 0) {
+    void aiCreditsManager.recordUsage(operation, deducted, extra);
+  }
+};
+
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 const resolveBackendOrigin = (baseUrl: string) => {
@@ -170,133 +188,53 @@ export const getResumeDownloadJobStatus = async (jobId: string) => {
   return response.data as ResumeDownloadJobStatusResponse;
 };
 
-export const improveResumeText = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
-  const operation = 'improve-text';
+const performAiRequest = async <T>(
+  operation: string,
+  url: string,
+  payload: AiSectionRequest,
+  options: AiRequestOptions,
+  signal?: AbortSignal,
+): Promise<T> => {
   const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
+  logger.info(`Starting AI ${operation}`, { operation, textLength: payload.text.length, estimatedCredits });
 
   try {
-    logger.info('Starting AI text improvement', { operation, textLength: payload.text.length, estimatedCredits });
-    
     const response = await performanceMonitor.measureApiCall(
-      'improveResumeText',
-      () => api.post("/ai/improve-text", payload, {
+      operation,
+      () => api.post(url, payload, {
         timeout: options.timeoutMs ?? 20000,
         signal: options.signal,
         headers: options.requestId ? { "X-Request-ID": options.requestId } : undefined,
       }),
-      { operation, textLength: payload.text.length }
+      { operation, textLength: payload.text.length },
     );
 
     const deducted = Number(response.headers?.["x-ai-credits-deducted"] ?? 0) || 0;
-    const remaining = response.headers?.["x-ai-credits-remaining"];
-    const resetAt = response.headers?.["x-ai-credits-reset-at"];
-    const plan = response.headers?.["x-ai-credits-plan"];
-    if (remaining !== undefined) {
-      aiCreditsManager.syncFromServer({
-        remaining: Number(remaining) || 0,
-        resetAt: typeof resetAt === "string" ? resetAt : undefined,
-        plan: (plan as any) || undefined,
-      });
-    }
-    
-    if (deducted > 0) {
-      await aiCreditsManager.recordUsage(operation, deducted, { textLength: payload.text.length, section: payload.section });
-    }
-    logger.logApiRequest('POST', '/ai/improve-text', response.status, undefined);
-    
-    return response.data as AiRewriteResult;
+    syncCreditsFromHeaders(response.headers as Record<string, string | undefined>, deducted, operation, {
+      textLength: payload.text.length,
+      section: payload.section,
+    });
+
+    logger.logApiRequest('POST', url, response.status, undefined);
+    return response.data as T;
   } catch (error) {
     await aiCreditsManager.recordFailedUsage(operation, estimatedCredits, error as Error);
-    errorTracker.trackError('AI text improvement failed', error, { operation, payload });
-    logger.error('AI text improvement failed', { operation, error: (error as Error).message });
+    errorTracker.trackError(`AI ${operation} failed`, error, { operation, payload });
+    logger.error(`AI ${operation} failed`, { operation, error: (error as Error).message });
     throw error;
   }
+};
+
+export const improveResumeText = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
+  return performAiRequest<AiRewriteResult>('improve-text', '/ai/improve-text', payload, options);
 };
 
 export const checkResumeGrammar = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
-  const operation = 'check-grammar';
-  const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
-
-  try {
-    logger.info('Starting AI grammar check', { operation, textLength: payload.text.length, estimatedCredits });
-    
-    const response = await performanceMonitor.measureApiCall(
-      'checkResumeGrammar',
-      () => api.post("/ai/check-grammar", payload, {
-        timeout: options.timeoutMs ?? 20000,
-        signal: options.signal,
-        headers: options.requestId ? { "X-Request-ID": options.requestId } : undefined,
-      }),
-      { operation, textLength: payload.text.length }
-    );
-
-    const deducted = Number(response.headers?.["x-ai-credits-deducted"] ?? 0) || 0;
-    const remaining = response.headers?.["x-ai-credits-remaining"];
-    const resetAt = response.headers?.["x-ai-credits-reset-at"];
-    const plan = response.headers?.["x-ai-credits-plan"];
-    if (remaining !== undefined) {
-      aiCreditsManager.syncFromServer({
-        remaining: Number(remaining) || 0,
-        resetAt: typeof resetAt === "string" ? resetAt : undefined,
-        plan: (plan as any) || undefined,
-      });
-    }
-    
-    if (deducted > 0) {
-      await aiCreditsManager.recordUsage(operation, deducted, { textLength: payload.text.length, section: payload.section });
-    }
-    logger.logApiRequest('POST', '/ai/check-grammar', response.status, undefined);
-    
-    return response.data as AiGrammarResult;
-  } catch (error) {
-    await aiCreditsManager.recordFailedUsage(operation, estimatedCredits, error as Error);
-    errorTracker.trackError('AI grammar check failed', error, { operation, payload });
-    logger.error('AI grammar check failed', { operation, error: (error as Error).message });
-    throw error;
-  }
+  return performAiRequest<AiGrammarResult>('check-grammar', '/ai/check-grammar', payload, options);
 };
 
 export const enhanceResumeBullet = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
-  const operation = 'enhance-bullet';
-  const estimatedCredits = aiCreditsManager.estimateCredits(operation, payload.text.length);
-
-  try {
-    logger.info('Starting AI bullet enhancement', { operation, textLength: payload.text.length, estimatedCredits });
-    
-    const response = await performanceMonitor.measureApiCall(
-      'enhanceResumeBullet',
-      () => api.post("/ai/enhance-bullet", payload, {
-        timeout: options.timeoutMs ?? 20000,
-        signal: options.signal,
-        headers: options.requestId ? { "X-Request-ID": options.requestId } : undefined,
-      }),
-      { operation, textLength: payload.text.length }
-    );
-
-    const deducted = Number(response.headers?.["x-ai-credits-deducted"] ?? 0) || 0;
-    const remaining = response.headers?.["x-ai-credits-remaining"];
-    const resetAt = response.headers?.["x-ai-credits-reset-at"];
-    const plan = response.headers?.["x-ai-credits-plan"];
-    if (remaining !== undefined) {
-      aiCreditsManager.syncFromServer({
-        remaining: Number(remaining) || 0,
-        resetAt: typeof resetAt === "string" ? resetAt : undefined,
-        plan: (plan as any) || undefined,
-      });
-    }
-    
-    if (deducted > 0) {
-      await aiCreditsManager.recordUsage(operation, deducted, { textLength: payload.text.length, section: payload.section });
-    }
-    logger.logApiRequest('POST', '/ai/enhance-bullet', response.status, undefined);
-    
-    return response.data as AiRewriteResult;
-  } catch (error) {
-    await aiCreditsManager.recordFailedUsage(operation, estimatedCredits, error as Error);
-    errorTracker.trackError('AI bullet enhancement failed', error, { operation, payload });
-    logger.error('AI bullet enhancement failed', { operation, error: (error as Error).message });
-    throw error;
-  }
+  return performAiRequest<AiRewriteResult>('enhance-bullet', '/ai/enhance-bullet', payload, options);
 };
 
 export const queueAtsAnalysis = async (resumeId: string, payload: {
