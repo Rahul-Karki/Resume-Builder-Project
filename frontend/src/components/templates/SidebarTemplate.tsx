@@ -7,8 +7,8 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const sectionGap = spacingMap[style.sectionSpacing];
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;700&display=swap');
-    .side-wrap { display:flex; width:100%; height:100%; min-height:100%; max-width:none; margin:0; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
-    .side-left { flex-shrink:0; width:211px; background:#1E293B; color:#CBD5E1; padding:32px 22px 32px 23px; position:relative; z-index:1; margin-right:-1px; margin-left:-1px; }
+    .side-wrap { position:relative; display:flex; width:100%; height:100%; min-height:100%; max-width:none; margin:0; font-family:'Nunito Sans',sans-serif; color:#1a1a1a; background:#fff; box-sizing:border-box; }
+    .side-left { position:absolute; top:0; left:0; bottom:0; width:211px; background:#1E293B; color:#CBD5E1; padding:32px 22px 32px 23px; z-index:1; }
     .side-name { font-family:'Nunito',sans-serif; font-size:18pt; font-weight:700; color:#F1F5F9; margin:0 0 2px; line-height:1.2; }
     .side-subtitle { font-size:8.5pt; color:#94A3B8; letter-spacing:1px; text-transform:uppercase; margin-bottom:20px; }
     .side-contact-item { display:flex; align-items:flex-start; gap:6px; font-size:8.5pt; color:#94A3B8; margin-bottom:6px; }
@@ -25,7 +25,7 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
     .side-skill-dots { display:flex; gap:3px; }
     .side-dot { width:8px; height:8px; border-radius:50%; }
     .side-tag { display:inline-block; background:#334155; color:#94A3B8; font-size:7.5pt; padding:2px 7px; border-radius:3px; margin:2px 2px 0 0; }
-    .side-right { flex:1; min-width:0; padding:32px 32px 32px 28px; }
+    .side-right { flex:1; min-width:0; margin-left:210px; padding:32px 32px 32px 28px; }
     .side-right, .side-right p, .side-right span, .side-right li, .side-right div { font-size:${style.fontSize}; line-height:${style.lineHeight}; }
     .side-section { margin-bottom:18px; }
     .side-section-title { font-family:'Nunito',sans-serif; font-size:10.5pt; font-weight:700; color:#1E293B; text-transform:uppercase; letter-spacing:1.5px; padding-bottom:3px; margin-bottom:10px; position:relative; }
