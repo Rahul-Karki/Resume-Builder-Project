@@ -116,7 +116,7 @@ export function ScholarlyTemplate({ data }: { data: ResumeDocument }) {
                     <div className="sch-strong" style={{ color: style.headingColor }}>{entry.institution}</div>
                     <div className="sch-italic">{entry.degree}{entry.field ? ` in ${entry.field}` : ""}</div>
                   </div>
-                  <div className="sch-right" style={{ color: style.mutedColor }}>{entry.year}{entry.cgpa ? ` · CGPA ${entry.cgpa}` : ""}</div>
+                  <div className="sch-right" style={{ color: style.mutedColor }}>{entry.year}{entry.cgpa ? `, CGPA ${entry.cgpa}` : ""}</div>
                 </div>
               </div>
             ))}

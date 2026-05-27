@@ -145,7 +145,7 @@ export function CompactTemplate({ data }: { data: ResumeDocument }) {
                   <strong>{e.institution}</strong>
                   <span style={{ color: "#555", marginLeft: 8 }}>{e.degree} {e.field}</span>
                 </div>
-                <span style={{ fontSize: "8.5pt", color: "#666" }}>{e.year}{e.cgpa ? ` · CGPA ${e.cgpa}` : ""}</span>
+                <span style={{ fontSize: "8.5pt", color: "#666" }}>{e.year}{e.cgpa ? `, CGPA ${e.cgpa}` : ""}</span>
               </div>
             ))}
           </div>

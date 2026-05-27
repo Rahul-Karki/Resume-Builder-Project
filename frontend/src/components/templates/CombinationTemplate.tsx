@@ -114,7 +114,7 @@ export function CombinationTemplate({ data }: { data: ResumeDocument }) {
                 {s.skills.map((group) => (
                   <div className="cmb-skill-row" key={group.id}>
                     <strong style={{ color: style.headingColor }}>{group.category}:</strong>
-                    <span>{group.items.join(" · ")}</span>
+                    <span>{group.items.join(", ")}</span>
                   </div>
                 ))}
               </article>
@@ -190,7 +190,7 @@ export function CombinationTemplate({ data }: { data: ResumeDocument }) {
                   <strong style={{ color: style.headingColor }}>{entry.institution}</strong>
                   {(entry.degree || entry.field) ? <span> · {entry.degree} {entry.field}</span> : null}
                 </div>
-                <span style={{ color: style.mutedColor, fontSize: "9pt" }}>{entry.year}{entry.cgpa ? ` | CGPA ${entry.cgpa}` : ""}</span>
+                <span style={{ color: style.mutedColor, fontSize: "9pt" }}>{entry.year}{entry.cgpa ? `, CGPA ${entry.cgpa}` : ""}</span>
               </div>
             ))}
           </section>

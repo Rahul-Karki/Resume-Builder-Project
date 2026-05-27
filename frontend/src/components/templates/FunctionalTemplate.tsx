@@ -118,7 +118,7 @@ export function FunctionalTemplate({ data }: { data: ResumeDocument }) {
                   style={{ borderColor: style.borderColor, background: `${style.backgroundColor}` }}
                 >
                   <div className="fun-skill-label" style={{ color: style.headingColor }}>{skill.category}</div>
-                  <div className="fun-skill-items">{skill.items.join(" · ")}</div>
+                  <div className="fun-skill-items">{skill.items.join(", ")}</div>
                 </article>
               ))}
             </div>
@@ -193,7 +193,7 @@ export function FunctionalTemplate({ data }: { data: ResumeDocument }) {
                   <strong style={{ color: style.headingColor }}>{entry.institution}</strong>
                   {(entry.degree || entry.field) ? <span> · {entry.degree} {entry.field}</span> : null}
                 </div>
-                <span style={{ fontSize: "9pt", color: style.mutedColor }}>{entry.year}{entry.cgpa ? ` | CGPA ${entry.cgpa}` : ""}</span>
+                <span style={{ fontSize: "9pt", color: style.mutedColor }}>{entry.year}{entry.cgpa ? `, CGPA ${entry.cgpa}` : ""}</span>
               </div>
             ))}
           </section>

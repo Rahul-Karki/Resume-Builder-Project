@@ -112,7 +112,7 @@ export function TraditionalAssistantTemplate({ data }: { data: ResumeDocument })
                 {s.skills.map((skill) => (
                   <div className="tas-skill" key={skill.id}>
                     <strong style={{ color: style.headingColor }}>{skill.category}:</strong>
-                    <span>{skill.items.join(" · ")}</span>
+                    <span>{skill.items.join(", ")}</span>
                   </div>
                 ))}
               </section>
@@ -186,7 +186,7 @@ export function TraditionalAssistantTemplate({ data }: { data: ResumeDocument })
                       <strong style={{ color: style.headingColor }}>{entry.institution}</strong>
                       {(entry.degree || entry.field) ? <span> · {entry.degree} {entry.field}</span> : null}
                     </div>
-                    <span style={{ color: style.mutedColor, fontSize: "9pt" }}>{entry.year}{entry.cgpa ? ` | CGPA ${entry.cgpa}` : ""}</span>
+                    <span style={{ color: style.mutedColor, fontSize: "9pt" }}>{entry.year}{entry.cgpa ? `, CGPA ${entry.cgpa}` : ""}</span>
                   </div>
                 ))}
               </section>

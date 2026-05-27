@@ -135,7 +135,7 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
                   <strong>{e.institution}</strong>
                   <span style={{ color: "#555", fontSize: "10pt", marginLeft: 8 }}>{e.degree} in {e.field}</span>
                 </div>
-                <span style={{ fontSize: "9pt", color: "#777" }}>{e.year}{e.cgpa ? ` · CGPA ${e.cgpa}` : ""}</span>
+                <span style={{ fontSize: "9pt", color: "#777" }}>{e.year}{e.cgpa ? `, CGPA ${e.cgpa}` : ""}</span>
               </div>
             ))}
           </div>
@@ -146,7 +146,7 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
             {s.skills.map((sk, i) => (
               <div className="exec-skill-row" key={i}>
                 <span className="exec-skill-label" style={{ color: style.headingColor }}>{sk.category}</span>
-                <span className="exec-skill-items">{sk.items.join("  ·  ")}</span>
+                <span className="exec-skill-items">{sk.items.join(", ")}</span>
               </div>
             ))}
           </div>

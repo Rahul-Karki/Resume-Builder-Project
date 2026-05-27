@@ -154,7 +154,7 @@ export function ChronologicalTemplate({ data }: { data: ResumeDocument }) {
                   {(entry.degree || entry.field) ? <span> · {entry.degree} {entry.field}</span> : null}
                 </div>
                 <span style={{ color: style.mutedColor, fontSize: "9pt" }}>
-                  {entry.year}{entry.cgpa ? ` | CGPA ${entry.cgpa}` : ""}
+                  {entry.year}{entry.cgpa ? `, CGPA ${entry.cgpa}` : ""}
                 </span>
               </div>
             ))}
@@ -169,7 +169,7 @@ export function ChronologicalTemplate({ data }: { data: ResumeDocument }) {
               {s.skills.map((group) => (
                 <div className="chr-skill-item" key={group.id}>
                   <strong style={{ color: style.headingColor }}>{group.category}:</strong>
-                  <span>{group.items.join(" · ")}</span>
+                  <span>{group.items.join(", ")}</span>
                 </div>
               ))}
             </div>

@@ -136,7 +136,7 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
               )}
             </div>
             <span style={{ fontSize: "9pt", color: style.mutedColor }}>
-              {entry.year}{entry.cgpa ? ` · CGPA: ${entry.cgpa}` : ""}
+              {entry.year}{entry.cgpa ? `, CGPA: ${entry.cgpa}` : ""}
             </span>
           </div>
         ))}
@@ -149,7 +149,7 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
         {s.skills.map((skillGroup) => (
           <div className="classic-skills-row" key={skillGroup.id}>
             <span className="classic-skill-cat" style={{ color: style.headingColor }}>{skillGroup.category}:</span>
-            <span className="classic-skill-val" style={{ color: style.textColor }}>{skillGroup.items.join(" · ")}</span>
+            <span className="classic-skill-val" style={{ color: style.textColor }}>{skillGroup.items.join(", ")}</span>
           </div>
         ))}
       </section>

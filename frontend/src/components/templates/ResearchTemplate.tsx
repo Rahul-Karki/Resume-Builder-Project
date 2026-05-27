@@ -121,7 +121,7 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
                 <div className="res-head">
                   <div className="res-left">
                     <div className="res-main" style={{ color: style.headingColor }}><span className="res-major-bullet">{style.bulletStyle}</span>{entry.institution}</div>
-                    <div className="res-sub">{entry.degree}{entry.field ? ` in ${entry.field}` : ""}{entry.cgpa ? `; GPA: ${entry.cgpa}` : ""}</div>
+                    <div className="res-sub">{entry.degree}{entry.field ? ` in ${entry.field}` : ""}{entry.cgpa ? `, GPA: ${entry.cgpa}` : ""}</div>
                   </div>
                   <div className="res-right" style={{ color: style.mutedColor }}>{entry.year}</div>
                 </div>

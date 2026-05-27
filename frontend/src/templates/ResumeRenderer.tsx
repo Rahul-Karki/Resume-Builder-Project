@@ -180,7 +180,7 @@ function GenericTemplate({ resume }: { resume: ResumeDocument }) {
               s.skills.map((skillGroup) => (
                 <div key={skillGroup.id} style={{ display: "flex", gap: 16, marginBottom: 4 }}>
                   <span style={{ fontWeight: 700, minWidth: 100, fontSize: style.fontSize, color: style.headingColor }}>{skillGroup.category}:</span>
-                  <span style={{ fontSize: style.fontSize, color: style.textColor }}>{skillGroup.items.join(" · ")}</span>
+                  <span style={{ fontSize: style.fontSize, color: style.textColor }}>{skillGroup.items.join(", ")}</span>
                 </div>
               ))
             ) : null,

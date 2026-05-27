@@ -16,7 +16,7 @@ export function formatProjectTech(project: Project): string {
     .split(",")
     .map(item => item.trim())
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 }
 
 export function formatCertification(certification: CertEntry): string {
