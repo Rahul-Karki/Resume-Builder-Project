@@ -7,30 +7,22 @@ import { sendSuccess, sendError } from "../utils/apiResponse";
 import { AppError } from "../errors/AppError";
 
 import crypto from "crypto";
+import { generateSecret, verify as verifyTotp, generateURI as otplGenerateUri } from "otplib";
 
-function generateBackupCodes(count = 8): string[] {
-  const codes: string[] = [];
+function hashBackupCode(code: string): string {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+function generateBackupCodes(count = 8): { plain: string[]; hashed: string[] } {
+  const plain: string[] = [];
+  const hashed: string[] = [];
   for (let i = 0; i < count; i++) {
     const hex = crypto.randomBytes(4).toString("hex");
-    codes.push(hex.toUpperCase().match(/.{1,4}/g)!.join("-"));
+    const code = hex.toUpperCase().match(/.{1,4}/g)!.join("-");
+    plain.push(code);
+    hashed.push(hashBackupCode(code));
   }
-  return codes;
-}
-
-function generateTotpSecret(): string {
-  return crypto.randomBytes(20).toString("base64");
-}
-
-function verifyTotp(token: string, secret: string): boolean {
-  if (!secret || !token) return false;
-  const [key, time] = [secret, Math.floor(Date.now() / 30000)];
-  const hmac = crypto.createHmac("sha1", Buffer.from(key, "base64"));
-  hmac.update(Buffer.from(new Uint8Array([(time >> 24) & 0xff, (time >> 16) & 0xff, (time >> 8) & 0xff, time & 0xff])));
-  const hash = hmac.digest();
-  const offset = hash[hash.length - 1] & 0xf;
-  const otp = ((hash[offset] & 0x7f) << 24) | ((hash[offset + 1] & 0xff) << 16) | ((hash[offset + 2] & 0xff) << 8) | (hash[offset + 3] & 0xff);
-  const ourToken = String(otp % 1000000).padStart(6, "0");
-  return ourToken === token;
+  return { plain, hashed };
 }
 
 export const setupMfa = wrapController(async (req, res) => {
@@ -41,11 +33,11 @@ export const setupMfa = wrapController(async (req, res) => {
   if (!user) return sendError(res, "User not found", 404);
   if (user.mfaEnabled) return sendError(res, "MFA already enabled", 409);
 
-  const secret = generateTotpSecret();
-  const backupCodes = generateBackupCodes();
+  const secret = generateSecret();
+  const { plain: backupCodes, hashed: hashedBackupCodes } = generateBackupCodes();
 
   user.mfaSecret = secret;
-  user.mfaBackupCodes = backupCodes;
+  user.mfaBackupCodes = hashedBackupCodes;
   await user.save();
 
   logger.info({ userId: user._id }, "MFA setup initiated");
@@ -53,7 +45,7 @@ export const setupMfa = wrapController(async (req, res) => {
   return sendSuccess(res, {
     secret,
     backupCodes,
-    uri: `otpauth://totp/ResumeBuilder:${user.email}?secret=${secret}&issuer=ResumeBuilder`,
+    uri: otplGenerateUri({ strategy: "totp", label: user.email, issuer: "ResumeBuilder", secret }),
   });
 }, "mfa.setupMfa");
 
@@ -67,7 +59,7 @@ export const verifyMfa = wrapController(async (req, res) => {
   if (!user) return sendError(res, "User not found", 404);
   if (!user.mfaSecret) return sendError(res, "MFA not setup", 400);
 
-  const isValid = verifyTotp(String(token), user.mfaSecret);
+  const isValid = verifyTotp({ token: String(token), secret: user.mfaSecret });
 
   if (!isValid) {
     logger.warn({ userId: user._id }, "Invalid MFA token");

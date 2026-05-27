@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { memo, type CSSProperties } from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   formatCertification,
@@ -18,7 +18,7 @@ import {
   isGitHubUrl,
 } from "@/components/templates/templateHelpers";
 
-export function ClassicTemplate({ data }: { data: ResumeDocument }) {
+const ClassicTemplate = memo(function ClassicTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionOrder, sectionVisibility, style } = data;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
@@ -299,4 +299,6 @@ export function ClassicTemplate({ data }: { data: ResumeDocument }) {
       </div>
     </>
   );
-}
+});
+
+export { ClassicTemplate };

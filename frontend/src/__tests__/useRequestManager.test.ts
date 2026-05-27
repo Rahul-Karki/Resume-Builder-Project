@@ -8,7 +8,7 @@ import { createRequestManager } from "@/hooks/useRequestManager";
 
 describe("useRequestManager", () => {
   beforeEach(() => {
-    vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValueOnce("request-1").mockReturnValueOnce("request-2");
+    vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValueOnce("550e8400-e29b-41d4-a716-446655440000" as `${string}-${string}-${string}-${string}-${string}`).mockReturnValueOnce("550e8400-e29b-41d4-a716-446655440001" as `${string}-${string}-${string}-${string}-${string}`);
     vi.spyOn(Date, "now").mockReturnValue(1000);
   });
 
@@ -21,7 +21,7 @@ describe("useRequestManager", () => {
 
     const { requestId, controller } = requestManager.createRequest(requestManager.getRequestKey("improve-text", "summary"));
 
-    expect(requestId).toBe("request-1");
+    expect(requestId).toBe("550e8400-e29b-41d4-a716-446655440000");
     expect(controller.signal.aborted).toBe(false);
     expect(requestManager.isRequestInFlight("improve-text:summary")).toBe(true);
   });
@@ -43,7 +43,7 @@ describe("useRequestManager", () => {
     requestManager.createRequest(requestManager.getRequestKey("improve-text", "summary"));
     requestManager.createRequest(requestManager.getRequestKey("improve-text", "experience"));
 
-    expect(requestManager.getActiveRequests()).toEqual(["request-1", "request-2"]);
+    expect(requestManager.getActiveRequests()).toEqual(["550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001"]);
 
     requestManager.cancelAll();
     expect(requestManager.getActiveRequests()).toEqual([]);

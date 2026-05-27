@@ -4,48 +4,6 @@ import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AdminPage } from "../types/admin.types";
 import { api } from "@/services/api";
 
-// ─── Global CSS (same design system as landing + my-resumes pages) ─────────────
-const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=Outfit:wght@300;400;500;600;700;800&display=swap');
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body, #root { height: 100%; }
-
-  body {
-    background: #080808;
-    color: #F0EFE8;
-    font-family: 'Outfit', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-  }
-
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: #080808; }
-  ::-webkit-scrollbar-thumb { background: #1E1E1E; border-radius: 2px; }
-  ::-webkit-scrollbar-thumb:hover { background: #2A2A2A; }
-
-  input, textarea, select {
-    box-sizing: border-box;
-    background: #141414;
-    color: #C8C7C0;
-  }
-  input:focus, textarea:focus, select:focus { outline: none; }
-
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.35; }
-  }
-  @keyframes toastIn {
-    from { opacity: 0; transform: translate(-50%, 8px); }
-    to   { opacity: 1; transform: translate(-50%, 0); }
-  }
-`;
-
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 function TopBar({ page, onLogout, isMobile }: { page: AdminPage; onLogout: () => Promise<void>; isMobile: boolean }) {
   const titles: Record<AdminPage, string> = {
@@ -135,7 +93,6 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: GLOBAL_CSS }} />
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#080808", alignItems: "stretch" }}>
 
         {/* Sidebar */}

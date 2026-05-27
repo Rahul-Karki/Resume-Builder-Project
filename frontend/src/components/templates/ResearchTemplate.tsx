@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   ExternalLinkIcon,
@@ -15,7 +16,7 @@ import {
   toTel,
 } from "@/components/templates/templateHelpers";
 
-export function ResearchTemplate({ data }: { data: ResumeDocument }) {
+const ResearchTemplate = memo(function ResearchTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
@@ -224,4 +225,6 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
       </div>
     </>
   );
-}
+});
+
+export { ResearchTemplate };

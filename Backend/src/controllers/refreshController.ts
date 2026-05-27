@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { generateAccessToken, generateRefreshToken } from "../utils/generateToken";
+import { generateAccessToken, generateRefreshToken, getOrGenerateRefreshKeys } from "../utils/generateToken";
 import { parseCookies } from "../utils/cookieParser";
 import { setAuthCookies, setCsrfCookie } from "../utils/authCookies";
 import { env } from "../config/env";
@@ -24,7 +24,8 @@ const refreshAccessToken = wrapController(async (req, res) => {
     return sendErrorResponse(res, new Error("Refresh token has been revoked"), { statusCode: 403, code: "AUTH_REQUIRED" });
   }
 
-  const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as { userId: string };
+  const { publicKey } = getOrGenerateRefreshKeys();
+  const decoded = jwt.verify(token, publicKey, { algorithms: ["RS256"] }) as { userId: string };
 
   await blacklistRefreshToken(token);
 

@@ -1,721 +1,1109 @@
 # ResumeStudio
 
+**ATS-verified resume builder with AI-powered content enhancement, live preview, and pixel-perfect PDF export.**
+
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
-[![Express](https://img.shields.io/badge/Express-5-000000?logo=express)](https://expressjs.com/)
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)](https://react.dev/)
+[![Express](https://img.shields.io/badge/Express-5.2-000000?logo=express)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb)](https://www.mongodb.com/)
 [![Redis](https://img.shields.io/badge/Redis-7-FF4438?logo=redis)](https://redis.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue)](https://opensource.org/licenses/MIT)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://www.docker.com/)
-
-**ATS-verified resume builder with AI-powered content enhancement, live preview, and high-fidelity PDF export.**
-
-ResumeStudio is a full-stack platform that lets users build, style, and export professional resumes. It combines 12 real HTML templates, a live preview editor, an AI writing assistant, and an ATS scoring engine — all wrapped in an authenticated, production-ready application with enterprise-grade observability and security.
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://www.docker.com/)
 
 ---
 
-## Features
+## 🎯 What is ResumeStudio?
+
+ResumeStudio is a full-stack SaaS platform that transforms how job seekers build and optimize their resumes. Combining a structured editor with 12 professionally designed templates, an AI writing assistant, and an ATS scoring engine, it delivers production-ready resumes optimized for both applicant tracking systems and human readers.
+
+**Perfect for:** Job seekers, career changers, and professionals seeking ATS compliance and recruitment-friendly resume formatting.
+
+**Key value propositions:**
+- 🚀 **AI-Enhanced Content** — Grammar checking, text improvement, and bullet-point enhancement
+- 📊 **ATS Scoring** — Real-time analysis against job descriptions with actionable suggestions
+- 🎨 **12 Templates** — Professional HTML-based designs covering tech, creative, and corporate industries
+- ⚡ **Live Preview** — Instant visual feedback as you type
+- 📄 **Pixel-Perfect PDFs** — Server-side generation ensuring consistent rendering across devices
+- 🔒 **Enterprise Security** — CSRF protection, JWT auth, account lockout, audit logging
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture-overview)
+- [Screenshots](#-screenshots--demo)
+- [Quick Start](#-quick-start)
+- [Development Setup](#-development-setup)
+- [Environment Variables](#-environment-variables)
+- [API Documentation](#-api-documentation)
+- [Deployment](#-deployment)
+- [Testing](#-testing)
+- [Database Schema](#-database-schema)
+- [Observability](#-observability--monitoring)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## 📸 Screenshots & Demo
+
+### Live Preview Interface
+```
+┌─────────────────────────────────────────────────────┐
+│ ResumeStudio Editor                                 │
+├─────────────────────────────────────────────────────┤
+│  [Personal Info] [Experience] [Education] [Skills]  │
+│                                                     │
+│  ┌──────────────────┐  ┌────────────────────────┐  │
+│  │ Editor Panel     │  │ Live Preview (Real     │  │
+│  │                  │  │ HTML DOM rendering)    │  │
+│  │ • Full Name      │  │                        │  │
+│  │ • Email/Phone    │  │ [Resume Preview]       │  │
+│  │ • + Add Section  │  │ Updates in Real-time   │  │
+│  │                  │  │                        │  │
+│  └──────────────────┘  └────────────────────────┘  │
+│  ┌──────────────────────────────────────────────┐  │
+│  │ AI Assistant Panel    │ ATS Analysis Results │  │
+│  │ ✨ Improve Text       │ Score: 87/100        │  │
+│  │ 📝 Check Grammar      │ Keywords Found: 15   │  │
+│  │ 💡 Enhance Bullets    │ Missing: 3           │  │
+│  └──────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
+
+### Demo & Deployment
+- **Live URL:** [Deploy to Render or Vercel](#deployment)
+- **Local Preview:** `npm run dev` (see [Development Setup](#-development-setup))
+- **Docker Compose:** Full local stack in seconds (see [Quick Start](#-quick-start))
+
+---
+
+## ✨ Features
 
 ### Core Features
-- **Resume Builder** — Rich multi-section editor (personal info, experience, education, skills, projects, certifications, languages) with drag-and-drop section reordering
-- **12 HTML Templates** — Classic, Executive, Modern, Compact, Sidebar, Scholarly, Research, Chronological, Functional, Combination, Traditional Assistant, Community Impact — all rendered as real DOM, not images
-- **Live Preview** — Instant preview updates as you type, with real-time style changes
-- **Visual Style Customizer** — Accent colors, heading/body fonts, font sizes, line heights, page margins, section spacing, header alignment, bullet styles, section dividers
-- **PDF Export** — Browser-based print with Puppeteer-powered backend generation for pixel-perfect output
-- **Authentication** — Email/password signup and login with Google OAuth integration
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-Section Editor** | Structured forms for personal info, experience, education, skills, projects, certifications, and languages |
+| **Live Preview Engine** | Real-time DOM rendering with instant style updates as you type |
+| **12 HTML Templates** | Professional layouts: Classic, Executive, Modern, Compact, Sidebar, Scholarly, Research, Chronological, Functional, Combination, Traditional, Community |
+| **Template Switching** | Change designs without losing content; style customizations merge intelligently |
+| **Visual Customization** | Font families, sizes, colors, margins, spacing, bullet styles, header alignment |
+| **Drag-Free Interface** | Structured tabbed editor (mobile-ready without drag-and-drop complexity) |
+| **Completion Score** | Progress indicator showing resume professionalism and completeness |
+| **Section Visibility Toggles** | Show/hide sections without deleting content |
 
 ### Advanced Features
-- **AI Writing Assistant** — Context-aware text improvement, grammar checking, and bullet point enhancement using OpenAI GPT-4.1 or Gemini 2.0 Flash with automatic provider fallback
-- **ATS Analysis Engine** — Full resume scoring against applicant tracking system criteria: keyword gaps, section audit, action plan with priority levels, rewrite suggestions, and estimated score after fixes
-- **Multi-Factor Authentication (MFA)** — TOTP-based two-factor authentication with backup codes
-- **Resume Version History** — Automatic version snapshots on each save
-- **Async PDF Generation** — In-process PDF generation with status polling and SSE streaming
-- **Admin Dashboard** — Usage analytics, template CRUD, per-template usage statistics, most/least used templates
+
+| Feature | Description |
+|---------|-------------|
+| **AI Writing Assistant** | Context-aware text improvement, grammar correction, and bullet-point enhancement using OpenAI GPT-4.1 or Gemini 2.0 Flash |
+| **ATS Analysis Engine** | Full resume scoring against job descriptions: keyword gaps, section audits, action plans, priority-level suggestions, and estimated post-fix scores |
+| **AI Provider Fallback** | Seamless fallback from primary (OpenAI) to secondary (Gemini) if rate-limited or timeout occurs |
+| **Request Deduplication** | Identical AI requests within 5–10 minutes return cached results without credit deduction |
+| **Multi-Factor Authentication (TOTP)** | Two-factor auth with backup codes for enhanced account security |
+| **Resume Version History** | Automatic version snapshots on each save with full restore capability |
+| **Async PDF Generation** | Server-side Puppeteer rendering with status polling and Server-Sent Events (SSE) streaming |
+| **Admin Dashboard** | Usage analytics, template performance metrics, most/least-used templates, compliance reporting |
+| **Audit Trail** | Complete create/update/delete logs with TTL-based retention for compliance |
 
 ### Security Features
-- **CSRF Protection** — Double-submit cookie pattern with automatic token rotation
-- **JWT Authentication** — HTTP-only cookies with access + refresh token rotation
-- **Rate Limiting** — Redis-backed or in-memory rate limiting per endpoint (login, registration, AI, forgot-password)
-- **Account Lockout** — Progressive lockout on failed login attempts
-- **Input Validation** — Zod schemas with XSS sanitization on all inputs
-- **Helmet Security Headers** — CSP, HSTS, and other HTTP security headers configured for OAuth compatibility
-- **Audit Logging** — Automatic audit trail (create, update, delete, restore) with TTL-based retention
-- **Request Deduplication** — Prevents duplicate AI/API requests from inflight collisions
+
+| Feature | Description |
+|---------|-------------|
+| **CSRF Protection** | Double-submit cookie pattern with automatic token rotation |
+| **JWT Authentication** | HTTP-only access + refresh token pair with configurable TTL |
+| **Password Security** | Bcrypt hashing with progressive account lockout after failed attempts |
+| **Input Validation** | Zod schemas with XSS sanitization on all inputs |
+| **Security Headers** | Helmet.js with CSP, HSTS, X-Frame-Options optimized for OAuth |
+| **Rate Limiting** | Redis-backed sliding-window limiting (login, registration, AI requests, password reset) |
+| **Token Blacklist** | Redis-cached token invalidation on logout |
+| **Referential Integrity** | Automated validation of foreign key constraints before mutations |
+| **Request Deduplication** | Prevents duplicate AI/API requests from inflight collisions |
+| **Soft Deletes** | Non-destructive deletion with 30-day recovery window |
+| **Cascade Deletes** | Automatic cleanup of child documents (e.g., User → Resume, AiUsage) |
 
 ### Performance Features
-- **Redis Caching** — Template listings, analytics, and dashboard data with configurable TTL
-- **In-Memory Cache Fallback** — Optional zero-dependency caching when Redis is unavailable
-- **Database Indexes** — Comprehensive compound indexes across all collections for query performance
-- **Lazy-Loaded Routes** — React pages split via dynamic imports for smaller initial bundles
-- **Puppeteer Browser Pool** — Reusable Chromium instances for PDF generation
-- **Connection Pooling** — Mongo connection pool (10–100) tuned for concurrent workloads
+
+| Feature | Description |
+|---------|-------------|
+| **Redis Caching** | Template listings, analytics, dashboard data with configurable TTL (600s public, 180s admin) |
+| **In-Memory Cache Fallback** | Optional zero-dependency caching when Redis is unavailable |
+| **Database Indexes** | Compound indexes on high-traffic queries (user resumés, template listings) |
+| **Lazy-Loaded Routes** | React pages split via dynamic imports for smaller initial bundles |
+| **Puppeteer Browser Pool** | Reusable Chromium instances for efficient PDF generation |
+| **Connection Pooling** | MongoDB pool (10–100) tuned for concurrent workloads |
+| **Request Timeout Middleware** | Configurable limits (30s standard, 120s for PDF routes) |
+| **Compression** | Gzip middleware for response optimization |
 
 ### Developer Features
-- **OpenAPI 3.0 Docs** — Auto-generated API documentation at `/api/docs`
-- **Prometheus Metrics** — Built-in metrics endpoint for performance monitoring
-- **OpenTelemetry Integration** — Distributed tracing across HTTP, Express, and MongoDB
-- **Sentry Error Tracking** — Client and server error capture with user context
-- **Pino Structured Logging** — JSON logging with Loki push support
-- **Health Checks** — Deep health endpoint with component-level status reporting
-- **Render Deployment Config** — One-click deploy to Render via `render.yaml`
+
+| Feature | Description |
+|---------|-------------|
+| **OpenAPI 3.0 Docs** | Auto-generated API documentation at `/api/docs` |
+| **Prometheus Metrics** | Built-in metrics endpoint with AI, compliance, and uptime counters |
+| **OpenTelemetry Integration** | Distributed tracing across HTTP, Express, and MongoDB operations |
+| **Sentry Error Tracking** | Client and server error capture with user context and PII redaction |
+| **Structured Logging (Pino)** | JSON logs with correlation IDs, request tracking, and Loki push support |
+| **Health Check Endpoints** | Deep health checks with component-level status (MongoDB, Redis, queue) |
+| **Development Modes** | Hot-reload with `ts-node`, TypeScript compilation, PM2 ecosystem support |
+| **E2E Testing** | Playwright test suite for critical user flows |
+| **Docker & Render Support** | One-click deployment with `render.yaml` and Docker Compose for local dev |
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 ### Frontend
-| Technology | Version |
-|---|---|
-| React | 19.2 |
-| TypeScript | 5.9 |
-| Vite | 8.0 |
-| Tailwind CSS | 4.2 |
-| React Router | 7.13 |
-| Zustand | 5.0 |
-| Axios | 1.13 |
-| Framer Motion | 12.38 |
-| html2canvas + jsPDF | Client-side print |
-| Lucide React | Icons |
-| Radix UI / Shadcn | Component primitives |
-| Vitest + Playwright | Testing |
-| Sentry React | Error tracking |
+
+| Layer | Technologies |
+|-------|--------------|
+| **Framework** | React 19.2, TypeScript 5.9 |
+| **Build Tool** | Vite 8.0 |
+| **Routing** | React Router 7.13 (lazy-loaded pages) |
+| **State Management** | Zustand 5.0 (resume editor state) |
+| **Styling** | Tailwind CSS 4.2, shadcn/ui, Radix UI |
+| **Animations** | Framer Motion 12.38 |
+| **HTTP Client** | Axios 1.13 with auto-refresh + retry |
+| **PDF (Client)** | html2canvas 1.4 + jsPDF 4.2 (fallback) |
+| **Icons** | Lucide React 1.0 |
+| **OAuth** | @react-oauth/google 0.13 |
+| **Error Tracking** | Sentry React 10.22 |
+| **Testing** | Vitest 4.1, Playwright 1.59 |
 
 ### Backend
-| Technology | Version |
-|---|---|
-| Node.js | 20+ |
-| Express | 5.2 |
-| TypeScript | 5.9 |
-| Mongoose | 9.3 |
-| Redis (ioredis) | 5.8 |
 
-| Puppeteer | 24.43 |
-| Zod | 4.3 |
-| Pino | 10.3 |
-| Sentry Node | 10.22 |
-| OpenTelemetry | SDK 0.214 |
-| Prometheus (prom-client) | 15.1 |
-| jsonwebtoken | 9.0 |
-| bcrypt | 6.0 |
-| Resend | 4.0 |
-| google-auth-library | 10.6 |
-| Helmet | 8.1 |
+| Layer | Technologies |
+|-------|--------------|
+| **Runtime** | Node.js 20+ |
+| **Framework** | Express 5.2, TypeScript 5.9 |
+| **Database (ORM)** | MongoDB 7.0, Mongoose 9.3 |
+| **Cache / Rate Limit** | Redis 7 (Upstash REST or self-hosted via ioredis 5.8) |
+| **PDF Generation** | Puppeteer 24.43 (Chromium) |
+| **Request Validation** | Zod 4.3 |
+| **Authentication** | jsonwebtoken 9.0, bcrypt 6.0, Google Auth Library 10.6 |
+| **Input Sanitization** | isomorphic-dompurify 3.14 |
+| **Email** | Resend 4.0 (transactional) |
+| **Observability** | OpenTelemetry SDK 0.214, Prometheus 15.1, Pino 10.3, Sentry Node 10.22 |
+| **Security** | Helmet 8.1 (CSP, HSTS, etc.) |
+| **Compression** | compression 1.7 (gzip middleware) |
+| **Logging** | Pino 10.3, pino-http 11.0 |
+| **Testing** | Node native test runner, MongoDB Memory Server 10.2 |
 
-### Database
-- **MongoDB 7** — Primary data store (users, resumes, templates, analytics, audit logs, AI usage)
-- **Redis 7** — Caching, rate limiting
-- Indexes: Compound indexes on all collections with `createAllIndexes()` migration script
+### Deployment & Infrastructure
 
-### Infrastructure
-- **Docker Compose** — Full-stack orchestration (backend, frontend, MongoDB, Redis)
-- **Render** — One-click deploy via `render.yaml`
-- **PM2** — Process management via `ecosystem.config.js`
+| Component | Technology |
+|-----------|-----------|
+| **Frontend Hosting** | Vercel (static SPA) |
+| **Backend Hosting** | Render (Node.js service) |
+| **Database** | MongoDB Cloud (Atlas) or self-hosted |
+| **Cache** | Upstash Redis (REST API) or self-hosted Redis |
+| **Observability** | Grafana Cloud (Prometheus, Loki), Sentry |
+| **Containerization** | Docker, Docker Compose |
+| **API Gateway** | None (direct Express routes) |
+| **Message Queue** | BullMQ (shimmed to run synchronously for PDF/ATS) |
 
 ---
 
-## Architecture
+## 🏗️ Architecture Overview
+
+### System Design
+
+ResumeStudio follows a **multi-tier SPA + REST API** architecture:
+
+```mermaid
+graph TD
+    User["👤 User Browser"]
+    
+    subgraph Frontend["Frontend (Vercel SPA)"]
+        React["React 19 SPA<br/>(Vite bundled)"]
+        Zustand["Zustand Store<br/>(Editor State)"]
+        OAuth["Google OAuth<br/>@react-oauth/google"]
+    end
+    
+    subgraph Backend["Backend (Render/Local)"]
+        API["Express REST API<br/>TypeScript"]
+        Auth["Auth Layer<br/>(JWT + CSRF)"]
+        Controllers["Controllers<br/>(Resume, AI, Template)"]
+        Services["Services<br/>(AI Providers, Cache)"]
+    end
+    
+    subgraph Storage["Data Layer"]
+        MongoDB["MongoDB<br/>(Resumes, Users, Audit)"]
+        Redis["Redis<br/>(Cache, Rate Limit)"]
+    end
+    
+    subgraph External["External Services"]
+        Puppeteer["Puppeteer<br/>(PDF Generation)"]
+        OpenAI["OpenAI GPT-4.1<br/>(Primary AI)"]
+        Gemini["Gemini 2.0 Flash<br/>(Fallback AI)"]
+        Resend["Resend<br/>(Email)"]
+    end
+    
+    User -->|HTTPS| React
+    React -->|REST + CSRF| API
+    React -->|OAuth Flow| OAuth
+    OAuth -->|Google OAuth| API
+    API -->|JWT Verify| Auth
+    API -->|Route| Controllers
+    Controllers -->|Business Logic| Services
+    Services -->|Query/Cache| MongoDB
+    Services -->|Cache/Rate Limit| Redis
+    Services -->|Browser| Puppeteer
+    Services -->|API Call| OpenAI
+    Services -->|Fallback| Gemini
+    Controllers -->|Email| Resend
+    
+    style Frontend fill:#61DAFB33
+    style Backend fill:#22C55E33
+    style Storage fill:#FF440033
+    style External fill:#8B5CF633
+```
+
+### Data Flow Example: Resume Download
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Browser (React SPA)                       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ Builder   │ │ My       │ │ Landing  │ │ Admin         │  │
-│  │ Editor    │ │ Resumes  │ │ Pages    │ │ Dashboard     │  │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────┬────────┘  │
-│       │            │            │               │           │
-│       └────────────┴────────────┴───────────────┘           │
-│                          │ HTTP (Axios + CSRF)               │
-└──────────────────────────┼──────────────────────────────────┘
-                           │
-┌──────────────────────────┼──────────────────────────────────┐
-│              Express 5 API (Node.js)                        │
-│                                                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐ │
-│  │ Auth     │  │ Resume   │  │ AI       │  │ Admin      │ │
-│  │ Router   │  │ Router   │  │ Router   │  │ Router     │ │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬──────┘ │
-│       │             │             │               │         │
-│  ┌────┴─────────────┴─────────────┴───────────────┴──────┐ │
-│  │              Middleware Pipeline                       │ │
-│  │  CORS → Helmet → CSRF → Auth → Rate-Limit → Cache    │ │
-│  └─────────────────────────┬─────────────────────────────┘ │
-│                            │                                │
-│  ┌─────────────────────────┴─────────────────────────────┐ │
-│  │              Services Layer                            │ │
-│  │  ResumeService  │  AIService  │  TemplateService      │ │
-│  │  ATS Analysis   │  PDF Gen    │  Analytics            │ │
-│  └────┬────────────────────┬──────────────────┬──────────┘ │
-│       │                    │                  │             │
-│  ┌────┴────┐         ┌────┴────┐              
-│  │ MongoDB │         │  Redis  │                          │
-│  │ (7)     │         │  (7)    │                          │
-│  └─────────┘         └─────────┘                          │
-│                                                             │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │   Observability Stack                                │  │
-│  │   Sentry │ OpenTelemetry │ Prometheus │ Pino/Loki   │  │
-│  └──────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+User clicks "Download PDF"
+    ↓
+Frontend: POST /api/resumes/:id/download
+    ↓
+Backend: authMiddleware → validateRequest → resumeDownloadController
+    ↓
+Enqueue PDF job (synchronously executed via BullMQ shim)
+    ↓
+Puppeteer: Render resume HTML → PDF binary
+    ↓
+Store in ResumeDownloadJob collection
+    ↓
+Frontend: Poll or SSE stream status
+    ↓
+Job complete → Serve PDF from download endpoint
+    ↓
+User: Resume.pdf downloaded ✅
 ```
 
-### Request Lifecycle
-1. **Browser → API**: Axios client injects CSRF token from cookie into `X-CSRF-Token` header
-2. **Express Middleware**: CORS → Helmet → Correlation ID → CSRF verification → Rate limit check → Auth (JWT cookie verification) → Cache lookup
-3. **Controller**: Zod validation → Service logic → MongoDB query (with Mongoose audit plugin) → Cache set
-4. **Response**: JSON with `x-ai-credits-remaining` header (for AI endpoints)
-5. **Observability**: Each request is traced via OpenTelemetry spans; errors captured by Sentry; metrics recorded in Prometheus
+### Data Flow Example: ATS Analysis
 
-### Project Structure
 ```
-Project/
-├── Backend/                          # Express 5 API server
+User selects job description + clicks "Analyze for ATS"
+    ↓
+Frontend: POST /api/resumes/:id/analyze-ats
+    ↓
+Backend: authMiddleware → creditDeduction → requestDedup → aiValidation
+    ↓
+Check if same resume/job already analyzed (deduplicate)
+    ↓
+Call AI provider with enhanced ATS prompt
+    ↓
+Parse response → Extract scores, keywords, suggestions
+    ↓
+Deduct AI credits → Store analysis in AtsAnalysis collection
+    ↓
+Return results to frontend (scores, keyword matches, action plan)
+    ↓
+User sees ATS score + suggestions ✅
+```
+
+### Folder Structure
+
+```
+resume-builder/
+├── Backend/                          # Express REST API (Node.js / TypeScript)
 │   ├── src/
-│   │   ├── server.ts                 # Entry point (DB, Puppeteer, shutdown)
-│   │   ├── app.ts                    # Express app setup (middleware, routes)
-│   │   ├── instrumentation.ts        # OpenTelemetry initialization
-│   │   ├── observability.ts          # Pino, Prometheus, Loki config
-│   │   ├── config/                   # env, db, sentry, indexes, openapi, puppeteer
-│   │   ├── middleware/               # 18 middleware (auth, csrf, cache, rate-limit, etc.)
-│   │   ├── models/                   # 12 Mongoose models + 3 plugins
-│   │   ├── controllers/              # 8 controllers
-│   │   ├── router/                   # 8 route files
-│   │   ├── services/                 # AI, Templates, Versions, Data Integrity
-│   │   ├── validation/               # Zod schemas with sanitization
-│   │   ├── queue/                    # Job queue definitions
-│   │   ├── processors/               # ATS, Resume, Job Match, Grammar processors
-│   │   ├── utils/                    # 26 utilities (Redis, tokens, email, etc.)
-│   │   └── __tests__/                # 75+ test files
-│   ├── Dockerfile
-│   ├── render.yaml                   # Render deployment config
-│   ├── ecosystem.config.js           # PM2 process config
-│   └── .env.example
-├── frontend/                         # React 19 SPA
+│   │   ├── app.ts                   # Express app factory
+│   │   ├── server.ts                # Entry point (DB connect, graceful shutdown)
+│   │   ├── instrumentation.ts       # OpenTelemetry SDK bootstrap
+│   │   ├── controllers/             # Request handlers (auth, resume, AI, admin)
+│   │   ├── middleware/              # Express middleware stack
+│   │   ├── models/                  # Mongoose schemas + plugins
+│   │   ├── router/                  # Route modules (organized by domain)
+│   │   ├── services/                # Business logic (AI providers, cache, etc.)
+│   │   ├── queue/                   # BullMQ queue shims
+│   │   ├── utils/                   # Utilities (tokens, cookies, email, etc.)
+│   │   ├── config/                  # Configuration (env schema, DB, Sentry)
+│   │   ├── errors/                  # Custom error classes
+│   │   ├── events/                  # Event definitions
+│   │   ├── observability/           # Monitoring (metrics, logging)
+│   │   ├── validation/              # Zod schemas
+│   │   └── types/                   # TypeScript type definitions
+│   ├── automated-tests/             # 17 unit + integration tests
+│   ├── prompts/                     # AI prompt templates (Python)
+│   ├── deploy/                      # Deployment configs
+│   └── Dockerfile                   # Multi-stage build (builder + runtime)
+│
+├── frontend/                         # React SPA (TypeScript)
 │   ├── src/
-│   │   ├── App.tsx                   # Router setup with lazy-loaded routes
-│   │   ├── main.tsx                  # Entry point (Google OAuth, Sentry, Auth bootstrap)
-│   │   ├── pages/                    # 11 page components
-│   │   ├── components/               # Landing, Builder, MyResumes, Admin, Templates, UI
-│   │   ├── store/                    # Zustand (useResumeBuilderStore)
-│   │   ├── hooks/                    # 5 custom hooks
-│   │   ├── services/api.ts           # Axios instance with CSRF, retry, 401 refresh
-│   │   ├── types/                    # Shared TypeScript types
-│   │   └── utils/                    # Print, PDF, logging, performance, AI credits
-│   ├── vite.config.ts
-│   └── index.html                    # SEO-optimized with OG/Twitter meta
-└── shared/                           # Shared TypeScript contracts
-    └── src/
-        ├── ai.ts                     # AI operation types and helpers
-        └── jobs.ts                   # Job data types and utilities
+│   │   ├── pages/                   # Route pages (ResumeBuilder, MyResume, Admin)
+│   │   ├── components/              # React components (50+ organized by domain)
+│   │   ├── hooks/                   # Custom hooks (useAISuggestions, useMyResume)
+│   │   ├── store/                   # Zustand store (resume editor state)
+│   │   ├── services/                # API client (Axios + CSRF)
+│   │   ├── templates/               # 12 template React components
+│   │   ├── types/                   # TypeScript type definitions
+│   │   ├── utils/                   # Utilities (logger, PDF, print, etc.)
+│   │   ├── data/                    # Static data (templates, sample resume)
+│   │   └── __tests__/               # Frontend unit tests
+│   ├── e2e/                         # Playwright E2E specs
+│   └── Dockerfile                   # Nginx SPA server
+│
+├── shared/                           # Shared types (not published)
+│   └── src/
+│       ├── ai.ts                    # AI-related types
+│       └── bullmq.ts                # BullMQ job schemas
+│
+├── docs/                             # Project documentation
+│   ├── ARCHITECTURE.md              # This architecture
+│   ├── TESTING_STANDARDS.md         # Testing conventions
+│   └── features/                    # Feature docs (auth, AI, ATS, etc.)
+│
+├── docker-compose.yml               # Local dev: backend, frontend, mongo, redis
+├── package.json                     # Root workspace (build, lint, test)
+└── README.md                        # This file
 ```
 
 ---
 
-## Screenshots
-
-| Page | Description |
-|---|---|
-| `/screenshots/landing.png` | Landing page with Hero, Features, Template carousel, How It Works, CTA |
-| `/screenshots/builder-editor.png` | Resume builder with form editor panel (personal info, experience, education sections) |
-| `/screenshots/builder-preview.png` | Builder with live A4 preview panel showing real-time template rendering |
-| `/screenshots/builder-style.png` | Style customizer panel (color themes, typography, layout, decorations) |
-| `/screenshots/builder-ai.png` | AI Assistant drawer with tone selection, improve/grammar actions, suggestions |
-| `/screenshots/ats-analysis.png` | ATS analysis panel with score ring, missing keywords, section audit, action plan |
-| `/screenshots/my-resumes.png` | Resume grid with search, sort, preview/duplicate/delete actions |
-| `/screenshots/resume-preview.png` | Full-screen resume preview modal with zoom controls and section info |
-| `/screenshots/admin-dashboard.png` | Admin dashboard with usage charts, most/least used templates, analytics table |
-| `/screenshots/admin-templates.png` | Admin template management with status/category filters, CRUD modal |
-| `/screenshots/login.png` | Login page with email/password and Google OAuth button |
-
----
-
-## Installation
+## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js** >= 20
-- **Docker** (for MongoDB + Redis)
-- **npm** (included with Node.js)
 
-### 1. Clone and Install
+- **Docker Desktop** (v2.0+) with at least 4GB RAM
+- **Ports available:** 5000 (backend), 5173 (frontend), 27017 (MongoDB), 6379 (Redis)
+
+### Start All Services
+
 ```bash
-git clone https://github.com/Rahul-Karki/Resume-Builder-Project.git
-cd Resume-Builder-Project
+# Clone the repository
+git clone https://github.com/yourusername/resume-builder.git
+cd resume-builder
 
-# Install all dependencies (root, Backend, frontend)
+# Start all services (backend, frontend, MongoDB, Redis)
+docker-compose up --build
+
+# Services will be available at:
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:5000/api
+# Health Check: http://localhost:5000/health
+# Prometheus Metrics: http://localhost:5000/metrics
+```
+
+### Stop Services
+
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (reset database)
+docker-compose down -v
+```
+
+### View Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f mongo
+docker-compose logs -f redis
+```
+
+---
+
+## 💻 Development Setup
+
+### Prerequisites
+
+- **Node.js 20+** with npm
+- **MongoDB** (local or Atlas URI)
+- **Redis** (optional; in-memory fallback available)
+- **Environment variables** configured (see [Environment Variables](#-environment-variables))
+
+### Backend Setup
+
+```bash
+cd Backend
+
+# Install dependencies
 npm install
-cd Backend && npm install
-cd ../frontend && npm install
-cd ..
-```
 
-### 2. Start Infrastructure (MongoDB + Redis)
-```bash
-docker-compose up -d mongo redis
-```
+# Build TypeScript
+npm run build
 
-### 3. Configure Environment
-```bash
-cp Backend/.env.example Backend/.env
-cp frontend/.env.example frontend/.env
-```
-Edit `Backend/.env` with your credentials (at minimum: `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`).
-
-### 4. Build Shared Types
-The `shared/` workspace is referenced by the backend via TypeScript project references. The build step compiles it automatically.
-
-### 5. Run Database Migrations
-```bash
-cd Backend
-npm run migrate:up
-```
-
-### 6. Start Development Servers
-```bash
-# Terminal 1 — Backend
-cd Backend
+# Run in development mode (with hot-reload via ts-node)
 npm run dev
 
-# Terminal 2 — Frontend
+# Run tests
+npm run test
+
+# Run specific test suite
+npm run test:unit
+npm run test:integration
+npm run test:vitest
+```
+
+**Backend runs on:** `http://localhost:5000`
+
+### Frontend Setup
+
+```bash
 cd frontend
+
+# Install dependencies
+npm install
+
+# Run development server with hot module replacement
 npm run dev
+
+# Build for production
+npm run build
+
+# Run tests
+npm run test
+
+# Run E2E tests
+npm run test:e2e
+
+# Format code
+npm run lint
 ```
 
-The frontend runs at `http://localhost:5173` and the API at `http://localhost:5000`.
+**Frontend runs on:** `http://localhost:5173`
 
-### 7. Full-Stack Production Build
+### Root Scripts
+
 ```bash
-docker-compose up -d --build
+# From project root
+npm run build       # Build both backend and frontend
+npm run lint        # Lint frontend
+npm run test        # Test both tiers
+npm run verify      # lint + build + test (CI workflow)
 ```
 
 ---
 
-## Environment Variables
+## 🔐 Environment Variables
 
-### Backend (`Backend/.env`)
+### Backend Configuration
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NODE_ENV` | Yes | `development` | Application environment |
-| `PORT` | Yes | `5000` | API server port |
-| `MONGO_URI` | Yes | — | MongoDB connection string |
-| `JWT_ACCESS_SECRET` | Yes | — | JWT signing key (min 32 chars) |
-| `JWT_REFRESH_SECRET` | Yes | — | Refresh token signing key (min 32 chars) |
-| `FRONTEND_URL` | Yes | — | CORS origin for frontend |
-| `ALLOW_PREVIEW_ORIGINS` | No | `false` | Allow preview/localhost origins for CORS in non-production |
-| `GOOGLE_CLIENT_ID` | For OAuth | — | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | For OAuth | — | Google OAuth client secret |
-| `RESEND_API_KEY` | For email | — | Resend API key for password reset emails |
-| `REDIS_URL` | Recommended | `redis://localhost:6379/0` | Redis connection URL |
+Create `Backend/.env` with the following:
 
-| `AI_PROVIDER` | For AI | `auto` | `openai`, `gemini`, or `auto` (fallback) |
-| `OPENAI_API_KEY` | For OpenAI | — | OpenAI API key |
-| `GEMINI_API_KEY` | For Gemini | — | Gemini API key |
-| `SENTRY_DSN` | Optional | — | Sentry error tracking DSN |
-| `ENABLE_METRICS` | No | `true` | Enable Prometheus `/metrics` endpoint |
-| `LOG_LEVEL` | No | `info` | Pino log level |
+```env
+# ─── Core Server ─────────────────────────
+NODE_ENV=development
+PORT=5000
+LOG_LEVEL=info
 
-See `Backend/.env.example` for the complete list (97 variables).
+# ─── Database & Cache ────────────────────
+MONGO_URI=mongodb://localhost:27017/resume_builder_dev
+REDIS_URL=redis://localhost:6379/0
+USE_MEMORY_ONLY_CACHE=false  # Use in-memory cache if Redis unavailable
 
-### Frontend (`frontend/.env`)
+# ─── Frontend URLs ───────────────────────
+FRONTEND_URL=http://localhost:5173
+FRONTEND_URLS=http://localhost:5173,http://localhost:5000
+ALLOW_PREVIEW_ORIGINS=true
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `VITE_API_BASE_URL` | Yes | `http://localhost:5000/api` | Backend API base URL |
-| `VITE_GOOGLE_CLIENT_ID` | For OAuth | — | Google OAuth client ID |
-| `VITE_SENTRY_DSN` | Optional | — | Sentry DSN for frontend error tracking |
+# ─── JWT Secrets (Generate with: openssl rand -base64 32) ──
+JWT_ACCESS_SECRET=your_access_token_secret_here
+JWT_REFRESH_SECRET=your_refresh_token_secret_here
 
----
+# ─── Authentication ──────────────────────
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-## API Documentation
+# ─── AI Providers ────────────────────────
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4-1106-preview
 
-The server exposes OpenAPI 3.0 documentation at `/api/docs` when running. Below are the primary endpoints.
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash
 
-### Authentication
+# ─── Email (Resend) ──────────────────────
+RESEND_API_KEY=re_...
+RESEND_FROM=noreply@example.com
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/auth/signup` | No | Register new user (name, email, password) |
-| POST | `/api/auth/login` | No | Login (email, password); returns HTTP-only cookies |
-| POST | `/api/auth/google-login` | No | Google OAuth authentication (credential token) |
-| POST | `/api/auth/logout` | Cookie | Clear session |
-| GET | `/api/auth/me` | Cookie | Get current user profile |
-| POST | `/api/auth/forgot-password` | No | Request password reset email |
-| POST | `/api/auth/reset-password` | No | Reset password with token |
-| POST | `/api/auth/refresh` | Cookie | Refresh access token |
-| GET | `/api/csrf` | Cookie | Issue new CSRF token |
+# ─── Observability ──────────────────────
+SENTRY_DSN=https://...@....ingest.sentry.io/...
+SENTRY_ENVIRONMENT=development
+SENTRY_TRACES_SAMPLE_RATE=0.1
 
-### Multi-Factor Authentication
+ENABLE_METRICS=true
+METRICS_PATH=/metrics
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/auth/mfa/setup` | Cookie | Generate TOTP secret and QR code |
-| POST | `/api/auth/mfa/verify` | Cookie | Verify and activate MFA |
-| POST | `/api/auth/mfa/disable` | Cookie | Disable MFA |
-| GET | `/api/auth/mfa/status` | Cookie | Get MFA status |
+# OpenTelemetry (optional)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 
-### Resumes
+# ─── Rate Limiting ───────────────────────
+RATE_LIMIT_WINDOW_MS=900000           # 15 minutes
+RATE_LIMIT_MAX_REQUESTS=100           # per window
+RATE_LIMIT_LOGIN_MAX=5                # login attempts
+RATE_LIMIT_AI_MAX=30                  # AI requests per day
+RATE_LIMIT_PDF_MAX=20                 # PDF downloads per hour
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/api/resumes` | Cookie | List user's resumes (paginated, with ATS scores) |
-| GET | `/api/resumes/:id` | Cookie | Get single resume with full data |
-| POST | `/api/resumes` | Cookie | Create new resume |
-| PUT | `/api/resumes/:id` | Cookie | Update resume |
-| DELETE | `/api/resumes/:id` | Cookie | Soft-delete resume |
+# ─── AI Credits ──────────────────────────
+AI_CREDITS_PER_USER=100               # Initial credits
+AI_CREDIT_COST_IMPROVE_TEXT=1
+AI_CREDIT_COST_CHECK_GRAMMAR=1
+AI_CREDIT_COST_ENHANCE_BULLET=1
+AI_CREDIT_COST_ANALYZE_ATS=5
+ENFORCE_AI_CREDITS=false              # Warn if false, block if true
 
-### Resume Enhancements
+# ─── PDF Generation ──────────────────────
+PUPPETEER_HEADLESS=true
+PUPPETEER_TIMEOUT_MS=30000
+PDF_MAX_CONCURRENT_JOBS=3
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/resumes/:id/analyze-ats` | Cookie | Queue ATS analysis job |
-| GET | `/api/resumes/:id/ats-analysis` | Cookie | Get latest ATS analysis results |
-| POST | `/api/resumes/:id/ats/suggestions/apply` | Cookie | Apply ATS rewrite suggestion |
-| POST | `/api/resumes/:id/download` | Cookie | Queue PDF generation job |
-| GET | `/api/resumes/:id/download/status/:jobId` | Cookie | Poll download job status |
-| GET | `/api/resumes/:id/download/result/:jobId` | Cookie | Stream completed PDF |
-| GET | `/api/resumes/:id/preview` | Cookie | Get preview rendering data |
+# ─── File Upload ─────────────────────────
+MAX_UPLOAD_SIZE=5242880               # 5MB
 
-### AI
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/api/ai/improve-text` | Cookie | Improve resume text (summary, descriptions) |
-| POST | `/api/ai/check-grammar` | Cookie | Grammar check on text section |
-| POST | `/api/ai/enhance-bullet` | Cookie | Enhance bullet points with action verbs |
-| GET | `/api/ai/usage/stats` | Cookie | Get AI credit usage statistics |
-| GET | `/api/ai/usage/history` | Cookie | Get AI request history |
-
-### Templates
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/api/templates` | No | List published templates (cached) |
-| GET | `/api/templates/:id` | No | Get single template |
-
-### Admin
-
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/api/admin/templates` | Admin | List all templates (all statuses) |
-| POST | `/api/admin/templates` | Admin | Create template |
-| PUT | `/api/admin/templates/:id` | Admin | Update template |
-| DELETE | `/api/admin/templates/:id` | Admin | Delete template |
-| PUT | `/api/admin/templates/:id/status` | Admin | Set template status |
-| PUT | `/api/admin/templates/:id/premium` | Admin | Toggle premium status |
-| POST | `/api/admin/templates/reorder` | Admin | Reorder template sort positions |
-| GET | `/api/admin/dashboard` | Admin | Dashboard stats (total templates, uses) |
-| GET | `/api/admin/analytics` | Admin | Per-template usage analytics |
-
-### Health
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/health` | Basic health check |
-| GET | `/api/health/deep` | Deep health (DB, Redis connectivity) |
-| GET | `/api/health/uptime` | Server uptime and resource stats |
-| GET | `/metrics` | Prometheus metrics (if enabled) |
-
----
-
-## Database Schema Overview
-
-### Collections
-
-#### `users`
-| Field | Type | Notes |
-|---|---|---|
-| `name` | String | User's full name |
-| `email` | String | Unique, indexed |
-| `password` | String | bcrypt hashed, `select: false` |
-| `role` | String | `user`, `admin`, `superadmin`, `recruiter` |
-| `googleId` | String | Optional Google OAuth identifier |
-| `authProvider` | String[] | `["local"]`, `["google"]`, or both |
-| `aiCredits` | Number | Available AI credits |
-| `mfa.totp.secret` | String | Encrypted TOTP secret |
-| `mfa.totp.enabled` | Boolean | MFA active |
-| `mfa.backupCodes` | String[] | One-time backup codes (hashed) |
-| `loginAttempts` | Number | Failed consecutive login attempts |
-| `lockUntil` | Date | Account lockout expiry |
-
-#### `resumes`
-| Field | Type | Notes |
-|---|---|---|
-| `userId` | ObjectId | Reference to User |
-| `title` | String | Resume display name |
-| `templateId` | String | Template layout identifier |
-| `personalInfo` | Embedded | name, email, phone, location, linkedin, github, portfolio, summary |
-| `sections` | Embedded | experience[], education[], skills[], projects[], certifications[], languages[] |
-| `style` | Embedded | accentColor, headingColor, bodyFont, fontSize, lineHeight, pageMargin, etc. |
-| `sectionOrder` | String[] | Custom ordering of sections |
-| `sectionVisibility` | Embedded | Per-section visibility toggle |
-| `atsScore` | Number | Latest ATS score |
-| `atsStatus` | String | `pending`, `completed`, `failed` |
-
-#### `templates`
-| Field | Type | Notes |
-|---|---|---|
-| `layoutId` | String | Unique slug identifier |
-| `name` | String | Display name |
-| `description` | String | Template description |
-| `category` | String | Template category |
-| `audience` | String | `tech` or `non-tech` |
-| `status` | String | `draft`, `published`, `archived` |
-| `isPremium` | Boolean | Premium-only access |
-| `cssVars` | Embedded | accentColor, bodyFont, headingFont, etc. |
-| `slots` | Embedded | Section visibility defaults |
-| `sortOrder` | Number | Display ordering |
-
-#### `ats_analyses`
-| Field | Type | Notes |
-|---|---|---|
-| `resumeId` | ObjectId | Reference to Resume |
-| `userId` | ObjectId | Reference to User |
-| `status` | String | `queued`, `processing`, `completed`, `failed` |
-| `overallScore` | Number | 0–100 composite score |
-| `sectionScores` | Embedded | Per-section scoring breakdown |
-| `keywordAnalysis` | Embedded | Present and missing keywords |
-| `rewriteSuggestions` | Embedded[] | Section-specific rewrite recommendations |
-| `actionPlan` | Embedded[] | Prioritized improvement actions |
-| `quickWins` | String[] | Easy improvement items |
-| `grade` | String | Letter grade |
-
-#### `template_usage`
-| Field | Type | Notes |
-|---|---|---|
-| `templateId` | ObjectId | Reference to Template |
-| `layoutId` | String | Template layout identifier |
-| `date` | Date | Day bucket (YYYY-MM-DD) |
-| `count` | Number | Total uses on this date |
-| `resumesCreated` | Number | Resumes created on this date |
-| `resumesEdited` | Number | Resumes edited on this date |
-
-#### Additional Collections
-- `resume_versions` — Snapshot history with version numbers and notes
-- `resume_download_jobs` — PDF generation job tracking with status and file data
-- `ai_usage` — Per-request AI token/cost tracking with provider and model info
-- `reset_tokens` — Password reset tokens with TTL indexes and resend tracking
-- `audit_logs` — Immutable audit trail with TTL-based auto-cleanup (1 year)
-
-
-### Indexes
-The project defines comprehensive compound indexes in `Backend/src/config/indexes.ts` for:
-- User lookups (email, googleId, role)
-- Resume queries (userId + updatedAt, userId + atsScore, title text search)
-- Template queries (status + audience + sortOrder, layoutId unique)
-- ATS analysis queries (resumeId + createdAt)
-- Template usage aggregation queries (templateId + date, layoutId + date)
-- Audit log queries (collectionName + documentId + createdAt)
-- Job status queries (status + createdAt)
-
----
-
-## Scripts
-
-### Root
-| Script | Command |
-|---|---|
-| `npm run build` | Build Backend + frontend |
-| `npm run lint` | Lint frontend |
-| `npm run test` | Run all tests |
-| `npm run verify` | Lint → Build → Test |
-
-### Backend
-| Script | Command |
-|---|---|
-| `npm run dev` | Start development server with hot reload |
-| `npm run build` | Compile TypeScript |
-| `npm start` | Production start with instrumentation |
-| `npm test` | Build + run automated test suite (node --test) |
-| `npm run test:unit` | Unit tests only |
-| `npm run test:integration` | Integration tests only |
-| `npm run test:vitest` | Run Vitest tests |
-| `npm run migrate:up` | Run database migrations |
-| `npm run migrate:down` | Rollback last migration |
-| `npm run backup` | Run database backup script |
-
-### Frontend
-| Script | Command |
-|---|---|
-| `npm run dev` | Vite dev server on port 5173 |
-| `npm run build` | Production build |
-| `npm run preview` | Preview production build |
-| `npm run lint` | ESLint check |
-| `npm test` | Vitest unit tests |
-| `npm run test:e2e` | Playwright E2E tests |
-
----
-
-## Production Deployment
-
-### Docker Compose (Recommended)
-```bash
-docker-compose up -d --build
+# ─── Features ────────────────────────────
+ENABLE_MFA=true
+ENABLE_ADMIN_DASHBOARD=true
+ENABLE_ATS_ANALYSIS=true
 ```
-This starts four services:
-- **mongo** — MongoDB 7 with persistent volume
-- **redis** — Redis 7-alpine with AOF persistence
-- **backend** — Express API with Puppeteer, health checks, depends on mongo + redis
-- **frontend** — Vite build served via Nginx on port 80
 
-### Render
-A `render.yaml` is included for one-click deployment:
+### Frontend Configuration
+
+Create `frontend/.env.local` with the following:
+
+```env
+# ─── API Endpoint ─────────────────────────
+VITE_API_BASE_URL=http://localhost:5000/api
+
+# ─── Frontend Base ────────────────────────
+VITE_BASE_URL=http://localhost:5173
+
+# ─── OAuth ────────────────────────────────
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+
+# ─── Observability (Optional) ─────────────
+VITE_SENTRY_DSN=https://...@....ingest.sentry.io/...
+VITE_SENTRY_ENVIRONMENT=development
+VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+
+# ─── Feature Flags ────────────────────────
+VITE_ENABLE_AI_FEATURES=true
+VITE_ENABLE_MFA=true
+```
+
+### Generate JWT Secrets
+
 ```bash
-# Deploy via Render dashboard → Blueprint → Connect repo
-# Or use render-cli:
+# Linux/macOS
+openssl rand -base64 32
+
+# Windows (PowerShell)
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Max 256 }))
+```
+
+---
+
+## 📡 API Documentation
+
+### Authentication Endpoints
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| **POST** | `/api/auth/signup` | No | Register new account (email/password) |
+| **POST** | `/api/auth/login` | No | Login with credentials (rate-limited) |
+| **POST** | `/api/auth/google-login` | No | Login via Google OAuth |
+| **POST** | `/api/auth/logout` | Yes | Logout and blacklist refresh token |
+| **GET** | `/api/auth/me` | Yes | Get authenticated user profile |
+| **POST** | `/api/auth/forgot-password` | No | Request password reset email |
+| **POST** | `/api/auth/reset-password` | No | Reset password with token |
+| **GET** | `/api/refresh/csrf` | No | Issue CSRF token |
+| **POST** | `/api/refresh` | No | Refresh access token |
+
+### Resume Endpoints
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| **GET** | `/api/resumes` | Yes | List user's resumes |
+| **POST** | `/api/resumes` | Yes | Create new resume |
+| **GET** | `/api/resumes/:id` | Yes | Get resume by ID |
+| **PUT** | `/api/resumes/:id` | Yes | Update resume content |
+| **DELETE** | `/api/resumes/:id` | Yes | Soft-delete resume |
+| **POST** | `/api/resumes/:id/restore` | Yes | Restore deleted resume |
+| **POST** | `/api/resumes/:id/download` | Yes | Enqueue PDF download job |
+| **GET** | `/api/resumes/downloads/:jobId` | Yes | Poll download status |
+| **GET** | `/api/resumes/downloads/:jobId/stream` | Yes | SSE stream job updates |
+
+### AI Endpoints
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| **POST** | `/api/ai/improve-text` | Yes | Rewrite/improve text (1 credit) |
+| **POST** | `/api/ai/check-grammar` | Yes | Check grammar (1 credit) |
+| **POST** | `/api/ai/enhance-bullet` | Yes | Enhance bullet point (1 credit) |
+| **POST** | `/api/resumes/:id/analyze-ats` | Yes | Analyze ATS compatibility (5 credits) |
+| **GET** | `/api/ai/usage-stats` | Yes | Get AI usage statistics |
+| **GET** | `/api/ai/request-history` | Yes | Get AI request history (paginated) |
+
+### Template Endpoints
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| **GET** | `/api/templates` | No | List published templates (cached) |
+| **GET** | `/api/admin/templates` | Admin | List all templates |
+| **GET** | `/api/admin/templates/:id` | Admin | Get template details |
+| **POST** | `/api/admin/templates` | Admin | Create template |
+| **PUT** | `/api/admin/templates/:id` | Admin | Update template |
+| **PATCH** | `/api/admin/templates/:id/status` | Admin | Publish/unpublish |
+| **PUT** | `/api/admin/templates/reorder` | Admin | Reorder template list |
+| **DELETE** | `/api/admin/templates/:id` | Admin | Delete template |
+
+### Admin Endpoints
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| **GET** | `/api/admin/dashboard` | Admin | Dashboard analytics (cached) |
+| **GET** | `/api/admin/audit-logs` | Admin | Compliance audit logs |
+| **GET** | `/api/admin/integrity-check` | Admin | Data integrity report |
+| **GET** | `/api/compliance/audit-export` | Admin | Export audit logs (CSV) |
+
+### Health & Monitoring
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| **GET** | `/health` | No | Basic health check (200/503) |
+| **GET** | `/health/deep` | No | Deep health (MongoDB + Redis) |
+| **GET** | `/health/uptime` | No | Service uptime and SLA status |
+| **GET** | `/health/metrics` | No | Prometheus metrics (uptime registry) |
+| **GET** | `/metrics` | Yes | Full Prometheus metrics |
+
+### Request/Response Examples
+
+#### Create Resume
+
+```bash
+curl -X POST http://localhost:5000/api/resumes \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -H "Cookie: access_token=$ACCESS_TOKEN" \
+  -d '{
+    "templateId": "modern",
+    "personalInfo": {
+      "fullName": "Jane Doe",
+      "email": "jane@example.com",
+      "phone": "+1 (555) 123-4567",
+      "location": "San Francisco, CA",
+      "summary": "Full-stack engineer with 5 years experience..."
+    },
+    "sections": {
+      "experience": [
+        {
+          "company": "Tech Corp",
+          "position": "Senior Engineer",
+          "startDate": "2021-01",
+          "endDate": "present",
+          "bullets": ["Led team of 5 engineers", "Shipped feature X"]
+        }
+      ]
+    }
+  }'
+```
+
+#### Improve Text with AI
+
+```bash
+curl -X POST http://localhost:5000/api/ai/improve-text \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -d '{
+    "text": "I worked on a project",
+    "context": "experience"
+  }'
+```
+
+#### Analyze ATS Score
+
+```bash
+curl -X POST http://localhost:5000/api/resumes/:id/analyze-ats \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF_TOKEN" \
+  -d '{
+    "jobDescription": "Senior Software Engineer required...",
+    "jobTitle": "Senior Software Engineer"
+  }'
+```
+
+---
+
+## 🚢 Deployment
+
+### Deploy to Render (Backend)
+
+1. **Connect repository** to Render dashboard
+2. **Set environment variables** (see [Environment Variables](#-environment-variables))
+3. **Deploy:**
+   - Build command: `npm install && npx puppeteer browsers install chrome && npm run build`
+   - Start command: `npm start`
+   - Port: `5000`
+
+**Pre-configured:** See `Backend/render.yaml` for one-click deployment.
+
+```bash
+# Deploy via Render CLI
 render deploy
 ```
-Key settings in `render.yaml`:
-- Node runtime, free tier compatible
-- Puppeteer Chrome installed via build command
-- All env vars configured with secure sync:false for secrets
 
-### PM2 (Process Management)
+### Deploy to Vercel (Frontend)
+
+1. **Connect repository** to Vercel dashboard
+2. **Root directory:** `frontend`
+3. **Build command:** `npm run build`
+4. **Start command:** `npm run preview`
+5. **Environment variables:**
+   - `VITE_API_BASE_URL=https://your-backend.onrender.com/api`
+   - `VITE_GOOGLE_CLIENT_ID=your_client_id`
+
+### Docker Compose (Local Development)
+
 ```bash
-pm2 start ecosystem.config.js
+docker-compose up --build
+
+# Rebuild specific service
+docker-compose up --build backend
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Reset database
+docker-compose down -v
 ```
 
-### Manual Production Build
+### Production Checklist
+
+- [ ] Environment variables configured in production
+- [ ] MongoDB Atlas cluster created with IP allowlist
+- [ ] Redis instance running (Upstash or self-hosted)
+- [ ] Puppeteer Chrome pre-installed on server
+- [ ] SSL/TLS certificates configured
+- [ ] CORS origins whitelisted
+- [ ] Rate limiting thresholds tuned
+- [ ] Sentry project created for error tracking
+- [ ] Prometheus + Grafana dashboards set up
+- [ ] Backup strategy configured (MongoDB, Redis)
+- [ ] Health check monitoring enabled
+- [ ] Logs aggregation (Loki, Datadog, etc.) configured
+
+---
+
+## 🧪 Testing
+
+### Backend Tests
+
 ```bash
-# Build shared types first
-cd Backend && npm run build && cd ..
-
-# Build frontend
-cd frontend && npm run build && cd ..
-
-# Start backend
-cd Backend && NODE_ENV=production node -r ./dist/Backend/src/instrumentation.js dist/Backend/src/server.js
-```
-
-Serve the `frontend/dist/` directory via Nginx, configured to proxy `/api/*` to the backend at port 5000.
-
-### Required Infrastructure
-- **MongoDB** — Atlas (free tier sufficient) or self-hosted
-- **Redis** — Upstash (free tier) or self-hosted (optional with `USE_MEMORY_ONLY_CACHE=true`)
-- **Email** — Resend account for password reset emails
-- **Google OAuth** — GCP project with configured redirect URIs
-- **AI Provider** — OpenAI or Gemini API key
-
----
-
-## Performance Optimizations
-
-- **API Response Caching**: Template listings cached in Redis with configurable TTL. Analytics data cached for dashboard performance.
-- **In-Memory Cache Mode**: `USE_MEMORY_ONLY_CACHE=true` eliminates Redis dependency for caching/rate-limiting (uses Maps + `setTimeout` cleanup).
-- **Database Indexes**: 60+ compound indexes across all collections with dedicated migration runner.
-- **MongoDB Connection Pool**: `minPoolSize: 10, maxPoolSize: 100` for concurrent workload handling.
-- **Lazy Route Loading**: React pages loaded via `React.lazy()` with Suspense fallback.
-- **Puppeteer Browser Pool**: Reusable browser instances avoid cold-start latency for PDF generation.
-- **Request Deduplication**: Inflight request tracking prevents duplicate API calls for identical payloads.
-- **In-Process Job Processing**: ATS analysis and PDF generation run within the application process.
-- **Graceful Shutdown**: SIGINT/SIGTERM handlers close connections cleanly.
-
----
-
-## Security
-
-- **CSRF Protection**: Double-submit cookie pattern — compares `csrfToken` cookie against `X-CSRF-Token` header with automatic rotation on refresh.
-- **JWT Authentication**: Access tokens in HTTP-only cookies (not accessible to JavaScript). Refresh token rotation invalidates old tokens.
-- **Rate Limiting**: Separate rate limiters for auth endpoints (login, forgot-password), AI endpoints, and general API with Redis backing.
-- **Account Lockout**: Progressive lockout: 5 failed attempts → 15 min lock, 10 → 30 min, 15 → 1 hour.
-- **Input Sanitization**: All text input sanitized via `sanitizePlainText()` before storage (strips HTML tags, limits length).
-- **Password Policy**: Minimum 8 characters, must include uppercase, lowercase, and special character.
-- **Helmet**: Secure HTTP headers with CSP allowing Google OAuth and Sentry.
-- **Audit Logging**: Automatic immutable audit trail for all create/update/delete operations across models.
-- **Soft Delete**: All destructive operations use `deletedAt` flag with `withDeleted` query helper for recovery.
-- **CORS**: Whitelist configured via `FRONTEND_URL` / `FRONTEND_URLS` with credentials support for cookie auth.
-- **Security Logging**: Failed login attempts, lockout events, and suspicious activity logged via `securityLogger`.
-
----
-
-## Testing
-
-### Framework
-- **Backend**: Node.js built-in test runner (`node --test`) with Supertest for HTTP assertions
-- **Frontend**: Vitest for unit tests, Playwright for E2E browser tests
-- **Mocks**: MongoDB Memory Server for integration tests, mock AI responses for AI service tests
-
-### Run Tests
-```bash
-# All tests
-npm test
-
-# Backend tests
 cd Backend
-npm test              # Full test suite
-npm run test:unit     # Unit tests only
-npm run test:integration  # Integration with supertest
 
-# Frontend tests
-cd frontend
-npm test              # Vitest unit tests
-npm run test:e2e      # Playwright E2E tests
+# Run all tests
+npm run test
 
-# CI pipeline
-npm run verify        # lint → build → test
+# Unit tests only
+npm run test:unit
+
+# Integration tests only
+npm run test:integration
+
+# Watch mode (Vitest)
+npm run test:vitest:watch
+
+# Manual test scripts
+npm run test:rate-limit:login
+npm run test:rate-limit:forgot-password
+npm run test:cache:templates
+npm run test:download:prod
 ```
 
-### Test Coverage
-- Controllers (auth, resume, AI, admin, template)
-- Services (AI, versioning)
-- Middleware (auth, CSRF, rate limiting)
-- Validation schemas
-- Utilities (token generation, hash, sanitization)
-- Frontend stores (Zustand resume builder)
-- Frontend hooks (useMyResume, useAdminTemplate, useAISuggestions, useAnalytics)
+**Test files:** `Backend/automated-tests/*.test.js` and `Backend/automated-tests/integration/*.test.js`
 
-### Manual Tests
-The `Backend/manual-tests/` directory includes scripts for:
-- Rate limit testing (login, forgot-password)
-- Cache hit validation (templates)
-- Production download flow
+### Frontend Tests
+
+```bash
+cd frontend
+
+# Run all tests
+npm run test
+
+# Watch mode
+npm run test:watch
+
+# E2E tests (Playwright)
+npm run test:e2e
+```
+
+**Test files:** `frontend/src/__tests__/*.test.ts` and `frontend/e2e/*.spec.ts`
+
+### Testing Standards
+
+See [TESTING_STANDARDS.md](docs/TESTING_STANDARDS.md) for:
+- File naming conventions
+- Test file anatomy (Arrange-Act-Assert pattern)
+- Mocking rules
+- Coverage requirements (80% minimum)
+- Forbidden patterns
+
+**Key rules:**
+- All external API calls must be mocked
+- Every public function needs 3 tests: happy path, edge case, error case
+- Minimum 80% line coverage per module
 
 ---
 
-## Future Improvements
+## 🗄️ Database Schema
 
-- **Collaborative Editing** — Real-time collaboration on resumes via WebSockets or CRDTs
-- **Job Board Integration** — Parse job descriptions and auto-suggest keyword-optimized resume content
-- **LinkedIn Import** — Import profile data via LinkedIn API to pre-fill resume fields
-- **Cover Letter Generator** — AI-powered cover letter generation from resume data
-- **Multi-Language Support** — i18n for international users
-- **Template Marketplace** — Allow community-contributed templates with review process
-- **Bulk Operations** — Export/download multiple resumes as ZIP archive
-- **Webhook System** — Notify external services on resume save/publish events
-- **Mobile App** — React Native wrapper for on-the-go resume editing
+### Collections Overview
+
+| Collection | Purpose | TTL | Key Fields |
+|-----------|---------|-----|-----------|
+| `users` | User accounts & auth | — | email, passwordHash, googleId, role, aiCredits |
+| `resumes` | Resume documents | soft-delete | userId, templateId, personalInfo, sections, style |
+| `templates` | Resume templates | — | layoutId, cssVars, status, sortOrder |
+| `ats_analyses` | ATS analysis results | — | resumeId, jobId, scores, keywordAnalysis |
+| `ai_usages` | AI request tracking | — | userId, feature, tokensUsed, cost, success |
+| `audit_logs` | Compliance audit trail | 1 year | collection, document, action, user, changes |
+| `resume_versions` | Version snapshots | — | resumeId, version, snapshot, createdAt |
+| `template_usages` | Template analytics | — | templateId, date, count |
+| `resume_download_jobs` | PDF generation jobs | — | resumeId, status, pdfData, createdAt |
+| `reset_tokens` | Password reset tokens | 24 hours | hashedToken, userId, expiresAt |
+| `mfa_secrets` | TOTP backup codes | — | userId, secret, backupCodes |
+
+### Key Indexes
+
+```javascript
+// Resumes
+db.resumes.createIndex({ userId: 1, createdAt: -1 })
+db.resumes.createIndex({ templateId: 1, status: 1 })
+
+// ATS Analyses
+db.ats_analyses.createIndex({ resumeId: 1, jobId: 1 }, { unique: true })
+
+// AI Usage
+db.ai_usages.createIndex({ userId: 1, createdAt: -1 })
+db.ai_usages.createIndex({ feature: 1, success: 1 })
+
+// Audit Logs
+db.audit_logs.createIndex({ userId: 1, createdAt: -1 })
+db.audit_logs.createIndex({ collection: 1, document: 1 })
+```
 
 ---
 
-## Contributing
+## 📊 Observability & Monitoring
+
+### Structured Logging (Pino)
+
+All requests logged with correlation ID and detailed context:
+
+```json
+{
+  "level": 30,
+  "time": "2026-05-23T10:30:00Z",
+  "pid": 1234,
+  "hostname": "backend-server",
+  "req": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "method": "POST",
+    "url": "/api/ai/improve-text",
+    "headers": { "user-agent": "axios/1.13" },
+    "remoteAddress": "127.0.0.1"
+  },
+  "res": {
+    "statusCode": 200,
+    "responseTime": 1234
+  },
+  "userId": "user-123",
+  "feature": "ai-improve-text",
+  "credits_deducted": 1,
+  "msg": "AI request completed successfully"
+}
+```
+
+### Prometheus Metrics
+
+**Available at:** `http://localhost:5000/metrics`
+
+Key metrics:
+- `http_requests_total` — Total HTTP requests by method, route, status
+- `http_request_duration_seconds` — Request latency histogram
+- `ai_requests_total` — Total AI requests by feature and provider
+- `ai_tokens_used_total` — Total tokens consumed
+- `ai_fallback_count_total` — Fallback to secondary provider count
+- `mongodb_operations_total` — MongoDB operation counts
+- `cache_hits_total` / `cache_misses_total` — Cache hit ratio
+- `users_total` — Total registered users
+- `resumes_total` — Total resumes created
+- `audit_logs_total` — Compliance audit entries
+- `uptime_seconds` — Service uptime
+
+### OpenTelemetry Tracing
+
+Distributed traces exported to Grafana Cloud / Jaeger:
+
+```env
+OTEL_EXPORTER_OTLP_ENDPOINT=https://your-otel-collector.com:4317
+```
+
+Traces include:
+- HTTP request spans (method, URL, status, duration)
+- Express middleware spans
+- MongoDB operation spans
+- External API calls (OpenAI, Gemini)
+
+### Sentry Error Tracking
+
+**Frontend & Backend errors** captured with:
+- User context (ID, email)
+- Request context (method, URL, headers)
+- PII redaction (passwords, tokens, API keys hidden)
+- Source maps for stack traces
+- Release tracking
+
+```env
+SENTRY_DSN=https://your-key@your-org.ingest.sentry.io/project-id
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.1  # 10% of transactions
+```
+
+### Health Checks
+
+```bash
+# Basic health (200/503)
+curl http://localhost:5000/health
+
+# Deep health with component status
+curl http://localhost:5000/health/deep
+
+# Response example:
+{
+  "status": "ok",
+  "components": {
+    "mongodb": { "status": "ok", "latency": 5 },
+    "redis": { "status": "ok", "latency": 2 },
+    "queue": { "status": "ok", "depth": 0 }
+  },
+  "uptime": 86400,
+  "timestamp": "2026-05-23T10:30:00Z"
+}
+```
+
+---
+
+## 🔐 Security Best Practices
+
+### Authentication Flow
+
+1. **Signup/Login** → JWT issued (access + refresh token pair)
+2. **CSRF Protection** → Double-submit cookie on every mutating request
+3. **Token Refresh** → Automatic 401 → refresh flow
+4. **Session Bootstrap** → GET /api/refresh on app load
+
+### Password Security
+
+- **Hashing:** bcrypt with salt rounds = 10
+- **Storage:** Passwords never logged or exposed
+- **Reset:** Token-based reset with 24h expiration
+- **Lockout:** Progressive lockout after 5 failed attempts
+
+### Input Validation
+
+All inputs validated with Zod schemas:
+- XSS sanitization via isomorphic-dompurify
+- Length limits enforced (max 10,000 chars for text)
+- Email format validation
+- Type checking on structured data
+
+### Rate Limiting
+
+Redis-backed sliding-window limits:
+- **Login:** 5 attempts per 15 minutes
+- **Registration:** 3 attempts per 15 minutes
+- **AI requests:** 30 per day per user
+- **Password reset:** 3 per hour
+
+### Audit Logging
+
+All admin actions logged:
+- User: Create, update, delete
+- Resume: Publish, restore, soft-delete
+- Template: Publish, reorder, delete
+- Retention: 1 year TTL
+
+---
+
+## 🤝 Contributing
+
+### Development Workflow
 
 1. **Fork** the repository
-2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit your changes**: `git commit -m 'Add amazing feature'`
-4. **Push to the branch**: `git push origin feature/amazing-feature`
-5. **Open a Pull Request**
+2. **Create feature branch:** `git checkout -b feature/your-feature`
+3. **Follow conventions:** See [TESTING_AND_DOCS_STANDARDS.md](docs/TESTING_AND_DOCS_STANDARDS.md)
+4. **Write tests:** Minimum 80% coverage required
+5. **Run verification:** `npm run verify` (lint + build + test)
+6. **Commit:** `git commit -am "feat: describe your change"`
+7. **Push:** `git push origin feature/your-feature`
+8. **Pull Request:** Include test results and verification output
 
-### Development Guidelines
-- Write TypeScript in strict mode — no `any` types unless absolutely necessary
-- All new features must include tests (unit + integration where applicable)
-- Follow the existing patterns for controllers, services, middleware, and validation
-- Ensure Zod validation schemas cover all new API inputs
-- Run `npm run verify` before submitting a PR
-- Use conventional commit messages (`feat:`, `fix:`, `chore:`, `docs:`)
+### Code Standards
 
----
+- **TypeScript:** Strict mode enabled
+- **Linting:** ESLint + Prettier
+- **Testing:** Vitest (frontend), Node test runner (backend)
+- **Commits:** Conventional Commits (feat, fix, docs, chore)
+- **Coverage:** 80% minimum per module
 
-## License
+### Running Verification
 
-Distributed under the MIT License. See `LICENSE` for more information.
+```bash
+npm run verify
 
----
-
-## Acknowledgments
-
-- [Shadcn UI](https://ui.shadcn.com/) for the component primitives
-
-- [Resend](https://resend.com/) for email delivery
-- [Google OAuth](https://developers.google.com/identity) for authentication
-- [OpenAI](https://openai.com/) and [Google Gemini](https://deepmind.google/technologies/gemini/) for AI capabilities
+# Runs:
+# 1. npm run lint      (ESLint)
+# 2. npm run build     (TypeScript compilation)
+# 3. npm run test      (All tests)
+```
 
 ---
 
-*Built with TypeScript, React, Express, MongoDB, and Redis.*
+## 📄 License
+
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
+
+---
+
+## 📞 Support & Resources
+
+- **Issues:** [GitHub Issues](https://github.com/yourusername/resume-builder/issues)
+- **Documentation:** See `/docs` folder
+- **Architecture:** [ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **Testing:** [TESTING_STANDARDS.md](docs/TESTING_STANDARDS.md)
+- **Features:** See `/docs/features` for detailed feature documentation
+- **Local Setup:** [DOCKER_LOCAL_SETUP.md](DOCKER_LOCAL_SETUP.md)
+
+---
+
+## 🚀 Quick Links
+
+| Resource | Link |
+|----------|------|
+| **Live Demo** | [Deploy to production](#deployment) |
+| **API Docs** | http://localhost:5000/api/docs |
+| **Metrics** | http://localhost:5000/metrics |
+| **Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| **Testing** | [docs/TESTING_STANDARDS.md](docs/TESTING_STANDARDS.md) |
+| **Docker Setup** | [DOCKER_LOCAL_SETUP.md](DOCKER_LOCAL_SETUP.md) |
+| **Features** | [docs/features/](docs/features/) |
+
+---
+
+**Made with ❤️ by the ResumeStudio team**
+
+**Last updated:** May 23, 2026

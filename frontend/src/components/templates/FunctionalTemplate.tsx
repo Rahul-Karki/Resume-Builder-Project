@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   formatCertification,
@@ -14,7 +15,7 @@ import {
   getSocialIconComponent,
 } from "./templateHelpers";
 
-export function FunctionalTemplate({ data }: { data: ResumeDocument }) {
+const FunctionalTemplate = memo(function FunctionalTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
@@ -223,4 +224,6 @@ export function FunctionalTemplate({ data }: { data: ResumeDocument }) {
       </div>
     </>
   );
-}
+});
+
+export { FunctionalTemplate };

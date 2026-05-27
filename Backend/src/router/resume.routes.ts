@@ -64,7 +64,15 @@ const resumeExportLimiter = createRedisRateLimitMiddleware({
   message: "Too many PDF export requests. Please try again later.",
 });
 
-router.post("/preview-html", previewHtml);
+const previewHtmlLimiter = createRedisRateLimitMiddleware({
+  scope: "preview-html",
+  windowMs: 60000,
+  max: 30,
+  keyBuilder: (req) => req.ip ? `ip:${req.ip}` : `global`,
+  message: "Too many preview requests. Please try again later.",
+});
+
+router.post("/preview-html", previewHtmlLimiter, previewHtml);
 
 router.use(authMiddleware);
 

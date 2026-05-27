@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { lazy, Suspense } from "react"
 import { RequireRole } from "./components/auth/RequireRole"
+import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 
 // Lazy-loaded route components — loaded only when navigated to
@@ -40,8 +41,8 @@ function App() {
             <Route path="/reset-password" element={<ForgotPassword />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/resume/export/:jobId" element={<ResumeExportPage />} />
-            <Route path="/builder" element={<ResumeBuilder />} />
-            <Route path="/resumes" element={<MyResumePage />} />
+            <Route path="/builder" element={<ProtectedRoute><ResumeBuilder /></ProtectedRoute>} />
+            <Route path="/resumes" element={<ProtectedRoute><MyResumePage /></ProtectedRoute>} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route
               path="/admin"

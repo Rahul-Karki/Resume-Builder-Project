@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import { ExternalLinkIcon, formatDateRange, formatProjectTech, getDisplayBullets, getExperienceParagraph, getProjectParagraph, getSocialIconComponent, isParagraphMode, renderTextWithLinks, toAbsoluteUrl, toMailto, toTel } from "@/components/templates/templateHelpers";
 
-export function SidebarTemplate({ data }: { data: ResumeDocument }) {
+const SidebarTemplate = memo(function SidebarTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
@@ -210,8 +211,6 @@ export function SidebarTemplate({ data }: { data: ResumeDocument }) {
       </div>
     </>
   );
-}
- 
+});
 
- 
-
+export { SidebarTemplate };

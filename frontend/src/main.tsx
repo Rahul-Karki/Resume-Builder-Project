@@ -1,4 +1,4 @@
-import React from "react"
+import { StrictMode } from "react"
 import ReactDOM from "react-dom/client"
 import App from "./App"
 import { GoogleOAuthProvider } from "@react-oauth/google"
@@ -9,9 +9,9 @@ import { initializeClientErrorTracking } from "./lib/errorTracking"
 const renderApp = () => {
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <React.StrictMode>
+      <StrictMode>
         <App />
-      </React.StrictMode>
+      </StrictMode>
     </GoogleOAuthProvider>
   )
 }

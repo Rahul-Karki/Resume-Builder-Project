@@ -2,29 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/services/api";
 import { ResumeDocument, SavedResume, User } from "@/types/resume-types";
 import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
+import { relativeTime } from "@/utils/relativeTime";
 import { aiCreditsManager } from "@/utils/aiCredits";
 
 const sectionKeys = ["experience", "education", "skills", "projects", "certifications"] as const;
 
 const getResumeId = (resume: ResumeDocument) => resume._id ?? resume.id ?? "";
-
-export function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  const hrs = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (mins < 2) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  if (hrs < 24) return `${hrs}h ago`;
-  if (days < 30) return `${days}d ago`;
-
-  return new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export function isAuthError(error: unknown) {
   if (!error || typeof error !== "object") {
@@ -131,7 +114,6 @@ export function useMyResumes() {
       setRawResumes(resumes);
     } catch (requestError) {
       if (isAuthError(requestError)) {
-        localStorage.removeItem("accessToken");
         setAuthRequired(true);
         setRawResumes([]);
         setUser(null);

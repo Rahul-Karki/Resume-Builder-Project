@@ -181,16 +181,16 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="editor-card" style={{ overflow: "hidden", marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer" }} onClick={() => setOpen(o => !o)}>
+    <div className="editor-card" style={{ overflow: "hidden", marginBottom: 14 }} role="region" aria-label={title || "Entry"}>
+      <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer" }} onClick={() => setOpen(o => !o)} role="button" tabIndex={0} aria-expanded={open} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{title || <span style={{ color: "#444" }}>Untitled</span>}</div>
           {subtitle && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{subtitle}</div>}
         </div>
         <button onClick={e => { e.stopPropagation(); onRemove(); }}
           style={{ cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px", marginRight: 8 }}
-          title="Remove">✕</button>
-        <span style={{ fontSize: 12, color: "#555", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }}>▾</span>
+          aria-label={`Remove ${title || "entry"}`}>✕</button>
+        <span style={{ fontSize: 12, color: "#555", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }} aria-hidden="true">▾</span>
       </div>
       {open && <div style={{ padding: "0 16px 18px" }}>{children}</div>}
     </div>
@@ -206,6 +206,7 @@ function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
       cursor: "pointer", fontFamily: "inherit",
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
     }}
+    aria-label={`Add ${l}`}
     >
       + {l}
     </button>
@@ -348,26 +349,7 @@ function PersonalSection() {
   );
 }
 
-// AI enhance button removed — ATS-driven suggestions replace local enhance actions.
 
-// ─── Mock AI Service ───────────────────────────────────────────────────────────
-// Local mock enhancement removed; use ATS suggestions and AI assistant flows instead.
-
-const mockFinalizeOptimize = async (experience: WorkEntry[]): Promise<string> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const totalWords = experience.reduce((acc, curr) => acc + (curr.description?.split(" ").length || 0) + curr.bullets.reduce((a, b) => a + b.split(" ").length, 0), 0);
-      resolve(
-        `Optimization Report:\n\n` +
-        `1. Overall Impact: Your resume demonstrates strong technical skills, but could benefit from more quantifiable achievements.\n` +
-        `2. Verb Usage: Consider varying your action verbs to avoid repetition.\n` +
-        `3. Length: Your total experience description is ${totalWords} words. Aim for 300-500 words for optimal ATS parsing.\n` +
-        `4. Keywords: Ensure you include relevant keywords from the job description.\n\n` +
-        `Recommendation: Focus on metrics and outcomes in your most recent role.`
-      );
-    }, 2000);
-  });
-};
 
 // ─── EXPERIENCE SECTION (Redesigned) ───────────────────────────────────────────
 function ExperienceSection() {
@@ -379,9 +361,6 @@ function ExperienceSection() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   
-
-  // Inline AI enhance removed — users should run ATS analysis or use the AI assistant.
-  // Finalize & Optimize removed; handled via ATS suggestions instead.
 
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -424,7 +403,6 @@ function ExperienceSection() {
           onAddBullet={() => addBullet(e.id)}
           onUpdateBullet={(i, v) => updateBullet(e.id, i, v)}
           onRemoveBullet={(i) => removeBullet(e.id, i)}
-            /* inline enhance removed */
           onDragStart={(ev) => handleDragStart(ev, e.id)}
           onDragOver={(ev) => handleDragOver(ev, e.id)}
           onDragEnd={handleDragEnd}
@@ -609,7 +587,6 @@ function ExperienceCard({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
               <span style={label}>Description</span>
-              {/* Inline enhance tip removed */}
             </div>
             <FocusedTextArea
               value={entry.description}
@@ -995,7 +972,7 @@ function LanguagesSection() {
   );
 }
 
-export function EditorPanel(): ReactNode {
+export const EditorPanel = React.memo(function EditorPanel(): ReactNode {
   const {
     resume,
   } = useResumeBuilderStore();
@@ -1028,6 +1005,7 @@ export function EditorPanel(): ReactNode {
                 key={key}
                 onClick={() => setActiveSection(key)}
                 aria-pressed={active}
+                aria-label={`Edit ${label} section`}
                 style={{
                   padding: "8px 12px",
                   borderRadius: 10,
@@ -1052,4 +1030,4 @@ export function EditorPanel(): ReactNode {
       </div>
     </div>
   );
-}
+});

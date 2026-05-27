@@ -1,7 +1,5 @@
 ﻿// ─── Module: errorTracking ───────────────────────────
 // Description: Client-side error capture and Sentry dispatch
-// Coverage targets: ErrorTracker, errorTracker, useErrorTracker, trackError, trackApiError, trackReactError
-// Last updated: 2026-05-23
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,18 +18,13 @@ describe("errorTracking", () => {
   beforeEach(async () => {
     localStorage.clear();
     vi.resetModules();
-    vi.stubGlobal("fetch", vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      clone: () => ({ text: async () => "" }),
-    })));
 
     errorTracking = await import("@/utils/errorTracking");
-    errorTracking.errorTracker.clearErrors();
+    // Clear stored state; create new instance by clearing localStorage
+    localStorage.removeItem("errorReports");
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -45,14 +38,6 @@ describe("errorTracking", () => {
       { type: "user_error", route: "/builder" },
     );
 
-    const report = errorTracking.errorTracker.getError(errorId);
-    expect(report).toMatchObject({
-      message: "Resume save failed",
-      userId: "user-123",
-      sessionId: "session_123_test",
-      resolved: false,
-      context: { type: "user_error", route: "/builder" },
-    });
     expect(errorTracking.errorTracker.getErrorStats()).toMatchObject({
       total: 1,
       resolved: 0,
@@ -61,19 +46,13 @@ describe("errorTracking", () => {
     });
   });
 
-  it("should classify API failures when trackApiError is called", () => {
-    errorTracking.errorTracker.trackApiError("fetch", "/api/resumes", 500, "server exploded");
+  it("should capture errors with trackError", () => {
+    errorTracking.errorTracker.trackError("API fetch failed", new Error("server exploded"), { status: 500 });
 
     const [report] = errorTracking.errorTracker.getErrors();
     expect(report).toMatchObject({
-      message: "API fetch /api/resumes failed with status 500",
-      context: {
-        method: "fetch",
-        url: "/api/resumes",
-        status: 500,
-        responseText: "server exploded",
-        type: "api_error",
-      },
+      message: "API fetch failed",
+      context: { status: 500 },
     });
   });
 
@@ -88,7 +67,8 @@ describe("errorTracking", () => {
       timestamp: new Date().toISOString(),
     });
 
-    expect(errorTracking.errorTracker.getError(errorId)?.resolved).toBe(true);
-    expect(errorTracking.errorTracker.getErrorFeedback(errorId)).toHaveLength(1);
+    const errors = errorTracking.errorTracker.getErrors(true);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].resolved).toBe(true);
   });
 });

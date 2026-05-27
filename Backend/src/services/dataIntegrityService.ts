@@ -160,13 +160,12 @@ export class DataIntegrityChecker {
   }
 
   /**
-   * Find audit trail gaps
+   * Find audit trail gaps using aggregation pipeline — O(n) over audit logs only
    */
   private async findAuditTrailGaps() {
     const gaps = [];
 
     try {
-      // Find documents without corresponding audit logs
       const collections = ["User", "Resume", "Template"];
 
       for (const collectionName of collections) {
@@ -176,24 +175,29 @@ export class DataIntegrityChecker {
             this.logMissingModel(collectionName);
             continue;
           }
-          const recentDocs = await (Model as any).find({})
-            .select("_id createdAt")
-            .lean();
 
-          for (const doc of recentDocs) {
-            const auditLog = await AuditLog.findOne({
-              documentId: doc._id,
-              collectionName: collectionName.toLowerCase(),
-              action: "create",
-            }).lean();
+          const collection = Model.collection.name;
+          const gapsBatch = await AuditLog.aggregate([
+            { $match: { collectionName: collectionName.toLowerCase(), action: "create" } },
+            { $group: { _id: "$documentId" } },
+            {
+              $lookup: {
+                from: collection,
+                localField: "_id",
+                foreignField: "_id",
+                as: "doc",
+              },
+            },
+            { $match: { doc: { $size: 0 } } },
+            { $limit: 1000 },
+            { $project: { _id: 1 } },
+          ]);
 
-            if (!auditLog) {
-              gaps.push({
-                collection: collectionName,
-                documentId: doc._id,
-                createdAt: doc.createdAt,
-              });
-            }
+          for (const gap of gapsBatch) {
+            gaps.push({
+              collection: collectionName,
+              documentId: gap._id,
+            });
           }
         } catch (error) {
           logger.warn(

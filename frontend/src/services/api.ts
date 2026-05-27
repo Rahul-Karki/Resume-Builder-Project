@@ -276,8 +276,6 @@ export const getLatestAtsAnalysis = async (resumeId: string) => {
 export async function bootstrapAuthSession() {
   try {
     const response = await api.post("/refresh", {});
-    // Token is automatically set in HttpOnly cookie by backend
-    localStorage.setItem("accessToken", "session");
     return true;
   } catch {
     try {
@@ -339,11 +337,9 @@ api.interceptors.response.use(
 
       try {
         const refreshResponse = await api.post("/refresh", {});
-        // Token is automatically set in HttpOnly cookie by backend
-        localStorage.setItem("accessToken", "session");
         return api(originalRequest);
       } catch {
-        localStorage.removeItem("accessToken");
+        // Token refresh failed
       }
     }
 
@@ -359,7 +355,7 @@ api.interceptors.response.use(
         await fetchRotatedCsrfToken();
         return api(originalRequest);
       } catch {
-        localStorage.removeItem("accessToken");
+        // CSRF rotation failed
       }
     }
 

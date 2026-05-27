@@ -1,24 +1,24 @@
-import React from "react"
+import { useState, type ComponentProps, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
 import { api } from "@/services/api"
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/
 
-export function SignupForm({ ...props }: React.ComponentProps<"div">) {
-  const [email, setEmail] = React.useState("")
-  const [password, setPassword] = React.useState("")
-  const [confirmPassword, setConfirmPassword] = React.useState("")
-  const [showPassword, setShowPassword] = React.useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
-  const [name, setName] = React.useState("")
-  const [error, setError] = React.useState("")
-  const [success, setSuccess] = React.useState("")
-  const [loading, setLoading] = React.useState(false)
+export function SignupForm({ ...props }: ComponentProps<"div">) {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [name, setName] = useState("")
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate()
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e: FormEvent) => {
     e.preventDefault()
 
     if (loading) return
@@ -90,7 +90,7 @@ export function SignupForm({ ...props }: React.ComponentProps<"div">) {
         gap: 12,
         gridTemplateColumns: "minmax(0, 1fr)",
         justifyItems: "center",
-        ...((props as React.ComponentProps<"div">).style ?? {}),
+        ...((props as ComponentProps<"div">).style ?? {}),
       }}
     >
       <div style={{ marginBottom: 2, textAlign: "center", width: "100%" }}>
@@ -182,13 +182,13 @@ export function SignupForm({ ...props }: React.ComponentProps<"div">) {
   )
 }
 
-const fieldStyle: React.CSSProperties = {
+const fieldStyle: Record<string, string | number> = {
   display: "grid",
   gap: 6,
   width: "100%",
 };
 
-const labelStyle: React.CSSProperties = {
+const labelStyle: Record<string, string | number> = {
   color: "#C8C7C0",
   fontSize: 11,
   fontWeight: 700,
@@ -196,7 +196,7 @@ const labelStyle: React.CSSProperties = {
   textTransform: "uppercase",
 };
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: Record<string, string | number> = {
   width: "100%",
   borderRadius: 14,
   border: "1px solid #232323",
@@ -208,7 +208,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-const primaryButtonStyle = (disabled: boolean): React.CSSProperties => ({
+const primaryButtonStyle = (disabled: boolean): Record<string, string | number> => ({
   width: "100%",
   border: "none",
   borderRadius: 14,
@@ -221,12 +221,12 @@ const primaryButtonStyle = (disabled: boolean): React.CSSProperties => ({
   transition: "transform 0.15s ease, opacity 0.15s ease",
 });
 
-const passwordFieldWrapStyle: React.CSSProperties = {
+const passwordFieldWrapStyle: Record<string, string | number> = {
   position: "relative",
   width: "100%",
 };
 
-const togglePasswordButtonStyle: React.CSSProperties = {
+const togglePasswordButtonStyle: Record<string, string | number> = {
   position: "absolute",
   right: 14,
   top: "50%",

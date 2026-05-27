@@ -79,7 +79,7 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
           timeoutMs: finalConfig.timeoutMs,
           requestId,
         });
-        setSuggestions(data);
+        setSuggestions(data as AiRewriteResult | AiGrammarResult);
         setState({ loading: false, error: null, requestId });
         requestManager.completeRequest(requestKey);
         return { success: true, data };

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types";
 import {
   ExternalLinkIcon,
@@ -15,7 +16,7 @@ import {
   getSocialIconComponent,
 } from "@/components/templates/templateHelpers";
 
-export function ModernTemplate({ data }: { data: ResumeDocument }) {
+const ModernTemplate = memo(function ModernTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const contactItems = [
     p.email ? { label: p.email, href: toMailto(p.email) } : null,
@@ -205,4 +206,6 @@ export function ModernTemplate({ data }: { data: ResumeDocument }) {
       </div>
     </>
   );
-}
+});
+
+export { ModernTemplate };

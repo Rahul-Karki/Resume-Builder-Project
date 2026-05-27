@@ -1,5 +1,6 @@
 import { GoogleLogin } from "@react-oauth/google";
 import { api } from "@/services/api";
+import { logger } from "@/utils/logger";
 
 interface GoogleAuthButtonProps {
   redirectTo?: string;
@@ -42,13 +43,12 @@ const GoogleAuthButton = ({ redirectTo = "/resumes" }: GoogleAuthButtonProps) =>
               }
 
               window.location.href = redirectTo;
-            } catch (err:any) {
-              alert(err);
-              console.error(err);
+            } catch (err: any) {
+              logger.error("Google login failed", { error: err });
             }
           }}
           onError={() => {
-            console.log("Login Failed");
+            logger.error("Google login failed", { error: "popup closed or auth error" });
           }}
         />
       </div>

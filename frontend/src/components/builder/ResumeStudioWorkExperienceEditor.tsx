@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Eye, EyeOff, GripVertical, Sparkles, Wand2, Scissors, Target, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
-import { api, improveResumeText, getLatestAtsAnalysis } from '@/services/api';
+import { api, getLatestAtsAnalysis } from '@/services/api';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
+import { useViewport } from '@/hooks/useViewport';
 import printResume from '@/utils/print';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
@@ -13,6 +14,7 @@ import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
 import { Logo } from '@/components/Logo';
 import { PaginatedResumePreview } from '@/components/builder/PaginatedResumePreview';
+import { AtsTipsPanel } from '@/components/builder/AtsTipsPanel';
 import { A4_WIDTH_PX } from '@/utils/resumePagination';
 
 type LeftTab = 'content' | 'style' | 'sections';
@@ -112,20 +114,13 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<string>('classic');
   const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
-  const [isMobile, setIsMobile] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
   const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const updateViewport = () => setIsMobile(window.innerWidth < 768);
-    updateViewport();
-    window.addEventListener('resize', updateViewport);
-    return () => window.removeEventListener('resize', updateViewport);
-  }, []);
+  const isMobile = useViewport(768);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -615,49 +610,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
             {assistantTab === 'tips' && (
               <div className="space-y-2.5">
-                {latestAnalysis ? (
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">ATS Suggestions</div>
-                    {(() => {
-                      const groups: Record<string, any[]> = {};
-                      const suggestions = Array.isArray(latestAnalysis.rewriteSuggestions) ? latestAnalysis.rewriteSuggestions : [];
-                      for (const s of suggestions) {
-                        const path: string = s.path ?? 'general';
-                        let key = 'general';
-                        if (path.startsWith('personalInfo.summary')) key = 'summary';
-                        else if (path.startsWith('sections.experience')) key = 'experience';
-                        else if (path.startsWith('sections.skills')) key = 'skills';
-                        else if (path.startsWith('sections.education')) key = 'education';
-                        else if (path.startsWith('sections.projects')) key = 'projects';
-                        else if (path.startsWith('sections.certifications')) key = 'certifications';
-                        else if (path.startsWith('sections.languages')) key = 'languages';
-
-                        groups[key] = groups[key] ?? [];
-                        groups[key].push(s);
-                      }
-
-                      return Object.keys(groups).map((key) => (
-                        <div key={key} className="mb-3">
-                          <div className="text-sm font-semibold text-zinc-200 mb-2" style={{ textTransform: 'capitalize' }}>{key}</div>
-                          {groups[key].map((g: any) => (
-                            <div key={g.id} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm mb-2">
-                              <div className="text-zinc-100 font-medium">{g.suggestionText}</div>
-                              <div className="text-zinc-400 text-xs mt-1">{g.reason}</div>
-                            </div>
-                          ))}
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                ) : (
-                  compactInsights.map((insight, idx) => (
-                    <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
-                      <span className={insight.tone}>{insight.icon}</span>
-                      <span className="text-zinc-200">{insight.text}</span>
-                    </div>
-                  ))
-                )}
-                {/* Finalize & Optimize removed — ATS suggestions will appear here after analysis */}
+                <AtsTipsPanel latestAnalysis={latestAnalysis} compactInsights={compactInsights} />
               </div>
             )}
             {assistantTab === 'ai' && <AIAssistantPanel />}
@@ -686,49 +639,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
             {assistantTab === 'tips' && (
               <div className="space-y-2.5">
-                {latestAnalysis ? (
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">ATS Suggestions</div>
-                    {(() => {
-                      const groups: Record<string, any[]> = {};
-                      const suggestions = Array.isArray(latestAnalysis.rewriteSuggestions) ? latestAnalysis.rewriteSuggestions : [];
-                      for (const s of suggestions) {
-                        const path: string = s.path ?? 'general';
-                        let key = 'general';
-                        if (path.startsWith('personalInfo.summary')) key = 'summary';
-                        else if (path.startsWith('sections.experience')) key = 'experience';
-                        else if (path.startsWith('sections.skills')) key = 'skills';
-                        else if (path.startsWith('sections.education')) key = 'education';
-                        else if (path.startsWith('sections.projects')) key = 'projects';
-                        else if (path.startsWith('sections.certifications')) key = 'certifications';
-                        else if (path.startsWith('sections.languages')) key = 'languages';
-
-                        groups[key] = groups[key] ?? [];
-                        groups[key].push(s);
-                      }
-
-                      return Object.keys(groups).map((key) => (
-                        <div key={key} className="mb-3">
-                          <div className="text-sm font-semibold text-zinc-200 mb-2" style={{ textTransform: 'capitalize' }}>{key}</div>
-                          {groups[key].map((g: any) => (
-                            <div key={g.id} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm mb-2">
-                              <div className="text-zinc-100 font-medium">{g.suggestionText}</div>
-                              <div className="text-zinc-400 text-xs mt-1">{g.reason}</div>
-                            </div>
-                          ))}
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                ) : (
-                  compactInsights.map((insight, idx) => (
-                    <div key={idx} className="rounded-lg border border-zinc-800/80 bg-zinc-900/60 px-3 py-2.5 text-sm flex items-center gap-2">
-                      <span className={insight.tone}>{insight.icon}</span>
-                      <span className="text-zinc-200">{insight.text}</span>
-                    </div>
-                  ))
-                )}
-                {/* Finalize & Optimize removed — ATS suggestions will appear here after analysis */}
+                <AtsTipsPanel latestAnalysis={latestAnalysis} compactInsights={compactInsights} />
               </div>
             )}
             {assistantTab === 'ai' && <AIAssistantPanel />}

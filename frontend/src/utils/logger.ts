@@ -22,7 +22,6 @@ class Logger {
   
   private constructor() {
     this.sessionId = this.generateSessionId();
-    this.setupGlobalErrorHandlers();
   }
 
   static getInstance(): Logger {
@@ -34,27 +33,6 @@ class Logger {
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  private setupGlobalErrorHandlers() {
-    // Catch unhandled errors
-    window.addEventListener('error', (event) => {
-      this.error('Unhandled JavaScript Error', {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        stack: event.error?.stack,
-      });
-    });
-
-    // Catch unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      this.error('Unhandled Promise Rejection', {
-        reason: event.reason,
-        stack: event.reason?.stack,
-      });
-    });
   }
 
   private formatMessage(level: LogLevel, message: string, context?: Record<string, any>): LogEntry {

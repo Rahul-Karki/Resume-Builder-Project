@@ -1,3 +1,4 @@
+import { memo } from "react";
 import  { ResumeDocument, marginMap, spacingMap } from "@/types/resume-types"; 
 import {
   ExternalLinkIcon,
@@ -13,7 +14,7 @@ import {
   toMailto,
   toTel,  getSocialIconComponent,} from "./templateHelpers";
 
-export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
+const ExecutiveTemplate = memo(function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
   const { personalInfo: p, sections: s, sectionVisibility, style } = data;
   const pagePadding = marginMap[style.pageMargin];
   const sectionGap = spacingMap[style.sectionSpacing];
@@ -196,4 +197,6 @@ export function ExecutiveTemplate({ data }: { data: ResumeDocument }) {
       </div>
     </>
   );
-}
+});
+
+export { ExecutiveTemplate };
