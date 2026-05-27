@@ -3,6 +3,7 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
+import security from 'eslint-plugin-security'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
@@ -14,6 +15,7 @@ export default defineConfig([
       tseslint.configs.recommended,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
+      security.configs.recommended,
     ],
     languageOptions: {
       ecmaVersion: 2020,
@@ -24,9 +26,12 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-prototype-builtins': 'warn',
       'no-useless-catch': 'warn',
+      'react-hooks/refs': 'warn',
       'react-refresh/only-export-components': 'warn',
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/static-components': 'warn',
+      'security/detect-non-literal-fs-filename': 'warn',
+      'security/detect-possible-timing-attacks': 'warn',
     },
   },
 ])

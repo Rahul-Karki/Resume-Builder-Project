@@ -17,9 +17,10 @@ const isHttpsRequest = (req: Request) => {
 
 const getBaseCookieOptions = (req: Request) => {
   const secure = isProduction && isHttpsRequest(req);
+  const sameSite = secure ? "none" as const : "lax" as const;
   return {
     secure,
-    sameSite: (secure ? "none" : "lax") as "lax" | "none",
+    sameSite,
     path: "/",
   };
 };

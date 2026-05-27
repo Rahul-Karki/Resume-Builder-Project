@@ -1,10 +1,3 @@
-// ─── redactSensitive.ts ────────────────────────────────────────────────────
-// Utility to redact sensitive data from logs to prevent leaking tokens, 
-// passwords, and other PII in error logs.
-
-/**
- * Sensitive keys that should be redacted from logs
- */
 const SENSITIVE_KEYS = new Set([
   "password",
   "token",
@@ -28,25 +21,30 @@ const SENSITIVE_KEYS = new Set([
   "pin",
 ]);
 
-/**
- * Check if a key name indicates sensitive data
- */
+const TOKEN_PATTERNS = [
+  /^eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+$/,    // JWT
+  /^gh[ps]_[a-zA-Z0-9]{36,}$/,                                 // GitHub tokens
+  /^sk-[a-zA-Z0-9]{20,}$/i,                                    // OpenAI keys
+  /^xox[bpras]-\d+-[a-f0-9]{8,}-[a-f0-9]{8,}/i,              // Slack tokens
+  /^[a-f0-9]{64,}$/i,                                          // 32+ byte hex tokens
+  /^[A-Za-z0-9+/]{40,}={0,2}$/,                                // Base64 30+ chars
+];
+
 const isSensitiveKey = (key: string): boolean => {
   const lowerKey = key.toLowerCase();
   return SENSITIVE_KEYS.has(lowerKey) || lowerKey.includes("secret") || lowerKey.includes("pass");
 };
 
-/**
- * Redact sensitive values in an object
- */
+const isLikelySecret = (str: string): boolean =>
+  str.length >= 20 && TOKEN_PATTERNS.some((p) => p.test(str));
+
 export const redactSensitive = (obj: unknown): unknown => {
   if (obj === null || obj === undefined) {
     return obj;
   }
 
   if (typeof obj === "string") {
-    // Check if string looks like a token (long alphanumeric)
-    if (obj.length > 20 && /^[a-zA-Z0-9._-]+$/.test(obj)) {
+    if (isLikelySecret(obj)) {
       return "[REDACTED]";
     }
     return obj;
@@ -72,9 +70,6 @@ export const redactSensitive = (obj: unknown): unknown => {
   return redacted;
 };
 
-/**
- * Redact entire request params and query objects
- */
 export const redactRequestData = (params?: unknown, query?: unknown): { params?: unknown; query?: unknown } => {
   return {
     params: redactSensitive(params),

@@ -110,8 +110,8 @@ export const createApp = () => {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "https://accounts.google.com"],
+        styleSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.googleusercontent.com"],
         fontSrc: ["'self'", "data:"],
         connectSrc: ["'self'", "https://*.ingest.sentry.io", "https://accounts.google.com"],
@@ -157,17 +157,12 @@ export const createApp = () => {
   apiVersionRouter.use("/resumes", resumeRoutes);
   apiVersionRouter.use("/admin", adminRoutes);
 
-  // Unversioned routes
-  app.use("/api", apiVersionRouter);
-  // Version-prefixed routes for explicit versioning: /api/v1/...
+  // Unversioned routes (preferred for new clients)
   app.use("/api/v1", apiVersionRouter);
-  // Legacy routes
-  app.use("/api/auth", authRoutes);
-  app.use("/api/ai", aiRoutes);
-  app.use("/api/resumes", resumeRoutes);
+  // Legacy /api/ prefix — already in apiVersionRouter, no duplicate mounts needed
+  app.use("/api", apiVersionRouter);
+  // Templates and health — not in auth-protected router
   app.use("/api/templates", templateRoutes);
-  // Admin routes — already mounted via apiVersionRouter at /api/admin
-  // (no duplicate mount needed)
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);
   app.use(notFoundHandler);

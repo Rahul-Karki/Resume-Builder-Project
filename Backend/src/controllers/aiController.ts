@@ -1,7 +1,6 @@
-import { Request, RequestHandler, Response } from "express";
+import { Request, Response } from "express";
 import crypto from "crypto";
 import { checkGrammar, enhanceBullet, improveText } from "../services/aiService";
-import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { logger } from "../observability";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { AuthError } from "../errors/AppError";
@@ -12,17 +11,14 @@ import { MemoryLRUCache } from "../utils/memoryCache";
 import { env } from "../config/env";
 import { assertAiCreditsAvailable, deductAiCredits, refreshAiCreditsIfNeeded } from "../utils/aiCredits";
 import type { AiOperation } from "../utils/creditCalculator";
+import { wrapController } from "../utils/controllerWrapper";
 
-/**
- * In-memory AI response cache. Prevents redundant API calls for identical text inputs.
- * TTL: 5 minutes, max 100 entries. Keyed by SHA-256 of (text + section + tone).
- */
 const aiResponseCache = new MemoryLRUCache(100);
 const AI_CACHE_TTL_SECONDS = 300;
 
 const createAiCacheKey = (type: string, text: string, section: string, tone: string, context?: string, variationSeed?: string): string => {
   const raw = `${type}:${text}:${section}:${tone}:${context ?? ""}:${variationSeed ?? ""}`;
-  return `ai:${type}:${crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16)}`;
+  return `ai:${type}:${crypto.createHash("sha256").update(raw).digest("hex")}`;
 };
 
 const getUserId = (req: Request) => req.user?.id;
@@ -33,7 +29,6 @@ const requireAuth = (req: Request, res: Response) => {
     sendErrorResponse(res, new AuthError("Unauthorized", { code: "AUTH_REQUIRED" }));
     return null;
   }
-
   return userId;
 };
 
@@ -41,14 +36,9 @@ const getTone = (tone: unknown): AiTone => {
   if (tone === "concise" || tone === "technical" || tone === "leadership-focused") {
     return tone;
   }
-
   return "professional";
 };
 
-/**
- * Extract request ID from headers for distributed tracing.
- * Falls back to generating a unique ID if not provided.
- */
 const getRequestId = (req: Request): string => {
   return String(req.headers["x-request-id"] || req.headers["x-correlation-id"] || "");
 };
@@ -108,30 +98,42 @@ const maybeDeductCredits = async (req: Request, userId: string, shouldDeduct: bo
   return { deducted: estimatedCredits, user };
 };
 
-export const improveTextHandler: RequestHandler = async (req, res) => {
-  const requestId = getRequestId(req);
-  const span = startControllerSpan("ai.improveText", req);
-  const startTime = Date.now();
-  
-  try {
+type AiRequestBody = {
+  text: string;
+  section: string;
+  tone?: unknown;
+  context?: string;
+  targetRole?: string;
+  forceRefresh?: boolean;
+  variationSeed?: string;
+};
+
+type AiHandlerFn = (params: {
+  text: string;
+  section: string;
+  tone: AiTone;
+  context?: string;
+  targetRole?: string;
+  userId: string;
+  variationSeed?: string;
+}) => Promise<any>;
+
+const createAiHandler = (aiType: string, cacheKeyPrefix: string, handlerFn: AiHandlerFn) =>
+  wrapController(async (req, res) => {
+    const requestId = getRequestId(req);
+    const startTime = Date.now();
+
     const userId = requireAuth(req, res);
     if (!userId) return;
 
-    const text = String(req.body?.text ?? "");
-    const section = String(req.body?.section ?? "summary");
-    const tone = getTone(req.body?.tone);
-    const context = typeof req.body?.context === "string" ? req.body.context : undefined;
-    const targetRole = typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined;
-    const forceRefresh = Boolean(req.body?.forceRefresh);
-    const variationSeed = typeof req.body?.variationSeed === "string" ? req.body.variationSeed : undefined;
+    const { text, section, tone: rawTone, context, targetRole, forceRefresh, variationSeed } = req.body as AiRequestBody;
+    const tone = getTone(rawTone);
 
-    // Check in-memory cache first
-    const cacheKey = createAiCacheKey("improve", text, section, tone, context, variationSeed);
+    const cacheKey = createAiCacheKey(cacheKeyPrefix, text, section, tone, context, variationSeed);
     if (!forceRefresh) {
       const cached = aiResponseCache.get(cacheKey);
       if (cached) {
-        logger.debug({ requestId, userId, cacheKey }, "AI improve-text cache hit");
-        markSpanSuccess(span);
+        logger.debug({ requestId, userId, cacheKey }, `AI ${aiType} cache hit`);
         setAiResponseHeaders(res, {
           cached: true,
           creditsEstimated: req.creditContext?.estimatedCredits,
@@ -142,126 +144,9 @@ export const improveTextHandler: RequestHandler = async (req, res) => {
       }
     }
 
-    await enforceCreditsIfNeeded("improve-text", req, userId);
+    await enforceCreditsIfNeeded(aiType as AiOperation, req, userId);
 
-    const result = await improveText({ text, section, tone, context, targetRole, userId, variationSeed });
-
-    const latencyMs = Date.now() - startTime;
-    const cost = calculateAICost(
-      { input: result._tokens?.input || 0, output: result._tokens?.output || 0 },
-      getCostProvider(result._provider),
-      result._model || "unknown"
-    );
-
-    // Track metrics
-    trackAiRequest(
-      "improve-text",
-      result._provider || "unknown",
-      "success",
-      latencyMs,
-      result._tokens,
-      result._fallback || false
-    );
-
-    logger.info(
-      {
-        requestId,
-        userId,
-        aiType: "improve-text",
-        section: req.body?.section,
-        provider: result._provider,
-        model: result._model,
-        tokens: result._tokens,
-        cost: {
-          input: cost.input.toFixed(6),
-          output: cost.output.toFixed(6),
-          total: cost.total.toFixed(6),
-        },
-        latencyMs,
-        fallback: result._fallback || false,
-      },
-      "AI improve-text request completed"
-    );
-
-    markSpanSuccess(span);
-
-    const { deducted, user } = await maybeDeductCredits(req, userId, !(result._fallback || false));
-    setAiResponseHeaders(res, {
-      cached: false,
-      fallback: result._fallback || false,
-      provider: result._provider,
-      model: result._model,
-      creditsEstimated: req.creditContext?.estimatedCredits,
-      creditsDeducted: deducted,
-      creditsRemaining: user?.aiCreditsRemaining,
-      creditsResetAt: user?.aiCreditsResetAt,
-      creditsPlan: user?.aiCreditsPlan,
-    });
-
-    // Remove internal tracking fields from response
-    const { _tokens, _provider, _model, _fallback, ...responseData } = result;
-    // Cache the response for future identical requests
-    if (!forceRefresh) {
-      try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
-    }
-    res.status(200).json(responseData);
-  } catch (error) {
-    const latencyMs = Date.now() - startTime;
-    trackAiRequest("improve-text", "unknown", "error", latencyMs);
-    trackValidationError("improve_text_error");
-    
-    markSpanError(span, error as Error, "Failed to improve text");
-    logger.error(
-      {
-        requestId,
-        userId: (req.user as Record<string, unknown> | undefined)?.id,
-        aiType: "improve-text",
-        error: error instanceof Error ? error.message : String(error),
-        latencyMs,
-      },
-      "AI improve-text request failed"
-    );
-    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
-  } finally {
-    finishControllerSpan(span);
-  }
-};
-
-export const checkGrammarHandler: RequestHandler = async (req, res) => {
-  const requestId = getRequestId(req);
-  const span = startControllerSpan("ai.checkGrammar", req);
-  const startTime = Date.now();
-  
-  try {
-    const userId = requireAuth(req, res);
-    if (!userId) return;
-
-    const text = String(req.body?.text ?? "");
-    const section = String(req.body?.section ?? "summary");
-    const context = typeof req.body?.context === "string" ? req.body.context : undefined;
-    const forceRefresh = Boolean(req.body?.forceRefresh);
-    const variationSeed = typeof req.body?.variationSeed === "string" ? req.body.variationSeed : undefined;
-
-    // Check in-memory cache first
-    const cacheKey = createAiCacheKey("grammar", text, section, "default", context, variationSeed);
-    if (!forceRefresh) {
-      const cached = aiResponseCache.get(cacheKey);
-      if (cached) {
-        logger.debug({ requestId, userId, cacheKey }, "AI check-grammar cache hit");
-        markSpanSuccess(span);
-        setAiResponseHeaders(res, {
-          cached: true,
-          creditsEstimated: req.creditContext?.estimatedCredits,
-          creditsDeducted: 0,
-        });
-        res.status(200).json(JSON.parse(cached));
-        return;
-      }
-    }
-
-    await enforceCreditsIfNeeded("check-grammar", req, userId);
-
-    const result = await checkGrammar({ text, section, context, userId, variationSeed });
+    const result = await handlerFn({ text, section, tone, context, targetRole, userId, variationSeed });
 
     const latencyMs = Date.now() - startTime;
     const cost = calculateAICost(
@@ -270,196 +155,36 @@ export const checkGrammarHandler: RequestHandler = async (req, res) => {
       result._model || "unknown"
     );
 
-    // Track metrics
-    trackAiRequest(
-      "check-grammar",
-      result._provider || "unknown",
-      "success",
-      latencyMs,
-      result._tokens,
-      result._fallback || false
-    );
+    trackAiRequest(aiType, result._provider || "unknown", "success", latencyMs, result._tokens, result._fallback || false);
 
-    logger.info(
-      {
-        requestId,
-        userId,
-        aiType: "check-grammar",
-        section: req.body?.section,
-        provider: result._provider,
-        model: result._model,
-        tokens: result._tokens,
-        cost: {
-          input: cost.input.toFixed(6),
-          output: cost.output.toFixed(6),
-          total: cost.total.toFixed(6),
-        },
-        issuesFound: (result.issues || []).length,
-        latencyMs,
-        fallback: result._fallback || false,
-      },
-      "AI check-grammar request completed"
-    );
-
-    markSpanSuccess(span);
+    logger.info({
+      requestId, userId, aiType, section, provider: result._provider,
+      model: result._model, tokens: result._tokens,
+      cost: { input: cost.input.toFixed(6), output: cost.output.toFixed(6), total: cost.total.toFixed(6) },
+      latencyMs, fallback: result._fallback || false,
+    }, `AI ${aiType} request completed`);
 
     const { deducted, user } = await maybeDeductCredits(req, userId, !(result._fallback || false));
     setAiResponseHeaders(res, {
-      cached: false,
-      fallback: result._fallback || false,
-      provider: result._provider,
-      model: result._model,
-      creditsEstimated: req.creditContext?.estimatedCredits,
-      creditsDeducted: deducted,
-      creditsRemaining: user?.aiCreditsRemaining,
-      creditsResetAt: user?.aiCreditsResetAt,
-      creditsPlan: user?.aiCreditsPlan,
+      cached: false, fallback: result._fallback || false, provider: result._provider,
+      model: result._model, creditsEstimated: req.creditContext?.estimatedCredits,
+      creditsDeducted: deducted, creditsRemaining: user?.aiCreditsRemaining,
+      creditsResetAt: user?.aiCreditsResetAt, creditsPlan: user?.aiCreditsPlan,
     });
 
-    // Remove internal tracking fields from response
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;
-    // Cache the response for future identical requests
     if (!forceRefresh) {
       try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
     }
     res.status(200).json(responseData);
-  } catch (error) {
-    const latencyMs = Date.now() - startTime;
-    trackAiRequest("check-grammar", "unknown", "error", latencyMs);
-    trackValidationError("check_grammar_error");
-    
-    markSpanError(span, error as Error, "Failed to check grammar");
-    logger.error(
-      {
-        requestId,
-        userId: (req.user as Record<string, unknown> | undefined)?.id,
-        aiType: "check-grammar",
-        error: error instanceof Error ? error.message : String(error),
-        latencyMs,
-      },
-      "AI check-grammar request failed"
-    );
-    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
-  } finally {
-    finishControllerSpan(span);
-  }
-};
+  }, {
+    spanName: `ai.${aiType}`,
+    onError: (error, req) => {
+      trackAiRequest(aiType, "unknown", "error", Date.now());
+      trackValidationError(`${aiType.replace("-", "_")}_error`);
+    },
+  });
 
-export const enhanceBulletHandler: RequestHandler = async (req, res) => {
-  const requestId = getRequestId(req);
-  const span = startControllerSpan("ai.enhanceBullet", req);
-  const startTime = Date.now();
-  
-  try {
-    const userId = requireAuth(req, res);
-    if (!userId) return;
-
-    const text = String(req.body?.text ?? "");
-    const section = String(req.body?.section ?? "experience");
-    const tone = getTone(req.body?.tone);
-    const context = typeof req.body?.context === "string" ? req.body.context : undefined;
-    const targetRole = typeof req.body?.targetRole === "string" ? req.body.targetRole : undefined;
-    const forceRefresh = Boolean(req.body?.forceRefresh);
-    const variationSeed = typeof req.body?.variationSeed === "string" ? req.body.variationSeed : undefined;
-
-    // Check in-memory cache first
-    const cacheKey = createAiCacheKey("bullet", text, section, tone, context, variationSeed);
-    if (!forceRefresh) {
-      const cached = aiResponseCache.get(cacheKey);
-      if (cached) {
-        logger.debug({ requestId, userId, cacheKey }, "AI enhance-bullet cache hit");
-        markSpanSuccess(span);
-        setAiResponseHeaders(res, {
-          cached: true,
-          creditsEstimated: req.creditContext?.estimatedCredits,
-          creditsDeducted: 0,
-        });
-        res.status(200).json(JSON.parse(cached));
-        return;
-      }
-    }
-
-    await enforceCreditsIfNeeded("enhance-bullet", req, userId);
-
-    const result = await enhanceBullet({ text, section, tone, context, targetRole, userId, variationSeed });
-
-    const latencyMs = Date.now() - startTime;
-    const cost = calculateAICost(
-      { input: result._tokens?.input || 0, output: result._tokens?.output || 0 },
-      getCostProvider(result._provider),
-      result._model || "unknown"
-    );
-
-    // Track metrics
-    trackAiRequest(
-      "enhance-bullet",
-      result._provider || "unknown",
-      "success",
-      latencyMs,
-      result._tokens,
-      result._fallback || false
-    );
-
-    logger.info(
-      {
-        requestId,
-        userId,
-        aiType: "enhance-bullet",
-        section: req.body?.section,
-        provider: result._provider,
-        model: result._model,
-        tokens: result._tokens,
-        cost: {
-          input: cost.input.toFixed(6),
-          output: cost.output.toFixed(6),
-          total: cost.total.toFixed(6),
-        },
-        latencyMs,
-        fallback: result._fallback || false,
-      },
-      "AI enhance-bullet request completed"
-    );
-
-    markSpanSuccess(span);
-
-    const { deducted, user } = await maybeDeductCredits(req, userId, !(result._fallback || false));
-    setAiResponseHeaders(res, {
-      cached: false,
-      fallback: result._fallback || false,
-      provider: result._provider,
-      model: result._model,
-      creditsEstimated: req.creditContext?.estimatedCredits,
-      creditsDeducted: deducted,
-      creditsRemaining: user?.aiCreditsRemaining,
-      creditsResetAt: user?.aiCreditsResetAt,
-      creditsPlan: user?.aiCreditsPlan,
-    });
-
-    // Remove internal tracking fields from response
-    const { _tokens, _provider, _model, _fallback, ...responseData } = result;
-    // Cache the response for future identical requests
-    if (!forceRefresh) {
-      try { aiResponseCache.set(cacheKey, JSON.stringify(responseData), AI_CACHE_TTL_SECONDS); } catch { /* ignore cache errors */ }
-    }
-    res.status(200).json(responseData);
-  } catch (error) {
-    const latencyMs = Date.now() - startTime;
-    trackAiRequest("enhance-bullet", "unknown", "error", latencyMs);
-    trackValidationError("enhance_bullet_error");
-    
-    markSpanError(span, error as Error, "Failed to enhance bullet");
-    logger.error(
-      {
-        requestId,
-        userId: (req.user as Record<string, unknown> | undefined)?.id,
-        aiType: "enhance-bullet",
-        error: error instanceof Error ? error.message : String(error),
-        latencyMs,
-      },
-      "AI enhance-bullet request failed"
-    );
-    sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Server error" });
-  } finally {
-    finishControllerSpan(span);
-  }
-};
+export const improveTextHandler = createAiHandler("improve-text", "improve", improveText);
+export const checkGrammarHandler = createAiHandler("check-grammar", "grammar", checkGrammar);
+export const enhanceBulletHandler = createAiHandler("enhance-bullet", "bullet", enhanceBullet);

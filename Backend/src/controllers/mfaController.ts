@@ -2,12 +2,11 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import User from "../models/User";
 import { logger } from "../observability";
+import { wrapController } from "../utils/controllerWrapper";
+import { sendSuccess, sendError } from "../utils/apiResponse";
 import { AppError } from "../errors/AppError";
-import { sendErrorResponse } from "../utils/errorResponse";
-import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 
-const ok = (res: Response, data: unknown, status = 200) => res.status(status).json({ ok: true, data });
-const fail = (res: Response, msg: string, status = 400) => res.status(status).json({ ok: false, error: msg });
+import crypto from "crypto";
 
 function generateBackupCodes(count = 8): string[] {
   const codes: string[] = [];
@@ -17,8 +16,6 @@ function generateBackupCodes(count = 8): string[] {
   }
   return codes;
 }
-
-import crypto from "crypto";
 
 function generateTotpSecret(): string {
   return crypto.randomBytes(20).toString("base64");
@@ -36,118 +33,86 @@ function verifyTotp(token: string, secret: string): boolean {
   return ourToken === token;
 }
 
-export async function setupMfa(req: Request, res: Response) {
-  const span = startControllerSpan("mfa.setupMfa", req);
-  try {
-    const userId = req.user?.id;
-    if (!userId) return fail(res, "Authentication required", 401);
+export const setupMfa = wrapController(async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return sendError(res, "Authentication required", 401);
 
-    const user = await User.findById(userId);
-    if (!user) return fail(res, "User not found", 404);
-    if (user.mfaEnabled) return fail(res, "MFA already enabled", 409);
+  const user = await User.findById(userId);
+  if (!user) return sendError(res, "User not found", 404);
+  if (user.mfaEnabled) return sendError(res, "MFA already enabled", 409);
 
-    const secret = generateTotpSecret();
-    const backupCodes = generateBackupCodes();
+  const secret = generateTotpSecret();
+  const backupCodes = generateBackupCodes();
 
-    user.mfaSecret = secret;
-    user.mfaBackupCodes = backupCodes;
-    await user.save();
+  user.mfaSecret = secret;
+  user.mfaBackupCodes = backupCodes;
+  await user.save();
 
-    logger.info({ userId: user._id }, "MFA setup initiated");
+  logger.info({ userId: user._id }, "MFA setup initiated");
 
-    return ok(res, {
-      secret,
-      backupCodes,
-      uri: `otpauth://totp/ResumeBuilder:${user.email}?secret=${secret}&issuer=ResumeBuilder`,
-    });
-  } catch (err: any) {
-    markSpanError(span, err, "MFA setup failed");
-    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Failed to setup MFA" });
-  } finally {
-    finishControllerSpan(span);
+  return sendSuccess(res, {
+    secret,
+    backupCodes,
+    uri: `otpauth://totp/ResumeBuilder:${user.email}?secret=${secret}&issuer=ResumeBuilder`,
+  });
+}, "mfa.setupMfa");
+
+export const verifyMfa = wrapController(async (req, res) => {
+  const userId = req.user?.id;
+  const { token } = req.body;
+  if (!userId) return sendError(res, "Authentication required", 401);
+  if (!token) return sendError(res, "Token is required", 422);
+
+  const user = await User.findById(userId);
+  if (!user) return sendError(res, "User not found", 404);
+  if (!user.mfaSecret) return sendError(res, "MFA not setup", 400);
+
+  const isValid = verifyTotp(String(token), user.mfaSecret);
+
+  if (!isValid) {
+    logger.warn({ userId: user._id }, "Invalid MFA token");
+    return sendError(res, "Invalid MFA token", 401);
   }
-}
 
-export async function verifyMfa(req: Request, res: Response) {
-  const span = startControllerSpan("mfa.verifyMfa", req);
-  try {
-    const userId = req.user?.id;
-    const { token } = req.body;
-    if (!userId) return fail(res, "Authentication required", 401);
-    if (!token) return fail(res, "Token is required", 422);
+  user.mfaEnabled = true;
+  user.mfaVerifiedAt = new Date();
+  await user.save();
 
-    const user = await User.findById(userId);
-    if (!user) return fail(res, "User not found", 404);
-    if (!user.mfaSecret) return fail(res, "MFA not setup", 400);
+  logger.info({ userId: user._id }, "MFA enabled successfully");
 
-    const isValid = verifyTotp(String(token), user.mfaSecret);
+  return sendSuccess(res, { enabled: true, message: "MFA has been enabled" });
+}, "mfa.verifyMfa");
 
-    if (!isValid) {
-      logger.warn({ userId: user._id }, "Invalid MFA token");
-      return fail(res, "Invalid MFA token", 401);
-    }
+export const disableMfa = wrapController(async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return sendError(res, "Authentication required", 401);
 
-    user.mfaEnabled = true;
-    user.mfaVerifiedAt = new Date();
-    await user.save();
+  const user = await User.findById(userId);
+  if (!user) return sendError(res, "User not found", 404);
+  if (!user.mfaEnabled) return sendError(res, "MFA not enabled", 400);
 
-    logger.info({ userId: user._id }, "MFA enabled successfully");
+  user.mfaEnabled = false;
+  user.mfaMethod = "none";
+  user.mfaSecret = null;
+  user.mfaBackupCodes = [];
+  user.mfaVerifiedAt = null;
+  await user.save();
 
-    return ok(res, { enabled: true, message: "MFA has been enabled" });
-  } catch (err: any) {
-    markSpanError(span, err, "MFA verification failed");
-    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Failed to verify MFA" });
-  } finally {
-    finishControllerSpan(span);
-  }
-}
+  logger.info({ userId: user._id }, "MFA disabled");
 
-export async function disableMfa(req: Request, res: Response) {
-  const span = startControllerSpan("mfa.disableMfa", req);
-  try {
-    const userId = req.user?.id;
-    if (!userId) return fail(res, "Authentication required", 401);
+  return sendSuccess(res, { enabled: false, message: "MFA has been disabled" });
+}, "mfa.disableMfa");
 
-    const user = await User.findById(userId);
-    if (!user) return fail(res, "User not found", 404);
-    if (!user.mfaEnabled) return fail(res, "MFA not enabled", 400);
+export const getMfaStatus = wrapController(async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return sendError(res, "Authentication required", 401);
 
-    user.mfaEnabled = false;
-    user.mfaMethod = "none";
-    user.mfaSecret = null;
-    user.mfaBackupCodes = [];
-    user.mfaVerifiedAt = null;
-    await user.save();
+  const user = await User.findById(userId).select("mfaEnabled mfaMethod mfaVerifiedAt");
+  if (!user) return sendError(res, "User not found", 404);
 
-    logger.info({ userId: user._id }, "MFA disabled");
-
-    return ok(res, { enabled: false, message: "MFA has been disabled" });
-  } catch (err: any) {
-    markSpanError(span, err, "MFA disable failed");
-    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Failed to disable MFA" });
-  } finally {
-    finishControllerSpan(span);
-  }
-}
-
-export async function getMfaStatus(req: Request, res: Response) {
-  const span = startControllerSpan("mfa.getMfaStatus", req);
-  try {
-    const userId = req.user?.id;
-    if (!userId) return fail(res, "Authentication required", 401);
-
-    const user = await User.findById(userId).select("mfaEnabled mfaMethod mfaVerifiedAt");
-    if (!user) return fail(res, "User not found", 404);
-
-    return ok(res, {
-      enabled: user.mfaEnabled,
-      method: user.mfaMethod,
-      verifiedAt: user.mfaVerifiedAt,
-    });
-  } catch (err: any) {
-    markSpanError(span, err, "Get MFA status failed");
-    return sendErrorResponse(res, err, { statusCode: 500, code: "SERVER_ERROR", message: "Failed to get MFA status" });
-  } finally {
-    finishControllerSpan(span);
-  }
-}
+  return sendSuccess(res, {
+    enabled: user.mfaEnabled,
+    method: user.mfaMethod,
+    verifiedAt: user.mfaVerifiedAt,
+  });
+}, "mfa.getMfaStatus");

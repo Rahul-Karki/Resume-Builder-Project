@@ -42,11 +42,10 @@ export const sendSuccess = <T = unknown>(
   // still including the structured `data` field. This preserves existing
   // client expectations (e.g., `body.user`, `body.csrfToken`) while moving
   // towards a consistent envelope `{ ok, data }`.
-  const payload: any = { ok: true, data };
+  const payload: Record<string, unknown> = { ok: true, data };
 
   if (data && typeof data === "object" && !Array.isArray(data)) {
     try {
-      // shallow copy enumerable own properties
       Object.assign(payload, data as Record<string, unknown>);
     } catch {
       // ignore on failures and fall back to envelope only
@@ -57,7 +56,7 @@ export const sendSuccess = <T = unknown>(
     payload.csrfToken = csrfToken;
   }
 
-  return res.status(statusCode).json(payload as ApiSuccessResponse<T>);
+  return res.status(statusCode).json(payload as unknown as ApiSuccessResponse<T>);
 };
 
 /**

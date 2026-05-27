@@ -12,7 +12,7 @@ import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
 import { templates as localTemplateCatalog } from "@/data/templateMeta";
 
 // ─── Helper: generate IDs ──────────────────────────────────────────────────────
-const uid = () => Math.random().toString(36).slice(2, 9);
+const uid = () => window.crypto.randomUUID().slice(0, 8);
 
 const hasResumeContent = (resume: ResumeDocument) => {
   const p = resume.personalInfo;
