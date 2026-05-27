@@ -1,14 +1,13 @@
 import puppeteer from "puppeteer";
 import { env } from "./env";
 import fs from "fs";
+import { execSync } from "child_process";
 
 const isBinaryExecutable = (filePath: string): boolean => {
   try {
     const stat = fs.statSync(filePath);
     if (!stat.isFile()) return false;
-    // On Unix, check executable bit
     if (process.platform !== "win32") {
-      // eslint-disable-next-line no-bitwise
       return !!(stat.mode & 0o111);
     }
     return true;
@@ -17,20 +16,50 @@ const isBinaryExecutable = (filePath: string): boolean => {
   }
 };
 
-export const createPuppeteerLaunchOptions = () => {
+const which = (binary: string): string | null => {
+  try {
+    const cmd = process.platform === "win32" ? `where ${binary}` : `which ${binary}`;
+    const out = execSync(cmd, { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    return out.split("\n")[0] || null;
+  } catch {
+    return null;
+  }
+};
+
+const resolveExecutablePath = (): string | undefined => {
   const configured = String(env.PUPPETEER_EXECUTABLE_PATH ?? "").trim();
-  let executablePath: string | undefined = undefined;
 
   if (configured) {
     if (isBinaryExecutable(configured)) {
-      executablePath = configured;
-    } else {
-      console.warn(
-        `PUPPETEER_EXECUTABLE_PATH="${configured}" is not a valid executable; falling back to managed Chromium`
-      );
-      delete process.env.PUPPETEER_EXECUTABLE_PATH;
+      return configured;
+    }
+    delete process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  try {
+    const bundled = puppeteer.executablePath();
+    if (bundled && isBinaryExecutable(bundled)) {
+      return bundled;
+    }
+  } catch {
+  }
+
+  const candidates =
+    process.platform === "win32"
+      ? ["chrome", "chromium", "google-chrome", "msedge"]
+      : ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "chrome"];
+  for (const name of candidates) {
+    const resolved = which(name);
+    if (resolved && isBinaryExecutable(resolved)) {
+      return resolved;
     }
   }
+
+  return undefined;
+};
+
+export const createPuppeteerLaunchOptions = () => {
+  const executablePath = resolveExecutablePath();
 
   return {
     headless: true,
@@ -45,17 +74,6 @@ export const createPuppeteerLaunchOptions = () => {
 };
 
 export const launchPuppeteerBrowser = async () => {
-  const primaryOptions = createPuppeteerLaunchOptions();
-
-  try {
-    return await puppeteer.launch(primaryOptions);
-  } catch (error) {
-    // Always fall back to Puppeteer's managed binary — the configured path may be
-    // missing, invalid, or not executable even if the file exists (e.g. Render stub).
-    delete process.env.PUPPETEER_EXECUTABLE_PATH;
-    return puppeteer.launch({
-      ...primaryOptions,
-      executablePath: undefined,
-    });
-  }
+  const options = createPuppeteerLaunchOptions();
+  return puppeteer.launch(options);
 };

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "postinstall": "node -e \"process.env.PUPPETEER_SKIP_DOWNLOAD || require('child_process').execSync('npx @puppeteer/browsers install chrome', { stdio: 'inherit', cwd: __dirname })\"",
     "build": "tsc",
     "start": "node -r ./dist/Backend/src/instrumentation.js dist/Backend/src/server.js",
     "test": "npm run build && node --test --test-force-exit automated-tests/**/*.test.js",
