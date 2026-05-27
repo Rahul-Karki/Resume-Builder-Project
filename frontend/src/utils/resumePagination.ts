@@ -93,16 +93,9 @@ function findBestBreak(
 ): number {
   const idealBreak = pageStart + pageHeight;
   const minBreak = pageStart + Math.round(pageHeight * 0.6);
-  const maxBreak = pageStart + Math.round(pageHeight * 1.15);
 
   const before = candidates.filter((p) => p >= minBreak && p <= idealBreak);
   if (before.length > 0) return before[before.length - 1];
-
-  const after = candidates.find((p) => p > idealBreak && p <= maxBreak);
-  if (after !== undefined) return after;
-
-  const nearestAfter = candidates.find((p) => p > idealBreak);
-  if (nearestAfter !== undefined) return nearestAfter;
 
   return idealBreak;
 }
