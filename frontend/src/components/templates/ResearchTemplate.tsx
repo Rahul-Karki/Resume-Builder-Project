@@ -167,7 +167,6 @@ export function ResearchTemplate({ data }: { data: ResumeDocument }) {
             {s.projects.map((project, i) => (
               <div key={i} className="res-project">
                 <span className="res-project-name" style={{ color: style.headingColor }}>
-                  <span className="res-major-bullet">{style.bulletStyle}</span>
                   {project.link ? (
                     <a className="res-link" href={toAbsoluteUrl(project.link)} target="_blank" rel="noreferrer">{project.name}<ExternalLinkIcon /></a>
                   ) : (
