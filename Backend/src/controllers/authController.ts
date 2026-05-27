@@ -13,7 +13,7 @@ import { env } from "../config/env";
 import { logger } from "../observability";
 import { finishControllerSpan, markSpanError, markSpanSuccess, startControllerSpan } from "../utils/controllerObservability";
 import { logLoginAttempt, logLogout, logSuspiciousActivity } from "../utils/securityLogger";
-import { AuthError, NotFoundError } from "../errors/AppError";
+import { AppError, AuthError, NotFoundError, ValidationError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 import {
   recordUserSignup,
@@ -21,7 +21,7 @@ import {
   recordLoginFailure,
   recordSuspiciousActivity,
 } from "../utils/businessMetrics";
-import { sendSuccess, sendCreated, sendBadRequest, sendUnauthorized, sendServerError } from "../utils/apiResponse";
+import { sendSuccess, sendCreated } from "../utils/apiResponse";
 import { blacklistRefreshToken, blacklistAccessToken } from "../utils/tokenBlacklist";
 import { parseCookies } from "../utils/cookieParser";
 
@@ -60,7 +60,7 @@ const logout = async (req: Request, res: Response) => {
   } catch (error) {
     markSpanError(span, error as Error, "Logout failed");
     logger.error({ error }, "Logout failed");
-    return sendServerError(res, "Logout failed", "SERVER_ERROR");
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Logout failed" });
   } finally {
     finishControllerSpan(span);
   }
@@ -73,14 +73,14 @@ const registerUser = async (req: Request, res: Response) => {
 
     if (!name || !password || !email) {
       logger.warn({ route: req.originalUrl }, "Register validation failed");
-      return sendBadRequest(res, "Enter all mandatory fields");
+      return sendErrorResponse(res, new ValidationError("All mandatory fields are required"));
     }
 
     const check = await User.findOne({ email });
 
     if (check) {
       logger.warn({ email }, "Register rejected because user exists");
-      return sendBadRequest(res, "User already exists");
+      return sendErrorResponse(res, new AuthError("An account with this email already exists", { statusCode: 409, code: "CONFLICT" }));
     }
 
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -117,7 +117,7 @@ const registerUser = async (req: Request, res: Response) => {
   } catch (error) {
     markSpanError(span, error as Error, "User registration failed");
     logger.error({ error }, "User registration failed");
-    return sendServerError(res, "Registration failed", "SERVER_ERROR");
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Registration failed" });
   } finally {
     finishControllerSpan(span);
   }
@@ -132,7 +132,7 @@ const login = async (req: Request, res: Response) => {
       logger.warn({ route: req.originalUrl }, "Login validation failed");
       recordSuspiciousActivity("login_missing_credentials");
       logSuspiciousActivity(req, "Login without email or password");
-      return sendBadRequest(res, "Email and password are required");
+      return sendErrorResponse(res, new ValidationError("Email and password are required"));
     }
 
     // 2. Find user
@@ -142,7 +142,7 @@ const login = async (req: Request, res: Response) => {
       logger.warn({ email }, "Login failed: unknown user");
       recordLoginFailure("user_not_found");
       logLoginAttempt(req, email, false, "User not found");
-      return sendUnauthorized(res, "Invalid email or password");
+      return sendErrorResponse(res, new AuthError("Invalid email or password", { code: "INVALID_CREDENTIALS" }));
     }
 
     // 3. Check account lockout
@@ -163,7 +163,7 @@ const login = async (req: Request, res: Response) => {
       logger.warn({ email }, "Login failed: password not set for account");
       recordLoginFailure("no_password");
       logLoginAttempt(req, email, false, "No password set");
-      return sendBadRequest(res, "This account does not have a password. Please login using Google.");
+      return sendErrorResponse(res, new AuthError("This account does not have a password. Please login using Google.", { statusCode: 400, code: "AUTH_REQUIRED" }));
     }
 
     // 4. Compare password
@@ -180,7 +180,7 @@ const login = async (req: Request, res: Response) => {
       logger.warn({ email, attempts: user.loginAttempts }, "Login failed: invalid password");
       recordLoginFailure("invalid_password");
       logLoginAttempt(req, email, false, "Invalid password");
-      return sendUnauthorized(res, "Invalid email or password");
+      return sendErrorResponse(res, new AuthError("Invalid email or password", { code: "INVALID_CREDENTIALS" }));
     }
 
     // 5. Ensure local is in authProvider
@@ -220,7 +220,7 @@ const login = async (req: Request, res: Response) => {
   } catch (error) {
     markSpanError(span, error as Error, "Login failed");
     logger.error({ error }, "Login failed");
-    return sendServerError(res, "Login failed", "SERVER_ERROR");
+    return sendErrorResponse(res, error, { statusCode: 500, code: "SERVER_ERROR", message: "Login failed" });
   } finally {
     finishControllerSpan(span);
   }
@@ -235,9 +235,7 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     if (!email) {
       logger.warn({ route: req.originalUrl }, "Forgot password missing email");
-      return res.status(400).json({
-        message: "Please provide an email",
-      });
+      return sendErrorResponse(res, new ValidationError("Please provide an email"));
     }
 
     const user = await User.findOne({ email });
@@ -258,9 +256,7 @@ const forgotPassword = async (req: Request, res: Response) => {
 
     if (isGoogleOnlyUser && !user.password) {
       logger.warn({ email }, "Forgot password blocked for google-only account");
-      return res.status(400).json({
-        message: "This account uses Google login. Please continue with Google.",
-      });
+      return sendErrorResponse(res, new AuthError("This account uses Google login. Please continue with Google.", { statusCode: 400, code: "AUTH_REQUIRED" }));
     }
 
 
@@ -268,9 +264,7 @@ const forgotPassword = async (req: Request, res: Response) => {
       user.passwordResetAt &&
       Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
     ) {
-      return res.status(429).json({
-        message: "Password was recently updated. Try again later.",
-      });
+      return sendErrorResponse(res, new AppError("Password was recently updated. Try again later.", { statusCode: 429, code: "RATE_LIMITED" }));
     }
 
     const existingToken = await ResetToken.findOne({ userId: user._id });
@@ -279,18 +273,15 @@ const forgotPassword = async (req: Request, res: Response) => {
       existingToken &&
       Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS
     ) {
-      return res.status(429).json({
-        message: "Please wait before requesting another reset email",
-        retryAfterSeconds: Math.ceil(
-          (RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000,
-        ),
-      });
+      return sendErrorResponse(res, new AppError("Please wait before requesting another reset email", {
+        statusCode: 429,
+        code: "RATE_LIMITED",
+        details: { retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000) },
+      }));
     }
 
     if (existingToken && existingToken.resendCount >= MAX_RESET_RESEND_ATTEMPTS) {
-      return res.status(429).json({
-        message: "Maximum resend attempts reached, please try again later",
-      });
+      return sendErrorResponse(res, new AppError("Maximum resend attempts reached, please try again later", { statusCode: 429, code: "RATE_LIMITED" }));
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -337,16 +328,12 @@ const resetPassword = async (req: Request, res: Response) => {
 
     if (!token || !password || !confirmPassword) {
       logger.warn({ route: req.originalUrl }, "Reset password validation failed");
-      return res.status(400).json({
-        message: "Please provide all required fields",
-      });
+      return sendErrorResponse(res, new ValidationError("Please provide all required fields"));
     }
 
     if (password !== confirmPassword) {
       logger.warn({ route: req.originalUrl }, "Reset password mismatch");
-      return res.status(400).json({
-        message: "Passwords do not match",
-      });
+      return sendErrorResponse(res, new ValidationError("Passwords do not match"));
     }
 
 
@@ -359,18 +346,14 @@ const resetPassword = async (req: Request, res: Response) => {
 
     if (!record) {
       logger.warn({ route: req.originalUrl }, "Reset password token invalid or expired");
-      return res.status(400).json({
-        message: "Invalid or expired token",
-      });
+      return sendErrorResponse(res, new ValidationError("Invalid or expired token"));
     }
 
     const user = await User.findById(record.userId);
 
     if (!user) {
       logger.warn({ route: req.originalUrl }, "Reset password user not found");
-      return res.status(400).json({
-        message: "Invalid or expired reset token",
-      });
+      return sendErrorResponse(res, new ValidationError("Invalid or expired reset token"));
     }
 
     user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
@@ -401,10 +384,7 @@ const resendResetLink = async (req: Request, res: Response) => {
 
     if (!email) {
       logger.warn({ route: req.originalUrl }, "Resend reset link missing email");
-      return res.status(400).json({
-        message: "Please provide an email",
-      });
-    }
+      return sendErrorResponse(res, new ValidationError("Please provide an email"));
 
     const user = await User.findOne({ email });
 
@@ -422,9 +402,7 @@ const resendResetLink = async (req: Request, res: Response) => {
 
     if (isGoogleOnlyUser && !user.password) {
       logger.warn({ email }, "Resend reset blocked for google-only account");
-      return res.status(400).json({
-        message: "This account uses Google login. Please continue with Google.",
-      });
+      return sendErrorResponse(res, new AuthError("This account uses Google login. Please continue with Google.", { statusCode: 400, code: "AUTH_REQUIRED" }));
     }
 
     const existingToken = await ResetToken.findOne({
@@ -433,33 +411,26 @@ const resendResetLink = async (req: Request, res: Response) => {
     });
 
     if (!existingToken) {
-      return res.status(400).json({
-        message: "No reset request found, please initiate forgot password again",
-      });
+      return sendErrorResponse(res, new ValidationError("No reset request found, please initiate forgot password again"));
     }
 
     if (existingToken.resendCount >= MAX_RESET_RESEND_ATTEMPTS) {
-      return res.status(429).json({
-        message: "Maximum resend attempts reached, please try again later",
-      });
+      return sendErrorResponse(res, new AppError("Maximum resend attempts reached, please try again later", { statusCode: 429, code: "RATE_LIMITED" }));
     }
 
     if (
       user.passwordResetAt &&
       Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
     ) {
-      return res.status(429).json({
-        message: "Password was recently updated. Try again later.",
-      });
+      return sendErrorResponse(res, new AppError("Password was recently updated. Try again later.", { statusCode: 429, code: "RATE_LIMITED" }));
     }
 
     if (Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS) {
-      return res.status(429).json({
-        message: "Please wait before requesting another reset email",
-        retryAfterSeconds: Math.ceil(
-          (RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000,
-        ),
-      });
+      return sendErrorResponse(res, new AppError("Please wait before requesting another reset email", {
+        statusCode: 429,
+        code: "RATE_LIMITED",
+        details: { retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000) },
+      }));
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -498,7 +469,7 @@ const googleLogin = async (req: Request, res: Response) => {
 
     if (!payload || !payload.email) {
       logger.warn({ route: req.originalUrl }, "Google login token invalid");
-      return res.status(400).json({ message: "Invalid Google token" });
+      return sendErrorResponse(res, new ValidationError("Invalid Google token"));
     }
 
     // 🔍 Find or create user
@@ -696,14 +667,14 @@ const getCurrentUser = async (req: Request, res: Response) => {
 
     if (!userId) {
       logger.warn({ route: req.originalUrl }, "Get current user unauthorized");
-      return res.status(401).json({ message: "Unauthorized" });
+      return sendErrorResponse(res, new AuthError("Authentication required"));
     }
 
     const user = await User.findById(userId).select("name email avatar role authProvider aiCreditsRemaining aiCreditsResetAt aiCreditsPlan");
 
     if (!user) {
       logger.warn({ userId }, "Get current user not found");
-      return res.status(404).json({ message: "User not found" });
+      return sendErrorResponse(res, new NotFoundError("User not found"));
     }
 
     logger.info({ userId }, "Current user fetched");

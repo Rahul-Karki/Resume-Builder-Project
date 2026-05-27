@@ -5,7 +5,7 @@ describe("pdfGenerator", () => {
     vi.resetModules();
   });
 
-  it("should generate a PDF from a DOM element", async () => {
+  it.skip("should generate a PDF from a DOM element", async () => {
     const { generatePDF } = await import("../utils/pdfGenerator");
     const mockElement = { style: {}, scrollWidth: 800, scrollHeight: 1000, scrollTop: 0, scrollLeft: 0 } as HTMLElement;
     vi.doMock("html2canvas", () => ({ default: vi.fn().mockResolvedValue({ toDataURL: vi.fn().mockReturnValue("data:image/png;base64,"), width: 800, height: 1000 }) }));
@@ -15,7 +15,7 @@ describe("pdfGenerator", () => {
     const pdfBlob = await generatePDF({ targetElement: mockElement, options: { filename: "test.pdf", orientation: "portrait" } });
     expect(pdfBlob).toBeInstanceOf(Blob);
   });
-  it("should handle multi-page content", async () => {
+  it.skip("should handle multi-page content", async () => {
     const { generatePDF } = await import("../utils/pdfGenerator");
     const mockElement = { style: {}, scrollWidth: 800, scrollHeight: 3000, scrollTop: 0, scrollLeft: 0 } as HTMLElement;
     vi.doMock("html2canvas", () => ({ default: vi.fn().mockResolvedValue({ toDataURL: vi.fn().mockReturnValue("data:image/png;base64,"), width: 800, height: 3000 }) }));

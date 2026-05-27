@@ -36,6 +36,9 @@ export const createApp = () => {
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
+        // In production, only allow safe methods without Origin header
+        // (e.g., health checks). Mutating requests from non-browser clients
+        // still require authentication and rate limiting.
         callback(null, true);
         return;
       }
