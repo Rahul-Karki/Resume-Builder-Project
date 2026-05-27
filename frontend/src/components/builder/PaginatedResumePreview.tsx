@@ -181,11 +181,16 @@ export function PaginatedResumePreview({
                     sliceHeight,
                   ),
                   overflow: "hidden",
-                  transform: `translateY(-${offset}px)`,
-                  transformOrigin: "top left",
                 }}
               >
-                <ResumeRenderer resume={resume} />
+                <div
+                  style={{
+                    position: "relative",
+                    top: -offset,
+                  }}
+                >
+                  <ResumeRenderer resume={resume} />
+                </div>
               </div>
             </div>
           </ResumePage>
