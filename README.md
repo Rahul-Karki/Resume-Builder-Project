@@ -1073,11 +1073,6 @@ npm run verify
 
 ---
 
-## 📄 License
-
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
-
----
 
 ## 📞 Support & Resources
 
@@ -1104,6 +1099,3 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
 
 ---
 
-**Made with ❤️ by the ResumeStudio team**
-
-**Last updated:** May 23, 2026
