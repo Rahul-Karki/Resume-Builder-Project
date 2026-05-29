@@ -237,6 +237,18 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
         || compactText(record.why_it_hurts_ats)
         || compactText(record.what_to_add_or_fix)
         || "ATS improvement suggestion";
+      const autoApplyRaw = (record.auto_apply_payload || record.autoApply) as Record<string, unknown> | undefined;
+      const autoApply = autoApplyRaw && typeof autoApplyRaw === "object" ? {
+        section: (autoApplyRaw.section || "experience") as AutoApplyPayload["section"],
+        type: (autoApplyRaw.type || "bullet_improvement") as AutoApplyPayload["type"],
+        field: autoApplyRaw.field as string | undefined,
+        index: typeof autoApplyRaw.index === "number" ? autoApplyRaw.index : undefined,
+        replaceWith: compactText(autoApplyRaw.replace_with || autoApplyRaw.replaceWith || suggestionText),
+        oldText: compactText(autoApplyRaw.old_text || autoApplyRaw.oldText || originalText),
+      } : undefined;
+      const scoreDelta = Number.isFinite(Number(record.scoreDelta)) ? Number(record.scoreDelta)
+        : Number.isFinite(Number(record.expected_score_gain)) ? Number(record.expected_score_gain)
+        : undefined;
       return {
         id: typeof record.id === "string" && compactText(record.id) ? record.id : createSuggestionId("ai-ats", index),
         originalText,
@@ -244,6 +256,9 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
         reason,
         impact: normalizeImpact(record.impact ?? (Number(record.expected_score_gain) >= 8 ? "high" : Number(record.expected_score_gain) >= 4 ? "medium" : "low")),
         path: typeof record.path === "string" && compactText(record.path) ? compactText(record.path) : sectionPathForKey(section),
+        ...(autoApply ? { autoApply } : {}),
+        ...(scoreDelta !== undefined ? { scoreDelta } : {}),
+        ...(Number(record.expected_score_gain) > 0 ? { atsImpact: `+${Number(record.expected_score_gain)}` } : { atsImpact: undefined }),
       };
     })
     .filter((item) => Boolean(item.suggestionText));
@@ -723,12 +738,14 @@ const buildRewriteSuggestions = (resume: Record<string, unknown>, grammarIssues:
       impact: "high",
       priority: "critical",
       atsImpact: "+8",
+      scoreDelta: 8,
       path: "personalInfo.summary",
       autoApply: { section: "summary", type: "summary_rewrite", replaceWith: `${summary} Focus on quantified outcomes, core strengths, and role-relevant keywords.`.trim(), oldText: summary },
     });
   }
 
   grammarIssues.slice(0, 10).forEach((issue, index) => {
+    const delta = issue.severity === "high" ? 5 : 2;
     suggestions.push({
       id: createSuggestionId("rewrite", index + 1),
       originalText: issue.originalText,
@@ -736,7 +753,8 @@ const buildRewriteSuggestions = (resume: Record<string, unknown>, grammarIssues:
       reason: issue.reason,
       impact: issue.severity,
       priority: issue.severity === "high" ? "high" : "medium",
-      atsImpact: issue.severity === "high" ? "+5" : "+2",
+      atsImpact: `+${delta}`,
+      scoreDelta: delta,
       path: issue.path,
       autoApply: { section: "experience", type: "grammar_fix", replaceWith: issue.suggestionText, oldText: issue.originalText },
     });
@@ -762,6 +780,7 @@ const buildRewriteSuggestions = (resume: Record<string, unknown>, grammarIssues:
           impact: "high",
           priority: "high",
           atsImpact: "+6",
+          scoreDelta: 6,
           path: `sections.experience`,
           autoApply: { section: "experience", type: "action_verb_improvement", field: "bullets", index: bulletIdx, replaceWith: improved, oldText: bullet },
         });
@@ -779,6 +798,7 @@ const buildRewriteSuggestions = (resume: Record<string, unknown>, grammarIssues:
           impact: "high",
           priority: "high",
           atsImpact: "+7",
+          scoreDelta: 7,
           path: `sections.experience`,
           autoApply: { section: "experience", type: "quantify", field: "bullets", index: bulletIdx, replaceWith: quantified, oldText: bullet },
         });

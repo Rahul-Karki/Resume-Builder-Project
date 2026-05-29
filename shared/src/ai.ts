@@ -14,6 +14,8 @@ export type AiSuggestion = {
   priority?: AiSuggestionPriority;
   atsImpact?: string;
   autoApply?: AutoApplyPayload;
+  scoreDelta?: number;
+  appliedStatus?: "pending" | "applied" | "rolled_back";
 };
 
 export type AtsSectionKey = "summary" | "experience" | "skills" | "education" | "projects" | "certifications" | "languages";

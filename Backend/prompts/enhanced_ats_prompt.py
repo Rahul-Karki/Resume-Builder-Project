@@ -1,40 +1,43 @@
 """Enhanced ATS scoring + improvement prompt templates.
-
-Formatting note:
-- Many prompts in this file are intended to be used with Python `.format(...)`.
-- Only placeholders that should be replaced by the caller use `{like_this}`.
-- If you introduce new `{placeholders}`, update the call site accordingly.
 """
 
 # ============================================================
-# ENHANCED ATS RESUME SCORING PROMPT — Ultra Advanced (JSON)
+# ENHANCED ATS RESUME SCORING PROMPT — Industry Standard (JSON)
 # Output: STRICT JSON ONLY
 # ============================================================
 
 ENHANCED_ATS_SYSTEM_PROMPT = """
-You are an expert ATS (Applicant Tracking System) Resume Analyzer & Optimizer.
+You are an expert ATS (Applicant Tracking System) Resume Analyzer & Optimizer used by Fortune 500 hiring teams.
 
-Goals:
-1) Provide a realistic ATS score (0-100) with a clear breakdown.
-2) Explain exactly how to increase the score:
-   - If any section is missing OR empty → give a ready-to-add template + example.
-   - If a section is weak → rewrite it using role keywords and measurable outcomes.
-3) Provide keyword suggestions:
-   - must_add (from JD)
-   - likely_add_only_if_true (inferred from resume content)
-   - optional_if_true (industry standard, needs user confirmation)
+ANALYSIS CRITERIA (score each 0-100):
+1. SUMMARY_QUALITY: Is there a concise, keyword-rich professional summary?
+2. EXPERIENCE_DEPTH: Do bullets show clear impact with action verbs + metrics?
+3. SKILLS_RELEVANCE: Are skills organized, current, and aligned with the target role?
+4. KEYWORD_DENSITY: Are critical role-specific keywords present naturally?
+5. ACTION_VERB_VARIETY: Are strong, varied action verbs used (not just "managed" or "led")?
+6. QUANTIFICATION: Are results backed by numbers (%, $, time, scale)?
+7. SECTION_COMPLETENESS: Are all expected sections present and well-developed?
+8. FORMATTING_ATS: Is the layout clean, standard, and ATS-parsable?
+9. EDUCATION_ALIGNMENT: Is education relevant and properly presented?
+10. PROJECT_DEPTH: Are projects relevant with technical depth?
+11. BULLET_DIVERSITY: Is there variety in bullet structure and verb choice?
+12. SKILLS_EXPERIENCE_ALIGNMENT: Do skills match what's demonstrated in experience?
+13. CONTENT_DENSITY: Is the resume substantive vs. fluff?
+14. CONTACT_COMPLETENESS: Are name, email, phone, location, links present?
+15. INDUSTRY_TERMINOLOGY: Does the resume use current, relevant industry terms?
 
-Rules:
+IMPORTANT:
 - Never invent experience, employers, tools, years, or degrees.
-- If data is missing, ask short questions.
-- Output must be valid JSON only.
+- Every suggestion must include: action, reason, expected_score_gain (0-15), auto_apply_payload.
+- If data is missing, flag it as a weakness with a clear fix.
+- Output valid JSON only.
 """.strip()
 
 # -------------------------------------------------------------------
-# ENHANCED MAIN SCORING PROMPT
+# ENHANCED MAIN SCORING PROMPT (Industry Standard)
 # -------------------------------------------------------------------
 ENHANCED_ATS_SCORING_PROMPT = """
-TASK: Enhanced ATS analysis + personalized score-increase plan.
+TASK: Industry-standard ATS analysis + actionable score-improvement plan with one-click apply support.
 
 INPUTS
 - RESUME_TEXT: {resume_text}
@@ -42,38 +45,57 @@ INPUTS
 
 OUTPUT REQUIREMENTS
 1) Output valid JSON only (no markdown).
-2) Use the same language as the resume; if mixed/unclear, output Hinglish.
+2) Score each of the 15 criteria above 0-100, then compute weighted overall_score.
 
-INTERPRETATION RULES
+RULES
 - Treat a section as "empty" if it is only a heading, has placeholders, or has generic filler.
 - Treat a section as "weak" if it lacks keywords, measurable impact, specificity, or clean ATS formatting.
 - If JOB_DESCRIPTION is empty, infer target role keywords from resume and still provide improvement suggestions.
+- Do not hallucinate skills or experience.
+- Every suggestion MUST include the `auto_apply_payload` field so it can be one-click applied.
 
-KEYWORD RULES
-- Do not hallucinate skills.
-- Provide keywords in three buckets:
-   - must_add: from JD, missing
-   - likely_add_only_if_true: inferred from resume context (adjacent tools/ecosystem)
-   - optional_if_true: industry standard, needs confirmation
-- For every missing keyword, recommend *where* to add it (summary/skills/experience/projects).
+KEYWORD BUCKETS
+- must_add: from JD, missing in resume (critical)
+- likely_add_only_if_true: inferred from resume context (adjacent tools/ecosystem)
+- optional_if_true: industry standard, needs confirmation
 
-RETURN THIS JSON SCHEMA
+RETURN THIS EXACT JSON SCHEMA:
 {{
+   "meta": {{
+      "role_inferred": "",
+      "years_experience_inferred": 0,
+      "analysis_depth": "full"
+   }},
    "overall_score": 0,
    "grade": "poor|average|good|excellent",
+   "criteria_scores": {{
+      "summary_quality": 0,
+      "experience_depth": 0,
+      "skills_relevance": 0,
+      "keyword_density": 0,
+      "action_verb_variety": 0,
+      "quantification": 0,
+      "section_completeness": 0,
+      "formatting_ats": 0,
+      "education_alignment": 0,
+      "project_depth": 0,
+      "bullet_diversity": 0,
+      "skills_experience_alignment": 0,
+      "content_density": 0,
+      "contact_completeness": 0,
+      "industry_terminology": 0
+   }},
    "diagnosis": {{
-      "top_problems": [""],
-      "top_strengths": [""]
+      "top_problems": ["3-5 most critical issues"],
+      "top_strengths": ["3-5 strongest areas"]
    }},
    "section_scores": {{
-      "contact_info": 0,
       "summary": 0,
       "experience": 0,
       "skills": 0,
       "education": 0,
       "projects": 0,
-      "formatting": 0,
-      "keyword_match": 0
+      "formatting": 0
    }},
    "section_audit": [
       {{
@@ -89,31 +111,31 @@ RETURN THIS JSON SCHEMA
       }}
    ],
    "keyword_analysis": {{
-      "jd_keywords": {{
-         "hard_skills": [""],
-         "tools_technologies": [""],
-         "soft_skills": [""],
-         "industry_terms": [""],
-         "certifications": [""],
-         "action_verbs": [""]
-      }},
       "matched_keywords": [""],
       "missing_keywords": [{{"keyword":"", "importance":"critical|important|optional", "reason":""}}],
-      "keyword_buckets": {{
-         "must_add": [""],
-         "likely_add_only_if_true": [""],
-         "optional_if_true": [""]
-      }},
       "keyword_placement": [
          {{ "keyword": "", "place_in": ["summary", "skills", "experience", "projects"], "example_usage": "" }}
       ]
    }},
-   "copy_paste_snippets": {{
-      "summary_options": [""],
-      "skills_section": "",
-      "experience_bullets": [{{"before":"","after":""}}],
-      "projects_section": ""
-   }},
+   "rewrite_suggestions": [
+      {{
+         "id": "unique-id-1",
+         "area": "summary|experience|skills|education|projects",
+         "before": "original text",
+         "after": "rewritten text",
+         "reason": "why this improves the score",
+         "expected_score_gain": 5,
+         "impact": "low|medium|high",
+         "auto_apply_payload": {{
+            "section": "summary|experience|skills|education|projects",
+            "type": "bullet_improvement|summary_rewrite|skill_add|grammar_fix|keyword_insertion|quantify|action_verb_improvement",
+            "field": "bullets|summary|items|description",
+            "index": 0,
+            "replace_with": "the full replacement text",
+            "old_text": "the exact old text to replace"
+         }}
+      }}
+   ],
    "action_plan": [
       {{
          "priority": "P0|P1|P2",
@@ -125,7 +147,6 @@ RETURN THIS JSON SCHEMA
    ],
    "quick_wins": [""],
    "estimated_score_after_fixes": 0,
-   "questions_for_user": [""],
    "recruiter_impression": {{
       "first_impression": "",
       "confidence_level": "low|medium|high",
@@ -141,98 +162,6 @@ RETURN THIS JSON SCHEMA
 # AI-POWERED RE-ANALYSIS PROMPT
 # -------------------------------------------------------------------
 ENHANCED_ATS_RESCORE_PROMPT = """
-The user has implemented improvements based on your suggestions. Now re-analyze with enhanced AI capabilities.
-
-=== INPUTS ===
-PREVIOUS SCORE: {previous_score} / 100
-PREVIOUS SUGGESTIONS: {previous_suggestions}
-UPDATED RESUME: {updated_resume}
-JOB DESCRIPTION: {job_description}
-
-=== AI RE-ANALYSIS TASK ===
-
-1. **Score Comparison Analysis**:
-   - Current Score: ___ / 100
-   - Previous Score: ___ / 100
-   - Improvement: +___ points
-   - Improvement Percentage: ___%
-
-2. **Implementation Tracking**:
-   ✅ Successfully Implemented: (list what was implemented)
-   ❌ Missed Opportunities: (list what is still missing)
-   🔄 Partially Implemented: (list partial implementations)
-
-3. **Remaining Opportunities**:
-   - Additional improvements possible: ___ points
-   - Quick wins still available: (remaining quick wins)
-   - Advanced optimizations: (advanced optimizations)
-
-4. **Final Recommendations**:
-   - If score > 85: "Excellent! Your resume is now highly ATS-competitive. Consider final polish touches."
-   - If score 70-85: "Good progress! Focus on [remaining_critical_items] for even better results."
-   - If score < 70: "Significant improvement needed. Focus on [major_improvement_areas]."
-
-5. **Next Steps**:
-   - Immediate actions: (immediate actions)
-   - Long-term optimizations: (long-term actions)
-"""
-
-# -------------------------------------------------------------------
-# AI-POWERED SECTION GENERATORS
-# -------------------------------------------------------------------
-ENHANCED_MISSING_SECTION_GENERATOR = """
-Generate a complete {section_type} section based on the resume and job description.
-
-=== CONTEXT ===
-RESUME: {resume_text}
-JOB DESCRIPTION: {job_description}
-
-=== REQUIREMENTS ===
-1. **Must Include**: {required_elements}
-2. **Keywords to Use**: {target_keywords}
-3. **ATS Format**: {ats_format}
-4. **Length**: {length_requirement}
-5. **Tone**: {tone_requirement}
-
-=== OUTPUT FORMAT ===
-**Section Header**: {section_header}
-
-{section_content}
-"""
-
-# -------------------------------------------------------------------
-# AI-POWERED KEYWORD ENHANCER
-# -------------------------------------------------------------------
-ENHANCED_KEYWORD_ENHANCER_PROMPT = """
-Enhance the resume with AI-powered keyword suggestions based on existing content and job requirements.
-
-=== INPUTS ===
-RESUME CONTENT: {resume_content}
-EXTRACTED KEYWORDS: {extracted_keywords}
-JOB DESCRIPTION: {job_description}
-
-=== AI ENHANCEMENT TASK ===
-
-### 1. **Keyword Gap Analysis**:
-- Missing Hard Skills: {missing_hard_skills}
-- Missing Soft Skills: {missing_soft_skills}
-- Missing Action Verbs: {missing_action_verbs}
-- Missing Industry Terms: {missing_industry_terms}
-
-### 2. **Smart Inference**:
-Based on existing content, infer additional relevant skills:
-- If they mention "React" → add "Redux, React Router, Hooks, Context API"
-- If they say "managed team" → add "leadership, team management, mentoring"
-- If they have "AWS experience" → add "S3, EC2, Lambda, CloudFormation"
-
-### 3. **Enhanced Skills Organization**:
-**Technical Skills**: {enhanced_technical_skills}
-**Tools & Platforms**: {enhanced_tools_skills}
-**Soft Skills**: {enhanced_soft_skills}
-**Certifications**: {enhanced_certifications}
-
-### 4. **Implementation Strategy**:
-- Immediate Add: {immediate_add_keywords}
-- Gradual Integration: {gradual_integration_keywords}
-- Future Considerations: {future_considerations}
+Re-analyze the updated resume and return JSON only with before/after score comparison, implemented items, missed items, and next best actions.
+Previous score: {previous_score}. Updated resume: {updated_resume}. Job description: {job_description}.
 """

@@ -290,6 +290,11 @@ export const getLatestAtsAnalysis = async (resumeId: string) => {
   return response.data as AtsAnalysisResponse;
 };
 
+export const applyAtsSuggestion = async (resumeId: string, analysisId: string, suggestionId: string) => {
+  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/apply-suggestion`, { analysisId, suggestionId });
+  return response.data as { message: string; resume: ResumeDocument };
+};
+
 export async function bootstrapAuthSession() {
   try {
     await api.post("/refresh", {}, { timeout: 3000 });
