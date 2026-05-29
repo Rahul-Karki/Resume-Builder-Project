@@ -1153,6 +1153,12 @@ export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysis
         summary: report.summary,
         analyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
         lastError: "",
+        /** New v2 format fields */
+        categoryScores: report.categoryScores ?? undefined,
+        formatIssues: report.formatIssues ?? undefined,
+        contentImprovements: report.contentImprovements ?? undefined,
+        sectionAnalysis: report.sectionAnalysis ?? undefined,
+        atsOptimizationTips: report.atsOptimizationTips ?? undefined,
       },
       { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
     );
