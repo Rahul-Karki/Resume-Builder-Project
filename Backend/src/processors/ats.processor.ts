@@ -1,5 +1,5 @@
 import type { AtsAnalysisJobData } from "../../../shared/src/jobs";
-import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement } from "../../../shared/src/ai";
+import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement, type AutoApplyPayload, type RecruiterImpression, type AtsKeywordAnalysis } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
 import Resume from "../models/Resume";
@@ -12,6 +12,10 @@ const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
   "automated", "developed", "scaled", "reduced", "increased", "collaborated", "architected", "streamlined",
 ]);
+
+const WEAK_VERBS = ["worked on", "helped", "responsible for", "was part of", "was involved in", "did", "made", "got", "was", "were"];
+
+const QUANTIFICATION_PATTERNS = [/user[s]?/i, /customer[s]?/i, /client[s]?/i, /team[s]?/i, /project[s]?/i, /feature[s]?/i, /system[s]?/i, /service[s]?/i, /application[s]?/i, /api[s]?/i, /request[s]?/i, /revenue/i, /budget/i, /cost/i, /time/i, /performance/i, /efficiency/i, /speed/i, /accuracy/i];
 
 const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|latency|revenue|conversion|sla|throughput|requests)\b/i.test(text);
 
@@ -572,7 +576,8 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
       }
 
       const rewriteSuggestions: AiSuggestion[] = Array.from(suggestionById.values()).slice(0, 20);
-      const keywordGaps = enhancement.keywordGaps.length > 0 ? enhancement.keywordGaps : keywordResult.analysis.missingKeywords.slice(0, 3);
+      const rawKeywordGaps = enhancement.keywordGaps.length > 0 ? enhancement.keywordGaps : keywordResult.analysis.missingKeywords.slice(0, 3);
+      const keywordGaps = rawKeywordGaps.map((k: string | { keyword: string }) => typeof k === "string" ? k : k.keyword);
       const verdict = enhancement.verdict || buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords);
       const overallScore = clampScore(enhancement.overallScore ?? sectionScores.overall);
       const mergedSectionScores: AtsScoreBreakdown = {
@@ -716,7 +721,10 @@ const buildRewriteSuggestions = (resume: Record<string, unknown>, grammarIssues:
       suggestionText: `${summary} Focus on quantified outcomes, core strengths, and role-relevant keywords.`.trim(),
       reason: "The summary is too short to carry ATS value on its own.",
       impact: "high",
+      priority: "critical",
+      atsImpact: "+8",
       path: "personalInfo.summary",
+      autoApply: { section: "summary", type: "summary_rewrite", replaceWith: `${summary} Focus on quantified outcomes, core strengths, and role-relevant keywords.`.trim(), oldText: summary },
     });
   }
 
@@ -727,16 +735,200 @@ const buildRewriteSuggestions = (resume: Record<string, unknown>, grammarIssues:
       suggestionText: issue.suggestionText,
       reason: issue.reason,
       impact: issue.severity,
+      priority: issue.severity === "high" ? "high" : "medium",
+      atsImpact: issue.severity === "high" ? "+5" : "+2",
       path: issue.path,
+      autoApply: { section: "experience", type: "grammar_fix", replaceWith: issue.suggestionText, oldText: issue.originalText },
     });
   });
 
-  return suggestions.slice(0, 20);
+  const allBullets = sections.experience.flatMap((entry, entryIdx) =>
+    (Array.isArray(entry.bullets) ? entry.bullets as string[] : []).map((bullet, bulletIdx) => ({ bullet, entryIdx, bulletIdx, role: compactText(entry.role), company: compactText(entry.company) }))
+  );
+
+  allBullets.forEach(({ bullet, entryIdx, bulletIdx, role, company }) => {
+    const hasWeakVerb = WEAK_VERBS.some((w) => bullet.toLowerCase().startsWith(w));
+    const hasMetricVal = hasMetric(bullet);
+    const hasActionVerbVal = ACTION_VERBS.has(bullet.split(/\s+/)[0]?.toLowerCase() ?? "");
+
+    if (hasWeakVerb) {
+      const improved = replaceWeakVerb(bullet);
+      if (improved !== bullet) {
+        suggestions.push({
+          id: createSuggestionId(`verb-${entryIdx}-${bulletIdx}`, suggestions.length),
+          originalText: bullet,
+          suggestionText: improved,
+          reason: `Replace weak verb with strong action verb for better ATS and recruiter impact`,
+          impact: "high",
+          priority: "high",
+          atsImpact: "+6",
+          path: `sections.experience`,
+          autoApply: { section: "experience", type: "action_verb_improvement", field: "bullets", index: bulletIdx, replaceWith: improved, oldText: bullet },
+        });
+      }
+    }
+
+    if (hasActionVerbVal && !hasMetricVal) {
+      const quantified = suggestQuantification(bullet);
+      if (quantified && quantified !== bullet) {
+        suggestions.push({
+          id: createSuggestionId(`quant-${entryIdx}-${bulletIdx}`, suggestions.length),
+          originalText: bullet,
+          suggestionText: quantified,
+          reason: `Add measurable impact to increase recruiter confidence and ATS score`,
+          impact: "high",
+          priority: "high",
+          atsImpact: "+7",
+          path: `sections.experience`,
+          autoApply: { section: "experience", type: "quantify", field: "bullets", index: bulletIdx, replaceWith: quantified, oldText: bullet },
+        });
+      }
+    }
+  });
+
+  return suggestions.slice(0, 30);
 };
 
-const buildReportSummary = (jobTitle: string | undefined, overall: number, matchScore: number, missingKeywords: string[]) => {
+const buildReportSummary = (jobTitle: string | undefined, overall: number, matchScore: number, missingKeywords: Array<{ keyword: string }> | string[]) => {
   const title = compactText(jobTitle) || "resume";
-  return `${title} scored ${overall}/100 with a ${matchScore}% keyword match.${missingKeywords.length > 0 ? ` Missing keywords: ${missingKeywords.slice(0, 6).join(", ")}.` : ""}`;
+  const mk = missingKeywords.map((k) => typeof k === "string" ? k : k.keyword);
+  return `${title} scored ${overall}/100 with a ${matchScore}% keyword match.${mk.length > 0 ? ` Missing keywords: ${mk.slice(0, 6).join(", ")}.` : ""}`;
+};
+
+const getActionVerb = (text: string): string => {
+  const first = text.split(/\s+/)[0]?.toLowerCase() ?? "";
+  if (ACTION_VERBS.has(first)) return first;
+  return "";
+};
+
+const getQuantification = (text: string): string => {
+  if (hasMetric(text)) return text;
+  const matched = QUANTIFICATION_PATTERNS.find((p) => p.test(text));
+  if (!matched) return "";
+  return text;
+};
+
+const suggestQuantification = (bullet: string): string => {
+  if (hasMetric(bullet)) return "";
+  const firstWord = bullet.split(/\s+/)[0] ?? "";
+  const rest = bullet.slice(firstWord.length).trim();
+  const lower = bullet.toLowerCase();
+  if (lower.includes("users") || lower.includes("customers") || lower.includes("clients")) return `${firstWord} ${rest}, impacting X+ users`;
+  if (lower.includes("api") || lower.includes("service") || lower.includes("system")) return `${firstWord} ${rest}, reducing latency by X%`;
+  if (lower.includes("team") || lower.includes("project")) return `${firstWord} ${rest}, delivering X% ahead of schedule`;
+  if (lower.includes("feature") || lower.includes("application")) return `${firstWord} ${rest}, adopted by X users`;
+  if (lower.includes("revenue") || lower.includes("budget")) return `${firstWord} ${rest}, achieving $X in savings`;
+  if (lower.includes("time") || lower.includes("process")) return `${firstWord} ${rest}, reducing processing time by X%`;
+  return `${firstWord} ${rest}, improving efficiency by X%`;
+};
+
+const replaceWeakVerb = (bullet: string): string => {
+  const lower = bullet.toLowerCase();
+  for (const weak of WEAK_VERBS) {
+    if (lower.startsWith(weak)) {
+      const rest = bullet.slice(weak.length).trim();
+      const suggestions: Record<string, string[]> = {
+        "worked on": ["Developed", "Built", "Engineered", "Implemented"],
+        "helped": ["Enabled", "Facilitated", "Contributed to", "Supported"],
+        "responsible for": ["Led", "Managed", "Owned", "Drove"],
+        "was part of": ["Collaborated on", "Contributed to", "Participated in"],
+        "was involved in": ["Contributed to", "Participated in", "Supported"],
+        "did": ["Executed", "Performed", "Delivered", "Completed"],
+        "made": ["Created", "Built", "Developed", "Produced"],
+        "got": ["Achieved", "Secured", "Obtained", "Delivered"],
+        "was": ["Served as", "Acted as", "Worked as"],
+        "were": ["Served as", "Acted as", "Worked as"],
+      };
+      const replacements = suggestions[weak] ?? ["Developed", "Built"];
+      return `${replacements[0]} ${rest}`;
+    }
+  }
+  return bullet;
+};
+
+const simulateRecruiter = (resume: Record<string, unknown>, overallScore: number, matchScore: number): RecruiterImpression => {
+  const sections = getSections(resume);
+  const personal = (resume.personalInfo as Record<string, unknown> | undefined) ?? {};
+  const experienceBullets = sections.experience.flatMap((entry) => Array.isArray(entry.bullets) ? entry.bullets.map((bullet) => compactText(bullet)) : []);
+  const metricBullets = experienceBullets.filter((b) => hasMetric(b));
+  const actionVerbBullets = experienceBullets.filter((b) => ACTION_VERBS.has(b.split(/\s+/)[0]?.toLowerCase() ?? ""));
+  const hasSummary = sections.summary.length > 80;
+  const hasMetrics = metricBullets.length >= 2;
+  const hasActionVerbs = actionVerbBullets.length >= 3;
+  const hasProjects = sections.projects.length > 0;
+  const hasEducation = sections.education.length > 0;
+  const hasName = Boolean(compactText(personal.name));
+  const hasEmail = Boolean(compactText(personal.email));
+
+  const positives = [hasSummary, hasMetrics, hasActionVerbs, hasProjects, hasEducation, hasName, hasEmail].filter(Boolean).length;
+  const totalChecks = 7;
+  const confidenceRatio = positives / totalChecks;
+
+  let confidenceLevel: "low" | "medium" | "high";
+  if (confidenceRatio >= 0.7) confidenceLevel = "high";
+  else if (confidenceRatio >= 0.4) confidenceLevel = "medium";
+  else confidenceLevel = "low";
+
+  const probabilityBase = overallScore * 0.6 + matchScore * 0.2 + confidenceRatio * 20;
+  const interviewProbability = clampScore(Math.round(probabilityBase));
+
+  let firstImpression = "";
+  if (overallScore >= 80 && hasMetrics && hasActionVerbs) {
+    firstImpression = "Strong profile with measurable achievements and clear career progression";
+  } else if (overallScore >= 60 && hasActionVerbs) {
+    firstImpression = "Solid foundation but lacks quantified outcomes to stand out";
+  } else if (overallScore >= 40) {
+    firstImpression = "Decent structure but needs stronger action verbs and measurable results";
+  } else {
+    firstImpression = "Requires significant improvement in content, formatting, and keyword alignment";
+  }
+
+  if (!hasSummary) firstImpression += ". Missing professional summary";
+  if (!hasMetrics) firstImpression += ". Consider adding metrics to highlight impact";
+  if (!hasActionVerbs) firstImpression += ". Use stronger action verbs";
+
+  return { firstImpression, confidenceLevel, interviewProbability };
+};
+
+const buildAutoApplyActions = (resume: Record<string, unknown>, suggestions: AiSuggestion[]): AutoApplyPayload[] => {
+  return suggestions
+    .filter((s) => s.autoApply)
+    .map((s) => s.autoApply!)
+    .filter((a) => a.replaceWith && a.oldText && a.replaceWith !== a.oldText)
+    .slice(0, 20);
+};
+
+const extractStrengths = (sectionScores: AtsScoreBreakdown, keywordAnalysis: AtsKeywordAnalysis): string[] => {
+  const s: string[] = [];
+  if (sectionScores.experience >= 75) s.push("Strong experience section with measurable achievements");
+  if (sectionScores.skills >= 70) s.push("Well-structured skills section with good keyword coverage");
+  if (sectionScores.summary >= 70) s.push("Concise and targeted professional summary");
+  if (sectionScores.education >= 80) s.push("Complete education section");
+  if (sectionScores.projects >= 70) s.push("Meaningful project section demonstrating practical application");
+  if (sectionScores.formatting >= 80) s.push("Clean formatting optimized for ATS parsing");
+  if (keywordAnalysis.matchedKeywords.length >= 10) s.push("Strong keyword alignment with target role");
+  return s.slice(0, 5);
+};
+
+const extractWeaknesses = (sectionScores: AtsScoreBreakdown, keywordAnalysis: AtsKeywordAnalysis): string[] => {
+  const w: string[] = [];
+  if (sectionScores.experience < 50) w.push("Experience bullets lack metrics and action verbs");
+  if (sectionScores.skills < 50) w.push("Skills section needs better organization and keyword variety");
+  if (sectionScores.summary < 50) w.push("Summary is missing or too generic");
+  if (sectionScores.projects < 50) w.push("Projects section is missing or underdeveloped");
+  if (keywordAnalysis.missingKeywords.length >= 5) w.push(`Missing ${keywordAnalysis.missingKeywords.length} important role-specific keywords`);
+  if (sectionScores.formatting < 60) w.push("Formatting issues may impact ATS parsing");
+  return w.slice(0, 5);
+};
+
+const buildPriorityFixes = (sectionAudit: AtsSectionAudit[] | undefined, keywordGaps: string[]): string[] => {
+  if (!sectionAudit || sectionAudit.length === 0) return keywordGaps.slice(0, 3).map((k) => `Add missing keyword: ${k}`);
+  return sectionAudit
+    .filter((a) => a.status === "missing" || a.status === "empty")
+    .slice(0, 3)
+    .map((a) => `Fix ${a.section}: ${a.fix.why}`)
+    .concat(keywordGaps.slice(0, 2).map((k) => `Add missing keyword: ${k}`))
+    .slice(0, 5);
 };
 
 const buildAtsReport = (job: { id: string; data: AtsAnalysisJobData }): AtsAnalysisReport => {
@@ -747,7 +939,13 @@ const buildAtsReport = (job: { id: string; data: AtsAnalysisJobData }): AtsAnaly
   const sectionScores = buildSectionScores(job.data.resume, keywordResult.matchScore);
   const formattingChecks = buildFormattingChecks(job.data.resume);
   const rewriteSuggestions = buildRewriteSuggestions(job.data.resume, grammarIssues);
-  const keywordGaps = keywordResult.analysis.missingKeywords.slice(0, 3);
+  const keywordGaps = keywordResult.analysis.missingKeywords.slice(0, 3).map((k) => typeof k === "string" ? k : k.keyword);
+
+  const strengths = extractStrengths(sectionScores, keywordResult.analysis);
+  const weaknesses = extractWeaknesses(sectionScores, keywordResult.analysis);
+  const priorityFixes = buildPriorityFixes(undefined, keywordResult.analysis.missingKeywords.map((k) => typeof k === "string" ? k : k.keyword));
+  const recruiterImpression = simulateRecruiter(job.data.resume, sectionScores.overall, keywordResult.matchScore);
+  const autoApplyActions = buildAutoApplyActions(job.data.resume, rewriteSuggestions);
 
   return {
     jobId: job.id,
@@ -765,6 +963,11 @@ const buildAtsReport = (job: { id: string; data: AtsAnalysisJobData }): AtsAnaly
     formattingChecks,
     rewriteSuggestions,
     keywordGaps,
+    recruiterImpression,
+    strengths,
+    weaknesses,
+    priorityFixes,
+    autoApplyActions,
     verdict: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
     summary: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
     analyzedAt: new Date().toISOString(),

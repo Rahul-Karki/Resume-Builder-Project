@@ -37,7 +37,11 @@ const DEFAULT_ENHANCED_ATS_SCORING_PROMPT = [
   "- JOB_DESCRIPTION: {job_description}",
   "OUTPUT REQUIREMENTS",
   "1) Output valid JSON only (no markdown).",
-  "2) Include: overall_score, grade, section_scores, section_audit, keyword_analysis, rewrite_suggestions, action_plan, quick_wins, estimated_score_after_fixes, questions_for_user.",
+  "2) Include: overall_score, grade, section_scores, section_audit, keyword_analysis, rewrite_suggestions, action_plan, quick_wins, estimated_score_after_fixes, questions_for_user, recruiter_impression, strengths, weaknesses, priority_fixes.",
+  "3) recruiter_impression must include: first_impression, confidence_level (low|medium|high), interview_probability (0-100).",
+  "4) missing_keywords must be an array of {keyword, importance (critical|important|optional), reason} objects.",
+  "5) Every rewrite_suggestion must include: id, before, after, reason, expected_score_gain.",
+  "6) Never invent experience, employers, tools, metrics, or education details.",
 ].join("\n");
 
 const DEFAULT_ENHANCED_ATS_RESCORE_PROMPT = [

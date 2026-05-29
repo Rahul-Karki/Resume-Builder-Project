@@ -760,7 +760,11 @@ const buildKeywordAnalysis = (resume: Record<string, unknown>, keywords: string[
   const weakKeywords = keywords.filter((keyword) => /\b(worked|helped|stuff|thing|various|misc)\b/i.test(keyword));
 
   return {
-    missingKeywords,
+    missingKeywords: missingKeywords.map((keyword) => ({
+      keyword,
+      importance: (keyword.length > 8 ? "critical" : keyword.length > 5 ? "important" : "optional") as "critical" | "important" | "optional",
+      reason: `Missing ${keyword} — add to skills or experience section`,
+    })),
     repeatedKeywords,
     weakKeywords,
     atsFriendlyKeywords,
@@ -817,7 +821,7 @@ const buildFallbackAtsReport = (context: AtsPromptContext): AtsAnalysisReport =>
     grammarIssues,
     formattingChecks,
     rewriteSuggestions,
-    summary: buildSummary(context.jobTitle, scoreOverall, matchScore, keywordAnalysis.missingKeywords),
+    summary: buildSummary(context.jobTitle, scoreOverall, matchScore, keywordAnalysis.missingKeywords.map((k) => typeof k === "string" ? k : k.keyword)),
   };
 };
 

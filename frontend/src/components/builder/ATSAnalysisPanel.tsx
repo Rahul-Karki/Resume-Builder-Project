@@ -235,7 +235,7 @@ export function ATSAnalysisPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const sectionSuggestions = getSectionSuggestions(report);
-  const keywordGaps = (report?.keywordGaps ?? report?.keywordAnalysis?.missingKeywords ?? []).slice(0, 3);
+  const keywordGaps = (report?.keywordGaps ?? report?.keywordAnalysis?.missingKeywords?.map((k: any) => typeof k === "string" ? k : k.keyword) ?? []).slice(0, 3);
   const experienceRewrites = (report?.rewriteSuggestions ?? []).filter((suggestion) => (suggestion.path ?? "").startsWith("sections.experience"));
   const quickWins = report?.quickWins ?? [];
   const actionPlan = report?.actionPlan ?? [];
@@ -568,7 +568,7 @@ export function ATSAnalysisPanel() {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 18px 10px" }}>
                   {report.keywordAnalysis.missingKeywords.slice(0, 8).map((kw, i) => (
-                    <span key={i} className="ats-tag ats-tag-bad">{kw}</span>
+                    <span key={i} className="ats-tag ats-tag-bad">{typeof kw === "string" ? kw : kw.keyword}</span>
                   ))}
                   {report.keywordAnalysis.missingKeywords.length > 8 && (
                     <span className="ats-tag" style={{ background: "rgba(255,255,255,0.03)", color: "#555" }}>

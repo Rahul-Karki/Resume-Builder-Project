@@ -37,7 +37,12 @@ export const analyzeKeywordMatch = (resume: Record<string, unknown>, keywords: s
   const combined = Array.from(new Set([...normalizedKeywords, ...jobDescriptionKeywords]));
 
   const matchedKeywords = combined.filter((keyword) => new RegExp(`\\b${escapeRegex(keyword)}\\b`, "i").test(corpus));
-  const missingKeywords = combined.filter((keyword) => !matchedKeywords.includes(keyword));
+  const missingKeywordStrings = combined.filter((keyword) => !matchedKeywords.includes(keyword));
+  const missingKeywords = missingKeywordStrings.map((keyword) => ({
+    keyword,
+    importance: (keyword.length > 8 ? "critical" : keyword.length > 5 ? "important" : "optional") as "critical" | "important" | "optional",
+    reason: `Missing ${keyword} — add to skills or experience section`,
+  }));
   const repeatedKeywords = combined.filter((keyword) => (corpus.match(new RegExp(`\\b${escapeRegex(keyword)}\\b`, "gi")) ?? []).length > 1);
   const weakKeywords = combined.filter((keyword) => /\b(worked|helped|stuff|thing|various|misc)\b/i.test(keyword));
   const atsFriendlyKeywords = matchedKeywords.filter((keyword) => keyword.length > 2);

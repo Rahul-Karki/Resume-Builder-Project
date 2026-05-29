@@ -98,7 +98,7 @@ RETURN THIS JSON SCHEMA
          "action_verbs": [""]
       }},
       "matched_keywords": [""],
-      "missing_keywords": [""],
+      "missing_keywords": [{{"keyword":"", "importance":"critical|important|optional", "reason":""}}],
       "keyword_buckets": {{
          "must_add": [""],
          "likely_add_only_if_true": [""],
@@ -125,7 +125,15 @@ RETURN THIS JSON SCHEMA
    ],
    "quick_wins": [""],
    "estimated_score_after_fixes": 0,
-   "questions_for_user": [""]
+   "questions_for_user": [""],
+   "recruiter_impression": {{
+      "first_impression": "",
+      "confidence_level": "low|medium|high",
+      "interview_probability": 0
+   }},
+   "strengths": [""],
+   "weaknesses": [""],
+   "priority_fixes": [""]
 }}
 """.strip()
 

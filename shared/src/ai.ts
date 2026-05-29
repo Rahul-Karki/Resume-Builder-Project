@@ -2,6 +2,8 @@ export type AiTone = "professional" | "concise" | "technical" | "leadership-focu
 
 export type AiSuggestionImpact = "low" | "medium" | "high";
 
+export type AiSuggestionPriority = "critical" | "high" | "medium" | "low";
+
 export type AiSuggestion = {
   id: string;
   originalText: string;
@@ -9,6 +11,9 @@ export type AiSuggestion = {
   reason: string;
   impact: AiSuggestionImpact;
   path?: string;
+  priority?: AiSuggestionPriority;
+  atsImpact?: string;
+  autoApply?: AutoApplyPayload;
 };
 
 export type AtsSectionKey = "summary" | "experience" | "skills" | "education" | "projects" | "certifications" | "languages";
@@ -74,8 +79,16 @@ export type AtsScoreBreakdown = {
   projects: number;
 };
 
+export type KeywordImportance = "critical" | "important" | "optional";
+
+export type MissingKeyword = {
+  keyword: string;
+  importance: KeywordImportance;
+  reason: string;
+};
+
 export type AtsKeywordAnalysis = {
-  missingKeywords: string[];
+  missingKeywords: MissingKeyword[];
   repeatedKeywords: string[];
   weakKeywords: string[];
   atsFriendlyKeywords: string[];
@@ -97,6 +110,21 @@ export type AtsGrammarFinding = {
   suggestionText: string;
   reason: string;
   severity: AiSuggestionImpact;
+};
+
+export type RecruiterImpression = {
+  firstImpression: string;
+  confidenceLevel: "low" | "medium" | "high";
+  interviewProbability: number;
+};
+
+export type AutoApplyPayload = {
+  section: AtsSectionKey;
+  type: "bullet_improvement" | "summary_rewrite" | "skill_add" | "section_reorder" | "grammar_fix" | "keyword_insertion" | "quantify" | "formatting_fix" | "action_verb_improvement" | "achievement_rewrite";
+  field?: string;
+  index?: number;
+  replaceWith: string;
+  oldText: string;
 };
 
 export type AtsAnalysisReport = {
@@ -127,6 +155,11 @@ export type AtsAnalysisReport = {
   verdict?: string;
   summary: string;
   analyzedAt?: string;
+  recruiterImpression?: RecruiterImpression;
+  strengths?: string[];
+  weaknesses?: string[];
+  priorityFixes?: string[];
+  autoApplyActions?: AutoApplyPayload[];
 };
 
 export const AI_TONE_OPTIONS: AiTone[] = ["professional", "concise", "technical", "leadership-focused"];
@@ -141,7 +174,6 @@ export const normalizeTone = (tone?: string): AiTone => {
   if (tone === "concise" || tone === "technical" || tone === "leadership-focused") {
     return tone;
   }
-
   return "professional";
 };
 
