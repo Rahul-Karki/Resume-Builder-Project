@@ -36,7 +36,26 @@ services:
         value: resume-builder-backend
       - key: SERVICE_VERSION
         value: 1.0.0
-
+      - key: ENABLE_METRICS
+        value: "true"
+      - key: METRICS_PATH
+        value: /metrics
+      - key: GRAFANA_OTLP_ENDPOINT
+        sync: false
+      - key: OTEL_INSTANCE_ID
+        sync: false
+      - key: GRAFANA_API_TOKEN
+        sync: false
+      - key: GRAFANA_LOKI_URL
+        sync: false
+      - key: LOKI_INSTANCE_ID
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+        sync: false
+      - key: OTEL_TRACES_SAMPLER_ARG
+        value: "0.1"
       - key: OTEL_METRIC_EXPORT_INTERVAL_MS
         value: "15000"
       - key: REDIS_URL
