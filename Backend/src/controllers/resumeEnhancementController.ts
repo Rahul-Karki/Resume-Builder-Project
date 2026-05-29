@@ -101,7 +101,7 @@ export const analyzeAts = wrapController(async (req, res) => {
       status: "pending", reportType, jobTitle, jobDescription,
       targetKeywords: keywords, overallScore: 0, matchScore: 0,
       sectionScores: { summary: 0, experience: 0, skills: 0, education: 0, formatting: 0, projects: 0 },
-      keywordAnalysis: { missingKeywords: keywords, repeatedKeywords: [], weakKeywords: [], atsFriendlyKeywords: [], matchedKeywords: [] },
+      keywordAnalysis: { missingKeywords: keywords.map((k) => ({ keyword: k, importance: "important" as const, reason: `Missing ${k} — add to skills or experience section` })), repeatedKeywords: [], weakKeywords: [], atsFriendlyKeywords: [], matchedKeywords: [] },
       grammarIssues: [], formattingChecks: [], rewriteSuggestions: [],
       summary: "ATS analysis queued.", lastError: "",
     },
