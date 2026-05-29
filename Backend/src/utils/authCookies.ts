@@ -22,6 +22,7 @@ const getBaseCookieOptions = (req: Request) => {
     secure,
     sameSite,
     path: "/",
+    ...(sameSite === "none" ? { partitioned: true } : {}),
   };
 };
 
