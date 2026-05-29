@@ -148,7 +148,7 @@ const verifyEmail = wrapController(async (req, res) => {
   user.emailVerified = true;
   user.emailVerificationToken = undefined;
   user.emailVerificationTokenExpires = undefined;
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   logger.info({ userId: user._id.toString(), email: user.email }, "Email verified");
 
@@ -184,7 +184,7 @@ const resendVerificationEmail = wrapController(async (req, res) => {
   const verificationToken = crypto.randomBytes(32).toString("hex");
   user.emailVerificationToken = verificationToken;
   user.emailVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   try {
     await sendVerificationEmail(user.email, verificationToken);
@@ -277,7 +277,7 @@ const login = wrapController(async (req, res) => {
 
   user.loginAttempts = 0;
   user.lockUntil = null;
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   const accessToken = generateAccessToken(user._id.toString());
   const refreshToken = generateRefreshToken(user._id.toString());
@@ -428,7 +428,7 @@ const resetPassword = wrapController(async (req, res) => {
 
   user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
   user.passwordResetAt = new Date();
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   await ResetToken.deleteMany({ userId: user._id });
 
@@ -551,7 +551,7 @@ const googleLogin = wrapController(async (req, res) => {
     }));
   } else if (!user.googleId) {
     user.googleId = payload.sub;
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
   }
 
   const accessToken = generateAccessToken(user._id.toString());
@@ -613,7 +613,7 @@ const linkGoogleAccount = wrapController(async (req, res) => {
 
   user.googleId = payload.sub;
   user.authProvider = Array.from(new Set([...(Array.isArray(user.authProvider) ? user.authProvider : []), "google"]));
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   logger.info({ userId: user._id.toString(), email: user.email }, "Google provider linked");
   return sendSuccess(res, {
@@ -669,7 +669,7 @@ const unlinkOAuthProvider = wrapController(async (req, res) => {
     user.googleId = undefined;
   }
 
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
   logger.info({ userId: user._id.toString(), provider }, "OAuth provider unlinked");
   return sendSuccess(res, {
     message: "OAuth provider unlinked successfully",

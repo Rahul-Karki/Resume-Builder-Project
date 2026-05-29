@@ -157,4 +157,11 @@ const UserSchema: Schema = new Schema<IUser>(
   { timestamps: true }
 );
 
+// Clamp aiCreditsRemaining to 0 to prevent validation errors on unrelated saves
+UserSchema.pre("save", function () {
+  if (this.isModified("aiCreditsRemaining") && typeof this.aiCreditsRemaining === "number" && this.aiCreditsRemaining < 0) {
+    this.aiCreditsRemaining = 0;
+  }
+});
+
 export default mongoose.model<IUser>("User", UserSchema);

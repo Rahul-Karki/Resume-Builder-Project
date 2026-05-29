@@ -38,7 +38,7 @@ export const setupMfa = wrapController(async (req, res) => {
 
   user.mfaSecret = secret;
   user.mfaBackupCodes = hashedBackupCodes;
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   logger.info({ userId: user._id }, "MFA setup initiated");
 
@@ -68,7 +68,7 @@ export const verifyMfa = wrapController(async (req, res) => {
 
   user.mfaEnabled = true;
   user.mfaVerifiedAt = new Date();
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   logger.info({ userId: user._id }, "MFA enabled successfully");
 
@@ -88,7 +88,7 @@ export const disableMfa = wrapController(async (req, res) => {
   user.mfaSecret = null;
   user.mfaBackupCodes = [];
   user.mfaVerifiedAt = null;
-  await user.save();
+  await user.save({ validateModifiedOnly: true });
 
   logger.info({ userId: user._id }, "MFA disabled");
 
