@@ -120,15 +120,17 @@ const sectionPathForKey = (section: AtsSectionKey) => section === "summary" ? "p
 const providerIsConfigured = () => {
   if (env.AI_PROVIDER === "openai") return Boolean(env.OPENAI_API_KEY);
   if (env.AI_PROVIDER === "gemini") return Boolean(env.GEMINI_API_KEY);
-  return Boolean(env.OPENAI_API_KEY || env.GEMINI_API_KEY);
+  if (env.AI_PROVIDER === "openrouter") return Boolean(env.OPENROUTER_API_KEY);
+  return Boolean(env.OPENAI_API_KEY || env.GEMINI_API_KEY || env.OPENROUTER_API_KEY);
 };
 
-type AiProviderName = "openai" | "gemini";
+type AiProviderName = "openai" | "gemini" | "openrouter";
 
 const getProviderOrder = (): AiProviderName[] => {
   const configured: AiProviderName[] = [];
   if (env.GEMINI_API_KEY) configured.push("gemini");
   if (env.OPENAI_API_KEY) configured.push("openai");
+  if (env.OPENROUTER_API_KEY) configured.push("openrouter");
 
   if (env.AI_PROVIDER === "openai") {
     return env.OPENAI_API_KEY ? ["openai", ...configured.filter((p) => p !== "openai")] : configured;
@@ -136,6 +138,10 @@ const getProviderOrder = (): AiProviderName[] => {
 
   if (env.AI_PROVIDER === "gemini") {
     return env.GEMINI_API_KEY ? ["gemini", ...configured.filter((p) => p !== "gemini")] : configured;
+  }
+
+  if (env.AI_PROVIDER === "openrouter") {
+    return env.OPENROUTER_API_KEY ? ["openrouter", ...configured.filter((p) => p !== "openrouter")] : configured;
   }
 
   return configured;
@@ -182,6 +188,37 @@ const callOpenAIJson = async (systemPrompt: string, userPrompt: string, signal: 
 
   if (!response.ok) {
     throw new Error(`OpenAI request failed with status ${response.status}`);
+  }
+
+  const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+  return json.choices?.[0]?.message?.content ?? "{}";
+};
+
+const callOpenRouterJson = async (systemPrompt: string, userPrompt: string, signal: AbortSignal) => {
+  const baseUrl = env.OPENROUTER_BASE_URL.replace(/\/+$/, "");
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      "HTTP-Referer": "https://resume-builder-project-3h9o.vercel.app",
+      "X-Title": "Resume Builder",
+    },
+    signal,
+    body: JSON.stringify({
+      model: env.OPENROUTER_MODEL,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`OpenRouter request failed with status ${response.status}: ${body.slice(0, 200)}`);
   }
 
   const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
@@ -632,9 +669,9 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
   for (const provider of providers) {
     try {
       const raw = await withTimeout(timeoutMs, async (signal) => {
-        return provider === "openai"
-          ? await callOpenAIJson(systemPrompt, userPrompt, signal)
-          : await callGeminiJson(systemPrompt, userPrompt, signal);
+        if (provider === "openai") return await callOpenAIJson(systemPrompt, userPrompt, signal);
+        if (provider === "openrouter") return await callOpenRouterJson(systemPrompt, userPrompt, signal);
+        return await callGeminiJson(systemPrompt, userPrompt, signal);
       });
 
       const parsed = parseJsonFromModel(raw);
