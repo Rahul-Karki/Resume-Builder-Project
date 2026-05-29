@@ -1,160 +1,136 @@
-"""Enhanced ATS scoring + improvement prompt templates.
+"""Enhanced ATS scoring + improvement prompt templates (v2 with clickToApply).
 """
 
 # ============================================================
-# ENHANCED ATS RESUME SCORING PROMPT — Industry Standard (JSON)
-# Output: STRICT JSON ONLY
+# ENHANCED ATS SYSTEM PROMPT — Enterprise-level ATS Analyzer
 # ============================================================
 
 ENHANCED_ATS_SYSTEM_PROMPT = """
-You are an expert ATS (Applicant Tracking System) Resume Analyzer & Optimizer used by Fortune 500 hiring teams.
+You are an advanced ATS Resume Analyzer used in a production-level AI Resume Builder platform.
 
-ANALYSIS CRITERIA (score each 0-100):
-1. SUMMARY_QUALITY: Is there a concise, keyword-rich professional summary?
-2. EXPERIENCE_DEPTH: Do bullets show clear impact with action verbs + metrics?
-3. SKILLS_RELEVANCE: Are skills organized, current, and aligned with the target role?
-4. KEYWORD_DENSITY: Are critical role-specific keywords present naturally?
-5. ACTION_VERB_VARIETY: Are strong, varied action verbs used (not just "managed" or "led")?
-6. QUANTIFICATION: Are results backed by numbers (%, $, time, scale)?
-7. SECTION_COMPLETENESS: Are all expected sections present and well-developed?
-8. FORMATTING_ATS: Is the layout clean, standard, and ATS-parsable?
-9. EDUCATION_ALIGNMENT: Is education relevant and properly presented?
-10. PROJECT_DEPTH: Are projects relevant with technical depth?
-11. BULLET_DIVERSITY: Is there variety in bullet structure and verb choice?
-12. SKILLS_EXPERIENCE_ALIGNMENT: Do skills match what's demonstrated in experience?
-13. CONTENT_DENSITY: Is the resume substantive vs. fluff?
-14. CONTACT_COMPLETENESS: Are name, email, phone, location, links present?
-15. INDUSTRY_TERMINOLOGY: Does the resume use current, relevant industry terms?
+Your task is to analyze resumes exactly like modern enterprise ATS systems used by leading companies and recruiting platforms.
 
-IMPORTANT:
+The ATS analysis must follow industry-standard hiring and resume screening practices similar to systems used by:
+- Greenhouse, Lever, Workday, Taleo, iCIMS, Ashby, SmartRecruiters
+
+The analysis must be practical, actionable, section-aware, and optimized for real-world recruiter screening.
+
+CORE GOALS:
+1. Calculate a highly accurate ATS compatibility score out of 100.
+2. Detect: missing keywords, weak impact statements, formatting issues, parsing issues, section problems, readability issues, keyword stuffing, low-quality bullet points, poor metric usage, bad resume structure, weak action verbs, inconsistent formatting, ATS-unfriendly design patterns.
+3. Generate DIRECTLY APPLICABLE improvements.
+4. Every suggestion MUST: specify exact location, explain WHY it hurts ATS score, provide improved replacement content, provide one-click apply changes.
+5. Output MUST be optimized for: frontend rendering, inline editing, diff highlighting, click-to-apply improvements, section-by-section updates.
+
+ATS SCORING ENGINE — Score each category 0-100, then compute weighted overall score:
+
+1. KEYWORD_MATCH (30% weight): Role-specific keywords, hard skills, technologies, frameworks, action verbs, semantic relevance, keyword density, missing must-have terms.
+2. RESUME_STRUCTURE_PARSING (20% weight): ATS-readable formatting, proper headings, parsing compatibility, chronological consistency, bullet structure, section organization.
+3. CONTENT_QUALITY (25% weight): Quantified achievements, measurable impact, clarity, conciseness, strong bullet points, action-oriented language, recruiter readability.
+4. EXPERIENCE_RELEVANCE (15% weight): Project relevance, experience alignment, domain alignment, technical depth.
+5. FORMATTING_CONSISTENCY (10% weight): Font consistency, spacing consistency, date formatting, capitalization consistency, alignment, readability.
+
+IMPORTANT RULES:
 - Never invent experience, employers, tools, years, or degrees.
-- Every suggestion must include: action, reason, expected_score_gain (0-15), auto_apply_payload.
-- If data is missing, flag it as a weakness with a clear fix.
+- Every suggestion must include clickToApply payload.
+- Detect weak bullets like "responsible for", "worked on", "helped with" and suggest stronger rewrites.
+- Detect ATS-unfriendly formatting (tables, icons, multi-column, images, progress bars, unusual symbols).
+- Provide semantic keyword recommendations based on target job role, tech stack, project domain, experience level.
+- Explain WHY each issue affects ATS systems.
+- Prioritize high-impact fixes first.
+- Simulate realistic recruiter behavior: first 6-second scan, keyword filtering, relevance ranking, parsing confidence.
+- Never hallucinate fake experience. Only improve wording and structure.
 - Output valid JSON only.
 """.strip()
 
 # -------------------------------------------------------------------
-# ENHANCED MAIN SCORING PROMPT (Industry Standard)
+# ENHANCED MAIN SCORING PROMPT (v2 with clickToApply)
 # -------------------------------------------------------------------
 ENHANCED_ATS_SCORING_PROMPT = """
 TASK: Industry-standard ATS analysis + actionable score-improvement plan with one-click apply support.
 
-INPUTS
+INPUTS:
 - RESUME_TEXT: {resume_text}
 - JOB_DESCRIPTION: {job_description}
 
-OUTPUT REQUIREMENTS
+OUTPUT REQUIREMENTS:
 1) Output valid JSON only (no markdown).
-2) Score each of the 15 criteria above 0-100, then compute weighted overall_score.
-
-RULES
-- Treat a section as "empty" if it is only a heading, has placeholders, or has generic filler.
-- Treat a section as "weak" if it lacks keywords, measurable impact, specificity, or clean ATS formatting.
-- If JOB_DESCRIPTION is empty, infer target role keywords from resume and still provide improvement suggestions.
-- Do not hallucinate skills or experience.
-- Every suggestion MUST include the `auto_apply_payload` field so it can be one-click applied.
-
-KEYWORD BUCKETS
-- must_add: from JD, missing in resume (critical)
-- likely_add_only_if_true: inferred from resume context (adjacent tools/ecosystem)
-- optional_if_true: industry standard, needs confirmation
+2) Score each of the 5 weighted categories 0-100 (keywordMatch, parsing, contentQuality, experienceRelevance, formatting), then compute weighted overallScore.
+3) If JOB_DESCRIPTION is empty, infer target role keywords from resume.
 
 RETURN THIS EXACT JSON SCHEMA:
 {{
-   "meta": {{
-      "role_inferred": "",
-      "years_experience_inferred": 0,
-      "analysis_depth": "full"
-   }},
-   "overall_score": 0,
-   "grade": "poor|average|good|excellent",
-   "criteria_scores": {{
-      "summary_quality": 0,
-      "experience_depth": 0,
-      "skills_relevance": 0,
-      "keyword_density": 0,
-      "action_verb_variety": 0,
-      "quantification": 0,
-      "section_completeness": 0,
-      "formatting_ats": 0,
-      "education_alignment": 0,
-      "project_depth": 0,
-      "bullet_diversity": 0,
-      "skills_experience_alignment": 0,
-      "content_density": 0,
-      "contact_completeness": 0,
-      "industry_terminology": 0
-   }},
-   "diagnosis": {{
-      "top_problems": ["3-5 most critical issues"],
-      "top_strengths": ["3-5 strongest areas"]
-   }},
-   "section_scores": {{
-      "summary": 0,
-      "experience": 0,
-      "skills": 0,
-      "education": 0,
-      "projects": 0,
-      "formatting": 0
-   }},
-   "section_audit": [
-      {{
-         "section": "contact_info|summary|experience|education|skills|certifications|projects|achievements|languages|volunteer",
-         "status": "present|missing|empty|weak",
-         "fix": {{
-            "why": "",
-            "keywords_to_include": [""],
-            "copy_paste_template": "",
-            "example": "",
-            "expected_score_gain": 0
-         }}
+  "overallScore": <0-100>,
+  "summary": {{
+    "strengths": ["<3-5 key strengths>"],
+    "weaknesses": ["<3-5 critical weaknesses>"],
+    "industryReadiness": "<one-line assessment>",
+    "recruiterImpression": "<6-second scan verdict>"
+  }},
+  "categoryScores": {{
+    "keywordMatch": <0-100>,
+    "parsing": <0-100>,
+    "contentQuality": <0-100>,
+    "experienceRelevance": <0-100>,
+    "formatting": <0-100>
+  }},
+  "missingKeywords": [
+    {{
+      "keyword": "<term>",
+      "importance": "high|medium|low",
+      "reason": "<why it's needed>",
+      "suggestedPlacement": "<summary|skills|experience|projects>"
+    }}
+  ],
+  "formatIssues": [
+    {{
+      "id": "<unique-id>",
+      "severity": "high|medium|low",
+      "section": "<section name>",
+      "problem": "<what's wrong>",
+      "reason": "<why it hurts ATS>",
+      "fixSuggestion": "<how to fix>",
+      "startIndex": <number>,
+      "endIndex": <number>,
+      "clickToApply": {{
+        "type": "replace|insert|remove",
+        "targetText": "<exact text to find>",
+        "replacementText": "<new text>"
       }}
-   ],
-   "keyword_analysis": {{
-      "matched_keywords": [""],
-      "missing_keywords": [{{"keyword":"", "importance":"critical|important|optional", "reason":""}}],
-      "keyword_placement": [
-         {{ "keyword": "", "place_in": ["summary", "skills", "experience", "projects"], "example_usage": "" }}
-      ]
-   }},
-   "rewrite_suggestions": [
-      {{
-         "id": "unique-id-1",
-         "area": "summary|experience|skills|education|projects",
-         "before": "original text",
-         "after": "rewritten text",
-         "reason": "why this improves the score",
-         "expected_score_gain": 5,
-         "impact": "low|medium|high",
-         "auto_apply_payload": {{
-            "section": "summary|experience|skills|education|projects",
-            "type": "bullet_improvement|summary_rewrite|skill_add|grammar_fix|keyword_insertion|quantify|action_verb_improvement",
-            "field": "bullets|summary|items|description",
-            "index": 0,
-            "replace_with": "the full replacement text",
-            "old_text": "the exact old text to replace"
-         }}
+    }}
+  ],
+  "contentImprovements": [
+    {{
+      "id": "<unique-id>",
+      "section": "<summary|experience|skills|education|projects>",
+      "original": "<exact original text>",
+      "improved": "<improved text>",
+      "reason": "<why this improves the score>",
+      "impact": "<score impact description>",
+      "atsGain": <0-15>,
+      "clickToApply": {{
+        "type": "replace",
+        "targetText": "<exact old text>",
+        "replacementText": "<new text>"
       }}
-   ],
-   "action_plan": [
-      {{
-         "priority": "P0|P1|P2",
-         "action": "",
-         "why_it_increases_score": "",
-         "how_to_do": [""],
-         "expected_score_gain": 0
-      }}
-   ],
-   "quick_wins": [""],
-   "estimated_score_after_fixes": 0,
-   "recruiter_impression": {{
-      "first_impression": "",
-      "confidence_level": "low|medium|high",
-      "interview_probability": 0
-   }},
-   "strengths": [""],
-   "weaknesses": [""],
-   "priority_fixes": [""]
+    }}
+  ],
+  "sectionAnalysis": [
+    {{
+      "section": "<section name>",
+      "score": <0-100>,
+      "issues": ["<issue 1>", "<issue 2>"],
+      "recommendations": ["<rec 1>", "<rec 2>"]
+    }}
+  ],
+  "atsOptimizationTips": ["<tip 1>", "<tip 2>", "<tip 3>"],
+  "priorityFixes": [
+    {{
+      "priority": 1,
+      "issue": "<what to fix>",
+      "expectedScoreIncrease": <0-25>
+    }}
+  ]
 }}
 """.strip()
 
@@ -164,4 +140,5 @@ RETURN THIS EXACT JSON SCHEMA:
 ENHANCED_ATS_RESCORE_PROMPT = """
 Re-analyze the updated resume and return JSON only with before/after score comparison, implemented items, missed items, and next best actions.
 Previous score: {previous_score}. Updated resume: {updated_resume}. Job description: {job_description}.
-"""
+Return the same JSON schema as the main analysis.
+""".strip()

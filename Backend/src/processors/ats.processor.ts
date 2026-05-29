@@ -1,5 +1,5 @@
 import type { AtsAnalysisJobData } from "../../../shared/src/jobs";
-import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement, type AutoApplyPayload, type RecruiterImpression, type AtsKeywordAnalysis } from "../../../shared/src/ai";
+import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement, type AutoApplyPayload, type RecruiterImpression, type AtsKeywordAnalysis, type AtsCategoryScores, type AtsFormatIssue, type AtsContentImprovement, type AtsSectionAnalysis, type ClickToApply } from "../../../shared/src/ai";
 import { logger } from "../observability";
 import AtsAnalysis from "../models/AtsAnalysis";
 import Resume from "../models/Resume";
@@ -34,6 +34,12 @@ type AiAtsEnhancement = {
   estimatedScoreAfterFixes?: number;
   keywordPlacement: AtsKeywordPlacement[];
   questionsForUser: string[];
+  /** New v2 fields */
+  categoryScores?: AtsCategoryScores;
+  formatIssues?: AtsFormatIssue[];
+  contentImprovements?: AtsContentImprovement[];
+  sectionAnalysis?: AtsSectionAnalysis[];
+  atsOptimizationTips?: string[];
 };
 
 const SECTION_KEYS: AtsSectionKey[] = ["summary", "experience", "skills", "education", "projects", "certifications", "languages"];
@@ -432,6 +438,105 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
       ? value.questions_for_user.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
       : [];
 
+  // ── New v2 format: top-level missingKeywords ──
+  const topLevelMissingKeywords = Array.isArray(value.missingKeywords)
+    ? value.missingKeywords.filter((item) => item && typeof item === "object")
+    : Array.isArray(value.missing_keywords)
+      ? value.missing_keywords.filter((item) => item && typeof item === "object")
+      : [];
+  if (topLevelMissingKeywords.length > 0) {
+    topLevelMissingKeywords.forEach((item) => {
+      const record = item as Record<string, unknown>;
+      const kw = compactText(record.keyword);
+      if (kw && !keywordGaps.includes(kw)) {
+        keywordGaps.push(kw);
+      }
+    });
+  }
+
+  // ── New v2 format: categoryScores ──
+  const categoryScoresRaw = (value.categoryScores ?? value.category_scores) as Record<string, unknown> | undefined;
+  const categoryScores: AtsCategoryScores | undefined = categoryScoresRaw && typeof categoryScoresRaw === "object"
+    ? {
+        keywordMatch: clampScore(Number(categoryScoresRaw.keywordMatch ?? categoryScoresRaw.keyword_match ?? 0)),
+        parsing: clampScore(Number(categoryScoresRaw.parsing ?? 0)),
+        contentQuality: clampScore(Number(categoryScoresRaw.contentQuality ?? categoryScoresRaw.content_quality ?? 0)),
+        experienceRelevance: clampScore(Number(categoryScoresRaw.experienceRelevance ?? categoryScoresRaw.experience_relevance ?? 0)),
+        formatting: clampScore(Number(categoryScoresRaw.formatting ?? 0)),
+      }
+    : undefined;
+
+  // ── New v2 format: formatIssues ──
+  const formatIssuesRaw = (value.formatIssues ?? value.format_issues) as unknown[];
+  const formatIssues: AtsFormatIssue[] = Array.isArray(formatIssuesRaw)
+    ? formatIssuesRaw.filter((item) => item && typeof item === "object").map((item) => {
+        const record = item as Record<string, unknown>;
+        const cta = record.clickToApply as Record<string, unknown> | undefined;
+        return {
+          id: compactText(record.id) || createSuggestionId("fmt", formatIssuesRaw.indexOf(item)),
+          severity: record.severity === "high" || record.severity === "medium" || record.severity === "low" ? record.severity : "medium",
+          section: compactText(record.section) || "",
+          problem: compactText(record.problem) || "",
+          reason: compactText(record.reason) || "",
+          fixSuggestion: compactText(record.fixSuggestion) || compactText(record.fix_suggestion) || "",
+          startIndex: Number(record.startIndex ?? record.start_index ?? -1),
+          endIndex: Number(record.endIndex ?? record.end_index ?? -1),
+          ...(cta && typeof cta === "object" && compactText(cta.targetText)
+            ? { clickToApply: { type: (cta.type === "insert" || cta.type === "remove" ? cta.type : "replace") as ClickToApply["type"], targetText: compactText(cta.targetText), replacementText: compactText(cta.replacementText) } }
+            : {}),
+        } as AtsFormatIssue;
+      })
+    : [];
+
+  // ── New v2 format: contentImprovements → rewriteSuggestions ──
+  const contentImprovementsRaw = (value.contentImprovements ?? value.content_improvements) as unknown[];
+  if (Array.isArray(contentImprovementsRaw)) {
+    contentImprovementsRaw.filter((item) => item && typeof item === "object").forEach((item, index) => {
+      const record = item as Record<string, unknown>;
+      const original = compactText(record.original);
+      const improved = compactText(record.improved);
+      const cta = record.clickToApply as Record<string, unknown> | undefined;
+      if (improved && original) {
+        const existingIndex = rewriteSuggestions.findIndex((s) => s.originalText === original);
+        if (existingIndex === -1) {
+          rewriteSuggestions.push({
+            id: compactText(record.id) || createSuggestionId("ci", index),
+            originalText: original,
+            suggestionText: improved,
+            reason: compactText(record.reason) || "Content improvement",
+            impact: normalizeImpact(Number(record.atsGain) >= 8 ? "high" : Number(record.atsGain) >= 4 ? "medium" : "low"),
+            path: sectionPathForKey(compactText(record.section) as AtsSectionKey),
+            scoreDelta: Number(record.atsGain ?? 0) || undefined,
+            ...(cta && typeof cta === "object" && compactText(cta.targetText)
+              ? { clickToApply: { type: "replace" as const, targetText: compactText(cta.targetText), replacementText: compactText(cta.replacementText) } }
+              : {}),
+          });
+        }
+      }
+    });
+  }
+
+  // ── New v2 format: sectionAnalysis ──
+  const sectionAnalysisRaw = (value.sectionAnalysis ?? value.section_analysis) as unknown[];
+  const sectionAnalysis: AtsSectionAnalysis[] = Array.isArray(sectionAnalysisRaw)
+    ? sectionAnalysisRaw.filter((item) => item && typeof item === "object").map((item) => {
+        const record = item as Record<string, unknown>;
+        return {
+          section: compactText(record.section) || "",
+          score: clampScore(Number(record.score ?? 0)),
+          issues: asStringArray(record.issues),
+          recommendations: asStringArray(record.recommendations),
+        } as AtsSectionAnalysis;
+      })
+    : [];
+
+  // ── New v2 format: atsOptimizationTips ──
+  const atsOptimizationTips = Array.isArray(value.atsOptimizationTips)
+    ? value.atsOptimizationTips.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
+    : Array.isArray(value.ats_optimization_tips)
+      ? value.ats_optimization_tips.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
+      : [];
+
   return {
     grade: grade === "poor" || grade === "average" || grade === "good" || grade === "excellent" ? grade : undefined,
     overallScore,
@@ -447,6 +552,11 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
     estimatedScoreAfterFixes,
     keywordPlacement: keywordPlacement.slice(0, 12),
     questionsForUser: questionsForUser.slice(0, 5),
+    categoryScores,
+    formatIssues: formatIssues.slice(0, 8),
+    contentImprovements: [],
+    sectionAnalysis: sectionAnalysis.slice(0, 10),
+    atsOptimizationTips: atsOptimizationTips.slice(0, 5),
   };
 };
 
@@ -625,6 +735,12 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
         keywordGaps,
         verdict,
         summary: buildReportSummary(job.data.jobTitle, overallScore, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
+        /** New v2 fields */
+        ...(enhancement.categoryScores ? { categoryScores: enhancement.categoryScores } : {}),
+        ...(enhancement.formatIssues?.length ? { formatIssues: enhancement.formatIssues } : {}),
+        ...(enhancement.contentImprovements?.length ? { contentImprovements: enhancement.contentImprovements } : {}),
+        ...(enhancement.sectionAnalysis?.length ? { sectionAnalysis: enhancement.sectionAnalysis } : {}),
+        ...(enhancement.atsOptimizationTips?.length ? { atsOptimizationTips: enhancement.atsOptimizationTips } : {}),
       };
 
       logger.info({ jobId: job.id, provider }, "ATS AI enhancement applied");

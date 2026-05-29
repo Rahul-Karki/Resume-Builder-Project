@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { queueAtsAnalysis, getLatestAtsAnalysis, applyAtsSuggestion, applyKeywordPlacement, createMissingSection } from "@/services/api";
-import type { AtsAnalysisReport, AtsSectionKey, AtsSectionSuggestions, AiSuggestion } from "../../../../shared/src/ai";
+import type { AtsAnalysisReport, AtsSectionKey, AtsSectionSuggestions, AiSuggestion, AtsFormatIssue, AtsPriorityFix } from "../../../../shared/src/ai";
 import type { ResumeDocument } from "@/types/resume-types";
-import { AlertCircle, BarChart3, CheckCircle2, ChevronDown, FileSearch, Lightbulb, Loader2, RefreshCw, RotateCcw, Target, Wand2 } from "lucide-react";
+import { AlertCircle, BarChart3, CheckCircle2, ChevronDown, FileSearch, Lightbulb, Loader2, RefreshCw, RotateCcw, Target, Wand2, Bug } from "lucide-react";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────────── */
 const css = `
@@ -233,6 +233,7 @@ export function ATSAnalysisPanel() {
   const [applyingIds, setApplyingIds] = useState<Set<string>>(new Set());
   const [applyingKeywords, setApplyingKeywords] = useState<Set<string>>(new Set());
   const [creatingSections, setCreatingSections] = useState<Set<string>>(new Set());
+  const [applyingFormatFixes, setApplyingFormatFixes] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [suggestionStatus, setSuggestionStatus] = useState<Record<string, "pending" | "applied">>({});
@@ -328,6 +329,19 @@ export function ATSAnalysisPanel() {
       setCreatingSections((prev) => { const next = new Set(prev); next.delete(section); return next; });
     }
   }, [resume._id]);
+
+  const handleApplyFormatFix = useCallback(async (fix: AtsFormatIssue) => {
+    if (!resume._id || !fix.clickToApply) return;
+    setApplyingFormatFixes((prev) => new Set(prev).add(fix.id));
+    try {
+      // Apply via the rewrite suggestions endpoint — treat as a text replacement
+      await applyAtsSuggestion(resume._id, analysisDocId ?? "", fix.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to apply format fix");
+    } finally {
+      setApplyingFormatFixes((prev) => { const next = new Set(prev); next.delete(fix.id); return next; });
+    }
+  }, [resume._id, analysisDocId]);
 
   const savedAtsScore = report?.overallScore ?? resume.atsScore ?? null;
 
@@ -449,6 +463,27 @@ export function ATSAnalysisPanel() {
               </div>
             </div>
 
+            {/* Category Scores (v2 format) */}
+            {report.categoryScores && (
+              <div style={{ padding: "0 18px 10px", display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[
+                  { label: "Keywords", key: "keywordMatch" as const },
+                  { label: "Parsing", key: "parsing" as const },
+                  { label: "Content", key: "contentQuality" as const },
+                  { label: "Relevance", key: "experienceRelevance" as const },
+                  { label: "Format", key: "formatting" as const },
+                ].map((cat) => {
+                  const val = report.categoryScores![cat.key] ?? 0;
+                  return (
+                    <div key={cat.key} style={{ flex: 1, minWidth: 80, background: "rgba(255,255,255,0.02)", border: "1px solid #3f3f46", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: scoreColor(val) }}>{val}</div>
+                      <div style={{ fontSize: 9, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.3px", marginTop: 2 }}>{cat.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Projected Score */}
             {estimatedScoreAfterFixes && (
               <div style={{ padding: "0 18px 10px", display: "flex", justifyContent: "space-between", gap: 12, color: "#a1a1aa", fontSize: 12 }}>
@@ -490,6 +525,39 @@ export function ATSAnalysisPanel() {
                           {item.howToDo.slice(0, 3).map((step, si) => <li key={`${index}-${si}`}>{step}</li>)}
                         </ul>
                       )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ATS Optimization Tips (v2) */}
+            {report.atsOptimizationTips && report.atsOptimizationTips.length > 0 && (
+              <>
+                <div className="ats-section-label"><Lightbulb size={13} style={{ marginRight: 6 }} /> Optimization Tips</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
+                  {report.atsOptimizationTips.slice(0, 5).map((tip, i) => (
+                    <div key={`tip-${i}`} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #3b82f6" }}>
+                      <div className="ats-card-detail" style={{ color: "#fafafa", fontSize: 12 }}>{tip}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Priority Fixes (v2 object format) */}
+            {Array.isArray(report.priorityFixes) && report.priorityFixes.length > 0 && typeof report.priorityFixes[0] === "object" && (
+              <>
+                <div className="ats-section-label"><Target size={13} style={{ marginRight: 6 }} /> Priority Fixes</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
+                  {(report.priorityFixes as any[]).slice(0, 5).map((fix, i) => (
+                    <div key={`pf-${i}`} className="ats-card" style={{ margin: 0, borderLeft: `3px solid ${fix.priority <= 2 ? "#ef4444" : fix.priority <= 4 ? "#eab308" : "#3b82f6"}` }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12 }}>#{fix.priority}: {fix.issue}</div>
+                        {fix.expectedScoreIncrease > 0 && (
+                          <span className="ats-tag ats-tag-good" style={{ fontSize: 10 }}>+{fix.expectedScoreIncrease} pts</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -585,6 +653,33 @@ export function ATSAnalysisPanel() {
                       </div>
                       <div style={{ width: 64, display: "flex", justifyContent: "flex-end", gap: 1 }}>{renderStars(val)}</div>
                       <span style={{ fontSize: 11, color: "#a1a1aa", fontWeight: 600, width: 34, textAlign: "right" }}>{val}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Section Analysis (v2) */}
+            {report.sectionAnalysis && report.sectionAnalysis.length > 0 && (
+              <>
+                <div className="ats-section-label"><BarChart3 size={13} style={{ marginRight: 6 }} /> Section Analysis</div>
+                <div style={{ padding: "0 18px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {report.sectionAnalysis.slice(0, 6).map((sa, i) => (
+                    <div key={i} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #3b82f6" }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12, textTransform: "capitalize" }}>{sa.section.replace("_", " ")}</div>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(sa.score) }}>{sa.score}/100</span>
+                      </div>
+                      {sa.issues.length > 0 && (
+                        <ul style={{ margin: "4px 0 0", paddingLeft: 16, color: "#fca5a5", fontSize: 11, lineHeight: 1.6 }}>
+                          {sa.issues.slice(0, 3).map((issue, ii) => <li key={ii}>{issue}</li>)}
+                        </ul>
+                      )}
+                      {sa.recommendations.length > 0 && (
+                        <ul style={{ margin: "4px 0 0", paddingLeft: 16, color: "#86efac", fontSize: 11, lineHeight: 1.6 }}>
+                          {sa.recommendations.slice(0, 3).map((rec, ri) => <li key={ri}>{rec}</li>)}
+                        </ul>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -697,6 +792,35 @@ export function ATSAnalysisPanel() {
                         <span style={{ fontSize: 11, color: "#fca5a5", fontWeight: 600 }}>{check.score}/100</span>
                       </div>
                       <div className="ats-card-detail" style={{ color: "#a1a1aa" }}>{check.fix || check.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Format Issues (v2) */}
+            {report.formatIssues && report.formatIssues.length > 0 && (
+              <>
+                <div className="ats-section-label"><Bug size={13} style={{ marginRight: 6 }} /> Format Issues</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
+                  {report.formatIssues.slice(0, 5).map((fix) => (
+                    <div key={fix.id} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #eab308" }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12 }}>{fix.section}: {fix.problem}</div>
+                        <span className={`ats-tag ${fix.severity === "high" ? "ats-tag-bad" : fix.severity === "medium" ? "ats-tag-warn" : "ats-tag-good"}`} style={{ fontSize: 10 }}>{fix.severity}</span>
+                      </div>
+                      <div className="ats-card-detail" style={{ color: "#a1a1aa", marginBottom: 6 }}>{fix.reason}</div>
+                      <div className="ats-card-detail" style={{ color: "#fafafa", fontSize: 12, marginBottom: fix.clickToApply ? 8 : 0 }}>{fix.fixSuggestion}</div>
+                      {fix.clickToApply && (
+                        <button
+                          className="ats-btn-apply ats-btn-apply-ready"
+                          onClick={() => handleApplyFormatFix(fix)}
+                          disabled={applyingFormatFixes.has(fix.id)}
+                        >
+                          {applyingFormatFixes.has(fix.id) ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
+                          Apply Fix
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

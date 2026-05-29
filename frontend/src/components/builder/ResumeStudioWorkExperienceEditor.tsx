@@ -146,8 +146,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     const loadTemplates = async () => {
       try {
         const response = await api.get('/templates');
-        const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-        const apiTemplates: TemplateOption[] = rows
+        const rows: unknown[] = response.data?.templates ?? response.data?.data?.templates ?? [];
+        const apiTemplates: TemplateOption[] = (rows
           .map((row: unknown) => {
             const data = typeof row === 'object' && row !== null ? (row as Record<string, unknown>) : {};
             return {
@@ -157,7 +157,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
               sortOrder: typeof data.sortOrder === 'number' ? data.sortOrder : 999,
             };
           })
-          .filter((template: TemplateOption) => template.layoutId);
+          .filter((t) => t.layoutId)) as TemplateOption[];
 
         if (!active) return;
 

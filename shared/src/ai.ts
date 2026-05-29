@@ -4,6 +4,12 @@ export type AiSuggestionImpact = "low" | "medium" | "high";
 
 export type AiSuggestionPriority = "critical" | "high" | "medium" | "low";
 
+export type ClickToApply = {
+  type: "replace" | "insert" | "remove";
+  targetText: string;
+  replacementText: string;
+};
+
 export type AiSuggestion = {
   id: string;
   originalText: string;
@@ -16,6 +22,7 @@ export type AiSuggestion = {
   autoApply?: AutoApplyPayload;
   scoreDelta?: number;
   appliedStatus?: "pending" | "applied" | "rolled_back";
+  clickToApply?: ClickToApply;
 };
 
 export type AtsSectionKey = "summary" | "experience" | "skills" | "education" | "projects" | "certifications" | "languages";
@@ -50,6 +57,50 @@ export type AtsKeywordPlacement = {
   keyword: string;
   placeIn: Array<"summary" | "skills" | "experience" | "projects">;
   exampleUsage: string;
+};
+
+export type AtsCategoryScores = {
+  keywordMatch: number;
+  parsing: number;
+  contentQuality: number;
+  experienceRelevance: number;
+  formatting: number;
+};
+
+export type AtsFormatIssue = {
+  id: string;
+  severity: "high" | "medium" | "low";
+  section: string;
+  problem: string;
+  reason: string;
+  fixSuggestion: string;
+  startIndex: number;
+  endIndex: number;
+  clickToApply?: ClickToApply;
+};
+
+export type AtsContentImprovement = {
+  id: string;
+  section: AtsSectionKey;
+  original: string;
+  improved: string;
+  reason: string;
+  impact: string;
+  atsGain: number;
+  clickToApply?: ClickToApply;
+};
+
+export type AtsSectionAnalysis = {
+  section: string;
+  score: number;
+  issues: string[];
+  recommendations: string[];
+};
+
+export type AtsPriorityFix = {
+  priority: number;
+  issue: string;
+  expectedScoreIncrease: number;
 };
 
 export type AiRewriteResult = {
@@ -87,6 +138,7 @@ export type MissingKeyword = {
   keyword: string;
   importance: KeywordImportance;
   reason: string;
+  suggestedPlacement?: string;
 };
 
 export type AtsKeywordAnalysis = {
@@ -169,9 +221,15 @@ export type AtsAnalysisReport = {
   recruiterImpression?: RecruiterImpression;
   strengths?: string[];
   weaknesses?: string[];
-  priorityFixes?: string[];
+  priorityFixes?: string[] | AtsPriorityFix[];
   autoApplyActions?: AutoApplyPayload[];
   formattingFixes?: AtsFormattingFix[];
+  /** New v2 format fields */
+  categoryScores?: AtsCategoryScores;
+  formatIssues?: AtsFormatIssue[];
+  contentImprovements?: AtsContentImprovement[];
+  sectionAnalysis?: AtsSectionAnalysis[];
+  atsOptimizationTips?: string[];
 };
 
 export const AI_TONE_OPTIONS: AiTone[] = ["professional", "concise", "technical", "leadership-focused"];
