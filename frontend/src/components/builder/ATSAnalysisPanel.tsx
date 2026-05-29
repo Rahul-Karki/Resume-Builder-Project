@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
-import { queueAtsAnalysis, getLatestAtsAnalysis, applyAtsSuggestion } from "@/services/api";
+import { queueAtsAnalysis, getLatestAtsAnalysis, applyAtsSuggestion, applyKeywordPlacement, createMissingSection } from "@/services/api";
 import type { AtsAnalysisReport, AtsSectionKey, AtsSectionSuggestions, AiSuggestion } from "../../../../shared/src/ai";
 import type { ResumeDocument } from "@/types/resume-types";
 import { AlertCircle, BarChart3, CheckCircle2, ChevronDown, FileSearch, Lightbulb, Loader2, RefreshCw, RotateCcw, Target, Wand2 } from "lucide-react";
@@ -231,6 +231,8 @@ export function ATSAnalysisPanel() {
   const [analysisDocId, setAnalysisDocId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [applyingIds, setApplyingIds] = useState<Set<string>>(new Set());
+  const [applyingKeywords, setApplyingKeywords] = useState<Set<string>>(new Set());
+  const [creatingSections, setCreatingSections] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [suggestionStatus, setSuggestionStatus] = useState<Record<string, "pending" | "applied">>({});
@@ -300,6 +302,32 @@ export function ATSAnalysisPanel() {
       await handleApplySuggestion(s);
     }
   }, [pendingSuggestions, suggestionStatus, handleApplySuggestion]);
+
+  const handleAddKeyword = useCallback(async (keyword: string, section: string) => {
+    if (!resume._id) return;
+    setApplyingKeywords((prev) => new Set(prev).add(keyword));
+    try {
+      const result = await applyKeywordPlacement(resume._id, keyword, section);
+      if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add keyword");
+    } finally {
+      setApplyingKeywords((prev) => { const next = new Set(prev); next.delete(keyword); return next; });
+    }
+  }, [resume._id]);
+
+  const handleCreateSection = useCallback(async (section: string, copyPasteTemplate?: string) => {
+    if (!resume._id) return;
+    setCreatingSections((prev) => new Set(prev).add(section));
+    try {
+      const result = await createMissingSection(resume._id, section, copyPasteTemplate);
+      if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create section");
+    } finally {
+      setCreatingSections((prev) => { const next = new Set(prev); next.delete(section); return next; });
+    }
+  }, [resume._id]);
 
   const savedAtsScore = report?.overallScore ?? resume.atsScore ?? null;
 
@@ -610,6 +638,15 @@ export function ATSAnalysisPanel() {
                                 "{placement.exampleUsage}"
                               </div>
                             )}
+                            <button
+                              className="ats-btn-apply ats-btn-apply-ready"
+                              onClick={() => handleAddKeyword(keyword, placement.placeIn[0] ?? "skills")}
+                              disabled={applyingKeywords.has(keyword)}
+                              style={{ marginTop: 8 }}
+                            >
+                              {applyingKeywords.has(keyword) ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
+                              Add to {placement.placeIn[0] ?? "skills"}
+                            </button>
                           </>
                         )}
                         {!placement && (
@@ -707,6 +744,15 @@ export function ATSAnalysisPanel() {
                           {audit.fix.example}
                         </div>
                       )}
+                      <button
+                        className="ats-btn-apply ats-btn-apply-ready"
+                        onClick={() => handleCreateSection(audit.section, audit.fix.copyPasteTemplate)}
+                        disabled={creatingSections.has(audit.section)}
+                        style={{ marginTop: 10 }}
+                      >
+                        {creatingSections.has(audit.section) ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
+                        Create {audit.section.replace("_", " ")} Section
+                      </button>
                     </div>
                   ))}
                 </div>

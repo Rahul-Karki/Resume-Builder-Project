@@ -300,6 +300,16 @@ export const applyAtsSuggestion = async (resumeId: string, analysisId: string, s
   return response.data as { message: string; resume: ResumeDocument };
 };
 
+export const applyKeywordPlacement = async (resumeId: string, keyword: string, section: string) => {
+  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/apply-keyword`, { keyword, section });
+  return response.data as { message: string; resume: ResumeDocument };
+};
+
+export const createMissingSection = async (resumeId: string, section: string, copyPasteTemplate?: string) => {
+  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/create-section`, { section, copyPasteTemplate });
+  return response.data as { message: string; resume: ResumeDocument };
+};
+
 export async function bootstrapAuthSession() {
   try {
     await api.post("/refresh", {}, { timeout: 3000 });

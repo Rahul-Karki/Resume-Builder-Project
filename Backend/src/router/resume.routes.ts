@@ -12,6 +12,8 @@ import {
 import {
   analyzeAts,
   applyAtsSuggestion,
+  applyKeywordPlacement,
+  createMissingSection,
   getAtsAnalysisByJobId,
   getLatestAtsAnalysis,
 } from "../controllers/resumeEnhancementController";
@@ -136,6 +138,8 @@ router.post(
 router.get("/:id/ats-analysis/latest", validateRequest({ params: objectIdParamSchema }), getLatestAtsAnalysis);
 router.get("/:id/ats-analysis/:jobId", validateRequest({ params: objectIdParamSchema }), getAtsAnalysisByJobId);
 router.post("/:id/apply-suggestion", validateRequest({ params: objectIdParamSchema }), applyAtsSuggestion);
+router.post("/:id/apply-keyword", validateRequest({ params: objectIdParamSchema }), applyKeywordPlacement);
+router.post("/:id/create-section", validateRequest({ params: objectIdParamSchema }), createMissingSection);
 
 
 

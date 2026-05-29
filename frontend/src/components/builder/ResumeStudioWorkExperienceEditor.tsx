@@ -140,19 +140,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     setTemplateId(normalizeResumeTemplateId(resume.templateId));
   }, [resume.templateId]);
 
-  // Ensure current template is always in the dropdown options
-  useEffect(() => {
-    setTemplateOptions((prev) => {
-      const normalized = normalizeResumeTemplateId(resume.templateId);
-      if (prev.some((t) => t.layoutId === normalized)) return prev;
-      const local = localTemplateCatalog.find((t) => t.id === normalized);
-      const current: TemplateOption = local
-        ? { layoutId: local.id, name: local.name, audience: local.audience, sortOrder: 999 }
-        : { layoutId: normalized, name: normalized, sortOrder: 999 };
-      return [current, ...prev];
-    });
-  }, [resume.templateId]);
-
   useEffect(() => {
     let active = true;
 
@@ -173,10 +160,30 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           .filter((template: TemplateOption) => template.layoutId);
 
         if (!active) return;
-        setTemplateOptions(apiTemplates.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+
+        const currentId = normalizeResumeTemplateId(resume.templateId);
+        const hasCurrent = apiTemplates.some((t) => t.layoutId === currentId);
+        let result = apiTemplates;
+        if (!hasCurrent) {
+          const local = localTemplateCatalog.find((t) => t.id === currentId);
+          result = [
+            ...apiTemplates,
+            local
+              ? { layoutId: local.id, name: local.name, audience: local.audience, sortOrder: -1 }
+              : { layoutId: currentId, name: currentId, sortOrder: -1 },
+          ];
+        }
+        setTemplateOptions(result.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
       } catch {
         if (!active) return;
-        setTemplateOptions([]);
+        // On error, show just the current template
+        const currentId = normalizeResumeTemplateId(resume.templateId);
+        const local = localTemplateCatalog.find((t) => t.id === currentId);
+        setTemplateOptions([
+          local
+            ? { layoutId: local.id, name: local.name, audience: local.audience, sortOrder: -1 }
+            : { layoutId: currentId, name: currentId, sortOrder: -1 },
+        ]);
       }
     };
 
@@ -184,7 +191,22 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After resume loads from server, ensure its templateId is in the dropdown
+  useEffect(() => {
+    const currentId = normalizeResumeTemplateId(resume.templateId);
+    setTemplateOptions((prev) => {
+      if (prev.some((t) => t.layoutId === currentId)) return prev;
+      const local = localTemplateCatalog.find((t) => t.id === currentId);
+      return [
+        local
+          ? { layoutId: local.id, name: local.name, audience: local.audience, sortOrder: -1 }
+          : { layoutId: currentId, name: currentId, sortOrder: -1 },
+        ...prev,
+      ];
+    });
+  }, [resume.templateId]);
 
   useEffect(() => {
     const computeScale = () => {

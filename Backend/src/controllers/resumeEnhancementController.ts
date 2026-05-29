@@ -371,6 +371,222 @@ export const createRoleTailoredVariant = wrapController(async (req, res) => {
   logger.info({ userId, resumeId: req.params.id, variantId: variant._id.toString(), targetRole }, "Role-tailored variant created");
 }, "resumeEnhancement.createRoleTailoredVariant");
 
+export const applyKeywordPlacement = wrapController(async (req, res) => {
+  const userId = getUserId(req, res);
+  if (!userId) return;
+
+  const { keyword, section } = req.body ?? {};
+  if (!keyword || !section) {
+    res.status(400).json({ message: "keyword and section are required" });
+    return;
+  }
+
+  const resume = await Resume.findOne({ _id: req.params.id, userId });
+  if (!resume) {
+    res.status(404).json({ message: "Resume not found" });
+    return;
+  }
+
+  const mutable = resume.toObject();
+  const normalizedKeyword = String(keyword).trim();
+  if (!normalizedKeyword) {
+    res.status(400).json({ message: "Invalid keyword" });
+    return;
+  }
+
+  // Add keyword to the specified section
+  if (section === "skills") {
+    // Append to the first uncategorized skill group, or create one
+    const existing = mutable.sections?.skills ?? [];
+    const target = existing.find((s: any) => !s.category || s.category === "Technical Skills");
+    if (target) {
+      if (!target.items.includes(normalizedKeyword)) {
+        target.items.push(normalizedKeyword);
+      }
+    } else {
+      existing.push({ id: crypto.randomUUID(), category: "Technical Skills", items: [normalizedKeyword] });
+    }
+    mutable.sections = { ...mutable.sections, skills: existing };
+  } else if (section === "summary") {
+    // Append keyword to the summary text
+    const summary = mutable.personalInfo?.summary ?? "";
+    const sentence = `Proficient in ${normalizedKeyword}.`;
+    if (!summary.toLowerCase().includes(normalizedKeyword.toLowerCase())) {
+      mutable.personalInfo = { ...mutable.personalInfo, summary: summary ? `${summary} ${sentence}` : sentence };
+    }
+  } else if (section === "experience") {
+    // Append keyword as a bullet to the most recent experience entry
+    const experience = mutable.sections?.experience ?? [];
+    const latest = experience[0];
+    if (latest) {
+      if (!latest.bullets.some((b: string) => b.toLowerCase().includes(normalizedKeyword.toLowerCase()))) {
+        latest.bullets.unshift(`Leveraged ${normalizedKeyword} to drive impactful results.`);
+      }
+    }
+    mutable.sections = { ...mutable.sections, experience };
+  } else {
+    // Fallback: add to skills section
+    const existing = mutable.sections?.skills ?? [];
+    const target = existing.find((s: any) => !s.category || s.category === "Technical Skills");
+    if (target) {
+      if (!target.items.includes(normalizedKeyword)) {
+        target.items.push(normalizedKeyword);
+      }
+    } else {
+      existing.push({ id: crypto.randomUUID(), category: "Technical Skills", items: [normalizedKeyword] });
+    }
+    mutable.sections = { ...mutable.sections, skills: existing };
+  }
+
+  const updated = await Resume.findOneAndUpdate(
+    { _id: req.params.id, userId },
+    mutable,
+    { returnDocument: 'after', runValidators: true },
+  );
+
+  if (!updated) {
+    res.status(404).json({ message: "Resume not found" });
+    return;
+  }
+
+  await createResumeVersion(updated, "Applied ATS keyword placement");
+  await recordTemplateUsage(String(updated.templateId), "edit");
+  await invalidateRedisCache([resumeCacheScope(userId)]);
+
+  logger.info({ userId, resumeId: req.params.id, keyword, section }, "ATS keyword placement applied");
+  res.status(200).json({ message: "Keyword added", resume: updated });
+}, "resumeEnhancement.applyKeywordPlacement");
+
+export const createMissingSection = wrapController(async (req, res) => {
+  const userId = getUserId(req, res);
+  if (!userId) return;
+
+  const { section, copyPasteTemplate } = req.body ?? {};
+  if (!section) {
+    res.status(400).json({ message: "section is required" });
+    return;
+  }
+
+  const resume = await Resume.findOne({ _id: req.params.id, userId });
+  if (!resume) {
+    res.status(404).json({ message: "Resume not found" });
+    return;
+  }
+
+  const mutable = resume.toObject();
+  const normalizedSection = String(section).toLowerCase();
+  const sections = mutable.sections ?? {};
+
+  const now = new Date().toISOString();
+
+  switch (normalizedSection) {
+    case "summary": {
+      const content = copyPasteTemplate || "Professional summary goes here.";
+      mutable.personalInfo = { ...mutable.personalInfo, summary: content };
+      break;
+    }
+    case "experience": {
+      const existing = sections.experience ?? [];
+      existing.unshift({
+        id: crypto.randomUUID(),
+        company: "Company Name",
+        role: "Job Title",
+        start: "Start Date",
+        end: "Present",
+        location: "",
+        current: false,
+        contentMode: "bullets",
+        description: "",
+        bullets: copyPasteTemplate ? [copyPasteTemplate] : ["Accomplished [result] by using [skill] to achieve [outcome]."],
+      });
+      sections.experience = existing;
+      break;
+    }
+    case "education": {
+      const existing = sections.education ?? [];
+      existing.push({
+        id: crypto.randomUUID(),
+        institution: "Institution Name",
+        degree: "Degree",
+        field: "Field of Study",
+        year: String(new Date().getFullYear()),
+        cgpa: "",
+      });
+      sections.education = existing;
+      break;
+    }
+    case "skills": {
+      const existing = sections.skills ?? [];
+      existing.push({
+        id: crypto.randomUUID(),
+        category: "Technical Skills",
+        items: copyPasteTemplate ? copyPasteTemplate.split(",").map((s: string) => s.trim()).filter(Boolean) : ["Skill 1", "Skill 2"],
+      });
+      sections.skills = existing;
+      break;
+    }
+    case "projects": {
+      const existing = sections.projects ?? [];
+      existing.push({
+        id: crypto.randomUUID(),
+        name: "Project Name",
+        contentMode: "paragraph",
+        description: copyPasteTemplate || "Project description goes here.",
+        bullets: [],
+        tech: "",
+        link: "",
+      });
+      sections.projects = existing;
+      break;
+    }
+    case "certifications": {
+      const existing = sections.certifications ?? [];
+      existing.push({
+        id: crypto.randomUUID(),
+        name: "Certification Name",
+        issuer: "Issuing Organization",
+        year: String(new Date().getFullYear()),
+      });
+      sections.certifications = existing;
+      break;
+    }
+    case "languages": {
+      const existing = sections.languages ?? [];
+      existing.push({
+        id: crypto.randomUUID(),
+        language: "Language",
+        proficiency: "Intermediate",
+      });
+      sections.languages = existing;
+      break;
+    }
+    default: {
+      res.status(400).json({ message: `Unknown section: ${section}` });
+      return;
+    }
+  }
+
+  mutable.sections = sections;
+
+  const updated = await Resume.findOneAndUpdate(
+    { _id: req.params.id, userId },
+    mutable,
+    { returnDocument: 'after', runValidators: true },
+  );
+
+  if (!updated) {
+    res.status(404).json({ message: "Resume not found" });
+    return;
+  }
+
+  await createResumeVersion(updated, "Applied ATS section fix");
+  await recordTemplateUsage(String(updated.templateId), "edit");
+  await invalidateRedisCache([resumeCacheScope(userId)]);
+
+  logger.info({ userId, resumeId: req.params.id, section }, "ATS missing section created");
+  res.status(200).json({ message: "Section created", resume: updated });
+}, "resumeEnhancement.createMissingSection");
+
 export const getExportPreset = wrapController(async (req, res) => {
   const userId = getUserId(req, res);
   if (!userId) return;
