@@ -174,7 +174,7 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
           <GoogleAuthButton redirectTo="/resumes" />
         </div>
 
-        <p style={{ textAlign: "center", margin: "2px 0 0", color: "#666", fontSize: 12.5 }}>
+        <p style={{ textAlign: "center", margin: "2px 0 0", color: "#a1a1aa", fontSize: 12.5 }}>
           Already have an account? <Link to="/login" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Sign in</Link>
         </p>
       </form>
@@ -189,7 +189,7 @@ const fieldStyle: Record<string, string | number> = {
 };
 
 const labelStyle: Record<string, string | number> = {
-  color: "#C8C7C0",
+  color: "#d4d4d8",
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: 0.6,
@@ -199,9 +199,9 @@ const labelStyle: Record<string, string | number> = {
 const inputStyle: Record<string, string | number> = {
   width: "100%",
   borderRadius: 14,
-  border: "1px solid #232323",
-  background: "rgba(8,8,8,0.72)",
-  color: "#F0EFE8",
+  border: "1px solid #3f3f46",
+  background: "#18181b",
+  color: "#fafafa",
   padding: "11px 13px",
   fontSize: 13,
   outline: "none",

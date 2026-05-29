@@ -174,7 +174,7 @@ export function LoginForm({
           <GoogleAuthButton redirectTo={redirectTo} />
         </div>
 
-        <p style={{ textAlign: "center", margin: "2px 0 0", color: "#666", fontSize: 12.5, width: "100%" }}>
+        <p style={{ textAlign: "center", margin: "2px 0 0", color: "#a1a1aa", fontSize: 12.5, width: "100%" }}>
           Don&apos;t have an account? <Link to="/signup" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Sign up</Link>
         </p>
       </form>
@@ -188,7 +188,7 @@ const fieldStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: "#C8C7C0",
+  color: "#d4d4d8",
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: 0.6,
@@ -198,9 +198,9 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: "100%",
   borderRadius: 14,
-  border: "1px solid #232323",
-  background: "rgba(8,8,8,0.72)",
-  color: "#F0EFE8",
+  border: "1px solid #3f3f46",
+  background: "#18181b",
+  color: "#fafafa",
   padding: "11px 13px",
   fontSize: 13,
   outline: "none",
@@ -224,7 +224,7 @@ const forgotStyle = (disabled: boolean): React.CSSProperties => ({
   marginLeft: "auto",
   border: "none",
   background: "transparent",
-  color: disabled ? "#444" : "#8AA0FF",
+  color: disabled ? "#71717a" : "#8AA0FF",
   fontSize: 11.5,
   cursor: disabled ? "not-allowed" : "pointer",
   padding: 0,

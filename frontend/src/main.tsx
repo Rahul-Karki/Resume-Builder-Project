@@ -8,6 +8,27 @@ import { initializeClientErrorTracking } from "./lib/errorTracking"
 
 initializeClientErrorTracking()
 
+function AppLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex gap-1">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-12 w-2 rounded-full bg-zinc-700"
+              style={{
+                animation: "skeleton-pulse 1.5s ease-in-out infinite",
+                animationDelay: `${i * 0.15}s`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Root() {
   const [ready, setReady] = useState(false)
 
@@ -16,15 +37,7 @@ function Root() {
   }, [])
 
   if (!ready) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#0A0A0A", color: "#888", fontFamily: "sans-serif" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ width: 24, height: 24, border: "2px solid #333", borderTopColor: "#C8F55A", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 16px" }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-          Loading...
-        </div>
-      </div>
-    )
+    return <AppLoading />
   }
 
   return (

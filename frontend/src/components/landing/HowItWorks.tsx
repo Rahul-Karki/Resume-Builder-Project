@@ -90,7 +90,7 @@ export function HowItWorks() {
         {/* Header */}
         <div style={{ marginBottom: 72, textAlign: "center" }}>
           <div style={{
-            fontSize: 10, fontWeight: 700, color: "#333", letterSpacing: "2px",
+            fontSize: 10, fontWeight: 700, color: "#a1a1aa", letterSpacing: "2px",
             textTransform: "uppercase", marginBottom: 14, fontFamily: "'Outfit', sans-serif",
           }}>
             How It Works
@@ -98,7 +98,7 @@ export function HowItWorks() {
           <h2 style={{
             fontFamily: "'Fraunces', serif",
             fontSize: "clamp(30px, 3vw, 44px)",
-            fontWeight: 300, letterSpacing: "-1.2px", color: "#F0EFE8",
+            fontWeight: 300, letterSpacing: "-1.2px", color: "#fafafa",
             margin: 0, lineHeight: 1.1,
           }}>
             Three steps to a resume<br />
@@ -136,13 +136,13 @@ export function HowItWorks() {
 
                 {/* Text */}
                 <h3 style={{
-                  fontSize: 17, fontWeight: 700, color: "#F0EFE8",
+                  fontSize: 17, fontWeight: 700, color: "#fafafa",
                   margin: "0 0 10px", fontFamily: "'Outfit', sans-serif", letterSpacing: "-0.2px",
                 }}>
                   {step.title}
                 </h3>
                 <p style={{
-                  fontSize: 13.5, color: "#555", lineHeight: 1.6,
+                  fontSize: 13.5, color: "#a1a1aa", lineHeight: 1.6,
                   margin: 0, fontFamily: "'Outfit', sans-serif", fontWeight: 300,
                 }}>
                   {step.body}

@@ -29,15 +29,15 @@ const css = `
     color: #FFFFFF;
   }
   .ats-header-text { display: flex; flex-direction: column; }
-  .ats-header-title { font-size: 14px; font-weight: 600; color: #FFFFFF; }
-  .ats-header-subtitle { font-size: 12px; color: #888; }
-  .ats-chevron { color: #666; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+  .ats-header-title { font-size: 14px; font-weight: 600; color: #fafafa; }
+  .ats-header-subtitle { font-size: 12px; color: #a1a1aa; }
+  .ats-chevron { color: #a1a1aa; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
   .ats-chevron.open { transform: rotate(180deg); }
 
   .ats-panel {
-    background: #0F0F0F;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    color: #e4e4e7;
+    background: #18181b;
+    border-bottom: 1px solid #3f3f46;
+    color: #d4d4d8;
     animation: slideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     max-height: 420px;
     overflow-y: auto;
@@ -51,7 +51,7 @@ const css = `
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     position: sticky; top: 0; background: #0F0F0F; z-index: 10;
   }
-  .ats-panel-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #FFFFFF; }
+  .ats-panel-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #fafafa; }
 
   .ats-score-ring {
     width: 80px; height: 80px; border-radius: 50%;
@@ -60,7 +60,7 @@ const css = `
   }
   .ats-score-ring-inner {
     width: 64px; height: 64px; border-radius: 50%;
-    background: #0F0F0F;
+    background: #18181b;
     display: flex; align-items: center; justify-content: center;
     flex-direction: column;
   }
@@ -69,37 +69,37 @@ const css = `
 
   .ats-stat-box {
     background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid #3f3f46;
     border-radius: 10px; padding: 12px 14px; text-align: center;
     transition: all 0.2s ease;
   }
   .ats-stat-box:hover {
     background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: #71717a;
   }
-  .ats-stat-value { font-size: 20px; font-weight: 700; color: #F0EFE8; }
-  .ats-stat-label { font-size: 10px; color: #666; font-weight: 500; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .ats-stat-value { font-size: 20px; font-weight: 700; color: #fafafa; }
+  .ats-stat-label { font-size: 10px; color: #a1a1aa; font-weight: 500; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
 
   .ats-section-label {
-    font-size: 11px; font-weight: 600; color: #666;
+    font-size: 11px; font-weight: 600; color: #a1a1aa;
     text-transform: uppercase; letter-spacing: 0.5px;
     padding: 0 18px; margin: 14px 0 10px;
   }
 
   .ats-card {
     background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid #3f3f46;
     border-radius: 10px; padding: 14px;
     margin: 0 18px 10px;
     transition: all 0.2s ease;
   }
   .ats-card:hover {
     background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: #71717a;
   }
   .ats-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .ats-card-title { font-size: 13px; font-weight: 600; color: #e4e4e7; display: flex; align-items: center; gap: 8px; }
-  .ats-card-detail { font-size: 12px; color: #888; line-height: 1.6; }
+  .ats-card-title { font-size: 13px; font-weight: 600; color: #fafafa; display: flex; align-items: center; gap: 8px; }
+  .ats-card-detail { font-size: 12px; color: #d4d4d8; line-height: 1.6; }
 
   .ats-tag {
     display: inline-flex; align-items: center; gap: 4px;
@@ -112,7 +112,7 @@ const css = `
   .ats-tag-bad { background: rgba(239, 68, 68, 0.1); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.15); }
 
   .ats-empty {
-    padding: 40px 18px; text-align: center; color: #666;
+    padding: 40px 18px; text-align: center; color: #a1a1aa;
     display: flex; flex-direction: column; align-items: center; gap: 14px;
   }
   .ats-empty-icon {
@@ -120,9 +120,9 @@ const css = `
     background: rgba(255, 255, 255, 0.03);
     border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    color: #555;
+    color: #71717a;
   }
-  .ats-empty-text { font-size: 13px; line-height: 1.6; max-width: 260px; }
+  .ats-empty-text { font-size: 13px; line-height: 1.6; max-width: 260px; color: #a1a1aa; }
 
   .ats-btn-primary {
     display: flex; align-items: center; gap: 8px;
@@ -136,12 +136,12 @@ const css = `
 
   .ats-btn-secondary {
     display: flex; align-items: center; gap: 8px;
-    background: transparent; border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #888; border-radius: 8px;
+    background: transparent; border: 1px solid #3f3f46;
+    color: #a1a1aa; border-radius: 8px;
     padding: 10px 14px; font-size: 13px; font-weight: 500;
     cursor: pointer; transition: all 0.2s ease;
   }
-  .ats-btn-secondary:hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.2); color: #aaa; }
+  .ats-btn-secondary:hover:not(:disabled) { border-color: #71717a; color: #d4d4d8; }
   .ats-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .ats-loader-block { background: rgba(255, 255, 255, 0.03); border-radius: 6px; height: 14px; margin: 10px 0; position: relative; overflow: hidden; }
@@ -151,7 +151,7 @@ const css = `
     animation: shimmer 1.5s infinite;
   }
 
-  .ats-progress-bar { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.05); overflow: hidden; margin: 10px 0; }
+  .ats-progress-bar { height: 8px; border-radius: 4px; background: #27272a; overflow: hidden; margin: 10px 0; }
   .ats-progress-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
 `;
 
@@ -361,8 +361,8 @@ export function ATSAnalysisPanel() {
                 </div>
               </div>
               {typeof report.previousOverallScore === 'number' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#aaa', fontSize: 12 }}>
-                  <div>Previous score: <span style={{ color: '#e4e4e7', fontWeight: 700 }}>{report.previousOverallScore}</span></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, color: '#a1a1aa', fontSize: 12 }}>
+                  <div>Previous score: <span style={{ color: '#fafafa', fontWeight: 700 }}>{report.previousOverallScore}</span></div>
                   <div style={{ color: report.overallScore >= (report.previousOverallScore ?? 0) ? '#86efac' : '#fca5a5' }}>
                     {report.previousOverallScore !== undefined ? `${report.overallScore - report.previousOverallScore >= 0 ? '+' : ''}${report.overallScore - report.previousOverallScore}` : ''} points
                   </div>
@@ -393,7 +393,7 @@ export function ATSAnalysisPanel() {
             {typeof estimatedScoreAfterFixes === "number" && (
               <div style={{ padding: "0 18px 10px", display: "flex", justifyContent: "space-between", gap: 12, color: "#aaa", fontSize: 12 }}>
                 <div>Estimated after fixes: <span style={{ color: scoreColor(estimatedScoreAfterFixes), fontWeight: 700 }}>{estimatedScoreAfterFixes}</span></div>
-                <div>Grade: <span style={{ color: "#e4e4e7", fontWeight: 700 }}>{report.grade ?? scoreLabel(report.overallScore).toLowerCase()}</span></div>
+                <div>Grade: <span style={{ color: "#fafafa", fontWeight: 700 }}>{report.grade ?? scoreLabel(report.overallScore).toLowerCase()}</span></div>
               </div>
             )}
 
@@ -405,7 +405,7 @@ export function ATSAnalysisPanel() {
                 <div style={{ padding: "0 18px 8px", display: "grid", gap: 8 }}>
                   {quickWins.slice(0, 3).map((item, index) => (
                     <div key={`quick-win-${index}`} className="ats-card" style={{ margin: 0 }}>
-                      <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{item}</div>
+                      <div className="ats-card-detail" style={{ color: "#fafafa" }}>{item}</div>
                     </div>
                   ))}
                 </div>
@@ -428,7 +428,7 @@ export function ATSAnalysisPanel() {
                       </div>
                       <div className="ats-card-detail">{item.whyItIncreasesScore}</div>
                       {item.howToDo.length > 0 && (
-                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: "#b4b4b8", fontSize: 12, lineHeight: 1.6 }}>
+                        <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: "#a1a1aa", fontSize: 12, lineHeight: 1.6 }}>
                           {item.howToDo.slice(0, 3).map((step, stepIndex) => <li key={`${index}-${stepIndex}`}>{step}</li>)}
                         </ul>
                       )}
@@ -454,7 +454,7 @@ export function ATSAnalysisPanel() {
                       </div>
                       <div className="ats-card-detail">{item.fix.why || item.fix.example || item.fix.copyPasteTemplate}</div>
                       {item.fix.copyPasteTemplate && (
-                        <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "rgba(255,255,255,0.03)", color: "#e4e4e7", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                        <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: "#27272a", color: "#d4d4d8", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
                           {item.fix.copyPasteTemplate}
                         </div>
                       )}
@@ -472,7 +472,7 @@ export function ATSAnalysisPanel() {
                 <div style={{ padding: "0 18px 8px", display: "grid", gap: 8 }}>
                   {questionsForUser.slice(0, 3).map((item, index) => (
                     <div key={`question-${index}`} className="ats-card" style={{ margin: 0 }}>
-                      <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{item}</div>
+                      <div className="ats-card-detail" style={{ color: "#fafafa" }}>{item}</div>
                     </div>
                   ))}
                 </div>
@@ -493,12 +493,12 @@ export function ATSAnalysisPanel() {
                 <div style={{ padding: "0 18px 10px", display: "flex", flexDirection: "column", gap: 8 }}>
                   {(Object.entries(report.sectionScores) as [string, number][]).map(([key, val]) => (
                     <div key={key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 12, color: "#888", width: 90, textTransform: "capitalize", fontWeight: 500 }}>{key}</span>
-                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
+                      <span style={{ fontSize: 12, color: "#a1a1aa", width: 90, textTransform: "capitalize", fontWeight: 500 }}>{key}</span>
+                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: "#27272a", overflow: "hidden" }}>
                         <div style={{ width: `${val}%`, height: "100%", borderRadius: 3, background: scoreColor(val), transition: "width 0.8s ease" }} />
                       </div>
                       <div style={{ width: 64, display: "flex", justifyContent: "flex-end", gap: 1 }}>{renderStars(val)}</div>
-                      <span style={{ fontSize: 11, color: "#666", fontWeight: 600, width: 34, textAlign: "right" }}>{val}%</span>
+                      <span style={{ fontSize: 11, color: "#a1a1aa", fontWeight: 600, width: 34, textAlign: "right" }}>{val}%</span>
                     </div>
                   ))}
                 </div>
@@ -510,7 +510,7 @@ export function ATSAnalysisPanel() {
               <Lightbulb size={13} style={{ marginRight: 6 }} /> Verdict
             </div>
             <div className="ats-card">
-              <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{report.verdict || report.summary}</div>
+              <div className="ats-card-detail" style={{ color: "#fafafa" }}>{report.verdict || report.summary}</div>
             </div>
 
             {/* Top Keyword Gaps */}
@@ -552,7 +552,7 @@ export function ATSAnalysisPanel() {
                       </div>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Rewritten</div>
-                        <div className="ats-card-detail" style={{ color: "#e4e4e7" }}>{suggestion.suggestionText || suggestion.reason}</div>
+                        <div className="ats-card-detail" style={{ color: "#fafafa" }}>{suggestion.suggestionText || suggestion.reason}</div>
                       </div>
                     </div>
                   </div>

@@ -13,7 +13,7 @@ const css = `
 const inp: React.CSSProperties = {
   width: "100%",
   padding: "12px 14px",
-  color: "#e4e4e7",
+  color: "#fafafa",
   fontSize: 14,
   fontFamily: "'Outfit', sans-serif",
   outline: "none",
@@ -21,7 +21,7 @@ const inp: React.CSSProperties = {
 };
 
 const inpFocus: React.CSSProperties = {
-  color: "#e4e4e7",
+  color: "#fafafa",
 };
 
 const ta: React.CSSProperties = {
@@ -35,7 +35,7 @@ const ta: React.CSSProperties = {
 const label: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
-  color: "#888",
+  color: "#d4d4d8",
   textTransform: "uppercase",
   letterSpacing: "0.9px",
   display: "block",
@@ -122,7 +122,7 @@ function FocusedTextArea({
         }}
       />
       {hint && (
-        <div style={{ fontSize: 11, color: "#555", marginTop: 8, fontStyle: "italic", lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 8, fontStyle: "italic", lineHeight: 1.5 }}>
           {hint}
         </div>
       )}
@@ -156,7 +156,7 @@ function ContentModeToggle({
             aria-pressed={active}
             style={{
               borderRadius: 8,
-              color: active ? "#f5f0f2" : "#888",
+              color: active ? "#fafafa" : "#a1a1aa",
               fontSize: 12,
               fontWeight: active ? 800 : 600,
               textTransform: "capitalize",
@@ -184,13 +184,13 @@ function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: 
     <div className="editor-card" style={{ overflow: "hidden", marginBottom: 14 }} role="region" aria-label={title || "Entry"}>
       <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer" }} onClick={() => setOpen(o => !o)} role="button" tabIndex={0} aria-expanded={open} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{title || <span style={{ color: "#444" }}>Untitled</span>}</div>
-          {subtitle && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{subtitle}</div>}
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{title || <span style={{ color: "#71717a" }}>Untitled</span>}</div>
+          {subtitle && <div style={{ fontSize: 12, color: "#a1a1aa", marginTop: 2 }}>{subtitle}</div>}
         </div>
         <button onClick={e => { e.stopPropagation(); onRemove(); }}
-          style={{ cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px", marginRight: 8 }}
+          style={{ cursor: "pointer", color: "#a1a1aa", fontSize: 14, padding: "4px 8px", marginRight: 8 }}
           aria-label={`Remove ${title || "entry"}`}>✕</button>
-        <span style={{ fontSize: 12, color: "#555", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }} aria-hidden="true">▾</span>
+        <span style={{ fontSize: 12, color: "#a1a1aa", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }} aria-hidden="true">▾</span>
       </div>
       {open && <div style={{ padding: "0 16px 18px" }}>{children}</div>}
     </div>
@@ -202,7 +202,7 @@ function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
       width: "100%", padding: "14px",
-      color: "#888", fontSize: 14, fontWeight: 700,
+      color: "#a1a1aa", fontSize: 14, fontWeight: 700,
       cursor: "pointer", fontFamily: "inherit",
       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
     }}
@@ -247,7 +247,7 @@ function InlineEnhanceTip({ text }: { text: string }) {
         onClick={() => setVisible(!visible)}
         title="AI writing tip"
         style={{
-          borderRadius: 6, color: visible ? "#FFFFFF" : "#555",
+          borderRadius: 6, color: visible ? "#fafafa" : "#a1a1aa",
           fontSize: 11, fontWeight: 700, padding: "3px 8px",
           cursor: "pointer", fontFamily: "inherit", marginLeft: 6,
         }}
@@ -417,7 +417,7 @@ function ExperienceSection() {
           width: "100%",
           padding: "14px",
           borderRadius: 12,
-          color: "#888",
+          color: "#a1a1aa",
           fontSize: 13,
           fontWeight: 600,
           cursor: "pointer",
@@ -616,7 +616,7 @@ function ExperienceCard({
                     onClick={() => onRemoveBullet(idx)}
                     style={{
                       cursor: "pointer",
-                      color: "#444",
+                      color: "#a1a1aa",
                       fontSize: 14,
                       padding: "4px 8px",
                       borderRadius: 6,
@@ -841,7 +841,7 @@ function ProjectsSection() {
                   <button
                     type="button"
                     onClick={() => removeProjectBullet(entry.id, idx)}
-                    style={{ cursor: "pointer", color: "#444", fontSize: 14, padding: "4px 8px" }}
+                    style={{ cursor: "pointer", color: "#a1a1aa", fontSize: 14, padding: "4px 8px" }}
                   >
                     ✕
                   </button>

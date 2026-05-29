@@ -2,15 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useAnalytics } from "../hooks/useAnalytics";
 import { StatsBar } from "../components/admin/StatusBar";
 import { BarChart, AnalyticsRow } from "../components/admin/AnalyticsChart";
+import { SkeletonDashboard } from "@/components/Skeleton";
 
 // ─── Period selector ──────────────────────────────────────────────────────────
 function PeriodBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
       padding: "5px 14px", borderRadius: 20, border: "1px solid",
-      borderColor: active ? "#C8F55A" : "#1E1E1E",
+      borderColor: active ? "#C8F55A" : "#3f3f46",
       background: active ? "rgba(200,245,90,0.1)" : "transparent",
-      color: active ? "#C8F55A" : "#444",
+      color: active ? "#C8F55A" : "#a1a1aa",
       fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit', sans-serif",
       transition: "all 0.15s",
     }}>
@@ -60,18 +61,16 @@ export function AdminDashboard() {
   }, [analytics, period]);
 
   if (loading) return (
-    <div style={{ padding: 40, fontFamily: "'Outfit', sans-serif" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {[1, 2, 3].map(i => (
-          <div key={i} style={{ height: 80, background: "#111", borderRadius: 12, animation: "pulse 1.5s ease-in-out infinite", animationDelay: `${i * 150}ms` }} />
-        ))}
-      </div>
+    <div style={{ padding: isMobile ? "20px 12px" : "28px 32px", fontFamily: "'Outfit', sans-serif", maxWidth: 1400, margin: "0 auto" }}>
+      <SkeletonDashboard />
     </div>
   );
 
   if (error) return (
-    <div style={{ padding: 40, color: "#F87171", fontFamily: "'Outfit', sans-serif" }}>
-      Failed to load analytics: {error}
+    <div style={{ padding: isMobile ? "20px 12px" : "28px 32px", color: "#F87171", fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ padding: "16px 20px", background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: 10, fontSize: 13, color: "#fca5a5" }}>
+        Failed to load analytics: {error}
+      </div>
     </div>
   );
 
@@ -84,7 +83,7 @@ export function AdminDashboard() {
           <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 300, color: "#F0EFE8", letterSpacing: "-0.5px", margin: 0, marginBottom: 4 }}>
             Dashboard
           </h1>
-          <p style={{ fontSize: 12, color: "#444", margin: 0 }}>Template usage analytics and performance</p>
+          <p style={{ fontSize: 12, color: "#a1a1aa", margin: 0 }}>Template usage analytics and performance</p>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <PeriodBtn label="Last 7 days"  active={period === 7}  onClick={() => setPeriod(7)}  />
@@ -150,9 +149,9 @@ export function AdminDashboard() {
           ].map(({ label, data, accent }) => data && (
             <div key={label} style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "18px 20px", display: "flex", gap: 16, alignItems: "center" }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#F0EFE8", marginBottom: 4 }}>{data.name}</div>
-                <div style={{ fontSize: 12, color: "#555" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>{label}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", marginBottom: 4 }}>{data.name}</div>
+                <div style={{ fontSize: 12, color: "#a1a1aa" }}>
                   <span style={{ color: accent, fontWeight: 700 }}>{data.weeklyUses.toLocaleString()}</span> uses this week ·{" "}
                   <span style={{ color: data.trend === "up" ? "#4ADE80" : data.trend === "down" ? "#F87171" : "#555" }}>
                     {data.trend === "up" ? "↑" : data.trend === "down" ? "↓" : "→"} {data.trend}
@@ -163,7 +162,7 @@ export function AdminDashboard() {
                 <div style={{ fontSize: 26, fontWeight: 800, color: accent, fontFamily: "'Fraunces', serif" }}>
                   {data.weeklyUses.toLocaleString()}
                 </div>
-                <div style={{ fontSize: 10, color: "#333", textAlign: "right" }}>uses / week</div>
+                <div style={{ fontSize: 10, color: "#71717a", textAlign: "right" }}>uses / week</div>
               </div>
             </div>
           ))}
@@ -183,14 +182,14 @@ export function AdminDashboard() {
           minWidth: isMobile ? "auto" : 560,
         }}>
           {(isMobile ? ["#", "Template", "This Week", "30d", "Trend"] : ["#", "Template", "This Week", "This Month", "Trend", "14-day"]).map(h => (
-            <div key={h} style={{ fontSize: 9.5, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "0.8px", textAlign: h === "#" ? "center" : h === "This Week" || h === "This Month" || h === "Trend" || h === "14-day" ? "right" : "left", fontFamily: "'Outfit', sans-serif" }}>
+            <div key={h} style={{ fontSize: 9.5, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.8px", textAlign: h === "#" ? "center" : h === "This Week" || h === "This Month" || h === "Trend" || h === "14-day" ? "right" : "left", fontFamily: "'Outfit', sans-serif" }}>
               {h}
             </div>
           ))}
         </div>
 
         {analytics.length === 0 ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "#333", fontSize: 13 }}>No analytics data yet.</div>
+          <div style={{ padding: "40px", textAlign: "center", color: "#a1a1aa", fontSize: 13 }}>No analytics data yet.</div>
         ) : (
           <div style={{ minWidth: isMobile ? "auto" : 560 }}>
             {analytics.map((a, i) => (

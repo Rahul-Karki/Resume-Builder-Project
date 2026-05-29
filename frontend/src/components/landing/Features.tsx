@@ -175,7 +175,7 @@ export function FeaturesSection() {
         {/* Section header */}
         <div style={{ marginBottom: 64, maxWidth: 540 }}>
           <div style={{
-            fontSize: 10, fontWeight: 700, color: "#333", letterSpacing: "2px",
+            fontSize: 10, fontWeight: 700, color: "#a1a1aa", letterSpacing: "2px",
             textTransform: "uppercase", marginBottom: 16, fontFamily: "'Outfit', sans-serif",
           }}>
             What You Get
@@ -183,7 +183,7 @@ export function FeaturesSection() {
           <h2 style={{
             fontFamily: "'Fraunces', serif",
             fontSize: "clamp(32px, 3.5vw, 48px)",
-            fontWeight: 300, letterSpacing: "-1.5px", color: "#F0EFE8", margin: 0, lineHeight: 1.1,
+            fontWeight: 300, letterSpacing: "-1.5px", color: "#fafafa", margin: 0, lineHeight: 1.1,
           }}>
             Three things, done right.
           </h2>
@@ -212,7 +212,7 @@ export function FeaturesSection() {
               {/* Number */}
               <div style={{
                 fontFamily: "'Fraunces', serif",
-                fontSize: 36, fontWeight: 300, color: "#1E1E1E",
+                  fontSize: 36, fontWeight: 300, color: "#3f3f46",
                 lineHeight: 1, userSelect: "none",
                 transition: "color 0.25s",
                 display: isMobile ? "none" : "block",
@@ -225,13 +225,13 @@ export function FeaturesSection() {
               <div>
                 <h3 style={{
                   fontFamily: "'Outfit', sans-serif",
-                  fontSize: 22, fontWeight: 700, color: "#F0EFE8",
+                  fontSize: 22, fontWeight: 700, color: "#fafafa",
                   margin: "0 0 14px", letterSpacing: "-0.3px",
                 }}>
                   {feat.title}
                 </h3>
                 <p style={{
-                  fontSize: 15, color: "#555", lineHeight: 1.65,
+                  fontSize: 15, color: "#a1a1aa", lineHeight: 1.65,
                   margin: 0, fontFamily: "'Outfit', sans-serif", fontWeight: 300,
                   maxWidth: 460,
                 }}>

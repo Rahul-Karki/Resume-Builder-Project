@@ -15,12 +15,12 @@ interface Props {
 // ─── Shared field styles ───────────────────────────────────────────────────────
 const inp: React.CSSProperties = {
   width: "100%", padding: "8px 11px",
-  background: "#141414", border: "1px solid #252525", borderRadius: 7,
-  color: "#C8C7C0", fontSize: 13, fontFamily: "'Outfit', sans-serif",
+  background: "#18181b", border: "1px solid #3f3f46", borderRadius: 7,
+  color: "#d4d4d8", fontSize: 13, fontFamily: "'Outfit', sans-serif",
   outline: "none", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
-  display: "block", fontSize: 10, fontWeight: 700, color: "#444",
+  display: "block", fontSize: 10, fontWeight: 700, color: "#a1a1aa",
   textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 5,
   fontFamily: "'Outfit', sans-serif",
 };
@@ -33,14 +33,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
-    <div style={{ borderBottom: "1px solid #1A1A1A" }}>
+    <div style={{ borderBottom: "1px solid #3f3f46" }}>
       <button onClick={() => setOpen(o => !o)} style={{
         width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "12px 20px", background: "none", border: "none", cursor: "pointer",
-        color: "#C8C7C0", fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 600,
+        color: "#d4d4d8", fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 600,
       }}>
         {title}
-        <span style={{ fontSize: 11, color: "#333", transform: open ? "rotate(180deg)" : "none", transition: "0.2s" }}>▾</span>
+        <span style={{ fontSize: 11, color: "#71717a", transform: open ? "rotate(180deg)" : "none", transition: "0.2s" }}>▾</span>
       </button>
       {open && <div style={{ padding: "4px 20px 18px" }}>{children}</div>}
     </div>
@@ -59,7 +59,7 @@ function ColorField({ label, field, value, onChange }: {
         <div style={{ position: "relative", width: 32, height: 32 }}>
           <input type="color" value={value} onChange={e => onChange(field, e.target.value)}
             style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", width: "100%", height: "100%" }} />
-          <div style={{ width: 32, height: 32, borderRadius: 7, background: value, border: "1px solid #2A2A2A" }} />
+          <div style={{ width: 32, height: 32, borderRadius: 7, background: value, border: "1px solid #3f3f46" }} />
         </div>
         <input type="text" value={value} onChange={e => onChange(field, e.target.value)}
           style={{ ...inp, flex: 1, fontFamily: "monospace", fontSize: 12 }} />
@@ -73,11 +73,11 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   return (
     <div onClick={() => onChange(!checked)} style={{
       width: 42, height: 22, borderRadius: 11, cursor: "pointer",
-      background: checked ? "#C8F55A" : "#1E1E1E", position: "relative", transition: "background 0.2s",
+      background: checked ? "#C8F55A" : "#3f3f46", position: "relative", transition: "background 0.2s",
     }}>
       <div style={{
         position: "absolute", top: 3, width: 16, height: 16, borderRadius: "50%",
-        background: checked ? "#0E0E0E" : "#3A3A3A",
+        background: checked ? "#0E0E0E" : "#71717a",
         left: checked ? 23 : 3, transition: "left 0.2s",
       }} />
     </div>
@@ -119,23 +119,23 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
       }}
     >
       <div style={{
-        background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 16,
+        background: "#18181b", border: "1px solid #3f3f46", borderRadius: 16,
         width: 580, maxHeight: "90vh", display: "flex", flexDirection: "column",
         overflow: "hidden",
         boxShadow: "0 32px 80px rgba(0,0,0,0.8)",
       }}>
         {/* Header */}
-        <div style={{ padding: "18px 20px 0", borderBottom: "1px solid #1A1A1A" }}>
+        <div style={{ padding: "18px 20px 0", borderBottom: "1px solid #3f3f46" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8" }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#fafafa" }}>
                 {mode === "create" ? "Create Template" : `Edit — ${initial?.name}`}
               </div>
-              <div style={{ fontSize: 11, color: "#444", marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 2 }}>
                 {mode === "create" ? "Add a new layout to the system" : "Update template configuration"}
               </div>
             </div>
-            <button onClick={onClose} style={{ background: "none", border: "none", color: "#444", fontSize: 20, cursor: "pointer", lineHeight: 1 }}>×</button>
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "#a1a1aa", fontSize: 20, cursor: "pointer", lineHeight: 1 }}>×</button>
           </div>
           {/* Tabs */}
           <div style={{ display: "flex" }}>
@@ -143,7 +143,7 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: "8px 16px", border: "none", background: "none", cursor: "pointer",
                 fontSize: 12, fontWeight: 600, fontFamily: "inherit",
-                color: tab === t ? "#F0EFE8" : "#444",
+                color: tab === t ? "#fafafa" : "#a1a1aa",
                 borderBottom: `2px solid ${tab === t ? "#C8F55A" : "transparent"}`,
                 textTransform: "capitalize",
               }}>{t}</button>
@@ -163,7 +163,7 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
                     <option value="">— select —</option>
                     {REGISTERED_LAYOUT_IDS.map(id => <option key={id} value={id}>{id}</option>)}
                   </select>
-                  <div style={{ fontSize: 10, color: "#333", marginTop: 3 }}>Maps to a React component in your codebase.</div>
+                  <div style={{ fontSize: 10, color: "#71717a", marginTop: 3 }}>Maps to a React component in your codebase.</div>
                 </Field>
                 <Field label="Display Name *">
                   <input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Executive Pro" style={inp} />
@@ -205,7 +205,7 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
                     onChange={e => set("sortOrder", Number(e.target.value))}
                     style={inp}
                   />
-                  <div style={{ fontSize: 10, color: "#333", marginTop: 3 }}>Lower number shows earlier in the list.</div>
+                  <div style={{ fontSize: 10, color: "#71717a", marginTop: 3 }}>Lower number shows earlier in the list.</div>
                 </Field>
               </div>
               <Field label="Thumbnail URL">
@@ -214,8 +214,8 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Toggle checked={form.isPremium} onChange={v => set("isPremium", v)} />
                 <div>
-                  <div style={{ fontSize: 13, color: "#C8C7C0", fontWeight: 500 }}>Premium Template</div>
-                  <div style={{ fontSize: 11, color: "#444" }}>Only visible to paid users</div>
+                  <div style={{ fontSize: 13, color: "#d4d4d8", fontWeight: 500 }}>Premium Template</div>
+                  <div style={{ fontSize: 11, color: "#a1a1aa" }}>Only visible to paid users</div>
                 </div>
               </div>
             </div>
@@ -238,7 +238,7 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
                   ))}
                 </div>
                 {/* Live preview swatch */}
-                <div style={{ marginTop: 14, padding: "12px 14px", background: form.cssVars.backgroundColor, borderRadius: 8, border: "1px solid #2A2A2A" }}>
+                <div style={{ marginTop: 14, padding: "12px 14px", background: form.cssVars.backgroundColor, borderRadius: 8, border: "1px solid #3f3f46" }}>
                   <div style={{ fontFamily: form.cssVars.headingFont, fontSize: 15, fontWeight: 700, color: form.cssVars.accentColor, marginBottom: 4 }}>
                     Your Heading
                   </div>
@@ -281,17 +281,17 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
           {/* ── Slots Tab ── */}
           {tab === "slots" && (
             <div style={{ padding: "18px 20px" }}>
-              <div style={{ fontSize: 11, color: "#444", marginBottom: 14, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11, color: "#a1a1aa", marginBottom: 14, lineHeight: 1.5 }}>
                 Control which resume sections this template supports. Hidden sections won't appear in the form editor when this template is active.
               </div>
               {(Object.keys(form.slots) as (keyof Slots)[]).map(key => (
                 <div key={key} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "11px 0", borderBottom: "1px solid #141414",
+                  padding: "11px 0", borderBottom: "1px solid #27272a",
                 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#C8C7C0", textTransform: "capitalize" }}>{key}</div>
-                    <div style={{ fontSize: 11, color: "#444" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#d4d4d8", textTransform: "capitalize" }}>{key}</div>
+                    <div style={{ fontSize: 11, color: "#a1a1aa" }}>
                       {{
                         summary: "Professional summary paragraph",
                         experience: "Work history entries",
@@ -311,10 +311,10 @@ export function TemplateFormModal({ mode, initial, onSave, onClose, saving }: Pr
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "14px 20px", borderTop: "1px solid #1A1A1A", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+        <div style={{ padding: "14px 20px", borderTop: "1px solid #3f3f46", display: "flex", justifyContent: "flex-end", gap: 10 }}>
           <button onClick={onClose} style={{
-            padding: "8px 20px", borderRadius: 8, border: "1px solid #252525",
-            background: "transparent", color: "#666", fontSize: 13, fontWeight: 600,
+            padding: "8px 20px", borderRadius: 8, border: "1px solid #3f3f46",
+            background: "transparent", color: "#a1a1aa", fontSize: 13, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit",
           }}>Cancel</button>
           <button

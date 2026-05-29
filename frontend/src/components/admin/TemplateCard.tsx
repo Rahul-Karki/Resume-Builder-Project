@@ -73,7 +73,7 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => { setHov(false); setShowStatusMenu(false); }}
       style={{
-        background: "#111", border: `1px solid ${hov ? "#222" : "#191919"}`,
+        background: "#18181b", border: `1px solid ${hov ? "#3f3f46" : "#27272a"}`,
         borderRadius: 14, overflow: "hidden",
         transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
         transform: hov ? "translateY(-2px)" : "none",
@@ -85,7 +85,7 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
       }}
     >
       {/* Thumbnail */}
-      <div style={{ height: 160, background: "#080808", overflow: "hidden", position: "relative" }}>
+      <div style={{ height: 160, background: "#09090b", overflow: "hidden", position: "relative" }}>
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 18px" }}>
           <div style={{ width: "100%", maxWidth: 110, borderRadius: 4, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.6)", transform: hov ? "scale(1.03)" : "scale(1)", transition: "transform 0.3s" }}>
             <ThumbnailPreview template={t} />
@@ -104,29 +104,29 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
       {/* Body */}
       <div style={{ padding: "12px 14px 13px", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#F0EFE8" }}>{t.name}</div>
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#fafafa" }}>{t.name}</div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {(t.tags?.length ? t.tags : [t.tag]).slice(0, 3).map((tag) => (
-              <span key={tag} style={{ fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: "#1A1A1A", color: "#444", border: "1px solid #222", whiteSpace: "nowrap" }}>
+              <span key={tag} style={{ fontSize: 9.5, fontWeight: 700, padding: "2px 7px", borderRadius: 20, background: "#27272a", color: "#a1a1aa", border: "1px solid #3f3f46", whiteSpace: "nowrap" }}>
                 {tag}
               </span>
             ))}
           </div>
         </div>
-        <div style={{ fontSize: 11, color: "#3A3A3A", marginBottom: 8 }}>
-          <code style={{ fontFamily: "monospace", fontSize: 10.5, color: "#555" }}>{t.layoutId}</code>
-          <span style={{ color: "#252525", margin: "0 5px" }}>·</span>
+        <div style={{ fontSize: 11, color: "#a1a1aa", marginBottom: 8 }}>
+          <code style={{ fontFamily: "monospace", fontSize: 10.5, color: "#a1a1aa" }}>{t.layoutId}</code>
+          <span style={{ color: "#3f3f46", margin: "0 5px" }}>·</span>
           <span style={{ textTransform: "capitalize" }}>{t.category}</span>
-          <span style={{ color: "#252525", margin: "0 5px" }}>·</span>
+          <span style={{ color: "#3f3f46", margin: "0 5px" }}>·</span>
           <span>{t.category === "tech" ? "Tech" : "Non-Tech"}</span>
         </div>
-        <div style={{ fontSize: 11, color: "#444", lineHeight: 1.45, marginBottom: 12, flex: 1 }}>{t.description || "No description."}</div>
+        <div style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.45, marginBottom: 12, flex: 1 }}>{t.description || "No description."}</div>
 
         {/* Color / font info */}
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 12 }}>
-          <div style={{ width: 14, height: 14, borderRadius: 4, background: t.cssVars.accentColor, border: "1px solid #252525", flexShrink: 0 }} />
-          <span style={{ fontSize: 10, color: "#444", fontFamily: "monospace" }}>{t.cssVars.accentColor}</span>
-          <span style={{ fontSize: 10, color: "#2A2A2A", marginLeft: 4 }}>{t.cssVars.bodyFont.split(",")[0]}</span>
+          <div style={{ width: 14, height: 14, borderRadius: 4, background: t.cssVars.accentColor, border: "1px solid #3f3f46", flexShrink: 0 }} />
+          <span style={{ fontSize: 10, color: "#a1a1aa", fontFamily: "monospace" }}>{t.cssVars.accentColor}</span>
+          <span style={{ fontSize: 10, color: "#71717a", marginLeft: 4 }}>{t.cssVars.bodyFont.split(",")[0]}</span>
         </div>
 
         {/* Action row */}
@@ -147,13 +147,13 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
             {showStatusMenu && (
               <>
                 <div style={{ position: "fixed", inset: 0, zIndex: 48 }} onClick={() => setShowStatusMenu(false)} />
-                <div style={{ position: "absolute", bottom: "calc(100% + 4px)", left: 0, background: "#0D0D0D", border: "1px solid #1E1E1E", borderRadius: 8, overflow: "hidden", zIndex: 49, minWidth: 130, boxShadow: "0 12px 30px rgba(0,0,0,0.5)" }}>
+                <div style={{ position: "absolute", bottom: "calc(100% + 4px)", left: 0, background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8, overflow: "hidden", zIndex: 49, minWidth: 130, boxShadow: "0 12px 30px rgba(0,0,0,0.5)" }}>
                   {(["published","draft","archived"] as TemplateStatus[]).map(s => (
                     <button key={s} onClick={() => { onSetStatus(t._id, s); setShowStatusMenu(false); }}
                       style={{
                         display: "block", width: "100%", textAlign: "left", padding: "8px 12px",
-                        background: t.status === s ? "#1A1A1A" : "transparent",
-                        border: "none", color: t.status === s ? "#F0EFE8" : "#555",
+                        background: t.status === s ? "#27272a" : "transparent",
+                        border: "none", color: t.status === s ? "#fafafa" : "#a1a1aa",
                         fontSize: 12, fontWeight: t.status === s ? 700 : 400,
                         cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize",
                       }}>
@@ -174,7 +174,7 @@ export function TemplateCard({ template: t, onEdit, onPreview, onSetStatus, onTo
             : (
               <div style={{ display: "flex", gap: 3, flex: 1 }}>
                 <button onClick={() => setShowDeleteConfirm(false)}
-                  style={{ flex: 1, padding: "5px", borderRadius: 6, border: "1px solid #252525", background: "transparent", color: "#555", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ flex: 1, padding: "5px", borderRadius: 6, border: "1px solid #3f3f46", background: "transparent", color: "#a1a1aa", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>
                   No
                 </button>
                 <button onClick={() => onDelete(t._id)}
@@ -198,9 +198,9 @@ function ActionBtn({ label, onClick, danger = false, accent }: { label: string; 
       onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{
         flex: 1, padding: "5px 4px", borderRadius: 6,
-        border: `1px solid ${h ? (danger ? "#7F1D1D" : "#2A2A2A") : "#1E1E1E"}`,
-        background: h ? (danger ? "#1A0000" : "#1A1A1A") : "transparent",
-        color: h ? (danger ? "#FCA5A5" : (accent ?? "#C8C7C0")) : "#3A3A3A",
+        border: `1px solid ${h ? (danger ? "#7F1D1D" : "#3f3f46") : "#3f3f46"}`,
+        background: h ? (danger ? "#1A0000" : "#27272a") : "transparent",
+        color: h ? (danger ? "#FCA5A5" : (accent ?? "#d4d4d8")) : "#71717a",
         fontSize: 10.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
         transition: "all 0.12s",
       }}

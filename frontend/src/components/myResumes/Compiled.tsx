@@ -14,6 +14,7 @@ import { EmptyState } from "./EmptyState";
 import { PreviewModal } from "./ResumePreviewModal";
 import { Toast } from "./Toast";
 import { DelModal } from "./DeleteConfirmModal";
+import { SkeletonCard as SkeletonCardReusable, SkeletonText } from "@/components/Skeleton";
 
 export default function Compiled() {
   const { user, rawResumes, resumes, loading, error, authRequired, refresh } = useMyResumes();
@@ -122,9 +123,9 @@ export default function Compiled() {
           <Logo isCompact={isMobile} />
           <Link
             to="/templates"
-            style={{fontSize:13,fontWeight:500,color:"#666",textDecoration:"none",transition:"color 0.15s"}}
-            onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
-            onMouseLeave={e => (e.currentTarget.style.color = "#666")}
+            style={{fontSize:13,fontWeight:500,color:"#a1a1aa",textDecoration:"none",transition:"color 0.15s"}}
+            onMouseEnter={e => (e.currentTarget.style.color = "#d4d4d8")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#a1a1aa")}
           >
             Templates
           </Link>
@@ -132,9 +133,9 @@ export default function Compiled() {
           {isAdmin && (
             <Link
               to="/admin"
-              style={{fontSize:13,fontWeight:500,color:"#666",textDecoration:"none",transition:"color 0.15s"}}
-              onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#666")}
+            style={{fontSize:13,fontWeight:500,color:"#a1a1aa",textDecoration:"none",transition:"color 0.15s"}}
+            onMouseEnter={e => (e.currentTarget.style.color = "#d4d4d8")}
+            onMouseLeave={e => (e.currentTarget.style.color = "#a1a1aa")}
             >
               Admin
             </Link>
@@ -158,7 +159,7 @@ export default function Compiled() {
                 background:"transparent",
                 border:"1px solid #1A1A1A",
                 borderRadius:999,
-                color:"#CFCFCF",
+                color:"#d4d4d8",
                 fontSize:12,
                 fontWeight:700,
                 cursor:"pointer",
@@ -177,7 +178,7 @@ export default function Compiled() {
               <div style={{width:"100%",maxWidth:620,background:"linear-gradient(180deg, rgba(17,17,17,0.95), rgba(10,10,10,0.95))",border:"1px solid #1C1C1C",borderRadius:24,padding:"40px 32px",textAlign:"center",boxShadow:"0 30px 90px rgba(0,0,0,0.55)"}}>
                 <div style={{width:68,height:68,borderRadius:"50%",margin:"0 auto 18px",background:"rgba(200,245,90,0.14)",border:"1px solid rgba(200,245,90,0.28)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30}}>🔒</div>
                 <h1 style={{fontFamily:"'Fraunces',serif",fontSize:38,fontWeight:300,letterSpacing:"-0.5px",marginBottom:10}}>You are not logged in</h1>
-                <p style={{fontSize:14,color:"#5C5C5C",lineHeight:1.7,maxWidth:440,margin:"0 auto 28px"}}>
+                <p style={{fontSize:14,color:"#a1a1aa",lineHeight:1.7,maxWidth:440,margin:"0 auto 28px"}}>
                   Sign in to view the resumes saved on your account. Your resume grid, preview cards, and actions all stay exactly in the same style once you are authenticated.
                 </p>
                 <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
@@ -195,7 +196,7 @@ export default function Compiled() {
               {/* Header */}
               <div style={{marginBottom:24}}>
                 <h1 style={{fontFamily:"'Fraunces',serif",fontSize:30,fontWeight:300,letterSpacing:"-0.5px",marginBottom:4}}>My Resumes</h1>
-                <p style={{fontSize:13,color:"#444"}}>{resumes.length===0?"Start by picking a template below":`${resumes.length} resume${resumes.length!==1?"s":""} · Auto-saved`}</p>
+                <p style={{fontSize:13,color:"#a1a1aa"}}>{resumes.length===0?"Start by picking a template below":`${resumes.length} resume${resumes.length!==1?"s":""} · Auto-saved`}</p>
               </div>
 
               {/* Toolbar */}
@@ -203,31 +204,31 @@ export default function Compiled() {
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:24,flexWrap:"wrap"}}>
                   {/* Search */}
                   <div style={{position:"relative",flex:1,minWidth:isMobile ? "100%" : 200,maxWidth:isMobile ? "100%" : 300,width:isMobile ? "100%" : "auto"}}>
-                    <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#333",pointerEvents:"none"}}>⌕</span>
+                    <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"#71717a",pointerEvents:"none"}}>⌕</span>
                     <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search resumes…"
-                      style={{width:"100%",padding:"8px 12px 8px 32px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#C8C7C0",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}
-                      onFocus={e=>e.currentTarget.style.borderColor="#2A2A2A"} onBlur={e=>e.currentTarget.style.borderColor="#1A1A1A"}/>
-                    {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#444",cursor:"pointer",fontSize:14}}>×</button>}
+                      style={{width:"100%",padding:"8px 12px 8px 32px",background:"#18181b",border:"1px solid #3f3f46",borderRadius:9,color:"#fafafa",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}
+                      onFocus={e=>e.currentTarget.style.borderColor="#71717a"} onBlur={e=>e.currentTarget.style.borderColor="#3f3f46"}/>
+                    {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",color:"#71717a",cursor:"pointer",fontSize:14}}>×</button>}
                   </div>
                   {/* Sort */}
                   <div style={{position:"relative",width:isMobile ? "100%" : "auto",flex:isMobile ? "1 1 auto" : "none"}}>
                     <button onClick={()=>setSortOpen(o=>!o)}
-                      style={{padding:"8px 14px",background:"#111",border:"1px solid #1A1A1A",borderRadius:9,color:"#666",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,minHeight:36,width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "space-between" : "flex-start"}}>
+                      style={{padding:"8px 14px",background:"#18181b",border:"1px solid #3f3f46",borderRadius:9,color:"#a1a1aa",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6,minHeight:36,width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "space-between" : "flex-start"}}>
                       ⇅ {SORT_OPTS.find(o=>o.v===sortBy)?.l}<span style={{fontSize:10,opacity:0.5}}>▾</span>
                     </button>
                     {sortOpen&&<>
                       <div style={{position:"fixed",inset:0,zIndex:49}} onClick={()=>setSortOpen(false)}/>
-                      <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,background:"#0F0F0F",border:"1px solid #1E1E1E",borderRadius:10,overflow:"hidden",zIndex:50,minWidth:170,boxShadow:"0 16px 40px rgba(0,0,0,0.5)"}}>
+                      <div style={{position:"absolute",top:"calc(100% + 6px)",right:0,background:"#18181b",border:"1px solid #3f3f46",borderRadius:10,overflow:"hidden",zIndex:50,minWidth:170,boxShadow:"0 16px 40px rgba(0,0,0,0.5)"}}>
                         {SORT_OPTS.map(o=>(
                           <button key={o.v} onClick={()=>{setSortBy(o.v);setSortOpen(false);}}
-                            style={{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",background:sortBy===o.v?"#1A1A1A":"transparent",border:"none",color:sortBy===o.v?"#F0EFE8":"#555",fontSize:13,fontWeight:sortBy===o.v?700:400,cursor:"pointer",fontFamily:"inherit"}}>
+                            style={{display:"block",width:"100%",textAlign:"left",padding:"9px 14px",background:sortBy===o.v?"#27272a":"transparent",border:"none",color:sortBy===o.v?"#fafafa":"#a1a1aa",fontSize:13,fontWeight:sortBy===o.v?700:400,cursor:"pointer",fontFamily:"inherit"}}>
                             {sortBy===o.v?"✓ ":""}{o.l}
                           </button>
                         ))}
                       </div>
                     </>}
                   </div>
-                  <span style={{fontSize:12,color:"#2A2A2A",width:isMobile ? "100%" : "auto"}}>{displayed.length} result{displayed.length!==1?"s":""}</span>
+                  <span style={{fontSize:12,color:"#71717a",width:isMobile ? "100%" : "auto"}}>{displayed.length} result{displayed.length!==1?"s":""}</span>
                   <div style={{flex:1,minWidth:isMobile ? "100%" : "auto",order:isMobile ? 99 : 0}}/>
                   <button onClick={()=>setTemplateOverlayOpen(true)}
                     style={{padding:"10px 20px",background:"#C8F55A",border:"none",borderRadius:9,color:"#0E0E0E",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:7,minHeight:38,whiteSpace:"nowrap",width:isMobile ? "100%" : "auto",justifyContent:isMobile ? "center" : "flex-start",order:isMobile ? 100 : 0}}
@@ -293,18 +294,18 @@ export default function Compiled() {
                   ):(
                     <div style={{textAlign:"center",padding:"60px 0"}}>
                       <div style={{fontSize:32,opacity:0.2,marginBottom:12}}>◎</div>
-                      <div style={{fontSize:15,fontWeight:600,color:"#333",marginBottom:6}}>No resumes match "{search}"</div>
-                      <button onClick={()=>setSearch("")} style={{background:"none",border:"none",color:"#444",fontSize:13,cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}}>Clear search</button>
+                      <div style={{fontSize:15,fontWeight:600,color:"#a1a1aa",marginBottom:6}}>No resumes match "{search}"</div>
+                      <button onClick={()=>setSearch("")} style={{background:"none",border:"none",color:"#71717a",fontSize:13,cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}}>Clear search</button>
                     </div>
                   )}
 
                   {/* Create more CTA */}
                   <div style={{textAlign:"center",marginTop:40,padding:"28px",background:"#0A0A0A",border:"1px dashed #1A1A1A",borderRadius:16}}>
-                    <div style={{fontSize:13,color:"#333",marginBottom:12}}>Ready to build another version?</div>
-                    <button onClick={()=>setTemplateOverlayOpen(true)}
-                      style={{padding:"10px 24px",background:"transparent",border:"1px solid #1E1E1E",borderRadius:9,color:"#666",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s"}}
-                      onMouseEnter={e=>{e.currentTarget.style.borderColor="#C8F55A55";e.currentTarget.style.color="#C8F55A";}}
-                      onMouseLeave={e=>{e.currentTarget.style.borderColor="#1E1E1E";e.currentTarget.style.color="#666";}}>
+                  <div style={{fontSize:13,color:"#a1a1aa",marginBottom:12}}>Ready to build another version?</div>
+                  <button onClick={()=>setTemplateOverlayOpen(true)}
+                    style={{padding:"10px 24px",background:"transparent",border:"1px solid #3f3f46",borderRadius:9,color:"#a1a1aa",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit",transition:"all 0.15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor="#C8F55A55";e.currentTarget.style.color="#C8F55A";}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor="#3f3f46";e.currentTarget.style.color="#a1a1aa";}}>
                       + Create New Resume
                     </button>
                   </div>
@@ -337,7 +338,7 @@ export default function Compiled() {
             <div style={{width:"100%",maxWidth:540,background:"linear-gradient(180deg, rgba(17,17,17,0.98), rgba(9,9,9,0.98))",border:"1px solid #232323",borderRadius:24,padding:"34px 28px 28px",boxShadow:"0 30px 100px rgba(0,0,0,0.65)",textAlign:"center"}}>
               <div style={{width:64,height:64,margin:"0 auto 16px",borderRadius:"50%",background:"rgba(200,245,90,0.12)",border:"1px solid rgba(200,245,90,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>✦</div>
               <h2 style={{fontFamily:"'Fraunces',serif",fontSize:34,fontWeight:300,letterSpacing:"-0.4px",marginBottom:10}}>Please select a template</h2>
-              <p style={{fontSize:14,color:"#5E5E5E",lineHeight:1.7,maxWidth:380,margin:"0 auto 24px"}}>
+              <p style={{fontSize:14,color:"#a1a1aa",lineHeight:1.7,maxWidth:380,margin:"0 auto 24px"}}>
                 Choose a resume template to start building your next version.
               </p>
               <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
@@ -350,7 +351,7 @@ export default function Compiled() {
                 </Link>
                 <button
                   onClick={()=>setTemplateOverlayOpen(false)}
-                  style={{padding:"12px 20px",background:"transparent",border:"1px solid #2A2A2A",borderRadius:12,color:"#E4E4E4",fontSize:13,fontWeight:700,cursor:"pointer"}}
+                  style={{padding:"12px 20px",background:"transparent",border:"1px solid #3f3f46",borderRadius:12,color:"#d4d4d8",fontSize:13,fontWeight:700,cursor:"pointer"}}
                 >
                   Close
                 </button>

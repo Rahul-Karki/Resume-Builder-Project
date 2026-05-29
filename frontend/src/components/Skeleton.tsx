@@ -1,139 +1,199 @@
-/**
- * Skeleton Loader Components
- * 
- * Lightweight loading placeholders that mimic content layout
- * Uses CSS animations for smooth visual feedback
- */
+import { cn } from "@/lib/utils";
 
 interface SkeletonProps {
-  width?: string | number;
-  height?: string | number;
-  count?: number;
-  circle?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
 
-/**
- * Base skeleton component - animated placeholder
- */
-export function Skeleton({
-  width = "100%",
-  height = "20px",
-  circle = false,
-  count = 1,
-  className = "",
-  style = {},
-}: SkeletonProps) {
-  const widthStr = typeof width === "number" ? `${width}px` : width;
-  const heightStr = typeof height === "number" ? `${height}px` : height;
-
-  const skeletonStyle: React.CSSProperties = {
-    display: "inline-block",
-    width: widthStr,
-    height: heightStr,
-    backgroundColor: "#e0e0e0",
-    borderRadius: circle ? "50%" : "4px",
-    animation: "pulse 1.5s ease-in-out infinite",
-    marginBottom: "8px",
-    ...style,
-  };
-
+export function Skeleton({ className, style }: SkeletonProps) {
   return (
-    <>
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
-      {Array.from({ length: count }).map((_, i) => (
-        <div
+    <div
+      className={cn("skeleton-shimmer", className)}
+      style={{ minHeight: "1em", ...style }}
+      aria-hidden="true"
+    />
+  );
+}
+
+export function SkeletonText({
+  lines = 3,
+  className,
+}: {
+  lines?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-col gap-2", className)} aria-hidden="true">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton
           key={i}
-          style={skeletonStyle}
-          className={className}
+          className="h-3 rounded-md"
+          style={{ width: i === lines - 1 ? "60%" : "100%" }}
         />
       ))}
-    </>
-  );
-}
-
-/**
- * Resume card skeleton
- */
-export function ResumeCardSkeleton() {
-  return (
-    <div
-      style={{
-        padding: "16px",
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        marginBottom: "16px",
-      }}
-    >
-      <Skeleton width="60%" height="24px" style={{ marginBottom: "12px" }} />
-      <Skeleton width="80%" height="16px" style={{ marginBottom: "8px" }} />
-      <Skeleton width="40%" height="16px" />
     </div>
   );
 }
 
-/**
- * Resume list skeleton
- */
-export function ResumeListSkeleton({ count = 3 }: { count?: number }) {
+export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div>
-      {Array.from({ length: count }).map((_, i) => (
-        <ResumeCardSkeleton key={i} />
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4",
+        className
+      )}
+      aria-hidden="true"
+    >
+      <Skeleton className="h-4 w-3/4 rounded-md" />
+      <SkeletonText lines={2} />
+    </div>
+  );
+}
+
+export function SkeletonResume() {
+  return (
+    <div
+      className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6"
+      aria-hidden="true"
+    >
+      {/* Header block */}
+      <div className="flex items-center gap-3 mb-4">
+        <Skeleton className="h-12 w-12 rounded-full" />
+        <div className="flex flex-col gap-2 flex-1">
+          <Skeleton className="h-5 w-1/2 rounded-md" />
+          <Skeleton className="h-3 w-1/3 rounded-md" />
+        </div>
+      </div>
+      {/* Divider */}
+      <div className="h-px bg-zinc-800" />
+      {/* Content blocks */}
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-1/4 rounded-md" />
+          <SkeletonText lines={2} />
+        </div>
       ))}
     </div>
   );
 }
 
-/**
- * Preview panel skeleton (right side of builder)
- */
-export function PreviewPanelSkeleton() {
+export function SkeletonSidebar() {
   return (
     <div
-      style={{
-        padding: "20px",
-        background: "#f5f5f5",
-        borderRadius: "8px",
-        height: "600px",
-      }}
+      className="flex flex-col gap-2 p-4"
+      aria-hidden="true"
     >
-      <Skeleton width="100%" height="500px" style={{ marginBottom: "12px" }} />
-      <Skeleton width="100%" height="40px" />
+      {/* Logo */}
+      <Skeleton className="h-8 w-24 rounded-md mb-6" />
+      {/* Nav items */}
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-3 py-2">
+          <Skeleton className="h-4 w-4 rounded-md" />
+          <Skeleton className="h-4 flex-1 rounded-md" />
+        </div>
+      ))}
+      {/* Spacer */}
+      <div className="flex-1" />
+      {/* Footer */}
+      <Skeleton className="h-10 rounded-lg mt-auto" />
     </div>
   );
 }
 
-/**
- * Template grid skeleton
- */
-export function TemplateGridSkeleton({ count = 6 }: { count?: number }) {
+export function SkeletonDashboard() {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-        gap: "16px",
-      }}
-    >
-      {Array.from({ length: count }).map((_, i) => (
+    <div className="flex flex-col gap-6" aria-hidden="true">
+      {/* Stats row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-2 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
+          >
+            <Skeleton className="h-3 w-1/2 rounded-md" />
+            <Skeleton className="h-8 w-1/3 rounded-md" />
+            <Skeleton className="h-3 w-1/4 rounded-md" />
+          </div>
+        ))}
+      </div>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-5"
+          >
+            <Skeleton className="h-4 w-1/3 rounded-md" />
+            <Skeleton className="h-40 w-full rounded-lg" />
+          </div>
+        ))}
+      </div>
+      {/* Table */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
+        <Skeleton className="h-4 w-1/4 rounded-md mb-4" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex gap-4 py-3 border-b border-zinc-800 last:border-0">
+            <Skeleton className="h-4 w-8 rounded-md" />
+            <Skeleton className="h-4 flex-1 rounded-md" />
+            <Skeleton className="h-4 w-16 rounded-md" />
+            <Skeleton className="h-4 w-16 rounded-md" />
+            <Skeleton className="h-4 w-12 rounded-md" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonAtsAnalysis() {
+  return (
+    <div className="flex flex-col gap-4 p-4" aria-hidden="true">
+      {/* Score ring + stats */}
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-20 w-20 rounded-full" />
+        <div className="flex-1 grid grid-cols-2 gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+              <Skeleton className="h-6 w-12 rounded-md" />
+              <Skeleton className="h-3 w-16 rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Progress bar */}
+      <Skeleton className="h-2 w-full rounded-full" />
+      {/* Section scores */}
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-3 w-20 rounded-md" />
+          <Skeleton className="h-2 flex-1 rounded-full" />
+          <Skeleton className="h-3 w-8 rounded-md" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonAiAssistant() {
+  return (
+    <div className="flex flex-col gap-3 p-4" aria-hidden="true">
+      {/* Tone buttons */}
+      <div className="flex gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-7 w-20 rounded-md" />
+        ))}
+      </div>
+      {/* Suggestions */}
+      {Array.from({ length: 2 }).map((_, i) => (
         <div
           key={i}
-          style={{
-            borderRadius: "8px",
-            overflow: "hidden",
-          }}
+          className="flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3"
         >
-          <Skeleton width="100%" height="250px" style={{ marginBottom: "0" }} />
-          <div style={{ padding: "12px" }}>
-            <Skeleton width="70%" height="18px" style={{ marginBottom: "8px" }} />
-            <Skeleton width="100%" height="16px" />
+          <Skeleton className="h-3 w-1/3 rounded-md" />
+          <SkeletonText lines={2} />
+          <div className="flex gap-2 mt-1">
+            <Skeleton className="h-7 w-16 rounded-md" />
+            <Skeleton className="h-7 w-16 rounded-md" />
           </div>
         </div>
       ))}
@@ -141,112 +201,166 @@ export function TemplateGridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
-/**
- * Form section skeleton
- */
-export function FormSectionSkeleton() {
+export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div style={{ padding: "16px", marginBottom: "16px" }}>
-      <Skeleton width="30%" height="20px" style={{ marginBottom: "12px" }} />
-      <Skeleton width="100%" height="40px" style={{ marginBottom: "12px" }} />
-      <Skeleton width="100%" height="40px" style={{ marginBottom: "12px" }} />
-      <Skeleton width="100%" height="40px" />
-    </div>
-  );
-}
-
-/**
- * User profile skeleton
- */
-export function UserProfileSkeleton() {
-  return (
-    <div style={{ padding: "20px" }}>
-      <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
-        <Skeleton width={80} height={80} circle />
-        <div style={{ flex: 1 }}>
-          <Skeleton width="60%" height="24px" style={{ marginBottom: "8px" }} />
-          <Skeleton width="80%" height="16px" />
-        </div>
+    <div className="flex flex-col" aria-hidden="true">
+      {/* Header */}
+      <div className="flex gap-4 border-b border-zinc-800 px-4 py-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-3 flex-1 rounded-md" />
+        ))}
       </div>
-      <FormSectionSkeleton />
-    </div>
-  );
-}
-
-/**
- * Table row skeleton
- */
-export function TableRowSkeleton({ columns = 4 }: { columns?: number }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: "12px", marginBottom: "12px" }}>
-      {Array.from({ length: columns }).map((_, i) => (
-        <Skeleton key={i} width="100%" height="20px" />
+      {/* Rows */}
+      {Array.from({ length: rows }).map((_, i) => (
+        <div
+          key={i}
+          className="flex gap-4 border-b border-zinc-800 px-4 py-3"
+        >
+          {Array.from({ length: 4 }).map((_, j) => (
+            <Skeleton
+              key={j}
+              className="h-3 flex-1 rounded-md"
+              style={{ width: j === 0 ? "60%" : undefined }}
+            />
+          ))}
+        </div>
       ))}
     </div>
   );
 }
 
-/**
- * Suspense Wrapper with built-in loading skeleton
- */
-export function SuspenseLoader({
-  children,
-  fallback = <ResumeListSkeleton />,
-}: {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}) {
+export function SkeletonForm({ fields = 4 }: { fields?: number }) {
   return (
-    <div>
-      {/* Using React.lazy would require Suspense boundary */}
-      {children}
+    <div className="flex flex-col gap-5" aria-hidden="true">
+      {Array.from({ length: fields }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-2">
+          <Skeleton className="h-3 w-24 rounded-md" />
+          <Skeleton className="h-9 w-full rounded-lg" />
+        </div>
+      ))}
+      <Skeleton className="h-9 w-full rounded-lg" />
     </div>
   );
 }
 
-/**
- * Shimmer effect skeleton (more sophisticated animation)
- */
-export function ShimmerSkeleton({
-  width = "100%",
-  height = "20px",
-  borderRadius = "4px",
-}: {
-  width?: string | number;
-  height?: string | number;
-  borderRadius?: string;
-}) {
-  const widthStr = typeof width === "number" ? `${width}px` : width;
-  const heightStr = typeof height === "number" ? `${height}px` : height;
-
+export function SkeletonProfile() {
   return (
-    <>
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: -1000px 0; }
-          100% { background-position: 1000px 0; }
-        }
-        .shimmer-skeleton {
-          background: linear-gradient(
-            to right,
-            #f0f0f0 0%,
-            #e0e0e0 20%,
-            #f0f0f0 40%,
-            #f0f0f0 100%
-          );
-          background-size: 1000px 100%;
-          animation: shimmer 2s infinite;
-        }
-      `}</style>
-      <div
-        className="shimmer-skeleton"
-        style={{
-          width: widthStr,
-          height: heightStr,
-          borderRadius,
-          marginBottom: "8px",
-        }}
-      />
-    </>
+    <div className="flex flex-col gap-6" aria-hidden="true">
+      {/* Avatar + Name row */}
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-16 w-16 rounded-full" />
+        <div className="flex flex-col gap-2 flex-1">
+          <Skeleton className="h-5 w-40 rounded-md" />
+          <Skeleton className="h-3 w-56 rounded-md" />
+        </div>
+      </div>
+      <SkeletonForm fields={5} />
+    </div>
+  );
+}
+
+export function SkeletonList({ items = 4 }: { items?: number }) {
+  return (
+    <div className="flex flex-col gap-2" aria-hidden="true">
+      {Array.from({ length: items }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3"
+        >
+          <Skeleton className="h-4 w-4 rounded-md" />
+          <div className="flex-1 flex flex-col gap-1">
+            <Skeleton className="h-3 w-3/4 rounded-md" />
+            <Skeleton className="h-2 w-1/2 rounded-md" />
+          </div>
+          <Skeleton className="h-4 w-4 rounded-md" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonChart() {
+  return (
+    <div className="flex flex-col gap-3" aria-hidden="true">
+      <Skeleton className="h-4 w-32 rounded-md" />
+      {/* Bar chart placeholder */}
+      <div className="flex items-end gap-2 h-40">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <Skeleton
+            key={i}
+            className="flex-1 rounded-t-md"
+            style={{ height: `${30 + Math.random() * 70}%` }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonSettings() {
+  return (
+    <div className="flex flex-col gap-8" aria-hidden="true">
+      {Array.from({ length: 3 }).map((_, section) => (
+        <div key={section} className="flex flex-col gap-4">
+          <Skeleton className="h-5 w-40 rounded-md" />
+          <Skeleton className="h-px w-full bg-zinc-800" />
+          <SkeletonForm fields={3} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function PageSkeleton() {
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center bg-zinc-950"
+      aria-label="Loading page"
+    >
+      <div className="flex flex-col items-center gap-4">
+        <Skeleton className="h-10 w-40 rounded-lg" />
+        <Skeleton className="h-4 w-60 rounded-md" />
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonModal() {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+      aria-hidden="true"
+    >
+      <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <Skeleton className="h-5 w-32 rounded-md" />
+          <Skeleton className="h-6 w-6 rounded-md" />
+        </div>
+        <SkeletonForm fields={4} />
+        <div className="flex gap-3 mt-6">
+          <Skeleton className="h-9 flex-1 rounded-lg" />
+          <Skeleton className="h-9 flex-1 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonTemplateGrid({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-hidden="true">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="flex flex-col rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden"
+        >
+          <Skeleton className="h-40 w-full rounded-none" />
+          <div className="flex flex-col gap-2 p-4">
+            <Skeleton className="h-4 w-3/4 rounded-md" />
+            <Skeleton className="h-3 w-1/2 rounded-md" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

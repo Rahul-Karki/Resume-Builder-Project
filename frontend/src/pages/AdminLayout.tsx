@@ -16,36 +16,36 @@ function TopBar({ page, onLogout, isMobile }: { page: AdminPage; onLogout: () =>
   };
   return (
     <div style={{
-      height: 56, background: "#0A0A0A", borderBottom: "1px solid #111",
+      height: 56, background: "#18181b", borderBottom: "1px solid #3f3f46",
       display: "flex", alignItems: "center", padding: isMobile ? "0 12px" : "0 32px",
       justifyContent: "space-between", flexShrink: 0,
       fontFamily: "'Outfit', sans-serif",
     }}>
       <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#F0EFE8" }}>{titles[page]}</div>
-        <div style={{ fontSize: 11, color: "#3A3A3A", marginTop: 1 }}>{subtitles[page]}</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#fafafa" }}>{titles[page]}</div>
+        <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 1 }}>{subtitles[page]}</div>
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {/* Back to site */}
         <Link to="/" style={{
-          fontSize: 12, color: "#444", textDecoration: "none",
-          padding: "5px 12px", borderRadius: 7, border: "1px solid #1A1A1A",
+          fontSize: 12, color: "#a1a1aa", textDecoration: "none",
+          padding: "5px 12px", borderRadius: 7, border: "1px solid #3f3f46",
           transition: "all 0.15s",
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "#2A2A2A"; }}
-        onMouseLeave={e => { e.currentTarget.style.color = "#444"; e.currentTarget.style.borderColor = "#1A1A1A"; }}
+        onMouseEnter={e => { e.currentTarget.style.color = "#d4d4d8"; e.currentTarget.style.borderColor = "#71717a"; }}
+        onMouseLeave={e => { e.currentTarget.style.color = "#a1a1aa"; e.currentTarget.style.borderColor = "#3f3f46"; }}
         >
           ← Back to site
         </Link>
         <button
           onClick={onLogout}
           style={{
-            padding: "6px 14px", borderRadius: 7, border: "1px solid #1A1A1A",
-            background: "transparent", color: "#666", fontSize: 12, fontWeight: 700,
+            padding: "6px 14px", borderRadius: 7, border: "1px solid #3f3f46",
+            background: "transparent", color: "#a1a1aa", fontSize: 12, fontWeight: 700,
             cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = "#C8C7C0"; e.currentTarget.style.borderColor = "#2A2A2A"; }}
-          onMouseLeave={e => { e.currentTarget.style.color = "#666"; e.currentTarget.style.borderColor = "#1A1A1A"; }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#d4d4d8"; e.currentTarget.style.borderColor = "#71717a"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "#a1a1aa"; e.currentTarget.style.borderColor = "#3f3f46"; }}
         >
           Logout
         </button>
@@ -93,7 +93,7 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#080808", alignItems: "stretch" }}>
+      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: isMobile ? "auto" : "100vh", minHeight: "100vh", background: "#09090b", alignItems: "stretch" }}>
 
         {/* Sidebar */}
         <AdminSidebar activePage={resolvedPage} onNavigate={handleNavigate} adminName={adminName} isMobile={isMobile} />

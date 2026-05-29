@@ -134,59 +134,59 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     html { scroll-behavior: smooth; }
     body { background: #0E0E0E; }
  
-    .tp-root { font-family: 'Outfit', sans-serif; background: #0E0E0E; color: #F0EFE8; min-height: 100vh; }
+    .tp-root { font-family: 'Outfit', sans-serif; background: #0E0E0E; color: #fafafa; min-height: 100vh; }
  
     /* NAV */
     .tp-nav { position: sticky; top: 0; z-index: 50; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: flex-start; gap: 36px; transition: all 0.3s; }
     .tp-nav.scrolled { background: rgba(14,14,14,0.95); border-bottom: 1px solid #1F1F1F; backdrop-filter: blur(12px); }
-    .tp-logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: #F0EFE8; letter-spacing: -0.5px; }
+    .tp-logo { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: #fafafa; letter-spacing: -0.5px; }
     .tp-logo em { font-style: italic; color: #C8F55A; }
     .tp-nav-links { display: flex; align-items: center; gap: 22px; }
-    .tp-nav-link { font-size: 13px; color: #888; font-weight: 400; cursor: pointer; transition: color 0.2s; }
-    .tp-nav-link:hover, .tp-nav-link.active { color: #F0EFE8; }
+    .tp-nav-link { font-size: 13px; color: #a1a1aa; font-weight: 400; cursor: pointer; transition: color 0.2s; }
+    .tp-nav-link:hover, .tp-nav-link.active { color: #fafafa; }
     .tp-nav-cta { padding: 8px 20px; background: #C8F55A; color: #0E0E0E; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s; }
     .tp-nav-cta:hover { opacity: 0.88; }
  
     /* HERO */
     .tp-hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; text-align: center; }
-    .tp-hero-badge { display: inline-flex; align-items: center; gap: 6px; background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 24px; padding: 5px 14px; font-size: 11px; font-weight: 600; color: #C8F55A; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 24px; }
-    .tp-hero-h1 { font-family: 'Fraunces', serif; font-size: clamp(42px, 6vw, 72px); font-weight: 300; line-height: 1.08; letter-spacing: -2px; color: #F0EFE8; margin-bottom: 20px; }
+    .tp-hero-badge { display: inline-flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #3f3f46; border-radius: 24px; padding: 5px 14px; font-size: 11px; font-weight: 600; color: #C8F55A; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 24px; }
+    .tp-hero-h1 { font-family: 'Fraunces', serif; font-size: clamp(42px, 6vw, 72px); font-weight: 300; line-height: 1.08; letter-spacing: -2px; color: #fafafa; margin-bottom: 20px; }
     .tp-hero-h1 em { font-style: italic; color: #C8F55A; }
-    .tp-hero-sub { font-size: 16px; color: #666; font-weight: 300; line-height: 1.6; max-width: 520px; margin: 0 auto 36px; }
+    .tp-hero-sub { font-size: 16px; color: #a1a1aa; font-weight: 300; line-height: 1.6; max-width: 520px; margin: 0 auto 36px; }
     .tp-hero-pills { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-    .tp-pill { display: flex; align-items: center; gap: 6px; background: #161616; border: 1px solid #222; border-radius: 24px; padding: 6px 14px; font-size: 12px; color: #888; }
+    .tp-pill { display: flex; align-items: center; gap: 6px; background: #18181b; border: 1px solid #3f3f46; border-radius: 24px; padding: 6px 14px; font-size: 12px; color: #a1a1aa; }
     .tp-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: #C8F55A; }
  
     /* FILTER */
     .tp-filter { padding: 0 40px 36px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-    .tp-filter-btn { padding: 8px 20px; border-radius: 100px; border: 1px solid #222; background: transparent; color: #666; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-    .tp-filter-btn:hover { border-color: #444; color: #ccc; }
-    .tp-filter-btn.active { background: #F0EFE8; color: #0E0E0E; border-color: #F0EFE8; font-weight: 700; }
+    .tp-filter-btn { padding: 8px 20px; border-radius: 100px; border: 1px solid #3f3f46; background: transparent; color: #a1a1aa; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .tp-filter-btn:hover { border-color: #a1a1aa; color: #d4d4d8; }
+    .tp-filter-btn.active { background: #fafafa; color: #0E0E0E; border-color: #fafafa; font-weight: 700; }
  
     /* GRID */
     .tp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; padding: 0 40px 80px; max-width: 1400px; margin: 0 auto; }
-    .tp-card { border-radius: 16px; overflow: hidden; background: #141414; border: 1px solid #1F1F1F; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); cursor: pointer; animation: fadein 0.5s ease both; content-visibility: auto; contain-intrinsic-size: 420px; }
-    .tp-card:hover { border-color: #333; transform: translateY(-4px); box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
+    .tp-card { border-radius: 16px; overflow: hidden; background: #18181b; border: 1px solid #3f3f46; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); cursor: pointer; animation: fadein 0.5s ease both; content-visibility: auto; contain-intrinsic-size: 420px; }
+    .tp-card:hover { border-color: #a1a1aa; transform: translateY(-4px); box-shadow: 0 24px 60px rgba(0,0,0,0.5); }
     @keyframes fadein { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
  
-    .tp-card-thumb { position: relative; height: 320px; overflow: hidden; background: #0A0A0A; }
+    .tp-card-thumb { position: relative; height: 320px; overflow: hidden; background: #09090b; }
     .tp-card-thumb-inner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .tp-card-thumb-paper { width: 100%; max-width: 220px; border-radius: 6px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.6); transform: scale(0.96); transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); }
     .tp-card:hover .tp-card-thumb-paper { transform: scale(1.02); }
     .tp-card-hover-overlay { position: absolute; inset: 0; background: rgba(14,14,14,0.0); display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
     .tp-card:hover .tp-card-hover-overlay { background: rgba(14,14,14,0.55); }
-    .tp-card-preview-btn { opacity: 0; transform: translateY(8px) scale(0.95); transition: all 0.25s; background: #F0EFE8; color: #0E0E0E; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .tp-card-preview-btn { opacity: 0; transform: translateY(8px) scale(0.95); transition: all 0.25s; background: #fafafa; color: #0E0E0E; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
     .tp-card:hover .tp-card-preview-btn { opacity: 1; transform: translateY(0) scale(1); }
     .tp-card-premium-badge { position: absolute; top: 14px; left: 14px; background: #F59E0B; color: #0E0E0E; font-size: 9.5px; font-weight: 800; padding: "3px 10px"; border-radius: 20px; letter-spacing: 0.5px; }
-    .tp-card-body { padding: 18px 20px 20px; border-top: 1px solid #1F1F1F; }
+    .tp-card-body { padding: 18px 20px 20px; border-top: 1px solid #3f3f46; }
     .tp-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
-    .tp-card-name { font-size: 16px; font-weight: 700; color: #F0EFE8; }
-    .tp-card-tag { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: #1A1A1A; color: #888; border: 1px solid #252525; letter-spacing: 0.3px; }
-    .tp-card-desc { font-size: 12.5px; color: #555; line-height: 1.5; margin-bottom: 14px; }
+    .tp-card-name { font-size: 16px; font-weight: 700; color: #fafafa; }
+    .tp-card-tag { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: #18181b; color: #a1a1aa; border: 1px solid #3f3f46; letter-spacing: 0.3px; }
+    .tp-card-desc { font-size: 12.5px; color: #a1a1aa; line-height: 1.5; margin-bottom: 14px; }
     .tp-card-footer { display: flex; align-items: center; justify-content: space-between; }
     .tp-card-accent { display: flex; align-items: center; gap: 7px; }
-    .tp-card-swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid #2A2A2A; }
-    .tp-card-font { font-size: 11px; color: #555; }
+    .tp-card-swatch { width: 14px; height: 14px; border-radius: 4px; border: 1px solid #3f3f46; }
+    .tp-card-font { font-size: 11px; color: #a1a1aa; }
     .tp-card-use-btn { font-size: 12px; font-weight: 600; color: #C8F55A; background: none; border: none; cursor: pointer; font-family: inherit; padding: 0; transition: opacity 0.2s; }
     .tp-card-use-btn:hover { opacity: 0.75; }
  
@@ -194,11 +194,11 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     .tp-modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.88); display: flex; flex-direction: column; animation: fadein 0.2s ease; backdrop-filter: blur(4px); }
     .tp-modal-topbar { flex-shrink: 0; min-height: 68px; background: #0E0E0E; border-bottom: 1px solid #1F1F1F; display: flex; align-items: center; justify-content: space-between; padding: 8px 32px; gap: 12px; flex-wrap: wrap; }
     .tp-modal-info { display: flex; align-items: center; gap: 14px; }
-    .tp-modal-name { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; color: #F0EFE8; }
-    .tp-modal-category { font-size: 11px; font-weight: 600; color: #666; background: #1A1A1A; border: 1px solid #252525; padding: "3px 10px"; border-radius: 20px; }
+    .tp-modal-name { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 500; color: #fafafa; }
+    .tp-modal-category { font-size: 11px; font-weight: 600; color: #a1a1aa; background: #18181b; border: 1px solid #3f3f46; padding: "3px 10px"; border-radius: 20px; }
     .tp-modal-actions { display: flex; align-items: center; gap: 12px; }
-    .tp-modal-close { width: 36px; height: 36px; border-radius: 8px; background: #1A1A1A; border: 1px solid #252525; color: #888; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-    .tp-modal-close:hover { background: #222; color: #F0EFE8; }
+    .tp-modal-close { width: 36px; height: 36px; border-radius: 8px; background: #18181b; border: 1px solid #3f3f46; color: #a1a1aa; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .tp-modal-close:hover { background: #3f3f46; color: #fafafa; }
     .tp-modal-use-btn { padding: "10px 24px"; background: #C8F55A; color: #0E0E0E; border: none; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
     .tp-modal-use-btn:hover { opacity: 0.88; }
     .tp-modal-scroll { flex: 1; overflow-y: auto; background: #F5F4F0; min-height: 0; }
@@ -206,20 +206,20 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
     .tp-modal-bottom-padding { height: 60px; }
  
     /* ATS section */
-    .tp-ats { background: #111; border-top: 1px solid #1A1A1A; padding: 60px 40px; text-align: center; }
-    .tp-ats-h2 { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 300; color: #F0EFE8; margin-bottom: 14px; }
-    .tp-ats-sub { font-size: 14px; color: #555; margin-bottom: 36px; }
+    .tp-ats { background: #18181b; border-top: 1px solid #3f3f46; padding: 60px 40px; text-align: center; }
+    .tp-ats-h2 { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 300; color: #fafafa; margin-bottom: 14px; }
+    .tp-ats-sub { font-size: 14px; color: #a1a1aa; margin-bottom: 36px; }
     .tp-ats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 720px; margin: 0 auto; }
-    .tp-ats-card { background: #161616; border: 1px solid #1F1F1F; border-radius: 12px; padding: 24px; text-align: left; }
+    .tp-ats-card { background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 24px; text-align: left; }
     .tp-ats-icon { font-size: 22px; margin-bottom: 12px; }
-    .tp-ats-card-title { font-size: 14px; font-weight: 600; color: #F0EFE8; margin-bottom: 6px; }
-    .tp-ats-card-body { font-size: 12px; color: #555; line-height: 1.6; }
+    .tp-ats-card-title { font-size: 14px; font-weight: 600; color: #fafafa; margin-bottom: 6px; }
+    .tp-ats-card-body { font-size: 12px; color: #a1a1aa; line-height: 1.6; }
  
     /* Template nav strip in modal */
     .tp-modal-nav { display: flex; gap: 6px; flex-wrap: wrap; max-width: 100%; }
-    .tp-modal-nav-btn { padding: "5px 14px"; border-radius: 20px; border: 1px solid #252525; background: #161616; color: #666; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
-    .tp-modal-nav-btn.active { background: #F0EFE8; color: #0E0E0E; border-color: #F0EFE8; }
-    .tp-modal-nav-btn:hover:not(.active) { border-color: #444; color: #ccc; }
+    .tp-modal-nav-btn { padding: "5px 14px"; border-radius: 20px; border: 1px solid #3f3f46; background: #18181b; color: #a1a1aa; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .tp-modal-nav-btn.active { background: #fafafa; color: #0E0E0E; border-color: #fafafa; }
+    .tp-modal-nav-btn:hover:not(.active) { border-color: #a1a1aa; color: #d4d4d8; }
 
     /* Loading skeleton */
     @keyframes tp-pulse {
@@ -228,8 +228,8 @@ const css = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital
       100% { opacity: 0.45; }
     }
     .tp-skeleton {
-      background: #1A1A1A;
-      border: 1px solid #252525;
+      background: #18181b;
+      border: 1px solid #3f3f46;
       border-radius: 8px;
       animation: tp-pulse 1.2s ease-in-out infinite;
     }
@@ -675,7 +675,7 @@ export default function TemplatesPage() {
         <div className="tp-grid">
           {loadingTemplates && (
             <>
-              <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "#666", fontSize: 13, marginBottom: 8 }}>
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", color: "#a1a1aa", fontSize: 13, marginBottom: 8 }}>
                 {loadingMessage}
               </div>
               {skeletonItems.map((item) => (
@@ -705,14 +705,14 @@ export default function TemplatesPage() {
           )}
 
           {!loadingTemplates && filtered.length === 0 && (
-            <div style={{ gridColumn: "1 / -1", color: "#888", textAlign: "center", padding: "40px 0" }}>
+            <div style={{ gridColumn: "1 / -1", color: "#a1a1aa", textAlign: "center", padding: "40px 0" }}>
               No published templates found.
             </div>
           )}
 
           {!loadingTemplates && activeAudience === "All" && categorySections.map((section, sectionIndex) => (
             <div key={section.category} style={{ gridColumn: "1 / -1" }}>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 999, border: "1px solid #2A2A2A", background: "#141414", color: section.category === "tech" ? "#7DD3FC" : "#C8F55A", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, marginTop: sectionIndex === 0 ? 4 : 20, marginBottom: -4 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 999, border: "1px solid #3f3f46", background: "#18181b", color: section.category === "tech" ? "#7DD3FC" : "#C8F55A", fontSize: 12, fontWeight: 700, letterSpacing: 0.4, marginTop: sectionIndex === 0 ? 4 : 20, marginBottom: -4 }}>
                 {section.label}
               </div>
               <div className="tp-grid" style={{ padding: 0, marginTop: 14 }}>
@@ -733,9 +733,9 @@ export default function TemplatesPage() {
               style={{
                 padding: "10px 18px",
                 borderRadius: 10,
-                border: "1px solid #2A2A2A",
-                background: "#141414",
-                color: "#C8C7C0",
+                border: "1px solid #3f3f46",
+                background: "#18181b",
+                color: "#d4d4d8",
                 cursor: isLoadingMore ? "not-allowed" : "pointer",
                 fontWeight: 700,
               }}
@@ -836,8 +836,8 @@ export default function TemplatesPage() {
                   <div style={{ background: "#0E0E0E", borderBottom: "1px solid #1A1A1A", padding: "12px 40px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 16, height: 16, borderRadius: 4, background: previewTemplate.accent }} />
-                      <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, color: "#888" }}>
-                        <strong style={{ color: "#F0EFE8" }}>{previewTemplate.name}</strong> — {previewTemplate.description}
+                      <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: 13, color: "#a1a1aa" }}>
+                        <strong style={{ color: "#fafafa" }}>{previewTemplate.name}</strong> — {previewTemplate.description}
                       </span>
                     </div>
                     <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>

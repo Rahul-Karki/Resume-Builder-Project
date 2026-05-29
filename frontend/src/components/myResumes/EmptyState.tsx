@@ -3,6 +3,7 @@ import { api } from "@/services/api";
 import { Thumb } from "./ResumeThumbnail";
 import { TemplateMeta } from "@/types/resume-types";
 import { templates as localTemplateCatalog } from "@/data/templateMeta";
+import { Skeleton, SkeletonText } from "@/components/Skeleton";
 
 type PublicTemplate = {
   _id?: string;
@@ -148,7 +149,17 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:12,marginBottom:40}}>
         {loadingTemplates ? (
-          <div style={{gridColumn:"1 / -1",textAlign:"center",fontSize:13,color:"#555",padding:"14px 0"}}>Loading templates...</div>
+          <div style={{gridColumn:"1 / -1",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:12}}>
+            {[1,2,3,4,5,6].map(i=>(
+              <div key={i} style={{display:"flex",flexDirection:"column",gap:2,borderRadius:14,overflow:"hidden"}}>
+                <Skeleton className="h-48 w-full rounded-none" />
+                <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                  <Skeleton className="h-4 w-3/4 rounded-md" />
+                  <Skeleton className="h-3 w-full rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : cardTemplates.length > 0 ? (
           cardTemplates.map((t, i) => {
             const h = hov === t.layoutId;
@@ -177,13 +188,13 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
                     <span style={{fontSize:13,fontWeight:700,color:"#F0EFE8"}}>{t.name}</span>
                     <span style={{fontSize:9,fontWeight:700,background:"#1A1A1A",color:"#555",border:"1px solid #222",padding:"2px 7px",borderRadius:20}}>{t.tag}</span>
                   </div>
-                  <p style={{fontSize:11,color:"#444",lineHeight:1.45,margin:0}}>{t.description}</p>
+                  <p style={{fontSize:11,color:"#a1a1aa",lineHeight:1.45,margin:0}}>{t.description}</p>
                 </div>
               </div>
             );
           })
         ) : (
-          <div style={{gridColumn:"1 / -1",textAlign:"center",fontSize:13,color:"#666",padding:"14px 0"}}>
+          <div style={{gridColumn:"1 / -1",textAlign:"center",fontSize:13,color:"#a1a1aa",padding:"14px 0"}}>
             No published templates are available right now.
           </div>
         )}
@@ -191,7 +202,7 @@ export function EmptyState({ name, onPick }: { name: string; onPick: (id: string
 
       <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
         {["✓ Live Preview","✓ Custom Colors","✓ Export PDF","✓ Auto-save"].map((f)=>(
-          <div key={f} style={{fontSize:12,fontWeight:600,color:"#333",background:"#0D0D0D",border:"1px solid #1A1A1A",padding:"6px 14px",borderRadius:20}}>{f}</div>
+          <div key={f} style={{fontSize:12,fontWeight:600,color:"#a1a1aa",background:"#18181b",border:"1px solid #3f3f46",padding:"6px 14px",borderRadius:20}}>{f}</div>
         ))}
       </div>
     </div>

@@ -380,10 +380,10 @@ export function TemplatesPreview() {
       {/* Header */}
       <div style={{ maxWidth: 1200, margin: "0 auto 52px", padding: isMobile ? "0 16px" : "0 40px", display: "flex", alignItems: isMobile ? "stretch" : "flex-end", justifyContent: "space-between", gap: 20, flexDirection: isMobile ? "column" : "row" }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#333", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 14, fontFamily: "'Outfit', sans-serif" }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", letterSpacing: "2px", textTransform: "uppercase", marginBottom: 14, fontFamily: "'Outfit', sans-serif" }}>
             Templates
           </div>
-          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(30px, 3vw, 44px)", fontWeight: 300, letterSpacing: "-1.2px", color: "#F0EFE8", margin: 0, lineHeight: 1.1 }}>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(30px, 3vw, 44px)", fontWeight: 300, letterSpacing: "-1.2px", color: "#fafafa", margin: 0, lineHeight: 1.1 }}>
             {templateCountLabel}. Every one<br />
             <em style={{ fontStyle: "italic", color: "#C8F55A" }}>clean and ready.</em>
           </h2>
@@ -393,23 +393,23 @@ export function TemplatesPreview() {
           {["←", "→"].map((arrow, i) => (
             <button key={arrow} onClick={() => scroll(i === 0 ? "left" : "right")}
               style={{
-                width: isMobile ? 36 : 40, height: isMobile ? 36 : 40, borderRadius: "50%", border: "1px solid #222",
-                background: "#111", color: "#555", fontSize: isMobile ? 14 : 16, cursor: "pointer",
+                width: isMobile ? 36 : 40, height: isMobile ? 36 : 40, borderRadius: "50%", border: "1px solid #3f3f46",
+                background: "#18181b", color: "#a1a1aa", fontSize: isMobile ? 14 : 16, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "all 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#555"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#d4d4d8"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#3f3f46"; e.currentTarget.style.color = "#a1a1aa"; }}
             >{arrow}</button>
           ))}
           <Link to="/templates" style={{
-            padding: "0 16px", height: isMobile ? 36 : 40, borderRadius: 8, border: "1px solid #222",
-            background: "transparent", color: "#666", fontSize: isMobile ? 11 : 12, fontWeight: 700,
+            padding: "0 16px", height: isMobile ? 36 : 40, borderRadius: 8, border: "1px solid #3f3f46",
+            background: "transparent", color: "#a1a1aa", fontSize: isMobile ? 11 : 12, fontWeight: 700,
             textDecoration: "none", display: "inline-flex", alignItems: "center",
             transition: "all 0.15s", fontFamily: "'Outfit', sans-serif",
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#666"; }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#d4d4d8"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#3f3f46"; e.currentTarget.style.color = "#a1a1aa"; }}
           >
             View All →
           </Link>
@@ -480,7 +480,7 @@ export function TemplatesPreview() {
         }}
       >
         {loadingTemplates && (
-          <div style={{ width: "100%", minHeight: 320, display: "grid", placeItems: "center", color: "#666", fontSize: 13 }}>
+          <div style={{ width: "100%", minHeight: 320, display: "grid", placeItems: "center", color: "#a1a1aa", fontSize: 13 }}>
             {loadingMessage}
           </div>
         )}
@@ -497,8 +497,8 @@ export function TemplatesPreview() {
               style={{
                 flexShrink: 0, width: 280,
                 scrollSnapAlign: "start",
-                background: "#111",
-                border: `1.5px solid ${isHov ? t.accent : "#191919"}`,
+                background: "#18181b",
+                border: `1.5px solid ${isHov ? t.accent : "#3f3f46"}`,
                 borderRadius: 16, overflow: "hidden",
                 cursor: "pointer",
                 transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
@@ -508,7 +508,7 @@ export function TemplatesPreview() {
               }}
             >
               {/* Thumbnail */}
-              <div className="tp-preview-thumb" style={{ height: 250, background: "#080808", overflow: "hidden", position: "relative" }}>
+              <div className="tp-preview-thumb" style={{ height: 250, background: "#09090b", overflow: "hidden", position: "relative" }}>
                 <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 18px" }}>
                   <div style={{
                     width: "100%", maxWidth: 200, borderRadius: 5, overflow: "hidden",
@@ -567,13 +567,13 @@ export function TemplatesPreview() {
               {/* Card body */}
               <div className="tp-preview-body" style={{ padding: "14px 16px 16px", fontFamily: "'Outfit', sans-serif" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#F0EFE8" }}>{t.name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{t.name}</span>
                   <span style={{
                     fontSize: 9.5, fontWeight: 700, padding: "2px 8px", borderRadius: 20,
-                    background: "#1A1A1A", color: "#555", border: "1px solid #222",
+                    background: "#18181b", color: "#a1a1aa", border: "1px solid #3f3f46",
                   }}>{t.tag}</span>
                 </div>
-                <p style={{ fontSize: 11.5, color: "#444", margin: 0, lineHeight: 1.45 }}>{t.desc}</p>
+                <p style={{ fontSize: 11.5, color: "#a1a1aa", margin: 0, lineHeight: 1.45 }}>{t.desc}</p>
               </div>
             </div>
           );

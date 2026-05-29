@@ -12,7 +12,7 @@ const GoogleAuthButton = ({ redirectTo = "/resumes" }: GoogleAuthButtonProps) =>
       {/* Divider */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 12 }}>
         <div style={{ height: 1, background: "rgba(200,245,90,0.15)" }} />
-        <span style={{ color: "#666", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>or</span>
+        <span style={{ color: "#a1a1aa", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>or</span>
         <div style={{ height: 1, background: "rgba(200,245,90,0.15)" }} />
       </div>
 

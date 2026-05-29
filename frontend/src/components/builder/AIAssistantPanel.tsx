@@ -202,24 +202,24 @@ const css = `
     color: #FFFFFF;
   }
   .ai-header-text { display: flex; flex-direction: column; }
-  .ai-header-title { font-size: 13px; font-weight: 600; color: #FFFFFF; }
-  .ai-header-subtitle { font-size: 11px; color: #888; }
+  .ai-header-title { font-size: 13px; font-weight: 600; color: #fafafa; }
+  .ai-header-subtitle { font-size: 11px; color: #a1a1aa; }
   .ai-header-right { display: flex; align-items: center; gap: 8px; }
   .ai-chevron { color: #666; transition: transform 0.2s ease; }
   .ai-chevron.open { transform: rotate(180deg); }
   .ai-close-btn { 
     width: 24px; height: 24px; 
     display: flex; align-items: center; justify-content: center;
-    border-radius: 4px; color: #666; cursor: pointer;
+    border-radius: 4px; color: #a1a1aa; cursor: pointer;
     transition: all 0.15s ease;
   }
-  .ai-close-btn:hover { background: rgba(255,255,255,0.05); color: #e4e4e7; }
+  .ai-close-btn:hover { background: rgba(255,255,255,0.08); color: #fafafa; }
   
   /* Expanded Panel */
   .ai-panel { 
-    background: #0F0F0F; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06); 
-    color: #e4e4e7; 
+    background: #18181b; 
+    border-bottom: 1px solid #3f3f46; 
+    color: #d4d4d8; 
     animation: slideDown 0.3s ease-out;
     max-height: 400px;
     overflow-y: auto;
@@ -238,14 +238,14 @@ const css = `
     background: #0F0F0F;
     z-index: 10;
   }
-  .ai-panel-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #FFFFFF; }
+  .ai-panel-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #fafafa; }
   .ai-context-badge { 
     display: inline-flex; align-items: center; 
     padding: 3px 8px; 
     background: rgba(255, 255, 255, 0.05); 
-    border: 1px solid rgba(255, 255, 255, 0.08); 
+    border: 1px solid #3f3f46; 
     border-radius: 4px; 
-    font-size: 10px; color: #888; 
+    font-size: 10px; color: #a1a1aa; 
     font-weight: 500;
     max-width: 120px;
     overflow: hidden;
@@ -264,19 +264,19 @@ const css = `
     display: flex; align-items: center; gap: 5px; 
     padding: 5px 10px; 
     border-radius: 6px; 
-    border: 1px solid rgba(255, 255, 255, 0.06); 
+    border: 1px solid #3f3f46; 
     background: rgba(255, 255, 255, 0.02); 
-    color: #888; 
+    color: #a1a1aa; 
     font-size: 11px; 
     font-weight: 500; 
     cursor: pointer; 
     transition: all 0.15s ease;
   }
-  .ai-tone-btn:hover { border-color: rgba(255, 255, 255, 0.12); color: #aaa; background: rgba(255, 255, 255, 0.04); }
+  .ai-tone-btn:hover { border-color: #71717a; color: #d4d4d8; background: rgba(255, 255, 255, 0.04); }
   .ai-tone-btn.active { 
-    background: rgba(255,255,255, 0.12); 
-    border-color: rgba(255,255,255, 0.3); 
-    color: #FFFFFF;
+    background: rgba(255,255,255, 0.1); 
+    border-color: #fafafa; 
+    color: #fafafa;
   }
   
   .ai-actions { 
@@ -330,23 +330,23 @@ const css = `
   }
   .ai-btn-apply:hover { background: rgba(255,255,255, 0.15); border-color: rgba(255,255,255, 0.3); }
   
-  .ai-status { font-size: 11px; color: #666; margin-left: auto; }
+  .ai-status { font-size: 11px; color: #a1a1aa; margin-left: auto; }
   .ai-spin { animation: spin 1s linear infinite; }
   
   .ai-card { 
-    background: rgba(255, 255, 255, 0.02); 
-    border: 1px solid rgba(255, 255, 255, 0.05); 
+    background: rgba(255, 255, 255, 0.03); 
+    border: 1px solid #3f3f46; 
     border-radius: 8px; 
     padding: 12px; 
     margin: 0 16px 10px; 
   }
   .ai-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .ai-card-reason { font-size: 12px; font-weight: 500; color: #aaa; display: flex; align-items: center; gap: 6px; }
-  .ai-card-text { font-size: 13px; color: #e4e4e7; line-height: 1.5; margin-bottom: 10px; }
+  .ai-card-reason { font-size: 12px; font-weight: 500; color: #d4d4d8; display: flex; align-items: center; gap: 6px; }
+  .ai-card-text { font-size: 13px; color: #fafafa; line-height: 1.5; margin-bottom: 10px; }
   .ai-card-actions { display: flex; gap: 8px; }
   
   .ai-section-label { 
-    font-size: 10px; font-weight: 600; color: #666; 
+    font-size: 10px; font-weight: 600; color: #a1a1aa; 
     text-transform: uppercase; letter-spacing: 0.5px; 
     padding: 0 16px; margin: 12px 0 8px; 
   }
@@ -355,8 +355,8 @@ const css = `
     margin: 0 16px 12px; 
     padding: 10px 12px; 
     border-radius: 6px; 
-    background: rgba(220, 38, 38, 0.08); 
-    border: 1px solid rgba(220, 38, 38, 0.2); 
+    background: rgba(220, 38, 38, 0.1); 
+    border: 1px solid rgba(220, 38, 38, 0.3); 
     color: #fca5a5; 
     font-size: 12px; 
     display: flex; align-items: center; gap: 8px; 
@@ -365,8 +365,8 @@ const css = `
   .ai-variation { 
     text-align: left; 
     background: rgba(255, 255, 255, 0.02); 
-    border: 1px solid rgba(255, 255, 255, 0.05); 
-    color: #888; 
+    border: 1px solid #3f3f46; 
+    color: #a1a1aa; 
     border-radius: 6px; 
     padding: 10px 12px; 
     font-size: 12px; 
@@ -377,12 +377,12 @@ const css = `
     margin: 0 16px 8px; 
     display: block;
   }
-  .ai-variation:hover { border-color: rgba(255,255,255, 0.2); color: #FFFFFF; background: rgba(255,255,255, 0.03); }
+  .ai-variation:hover { border-color: #fafafa; color: #fafafa; background: rgba(255,255,255, 0.05); }
   
   .ai-empty { 
     padding: 32px 16px; 
     text-align: center; 
-    color: #666; 
+    color: #a1a1aa; 
     display: flex; flex-direction: column; align-items: center; gap: 12px; 
   }
   .ai-empty-icon { 
@@ -390,9 +390,9 @@ const css = `
     background: rgba(255, 255, 255, 0.03); 
     border-radius: 10px; 
     display: flex; align-items: center; justify-content: center;
-    color: #555;
+    color: #71717a;
   }
-  .ai-empty-text { font-size: 12px; line-height: 1.5; max-width: 240px; }
+  .ai-empty-text { font-size: 12px; line-height: 1.5; max-width: 240px; color: #a1a1aa; }
   
   .ai-impact { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
   .ai-impact-high { background: rgba(220, 38, 38, 0.12); color: #fca5a5; border: 1px solid rgba(220, 38, 38, 0.15); }

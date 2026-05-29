@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react"
 import { RequireRole } from "./components/auth/RequireRole"
 import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 import { ErrorBoundary } from "./components/ErrorBoundary"
+import { PageSkeleton } from "./components/Skeleton"
 
 // Lazy-loaded route components — loaded only when navigated to
 const Login = lazy(() => import("./pages/Login"))
@@ -19,12 +20,6 @@ const AdminTemplates = lazy(() => import("./pages/AdminTemplates").then(m => ({ 
 const Unauthorized = lazy(() => import("./pages/Unauthorized"))
 const NotFound = lazy(() => import("./pages/NotFound"))
 
-const PageLoading = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#0A0A0A", color: "#888", fontFamily: "sans-serif" }}>
-    Loading...
-  </div>
-)
-
 function App() {
   return (
     <ErrorBoundary
@@ -33,7 +28,7 @@ function App() {
       }}
     >
       <BrowserRouter>
-        <Suspense fallback={<PageLoading />}>
+        <Suspense fallback={<PageSkeleton />}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Home />} />

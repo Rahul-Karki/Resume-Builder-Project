@@ -31,14 +31,14 @@ export function Sparkline({ data, color, width = 80, height = 28 }: { data: numb
 // ─── Full Bar Chart ────────────────────────────────────────────────────────────
 export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
   const [hovered, setHovered] = useState<number | null>(null);
-  if (!data.length) return <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center", color: "#333", fontSize: 12 }}>No data</div>;
+  if (!data.length) return <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center", color: "#71717a", fontSize: 12 }}>No data</div>;
 
   const max = Math.max(...data.map(d => d.count), 1);
   const barW = Math.max(4, Math.floor((600 / data.length) - 3));
 
   return (
     <div style={{ position: "relative" }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, fontFamily: "'Outfit', sans-serif" }}>
         {label}
       </div>
 
@@ -46,13 +46,13 @@ export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
       {hovered !== null && (
         <div style={{
           position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
-          background: "#1A1A1A", border: "1px solid #2A2A2A", borderRadius: 8,
+          background: "#27272a", border: "1px solid #3f3f46", borderRadius: 8,
           padding: "6px 12px", fontSize: 11, fontFamily: "'Outfit', sans-serif",
-          color: "#C8C7C0", zIndex: 10, whiteSpace: "nowrap", pointerEvents: "none",
+          color: "#d4d4d8", zIndex: 10, whiteSpace: "nowrap", pointerEvents: "none",
         }}>
-          <span style={{ color: "#555" }}>{data[hovered]?.date?.slice(5)} · </span>
+          <span style={{ color: "#a1a1aa" }}>{data[hovered]?.date?.slice(5)} · </span>
           <span style={{ fontWeight: 700, color }}>{data[hovered]?.count} uses</span>
-          <span style={{ color: "#444" }}> ({data[hovered]?.resumesCreated} new)</span>
+          <span style={{ color: "#71717a" }}> ({data[hovered]?.resumesCreated} new)</span>
         </div>
       )}
 
@@ -86,7 +86,7 @@ export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
         {[data[0], data[Math.floor(data.length / 4)], data[Math.floor(data.length / 2)], data[Math.floor(data.length * 3 / 4)], data[data.length - 1]]
           .filter(Boolean)
           .map(d => (
-            <span key={d.date} style={{ fontSize: 9.5, color: "#333", fontFamily: "'Outfit', sans-serif" }}>
+            <span key={d.date} style={{ fontSize: 9.5, color: "#a1a1aa", fontFamily: "'Outfit', sans-serif" }}>
               {d.date?.slice(5)}
             </span>
           ))}
@@ -111,24 +111,24 @@ export function AnalyticsRow({ analytics, rank, compact = false }: { analytics: 
       gridTemplateColumns: columns,
       alignItems: "center", gap: 16,
       padding: "12px 16px",
-      borderBottom: "1px solid #111",
+      borderBottom: "1px solid #27272a",
       fontFamily: "'Outfit', sans-serif",
     }}>
-      <div style={{ fontSize: 13, fontWeight: 800, color: rank <= 3 ? "#C8F55A" : "#2A2A2A", textAlign: "center" }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: rank <= 3 ? "#C8F55A" : "#71717a", textAlign: "center" }}>
         #{rank}
       </div>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#C8C7C0", marginBottom: 2 }}>{analytics.name}</div>
-        <div style={{ fontSize: 10, color: "#333" }}>{analytics.layoutId} · {analytics.status}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#d4d4d8", marginBottom: 2 }}>{analytics.name}</div>
+        <div style={{ fontSize: 10, color: "#a1a1aa" }}>{analytics.layoutId} · {analytics.status}</div>
       </div>
       <div style={{ textAlign: "right" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#F0EFE8" }}>{analytics.weeklyUses.toLocaleString()}</div>
-        <div style={{ fontSize: 10, color: "#333" }}>this week</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{analytics.weeklyUses.toLocaleString()}</div>
+        <div style={{ fontSize: 10, color: "#a1a1aa" }}>this week</div>
       </div>
       {!compact && (
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#888" }}>{analytics.monthlyUses.toLocaleString()}</div>
-          <div style={{ fontSize: 10, color: "#333" }}>this month</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#a1a1aa" }}>{analytics.monthlyUses.toLocaleString()}</div>
+          <div style={{ fontSize: 10, color: "#71717a" }}>this month</div>
         </div>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
@@ -142,8 +142,8 @@ export function AnalyticsRow({ analytics, rank, compact = false }: { analytics: 
       )}
       {compact && (
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#888" }}>{analytics.monthlyUses.toLocaleString()}</div>
-          <div style={{ fontSize: 10, color: "#333" }}>30d</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#a1a1aa" }}>{analytics.monthlyUses.toLocaleString()}</div>
+          <div style={{ fontSize: 10, color: "#71717a" }}>30d</div>
         </div>
       )}
     </div>

@@ -39,10 +39,10 @@ export function Footer() {
         <div style={{ display: "flex", gap: 60, flexWrap: "wrap", justifyContent: "space-between", marginBottom: 48 }}>
           {/* Brand */}
           <div style={{ maxWidth: 260 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-0.3px", color: "#F0EFE8", marginBottom: 12 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: "-0.3px", color: "#fafafa", marginBottom: 12 }}>
               Resume<span style={{ color: "#C8F55A" }}>Studio</span>
             </div>
-            <p style={{ fontSize: 12.5, color: "#333", lineHeight: 1.65, margin: 0 }}>
+            <p style={{ fontSize: 12.5, color: "#a1a1aa", lineHeight: 1.65, margin: 0 }}>
               ATS-verified resume templates with live scoring and full style control.
             </p>
           </div>
@@ -51,7 +51,7 @@ export function Footer() {
           <div style={{ display: "flex", gap: 60, flexWrap: "wrap" }}>
             {Object.entries(LINKS).map(([section, links]) => (
               <div key={section}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#2A2A2A", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 14 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#71717a", textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: 14 }}>
                   {section}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -59,9 +59,9 @@ export function Footer() {
                     <a
                       key={label}
                       href={href}
-                      style={{ fontSize: 13, color: "#444", textDecoration: "none", transition: "color 0.15s" }}
-                      onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
-                      onMouseLeave={e => (e.currentTarget.style.color = "#444")}
+                      style={{ fontSize: 13, color: "#a1a1aa", textDecoration: "none", transition: "color 0.15s" }}
+                      onMouseEnter={e => (e.currentTarget.style.color = "#d4d4d8")}
+                      onMouseLeave={e => (e.currentTarget.style.color = "#a1a1aa")}
                     >
                       {label}
                     </a>
@@ -78,14 +78,14 @@ export function Footer() {
           display: "flex", justifyContent: "space-between", alignItems: "center",
           flexWrap: "wrap", gap: 12,
         }}>
-          <span style={{ fontSize: 11, color: "#2A2A2A" }}>
+          <span style={{ fontSize: 11, color: "#71717a" }}>
             © {new Date().getFullYear()} ResumeStudio. All rights reserved.
           </span>
           <div style={{ display: "flex", gap: 8 }}>
             {["ATS-Verified", "Live Score", "Full Style Control"].map(tag => (
               <span key={tag} style={{
-                fontSize: 10, fontWeight: 700, color: "#2A2A2A",
-                background: "#0D0D0D", border: "1px solid #1A1A1A",
+                fontSize: 10, fontWeight: 700, color: "#71717a",
+                background: "#18181b", border: "1px solid #3f3f46",
                 padding: "3px 10px", borderRadius: 20,
               }}>
                 {tag}

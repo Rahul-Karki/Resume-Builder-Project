@@ -4,7 +4,7 @@ import { fontOptions, ResumeStyle } from "@/types/resume-types";
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 const Label = ({ children }: { children: React.ReactNode }) => (
-  <div style={{ fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.9px", marginBottom: 8 }}>
+  <div style={{ fontSize: 11, fontWeight: 700, color: "#d4d4d8", textTransform: "uppercase", letterSpacing: "0.9px", marginBottom: 8 }}>
     {children}
   </div>
 );
@@ -40,7 +40,7 @@ const SectionBlock = ({
         style={{
           width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "16px 20px", background: "none", border: "none", cursor: "pointer",
-          color: active ? "#f5f0f2" : "#e4e4e7", fontFamily: "inherit", fontSize: 14, fontWeight: active ? 800 : 700,
+          color: active ? "#fafafa" : "#a1a1aa", fontFamily: "inherit", fontSize: 14, fontWeight: active ? 800 : 600,
           transition: "all 0.3s ease", borderRadius: 8,
         }}
       >
@@ -70,7 +70,7 @@ const ColorSwatch = ({ value, field, onChange, label }: ColorSwatchProps) => (
       />
       <div style={{ width: 40, height: 40, borderRadius: 10, background: value, border: "2px solid #27272a", cursor: "pointer", transition: "all 0.2s ease" }} />
     </div>
-    <span style={{ fontSize: 10, color: "#555", textAlign: "center", lineHeight: 1.3, fontWeight: 500 }}>{label}</span>
+    <span style={{ fontSize: 10, color: "#a1a1aa", textAlign: "center", lineHeight: 1.3, fontWeight: 500 }}>{label}</span>
   </div>
 );
 
@@ -108,12 +108,12 @@ export function StylePanel() {
 
       {/* Header */}
       <div style={{ padding: "18px 20px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(20,20,20,0.6)", backdropFilter: "blur(12px)", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 10 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#F0EFE8", letterSpacing: "-0.2px" }}>Style Customizer</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "#fafafa", letterSpacing: "-0.2px" }}>Style Customizer</div>
         <button
           onClick={resetStyle}
-          style={{ fontSize: 12, color: "#888", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, transition: "all 0.2s ease" }}
-          onMouseEnter={e => { e.currentTarget.style.color = "#FFFFFF"; e.currentTarget.style.borderColor = "#FFFFFF"; e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
-          onMouseLeave={e => { e.currentTarget.style.color = "#888"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+          style={{ fontSize: 12, color: "#a1a1aa", background: "rgba(255,255,255,0.05)", border: "1px solid #3f3f46", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, transition: "all 0.2s ease" }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#fafafa"; e.currentTarget.style.borderColor = "#fafafa"; e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "#a1a1aa"; e.currentTarget.style.borderColor = "#3f3f46"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
         >
           Reset
         </button>
@@ -167,14 +167,14 @@ export function StylePanel() {
             { label: "Body", field: "textColor" as keyof ResumeStyle, value: style.textColor },
           ].map(({ label, field, value }) => (
             <div key={field}>
-              <div style={{ fontSize: 11, color: "#555", marginBottom: 4, fontWeight: 500 }}>{label}</div>
+              <div style={{ fontSize: 11, color: "#a1a1aa", marginBottom: 4, fontWeight: 500 }}>{label}</div>
               <input
                 type="text"
                 value={value as string}
                 onChange={e => updateStyle(field, e.target.value)}
                 style={{
-                  width: "100%", padding: "6px 10px", background: "#18181b", border: "1px solid #27272a",
-                  borderRadius: 8, color: "#e4e4e7", fontSize: 12, fontFamily: "monospace",
+                  width: "100%", padding: "6px 10px", background: "#18181b", border: "1px solid #3f3f46",
+                  borderRadius: 8, color: "#fafafa", fontSize: 12, fontFamily: "monospace",
                   outline: "none", boxSizing: "border-box", transition: "all 0.2s ease",
                 }}
                 onFocus={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "#18181b"; }}
@@ -202,7 +202,7 @@ export function StylePanel() {
             {fontOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
           {/* Live preview */}
-          <div style={{ marginTop: 8, padding: "10px 12px", background: "#18181b", borderRadius: 8, fontSize: 13, fontFamily: style.bodyFont, color: "#888", lineHeight: 1.5, border: "1px solid #27272a" }}>
+          <div style={{ marginTop: 8, padding: "10px 12px", background: "#18181b", borderRadius: 8, fontSize: 13, fontFamily: style.bodyFont, color: "#d4d4d8", lineHeight: 1.5, border: "1px solid #27272a" }}>
             The quick brown fox jumps over the lazy dog.
           </div>
         </div>
@@ -215,7 +215,7 @@ export function StylePanel() {
           >
             {fontOptions.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
-          <div style={{ marginTop: 8, padding: "10px 12px", background: "#18181b", borderRadius: 8, fontSize: 15, fontFamily: style.headingFont, color: "#F0EFE8", fontWeight: 700, border: "1px solid #27272a" }}>
+          <div style={{ marginTop: 8, padding: "10px 12px", background: "#18181b", borderRadius: 8, fontSize: 15, fontFamily: style.headingFont, color: "#fafafa", fontWeight: 700, border: "1px solid #27272a" }}>
             Alexandra Chen
           </div>
         </div>
@@ -345,8 +345,8 @@ export function StylePanel() {
         <div style={{ marginBottom: 14 }}>
           <Row>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: "#e4e4e7", fontWeight: 500 }}>Section Dividers</div>
-              <div style={{ fontSize: 12, color: "#555" }}>Horizontal lines between sections</div>
+              <div style={{ fontSize: 14, color: "#d4d4d8", fontWeight: 500 }}>Section Dividers</div>
+              <div style={{ fontSize: 12, color: "#a1a1aa" }}>Horizontal lines between sections</div>
             </div>
             <ToggleSwitch
               checked={style.showDividers}
@@ -404,7 +404,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 
 // ─── Shared select style ───────────────────────────────────────────────────────
 const selectStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", background: "#18181b", border: "1px solid #27272a",
-  borderRadius: 8, color: "#e4e4e7", fontSize: 13, fontFamily: "'Outfit', sans-serif",
+  width: "100%", padding: "8px 12px", background: "#18181b", border: "1px solid #3f3f46",
+  borderRadius: 8, color: "#fafafa", fontSize: 13, fontFamily: "'Outfit', sans-serif",
   outline: "none", cursor: "pointer", transition: "all 0.2s ease",
 };

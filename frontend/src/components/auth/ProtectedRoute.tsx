@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { type ReactNode, useEffect, useState } from "react";
 import { api } from "../../services/api";
+import { PageSkeleton } from "@/components/Skeleton";
 
 type Props = {
   children: ReactNode;
@@ -28,11 +29,7 @@ export function ProtectedRoute({ children }: Props) {
   }, []);
 
   if (loading) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#0A0A0A", color: "#888", fontFamily: "sans-serif" }}>
-        Loading...
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (!authenticated) {

@@ -64,7 +64,7 @@ export function ResetPasswordForm({
       }}
     >
       <div style={{ marginBottom: 2, textAlign: "center", width: "100%" }}>
-        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 300, letterSpacing: "-0.8px", color: "#F0EFE8", margin: 0, lineHeight: 1.08 }}>
+        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 300, letterSpacing: "-0.8px", color: "#fafafa", margin: 0, lineHeight: 1.08 }}>
           Reset Password
         </h1>
       </div>
@@ -124,7 +124,7 @@ export function ResetPasswordForm({
           Update Password
         </button>
 
-        <p style={{ textAlign: "center", margin: "2px 0 0", color: "#666", fontSize: 12.5, width: "100%" }}>
+        <p style={{ textAlign: "center", margin: "2px 0 0", color: "#a1a1aa", fontSize: 12.5, width: "100%" }}>
           Back to <Link to="/login" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Login</Link>
         </p>
       </form>
@@ -138,7 +138,7 @@ const fieldStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: "#C8C7C0",
+  color: "#d4d4d8",
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: 0.6,
@@ -150,7 +150,7 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 14,
   border: "1px solid #232323",
   background: "rgba(8,8,8,0.72)",
-  color: "#F0EFE8",
+  color: "#fafafa",
   padding: "11px 13px",
   fontSize: 13,
   outline: "none",

@@ -48,7 +48,7 @@ export function CTASection() {
       <div style={{ maxWidth: 680, margin: "0 auto", textAlign: "center", position: "relative" }}>
         {/* Eyebrow */}
         <div style={{
-          fontSize: 10, fontWeight: 700, color: "#333", letterSpacing: "2px",
+          fontSize: 10, fontWeight: 700, color: "#a1a1aa", letterSpacing: "2px",
           textTransform: "uppercase", marginBottom: 24, fontFamily: "'Outfit', sans-serif",
         }}>
           Get Started
@@ -58,7 +58,7 @@ export function CTASection() {
         <h2 style={{
           fontFamily: "'Fraunces', serif",
           fontSize: "clamp(38px, 5vw, 62px)",
-          fontWeight: 300, letterSpacing: "-2px", color: "#F0EFE8",
+          fontWeight: 300, letterSpacing: "-2px", color: "#fafafa",
           margin: "0 0 20px", lineHeight: 1.06,
         }}>
           Your resume.<br />
@@ -66,7 +66,7 @@ export function CTASection() {
         </h2>
 
         <p style={{
-          fontSize: 15, color: "#444", lineHeight: 1.65,
+          fontSize: 15, color: "#a1a1aa", lineHeight: 1.65,
           marginBottom: 44, fontFamily: "'Outfit', sans-serif", fontWeight: 300,
           maxWidth: 480, margin: "0 auto 44px",
         }}>
@@ -95,13 +95,13 @@ export function CTASection() {
             to="/templates"
             style={{
               padding: "14px 32px", borderRadius: 10,
-              border: "1px solid #252525", background: "transparent",
-              color: "#666", fontSize: 15, fontWeight: 600,
+              border: "1px solid #3f3f46", background: "transparent",
+              color: "#a1a1aa", fontSize: 15, fontWeight: 600,
               textDecoration: "none", display: "inline-block",
               transition: "all 0.15s", fontFamily: "'Outfit', sans-serif",
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#666"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#d4d4d8"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#3f3f46"; e.currentTarget.style.color = "#a1a1aa"; }}
           >
             Browse Templates
           </Link>
@@ -109,7 +109,7 @@ export function CTASection() {
 
         {/* Fine print */}
         <p style={{
-          marginTop: 24, fontSize: 11, color: "#2A2A2A",
+          marginTop: 24, fontSize: 11, color: "#71717a",
           fontFamily: "'Outfit', sans-serif",
         }}>
           No credit card required. Free templates available immediately.

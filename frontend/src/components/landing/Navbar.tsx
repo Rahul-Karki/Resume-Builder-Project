@@ -99,9 +99,9 @@ export function Navbar() {
             <Link
               key={label}
               to={href}
-              style={{ fontSize: isCompact ? 12 : 13, fontWeight: 500, color: "#555", textDecoration: "none", padding: "6px 0", transition: "color 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "#C8C7C0")}
-              onMouseLeave={e => (e.currentTarget.style.color = "#555")}
+              style={{ fontSize: isCompact ? 12 : 13, fontWeight: 500, color: "#a1a1aa", textDecoration: "none", padding: "6px 0", transition: "color 0.15s" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "#d4d4d8")}
+              onMouseLeave={e => (e.currentTarget.style.color = "#a1a1aa")}
             >
               {label}
             </Link>
@@ -114,12 +114,12 @@ export function Navbar() {
           <button
             onClick={handleLogout}
             style={{
-              padding: isMobile ? "8px 12px" : "7px 20px", borderRadius: 8, border: "1px solid #222",
-              background: "transparent", color: "#777", fontSize: isCompact ? 12 : 13, fontWeight: 700,
-              cursor: "pointer", fontFamily: "inherit", minHeight: 36, transition: "all 0.15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#777"; }}
+                padding: isMobile ? "8px 12px" : "7px 20px", borderRadius: 8, border: "1px solid #3f3f46",
+                background: "transparent", color: "#a1a1aa", fontSize: isCompact ? 12 : 13, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit", minHeight: 36, transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#71717a"; e.currentTarget.style.color = "#d4d4d8"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#3f3f46"; e.currentTarget.style.color = "#a1a1aa"; }}
           >
             Logout
           </button>
@@ -128,13 +128,13 @@ export function Navbar() {
             <Link
               to="/login"
               style={{
-                padding: isMobile ? "8px 12px" : "7px 20px", borderRadius: 8, border: "1px solid #222",
-                background: "transparent", color: "#777", fontSize: isCompact ? 12 : 13, fontWeight: 600,
+                padding: isMobile ? "8px 12px" : "7px 20px", borderRadius: 8, border: "1px solid #3f3f46",
+                background: "transparent", color: "#a1a1aa", fontSize: isCompact ? 12 : 13, fontWeight: 600,
                 textDecoration: "none", display: "inline-flex", alignItems: "center",
                 minHeight: 36, transition: "all 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#777"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#71717a"; e.currentTarget.style.color = "#d4d4d8"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#3f3f46"; e.currentTarget.style.color = "#a1a1aa"; }}
             >
               Log In
             </Link>

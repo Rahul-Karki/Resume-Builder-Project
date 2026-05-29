@@ -167,8 +167,8 @@ function LiveMockup() {
       {/* Floating label */}
       <div style={{
         position: "absolute", bottom: -20, left: "50%", transform: "translateX(-50%)",
-        background: "#111", border: "1px solid #222", borderRadius: 20, padding: "5px 14px",
-        fontSize: 11, fontWeight: 600, color: "#555", whiteSpace: "nowrap",
+        background: "#18181b", border: "1px solid #3f3f46", borderRadius: 20, padding: "5px 14px",
+        fontSize: 11, fontWeight: 600, color: "#a1a1aa", whiteSpace: "nowrap",
         fontFamily: "'Outfit', sans-serif",
       }}>
         Live style preview
@@ -259,7 +259,7 @@ export function HeroSection() {
 
           {/* Sub */}
           <p style={{
-            fontSize: 16, color: "#555", lineHeight: 1.7, maxWidth: 480,
+            fontSize: 16, color: "#a1a1aa", lineHeight: 1.7, maxWidth: 480,
             marginBottom: 36, fontFamily: "'Outfit', sans-serif", fontWeight: 300,
             marginLeft: isMobile ? "auto" : 0,
             marginRight: isMobile ? "auto" : 0,
@@ -275,8 +275,8 @@ export function HeroSection() {
               "✓ Full Style Control",
             ].map(f => (
               <div key={f} style={{
-                fontSize: 12, fontWeight: 600, color: "#555",
-                background: "#111", border: "1px solid #1E1E1E",
+                fontSize: 12, fontWeight: 600, color: "#a1a1aa",
+                background: "#18181b", border: "1px solid #3f3f46",
                 padding: "6px 14px", borderRadius: 20,
                 fontFamily: "'Outfit', sans-serif",
               }}>
@@ -304,14 +304,14 @@ export function HeroSection() {
               <Link
                 to="/login"
                 style={{
-                  padding: "13px 28px", borderRadius: 10,
-                  border: "1px solid #252525", background: "transparent",
-                  color: "#777", fontSize: 14, fontWeight: 600,
-                  textDecoration: "none", display: "inline-block", transition: "all 0.15s",
-                  fontFamily: "'Outfit', sans-serif",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#383838"; e.currentTarget.style.color = "#C8C7C0"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#252525"; e.currentTarget.style.color = "#777"; }}
+                padding: "13px 28px", borderRadius: 10,
+                border: "1px solid #3f3f46", background: "transparent",
+                color: "#a1a1aa", fontSize: 14, fontWeight: 600,
+                textDecoration: "none", display: "inline-block", transition: "all 0.15s",
+                fontFamily: "'Outfit', sans-serif",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#71717a"; e.currentTarget.style.color = "#d4d4d8"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#3f3f46"; e.currentTarget.style.color = "#a1a1aa"; }}
               >
                 Log In
               </Link>

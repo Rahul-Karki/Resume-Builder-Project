@@ -12,21 +12,21 @@ interface StatCardProps {
 function StatCard({ label, value, sub, accent = "#C8F55A" }: StatCardProps) {
   return (
     <div style={{
-      background: "#111", border: "1px solid #1A1A1A", borderRadius: 12,
+      background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12,
       padding: "18px 20px", flex: 1, minWidth: 200,
     }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#333", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10, fontFamily: "'Outfit', sans-serif" }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 10, fontFamily: "'Outfit', sans-serif" }}>
         {label}
       </div>
-      <div style={{ fontSize: 28, fontWeight: 800, color: "#F0EFE8", letterSpacing: "-1px", fontFamily: "'Fraunces', serif", lineHeight: 1 }}>
+      <div style={{ fontSize: 28, fontWeight: 800, color: "#fafafa", letterSpacing: "-1px", fontFamily: "'Fraunces', serif", lineHeight: 1 }}>
         {typeof value === "number" ? value.toLocaleString() : value}
       </div>
       {sub && (
-        <div style={{ fontSize: 11, color: "#3A3A3A", marginTop: 6, fontFamily: "'Outfit', sans-serif" }}>
+        <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 6, fontFamily: "'Outfit', sans-serif" }}>
           {sub}
         </div>
       )}
-      <div style={{ marginTop: 12, height: 2, background: "#1A1A1A", borderRadius: 1 }}>
+      <div style={{ marginTop: 12, height: 2, background: "#27272a", borderRadius: 1 }}>
         <div style={{ height: 2, width: "40%", background: accent, borderRadius: 1 }} />
       </div>
     </div>
