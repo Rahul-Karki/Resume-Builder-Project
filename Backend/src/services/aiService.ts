@@ -41,7 +41,7 @@ type AtsPromptContext = {
 
 export type StructuredAiMetadata = {
   _tokens?: { input: number; output: number };
-  _provider?: "openai" | "gemini" | "none" | "unknown";
+  _provider?: "openai" | "gemini" | "openrouter" | "none" | "unknown";
   _model?: string;
   _fallback?: boolean;
 };
@@ -228,7 +228,8 @@ const buildBulletFallback = (context: AiPromptContext): AiRewriteResult => {
 const providerIsConfigured = () => {
   if (env.AI_PROVIDER === "openai") return Boolean(env.OPENAI_API_KEY);
   if (env.AI_PROVIDER === "gemini") return Boolean(env.GEMINI_API_KEY);
-  return Boolean(env.OPENAI_API_KEY || env.GEMINI_API_KEY);
+  if (env.AI_PROVIDER === "openrouter") return Boolean(env.OPENROUTER_API_KEY);
+  return Boolean(env.OPENAI_API_KEY || env.GEMINI_API_KEY || env.OPENROUTER_API_KEY);
 };
 
 const withTimeout = async <T>(operation: (signal: AbortSignal) => Promise<T>) => {
@@ -292,7 +293,38 @@ const callGemini = async (systemPrompt: string, userPrompt: string) => withTimeo
   return json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
 });
 
-type AiProviderName = "openai" | "gemini";
+const callOpenRouter = async (systemPrompt: string, userPrompt: string) => withTimeout(async (signal) => {
+  const baseUrl = env.OPENROUTER_BASE_URL.replace(/\/+$/, "");
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      "HTTP-Referer": "https://resume-builder-project-3h9o.vercel.app",
+      "X-Title": "Resume Builder",
+    },
+    signal,
+    body: JSON.stringify({
+      model: env.OPENROUTER_MODEL,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`OpenRouter request failed with status ${response.status}: ${body.slice(0, 200)}`);
+  }
+
+  const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+  return json.choices?.[0]?.message?.content ?? "{}";
+});
+
+type AiProviderName = "openai" | "gemini" | "openrouter";
 
 const getProviderOrder = (preferredProvider?: AiProviderName): AiProviderName[] => {
   const configuredProviders: AiProviderName[] = [];
@@ -303,6 +335,10 @@ const getProviderOrder = (preferredProvider?: AiProviderName): AiProviderName[] 
 
   if (env.OPENAI_API_KEY) {
     configuredProviders.push("openai");
+  }
+
+  if (env.OPENROUTER_API_KEY) {
+    configuredProviders.push("openrouter");
   }
 
   if (preferredProvider) {
@@ -317,22 +353,32 @@ const getProviderOrder = (preferredProvider?: AiProviderName): AiProviderName[] 
     return env.GEMINI_API_KEY ? ["gemini", ...configuredProviders.filter((provider) => provider !== "gemini")] : configuredProviders;
   }
 
+  if (env.AI_PROVIDER === "openrouter") {
+    return env.OPENROUTER_API_KEY ? ["openrouter", ...configuredProviders.filter((provider) => provider !== "openrouter")] : configuredProviders;
+  }
+
   return configuredProviders;
 };
 
 const callProvider = async (provider: AiProviderName, systemPrompt: string, userPrompt: string) => {
   const raw = provider === "openai"
     ? await callOpenAI(systemPrompt, userPrompt)
-    : await callGemini(systemPrompt, userPrompt);
+    : provider === "openrouter"
+      ? await callOpenRouter(systemPrompt, userPrompt)
+      : await callGemini(systemPrompt, userPrompt);
 
   const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
   const parsed = JSON.parse(cleaned) as Record<string, unknown>;
 
   const tokenCount = provider === "openai"
     ? countOpenAITokens(systemPrompt, userPrompt, cleaned)
-    : countGeminiTokens(systemPrompt, userPrompt, cleaned);
+    : provider === "openrouter"
+      ? countOpenAITokens(systemPrompt, userPrompt, cleaned)
+      : countGeminiTokens(systemPrompt, userPrompt, cleaned);
 
-  const model = provider === "openai" ? env.OPENAI_MODEL : env.GEMINI_MODEL;
+  const model = provider === "openai" ? env.OPENAI_MODEL
+    : provider === "openrouter" ? env.OPENROUTER_MODEL
+    : env.GEMINI_MODEL;
 
   return {
     parsed,
@@ -342,7 +388,7 @@ const callProvider = async (provider: AiProviderName, systemPrompt: string, user
 };
 
 // Calculate cost in USD based on provider and token usage
-const calculateCost = (provider: "openai" | "gemini", model: string, inputTokens: number, outputTokens: number): number => {
+const calculateCost = (provider: "openai" | "gemini" | "openrouter", model: string, inputTokens: number, outputTokens: number): number => {
   if (provider === "openai") {
     // OpenAI pricing as of 2024
     const isGpt4o = !model.includes("gpt-4o-mini");
@@ -366,7 +412,7 @@ const calculateCost = (provider: "openai" | "gemini", model: string, inputTokens
 
 // Log AI usage to database
 const logAiUsage = async (
-  provider: "openai" | "gemini" | "fallback",
+  provider: "openai" | "gemini" | "openrouter" | "fallback",
   model: string,
   feature: "grammar" | "rewrite" | "ats-analysis" | "ats-jd-match",
   inputTokens: number,

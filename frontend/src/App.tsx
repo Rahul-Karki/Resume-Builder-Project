@@ -8,6 +8,7 @@ import { PageSkeleton } from "./components/Skeleton"
 // Lazy-loaded route components — loaded only when navigated to
 const Login = lazy(() => import("./pages/Login"))
 const Signup = lazy(() => import("./pages/Signup"))
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"))
 const ForgotPassword = lazy(() => import("./pages/ResetPassword"))
 const Home = lazy(() => import("./pages/Home"))
 const Templates = lazy(() => import("./pages/Templates"))
@@ -33,6 +34,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Home />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/reset-password" element={<ForgotPassword />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/resume/export/:jobId" element={<ResumeExportPage />} />

@@ -23,6 +23,10 @@ export interface IUser extends Document {
   // Account lockout fields
   loginAttempts: number;
   lockUntil: Date | null;
+  // Email verification
+  emailVerified: boolean;
+  emailVerificationToken?: string | null;
+  emailVerificationTokenExpires?: Date | null;
 }
 
 const getNextCreditsResetAt = () => {
@@ -134,6 +138,18 @@ const UserSchema: Schema = new Schema<IUser>(
       min: 0,
     },
     lockUntil: {
+      type: Date,
+      default: null,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
+    emailVerificationTokenExpires: {
       type: Date,
       default: null,
     },

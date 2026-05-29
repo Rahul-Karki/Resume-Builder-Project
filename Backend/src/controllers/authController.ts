@@ -5,6 +5,7 @@ import { generateAccessToken, generateRefreshToken } from "../utils/generateToke
 import hashToken from "../utils/hashToken";
 import ResetToken from "../models/ResetToken";
 import { sendEmail } from "../utils/sendEmail";
+import { sendVerificationEmail } from "../utils/sendEmail";
 import { verifyGoogleToken } from "../utils/google";
 import crypto from "crypto";
 import { UserRole } from "../enums/userRole";
@@ -91,6 +92,7 @@ const registerUser = wrapController(async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+  const verificationToken = crypto.randomBytes(32).toString("hex");
 
   const user = new User({
     name,
@@ -98,18 +100,22 @@ const registerUser = wrapController(async (req, res) => {
     password: hashedPassword,
     role: UserRole.USER,
     authProvider: ["local"],
+    emailVerified: false,
+    emailVerificationToken: verificationToken,
+    emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
   });
 
   await user.save();
 
-  const accessToken = generateAccessToken(user._id.toString());
-  const refreshToken = generateRefreshToken(user._id.toString());
-
-  const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
+  try {
+    await sendVerificationEmail(user.email, verificationToken);
+  } catch (err) {
+    logger.warn({ email: user.email, error: err }, "Failed to send verification email");
+  }
 
   recordUserSignup({ email: user.email, provider: "local" });
 
-  logger.info({ userId: user._id.toString(), email: user.email }, "User registered");
+  logger.info({ userId: user._id.toString(), email: user.email }, "User registered - verification required");
 
   return sendCreated(res, {
     user: {
@@ -117,9 +123,79 @@ const registerUser = wrapController(async (req, res) => {
       email: user.email,
       name: user.name,
       role: user.role,
+      emailVerified: false,
     }
-  }, csrfToken);
+  });
 }, "auth.registerUser");
+
+const verifyEmail = wrapController(async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return sendErrorResponse(res, new ValidationError("Verification token is required"));
+  }
+
+  const user = await User.findOne({
+    emailVerificationToken: token,
+    emailVerificationTokenExpires: { $gt: new Date() },
+  });
+
+  if (!user) {
+    return sendErrorResponse(res, new ValidationError("Invalid or expired verification token"));
+  }
+
+  user.emailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationTokenExpires = undefined;
+  await user.save();
+
+  logger.info({ userId: user._id.toString(), email: user.email }, "Email verified");
+
+  sendSuccess(res, {
+    message: "Email verified successfully",
+    user: {
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      emailVerified: true,
+    },
+  });
+}, "auth.verifyEmail");
+
+const resendVerificationEmail = wrapController(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return sendErrorResponse(res, new ValidationError("Email is required"));
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return sendErrorResponse(res, new NotFoundError("User not found"));
+  }
+
+  if (user.emailVerified) {
+    return sendSuccess(res, { message: "Email is already verified" });
+  }
+
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  user.emailVerificationToken = verificationToken;
+  user.emailVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await user.save();
+
+  try {
+    await sendVerificationEmail(user.email, verificationToken);
+  } catch (err) {
+    logger.warn({ email: user.email, error: err }, "Failed to resend verification email");
+    return sendErrorResponse(res, new AppError("Failed to send verification email", { statusCode: 500, code: "EMAIL_FAILED" }));
+  }
+
+  logger.info({ userId: user._id.toString(), email: user.email }, "Verification email resent");
+
+  sendSuccess(res, { message: "Verification email sent" });
+}, "auth.resendVerificationEmail");
 
 const login = wrapController(async (req, res) => {
   const { email, password } = req.body;
@@ -191,6 +267,10 @@ const login = wrapController(async (req, res) => {
     return sendErrorResponse(res, new AuthError("Invalid email or password", { code: "INVALID_CREDENTIALS" }));
   }
 
+  if (user.emailVerified === false) {
+    return sendErrorResponse(res, new AuthError("Please verify your email before signing in. Check your inbox for the verification link.", { code: "EMAIL_NOT_VERIFIED" }));
+  }
+
   if (!Array.isArray(user.authProvider)) {
     user.authProvider = [];
   }
@@ -217,6 +297,7 @@ const login = wrapController(async (req, res) => {
       email: user.email,
       name: user.name,
       role: user.role,
+      emailVerified: user.emailVerified ?? false,
     },
   }, 200, csrfToken);
 }, "auth.login");
@@ -599,7 +680,7 @@ const getCurrentUser = wrapController(async (req, res) => {
     return sendErrorResponse(res, new AuthError("Authentication required"));
   }
 
-  const user = await User.findById(userId).select("name email avatar role authProvider aiCreditsRemaining aiCreditsResetAt aiCreditsPlan");
+  const user = await User.findById(userId).select("name email avatar role authProvider aiCreditsRemaining aiCreditsResetAt aiCreditsPlan emailVerified");
 
   if (!user) {
     logger.warn({ userId }, "Get current user not found");
@@ -614,6 +695,7 @@ const getCurrentUser = wrapController(async (req, res) => {
       email: user.email,
       avatar: user.avatar || user.name?.trim()?.split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "ME",
       role: user.role,
+      emailVerified: user.emailVerified ?? false,
       aiCredits: {
         remaining: user.aiCreditsRemaining ?? 0,
         resetAt: user.aiCreditsResetAt,
@@ -623,4 +705,4 @@ const getCurrentUser = wrapController(async (req, res) => {
   });
 }, "auth.getCurrentUser");
 
-export { registerUser, login, forgotPassword, resetPassword, resendResetLink, googleLogin, linkGoogleAccount, unlinkOAuthProvider, getCurrentUser, logout };
+export { registerUser, verifyEmail, resendVerificationEmail, login, forgotPassword, resetPassword, resendResetLink, googleLogin, linkGoogleAccount, unlinkOAuthProvider, getCurrentUser, logout };

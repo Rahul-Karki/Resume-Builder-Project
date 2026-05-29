@@ -1,5 +1,6 @@
 import express from "express"
-import { registerUser , login, forgotPassword, resetPassword, resendResetLink, googleLogin, linkGoogleAccount, unlinkOAuthProvider, getCurrentUser, logout } from "../controllers/authController"
+import { z } from "zod";
+import { registerUser, verifyEmail, resendVerificationEmail, login, forgotPassword, resetPassword, resendResetLink, googleLogin, linkGoogleAccount, unlinkOAuthProvider, getCurrentUser, logout } from "../controllers/authController"
 import { authMiddleware } from "../middleware/authMiddleware"
 import { validateRequest } from "../middleware/validateRequest";
 import { env } from "../config/env";
@@ -53,6 +54,8 @@ const router = express.Router();
 // routes
 router.post("/signup", signupLimiter, validateRequest({ body: authSignupSchema }), registerUser);
 router.post("/login", loginLimiter, validateRequest({ body: authLoginSchema }), login);
+router.post("/verify-email", validateRequest({ body: z.object({ token: z.string().min(1) }).strict() }), verifyEmail);
+router.post("/resend-verification", passwordRecoveryLimiter, validateRequest({ body: authEmailSchema }), resendVerificationEmail);
 
 router.post("/forgot-password", passwordRecoveryLimiter, validateRequest({ body: authEmailSchema }), forgotPassword);
 router.post("/reset-password", passwordRecoveryLimiter, validateRequest({ body: authResetPasswordSchema }), resetPassword);

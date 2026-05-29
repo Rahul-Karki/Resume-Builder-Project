@@ -1,5 +1,5 @@
 import { useState, type ComponentProps, type FormEvent } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
 import { api } from "@/services/api"
 
@@ -15,8 +15,7 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
-
-  const navigate = useNavigate()
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false)
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault()
@@ -52,16 +51,9 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
       })
 
       if (res.status === 201) {
-        localStorage.setItem("accessToken", "session")
+        setShowVerificationMessage(true)
+        setSuccess("Account created! Check your email for the verification link.")
       }
-
-      // ✅ Success
-      setSuccess("Account created successfully! Redirecting...")
-
-      setTimeout(() => {
-        navigate("/resumes")
-      }, 1500)
-
     } catch (err: any) {
       // ✅ Proper error handling
       if (err.response) {
@@ -100,6 +92,19 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
       </div>
 
       <form onSubmit={handleSignup} style={{ display: "grid", gap: 10, width: "100%" }}>
+        {showVerificationMessage ? (
+          <div style={{ padding: "20px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 28, marginBottom: 12 }}>✉️</div>
+            <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 300, color: "#F0EFE8", margin: "0 0 8px" }}>Check your email</h2>
+            <p style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
+              We sent a verification link to <strong style={{ color: "#F0EFE8" }}>{email}</strong>.
+              Click the link to activate your account, then sign in.
+            </p>
+            <Link to="/login" style={{ display: "inline-block", marginTop: 16, color: "#C8F55A", fontWeight: 700, textDecoration: "none", fontSize: 13 }}>
+              Go to Sign In
+            </Link>
+          </div>
+        ) : (<>
         <div style={fieldStyle}>
           <label htmlFor="name" style={labelStyle}>Full Name</label>
           <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} />
@@ -177,6 +182,7 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
         <p style={{ textAlign: "center", margin: "2px 0 0", color: "#a1a1aa", fontSize: 12.5 }}>
           Already have an account? <Link to="/login" style={{ color: "#C8F55A", fontWeight: 700, textDecoration: "none" }}>Sign in</Link>
         </p>
+      </>)}
       </form>
     </div>
   )
