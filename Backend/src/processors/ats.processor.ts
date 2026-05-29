@@ -979,6 +979,12 @@ export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysis
     const baseReport = buildAtsReport(job);
     const { report } = await enhanceWithAi(job, baseReport);
 
+    if (report.keywordAnalysis?.missingKeywords) {
+      report.keywordAnalysis.missingKeywords = report.keywordAnalysis.missingKeywords.map((k) =>
+        typeof k === "string" ? { keyword: k, importance: "important" as const, reason: `Missing ${k} — add to skills or experience section` } : k
+      );
+    }
+
     const saved = await AtsAnalysis.findOneAndUpdate(
       { jobId: job.id, userId: job.data.userId },
       {
