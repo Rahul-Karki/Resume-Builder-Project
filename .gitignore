@@ -16,6 +16,11 @@ node_modules/
 **/node_modules/
 
 # ========================
+# Puppeteer / Chromium
+# ========================
+Backend/chrome/
+
+# ========================
 # Package Files
 # ========================
 yarn.lock
