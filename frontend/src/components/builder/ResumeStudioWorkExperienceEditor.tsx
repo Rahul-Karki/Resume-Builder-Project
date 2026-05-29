@@ -140,6 +140,19 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     setTemplateId(normalizeResumeTemplateId(resume.templateId));
   }, [resume.templateId]);
 
+  // Ensure current template is always in the dropdown options
+  useEffect(() => {
+    setTemplateOptions((prev) => {
+      const normalized = normalizeResumeTemplateId(resume.templateId);
+      if (prev.some((t) => t.layoutId === normalized)) return prev;
+      const local = localTemplateCatalog.find((t) => t.id === normalized);
+      const current: TemplateOption = local
+        ? { layoutId: local.id, name: local.name, audience: local.audience, sortOrder: 999 }
+        : { layoutId: normalized, name: normalized, sortOrder: 999 };
+      return [current, ...prev];
+    });
+  }, [resume.templateId]);
+
   useEffect(() => {
     let active = true;
 
@@ -159,32 +172,11 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           })
           .filter((template: TemplateOption) => template.layoutId);
 
-        const mergedById = new Map<string, TemplateOption>();
-        apiTemplates.forEach((template) => mergedById.set(template.layoutId, template));
-
-        localTemplateCatalog.forEach((template) => {
-          if (!mergedById.has(template.id)) {
-            mergedById.set(template.id, {
-              layoutId: template.id,
-              name: template.name,
-              audience: template.audience,
-              sortOrder: 999,
-            });
-          }
-        });
-
         if (!active) return;
-        setTemplateOptions(Array.from(mergedById.values()).sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+        setTemplateOptions(apiTemplates.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
       } catch {
         if (!active) return;
-        setTemplateOptions(
-          localTemplateCatalog.map((template) => ({
-            layoutId: template.id,
-            name: template.name,
-            audience: template.audience,
-            sortOrder: 999,
-          })),
-        );
+        setTemplateOptions([]);
       }
     };
 

@@ -268,7 +268,12 @@ export const queueAtsAnalysis = async (resumeId: string, payload: {
       { operation, resumeId, reportType: payload.reportType }
     );
     
-    await aiCreditsManager.recordUsage(operation, estimatedCredits, { resumeId, reportType: payload.reportType });
+    const deducted = Number(response.headers?.["x-ai-credits-deducted"] ?? 0) || 0;
+    syncCreditsFromHeaders(response.headers as Record<string, string | undefined>, deducted, operation, {
+      resumeId,
+      reportType: payload.reportType,
+    });
+
     logger.logApiRequest('POST', `/resumes/${resumeId}/analyze-ats`, response.status, undefined);
     
     return response.data as AtsAnalysisQueueResponse;

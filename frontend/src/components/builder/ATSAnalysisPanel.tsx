@@ -576,21 +576,139 @@ export function ATSAnalysisPanel() {
               <div className="ats-card-detail" style={{ color: "#fafafa" }}>{report.verdict || report.summary}</div>
             </div>
 
-            {/* Missing Keywords */}
+            {/* Missing Keywords with Placement */}
             {report.keywordAnalysis?.missingKeywords && report.keywordAnalysis.missingKeywords.length > 0 && (
               <>
                 <div className="ats-section-label"><AlertCircle size={13} style={{ marginRight: 6 }} /> Missing Keywords</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 18px 10px" }}>
-                  {report.keywordAnalysis.missingKeywords.slice(0, 8).map((kw, i) => (
-                    <span key={i} className="ats-tag ats-tag-bad" title={typeof kw === "string" ? "" : kw.reason}>
-                      {typeof kw === "string" ? kw : kw.keyword}
-                    </span>
-                  ))}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "0 18px 10px" }}>
+                  {report.keywordAnalysis.missingKeywords.slice(0, 8).map((kw, i) => {
+                    const keyword = typeof kw === "string" ? kw : kw.keyword;
+                    const reason = typeof kw === "string" ? "" : kw.reason;
+                    const placement = report.keywordPlacement?.find((kp) => kp.keyword.toLowerCase() === keyword.toLowerCase());
+                    return (
+                      <div key={i} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #ef4444" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                          <span className="ats-card-title" style={{ fontSize: 13 }}>
+                            <span className="ats-tag ats-tag-bad" style={{ fontSize: 12 }}>{keyword}</span>
+                          </span>
+                          {typeof kw !== "string" && kw.importance === "critical" && (
+                            <span className="ats-tag ats-tag-bad" style={{ fontSize: 10 }}>Critical</span>
+                          )}
+                        </div>
+                        {reason && <div className="ats-card-detail" style={{ marginBottom: 6, color: "#a1a1aa" }}>{reason}</div>}
+                        {placement && (
+                          <>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+                              {placement.placeIn.map((section) => (
+                                <span key={section} className="ats-tag" style={{ background: "rgba(59,130,246,0.1)", color: "#93c5fd", border: "1px solid rgba(59,130,246,0.15)", fontSize: 10 }}>
+                                  + {section}
+                                </span>
+                              ))}
+                            </div>
+                            {placement.exampleUsage && (
+                              <div style={{ fontSize: 11, color: "#d4d4d8", background: "rgba(255,255,255,0.02)", padding: "8px 10px", borderRadius: 6, border: "1px solid #3f3f46", fontStyle: "italic" }}>
+                                "{placement.exampleUsage}"
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {!placement && (
+                          <div className="ats-card-detail" style={{ color: "#71717a", fontSize: 11 }}>
+                            Add to skills or experience section
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {report.keywordAnalysis.missingKeywords.length > 8 && (
-                    <span className="ats-tag" style={{ background: "rgba(255,255,255,0.03)", color: "#555" }}>
-                      +{report.keywordAnalysis.missingKeywords.length - 8} more
-                    </span>
+                    <div style={{ textAlign: "center", color: "#71717a", fontSize: 11, padding: 4 }}>
+                      +{report.keywordAnalysis.missingKeywords.length - 8} more keywords
+                    </div>
                   )}
+                </div>
+              </>
+            )}
+
+            {/* Formatting Fixes */}
+            {((report.formattingFixes && report.formattingFixes.length > 0) || (report.formattingChecks && report.formattingChecks.some((c) => !c.passed))) && (
+              <>
+                <div className="ats-section-label"><FileSearch size={13} style={{ marginRight: 6 }} /> Formatting Fixes</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
+                  {(report.formattingFixes ?? []).slice(0, 5).map((fix) => (
+                    <div key={fix.id} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #eab308" }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12 }}>{fix.issue}</div>
+                        {fix.expectedImpact && (
+                          <span className="ats-tag ats-tag-warn" style={{ fontSize: 10 }}>{fix.expectedImpact}</span>
+                        )}
+                      </div>
+                      <div className="ats-card-detail" style={{ color: "#fafafa", marginBottom: fix.codeExample ? 6 : 0 }}>{fix.fix}</div>
+                      {fix.codeExample && (
+                        <div style={{ fontSize: 11, color: "#d4d4d8", background: "rgba(0,0,0,0.2)", padding: "8px 10px", borderRadius: 6, fontFamily: "monospace", whiteSpace: "pre-wrap" }}>
+                          {fix.codeExample}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {report.formattingChecks?.filter((c) => !c.passed).slice(0, 3).map((check) => (
+                    <div key={check.id} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #eab308" }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12 }}>
+                          <span className="ats-tag ats-tag-bad" style={{ fontSize: 10, marginRight: 6 }}>Fix</span>
+                          {check.label}
+                        </div>
+                        <span style={{ fontSize: 11, color: "#fca5a5", fontWeight: 600 }}>{check.score}/100</span>
+                      </div>
+                      <div className="ats-card-detail" style={{ color: "#a1a1aa" }}>{check.fix || check.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Section Audit */}
+            {report.sectionAudit && report.sectionAudit.filter((a) => a.status !== "present").length > 0 && (
+              <>
+                <div className="ats-section-label"><Target size={13} style={{ marginRight: 6 }} /> Section Fixes</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
+                  {report.sectionAudit.filter((a) => a.status !== "present").slice(0, 5).map((audit, i) => (
+                    <div key={`sa-${i}`} className="ats-card" style={{
+                      margin: 0,
+                      borderLeft: `3px solid ${audit.status === "missing" ? "#ef4444" : audit.status === "empty" ? "#eab308" : "#f97316"}`,
+                    }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12, textTransform: "capitalize" }}>
+                          <span className={`ats-tag ${audit.status === "missing" ? "ats-tag-bad" : "ats-tag-warn"}`} style={{ fontSize: 10, marginRight: 6 }}>
+                            {audit.status}
+                          </span>
+                          {audit.section.replace("_", " ")}
+                        </div>
+                        <span style={{ fontSize: 11, color: "#4ade80", fontWeight: 600 }}>+{audit.fix.expectedScoreGain} pts</span>
+                      </div>
+                      <div className="ats-card-detail" style={{ color: "#a1a1aa", marginBottom: audit.fix.keywordsToInclude.length > 0 ? 6 : 0 }}>
+                        {audit.fix.why}
+                      </div>
+                      {audit.fix.keywordsToInclude.length > 0 && (
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+                          {audit.fix.keywordsToInclude.map((kw, ki) => (
+                            <span key={ki} className="ats-tag ats-tag-good" style={{ fontSize: 10 }}>{kw}</span>
+                          ))}
+                        </div>
+                      )}
+                      {audit.fix.copyPasteTemplate && (
+                        <div style={{ fontSize: 11, color: "#d4d4d8", background: "rgba(34,197,94,0.04)", padding: "8px 10px", borderRadius: 6, border: "1px solid rgba(34,197,94,0.1)" }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Template</div>
+                          {audit.fix.copyPasteTemplate}
+                        </div>
+                      )}
+                      {audit.fix.example && (
+                        <div style={{ fontSize: 11, color: "#d4d4d8", background: "rgba(255,255,255,0.02)", padding: "8px 10px", borderRadius: 6, border: "1px solid #3f3f46", marginTop: 6 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Example</div>
+                          {audit.fix.example}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </>
             )}

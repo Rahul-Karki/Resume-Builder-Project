@@ -97,12 +97,21 @@ export type AtsKeywordAnalysis = {
   matchedKeywords: string[];
 };
 
+export type AtsFormattingFix = {
+  id: string;
+  issue: string;
+  fix: string;
+  expectedImpact: string;
+  codeExample?: string;
+};
+
 export type AtsFormattingCheck = {
   id: string;
   label: string;
   passed: boolean;
   score: number;
   reason: string;
+  fix?: string;
 };
 
 export type AtsGrammarFinding = {
@@ -162,6 +171,7 @@ export type AtsAnalysisReport = {
   weaknesses?: string[];
   priorityFixes?: string[];
   autoApplyActions?: AutoApplyPayload[];
+  formattingFixes?: AtsFormattingFix[];
 };
 
 export const AI_TONE_OPTIONS: AiTone[] = ["professional", "concise", "technical", "leadership-focused"];

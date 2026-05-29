@@ -14,6 +14,9 @@ import { AuthError, NotFoundError, AppError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { sendSuccess } from "../utils/apiResponse";
 import { compactText } from "../../../shared/src/ai";
+import type { AiOperation } from "../utils/creditCalculator";
+import { env } from "../config/env";
+import { assertAiCreditsAvailable, deductAiCredits, refreshAiCreditsIfNeeded } from "../utils/aiCredits";
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -74,6 +77,12 @@ export const analyzeAts = wrapController(async (req, res) => {
     return;
   }
 
+  // Enforce AI credits before processing
+  if (env.AI_CREDITS_ENFORCED) {
+    const estimatedCredits = req.creditContext?.estimatedCredits ?? 0;
+    await assertAiCreditsAvailable(userId, estimatedCredits);
+  }
+
   const bodyKeywords = Array.isArray(req.body?.keywords)
     ? req.body.keywords.filter((value: unknown) => typeof value === "string").map((value: string) => compactText(value).toLowerCase()).filter(Boolean)
     : [];
@@ -121,7 +130,24 @@ export const analyzeAts = wrapController(async (req, res) => {
 
   const analysisResult = await processAtsAnalysisJob(job as any);
 
-  logger.info({ userId, resumeId: req.params.id, jobId }, "ATS analysis completed (synchronous)");
+  // Deduct credits after successful analysis
+  let deducted = 0;
+  let creditUser = null;
+  if (env.AI_CREDITS_ENFORCED) {
+    const estimatedCredits = req.creditContext?.estimatedCredits ?? 0;
+    creditUser = await deductAiCredits(userId, estimatedCredits);
+    deducted = estimatedCredits;
+  } else {
+    creditUser = await refreshAiCreditsIfNeeded(userId);
+  }
+
+  res.setHeader("x-ai-credits-estimated", String(req.creditContext?.estimatedCredits ?? 0));
+  res.setHeader("x-ai-credits-deducted", String(deducted));
+  if (creditUser?.aiCreditsRemaining !== undefined) res.setHeader("x-ai-credits-remaining", String(creditUser.aiCreditsRemaining));
+  if (creditUser?.aiCreditsResetAt) res.setHeader("x-ai-credits-reset-at", new Date(creditUser.aiCreditsResetAt).toISOString());
+  if (creditUser?.aiCreditsPlan) res.setHeader("x-ai-credits-plan", creditUser.aiCreditsPlan);
+
+  logger.info({ userId, resumeId: req.params.id, jobId, creditsDeducted: deducted }, "ATS analysis completed (synchronous)");
   res.status(200).json({ message: "ATS analysis completed", analysis: analysisResult });
 }, "resumeEnhancement.analyzeAts");
 

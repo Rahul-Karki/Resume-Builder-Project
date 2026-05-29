@@ -27,7 +27,7 @@ import { createRedisCacheMiddleware } from "../middleware/redisCache";
 import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
 import { validateRequest } from "../middleware/validateRequest";
 import { createReferentialIntegrityMiddleware } from "../middleware/referentialIntegrity";
-// creditDeductionMiddleware removed - was used for ATS analysis which was removed
+import { creditDeductionMiddleware } from "../middleware/creditDeduction";
 import {
   createResumeSchema,
   jobStatusParamSchema,
@@ -122,12 +122,14 @@ router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }
 router.post(
   "/:id/analyze-ats",
   validateRequest({ params: objectIdParamSchema }),
+  creditDeductionMiddleware({ operation: "ats-analysis" }),
   createReferentialIntegrityMiddleware("atsanalyses", (req) => ({ resumeId: req.params.id })),
   analyzeAts,
 );
 router.post(
   "/:id/ats-analysis",
   validateRequest({ params: objectIdParamSchema }),
+  creditDeductionMiddleware({ operation: "ats-analysis" }),
   createReferentialIntegrityMiddleware("atsanalyses", (req) => ({ resumeId: req.params.id })),
   analyzeAts,
 );

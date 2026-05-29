@@ -1031,6 +1031,7 @@ export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysis
         estimatedScoreAfterFixes: report.estimatedScoreAfterFixes,
         questionsForUser: report.questionsForUser ?? [],
         keywordPlacement: report.keywordPlacement ?? [],
+        formattingFixes: report.formattingFixes ?? [],
         keywordGaps: report.keywordGaps ?? [],
         verdict: report.verdict ?? "",
         summary: report.summary,

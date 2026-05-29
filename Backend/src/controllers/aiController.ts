@@ -53,28 +53,6 @@ const aiProvidersConfigured = () => {
   return Boolean(env.OPENAI_API_KEY || env.GEMINI_API_KEY);
 };
 
-const setAiResponseHeaders = (res: Response, headers: {
-  cached: boolean;
-  fallback?: boolean;
-  provider?: string;
-  model?: string;
-  creditsEstimated?: number;
-  creditsDeducted?: number;
-  creditsRemaining?: number;
-  creditsResetAt?: Date;
-  creditsPlan?: string;
-}) => {
-  res.setHeader("x-ai-cached", headers.cached ? "1" : "0");
-  if (headers.fallback !== undefined) res.setHeader("x-ai-fallback", headers.fallback ? "1" : "0");
-  if (headers.provider) res.setHeader("x-ai-provider", headers.provider);
-  if (headers.model) res.setHeader("x-ai-model", headers.model);
-  if (typeof headers.creditsEstimated === "number") res.setHeader("x-ai-credits-estimated", String(headers.creditsEstimated));
-  if (typeof headers.creditsDeducted === "number") res.setHeader("x-ai-credits-deducted", String(headers.creditsDeducted));
-  if (typeof headers.creditsRemaining === "number") res.setHeader("x-ai-credits-remaining", String(headers.creditsRemaining));
-  if (headers.creditsResetAt) res.setHeader("x-ai-credits-reset-at", new Date(headers.creditsResetAt).toISOString());
-  if (headers.creditsPlan) res.setHeader("x-ai-credits-plan", headers.creditsPlan);
-};
-
 const enforceCreditsIfNeeded = async (operation: AiOperation, req: Request, userId: string) => {
   if (!env.AI_CREDITS_ENFORCED) return;
   if (!aiProvidersConfigured()) return;
@@ -96,6 +74,28 @@ const maybeDeductCredits = async (req: Request, userId: string, shouldDeduct: bo
 
   const user = await deductAiCredits(userId, estimatedCredits);
   return { deducted: estimatedCredits, user };
+};
+
+const setAiResponseHeaders = (res: Response, headers: {
+  cached: boolean;
+  fallback?: boolean;
+  provider?: string;
+  model?: string;
+  creditsEstimated?: number;
+  creditsDeducted?: number;
+  creditsRemaining?: number;
+  creditsResetAt?: Date;
+  creditsPlan?: string;
+}) => {
+  res.setHeader("x-ai-cached", headers.cached ? "1" : "0");
+  if (headers.fallback !== undefined) res.setHeader("x-ai-fallback", headers.fallback ? "1" : "0");
+  if (headers.provider) res.setHeader("x-ai-provider", headers.provider);
+  if (headers.model) res.setHeader("x-ai-model", headers.model);
+  if (typeof headers.creditsEstimated === "number") res.setHeader("x-ai-credits-estimated", String(headers.creditsEstimated));
+  if (typeof headers.creditsDeducted === "number") res.setHeader("x-ai-credits-deducted", String(headers.creditsDeducted));
+  if (typeof headers.creditsRemaining === "number") res.setHeader("x-ai-credits-remaining", String(headers.creditsRemaining));
+  if (headers.creditsResetAt) res.setHeader("x-ai-credits-reset-at", new Date(headers.creditsResetAt).toISOString());
+  if (headers.creditsPlan) res.setHeader("x-ai-credits-plan", headers.creditsPlan);
 };
 
 type AiRequestBody = {
@@ -188,3 +188,5 @@ const createAiHandler = (aiType: string, cacheKeyPrefix: string, handlerFn: AiHa
 export const improveTextHandler = createAiHandler("improve-text", "improve", improveText);
 export const checkGrammarHandler = createAiHandler("check-grammar", "grammar", checkGrammar);
 export const enhanceBulletHandler = createAiHandler("enhance-bullet", "bullet", enhanceBullet);
+
+export { enforceCreditsIfNeeded, maybeDeductCredits, setAiResponseHeaders };
