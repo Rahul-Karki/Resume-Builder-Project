@@ -145,7 +145,16 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
       projects: { type: Number, required: true, min: 0, max: 100, default: 0 },
     },
     keywordAnalysis: {
-      missingKeywords: { type: [String], default: [] },
+      missingKeywords: {
+        type: [
+          {
+            keyword: { type: String, required: true },
+            importance: { type: String, enum: ["critical", "important", "optional"], required: true },
+            reason: { type: String, required: true },
+          },
+        ],
+        default: [],
+      },
       repeatedKeywords: { type: [String], default: [] },
       weakKeywords: { type: [String], default: [] },
       atsFriendlyKeywords: { type: [String], default: [] },
