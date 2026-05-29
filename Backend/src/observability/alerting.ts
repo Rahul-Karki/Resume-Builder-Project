@@ -1,15 +1,15 @@
 import { logger } from "../observability";
-import * as Sentry from "@sentry/node";
 
 /**
  * Alerting Service
  * 
  * Sends alerts for critical compliance, security, and reliability issues
- * Supports multiple channels: Sentry, webhooks, email, Slack
+ * Supports multiple channels: webhooks, email, Slack, PagerDuty
+ * Metrics are tracked via Prometheus → Grafana Cloud; alert rules configured in Grafana
  */
 
 export type AlertSeverity = "critical" | "high" | "medium" | "low";
-export type AlertChannel = "sentry" | "webhook" | "slack" | "email" | "pagerduty";
+export type AlertChannel = "webhook" | "slack" | "email" | "pagerduty";
 
 export interface AlertPayload {
   title: string;
@@ -49,7 +49,7 @@ export class AlertingService {
       enabled: true,
       threshold: 10,
       timeWindow: 300000,
-      channels: ["sentry", "slack"],
+      channels: ["slack"],
     });
 
     // Critical: Any referential integrity violation
@@ -58,7 +58,7 @@ export class AlertingService {
       enabled: true,
       threshold: 1,
       timeWindow: 60000,
-      channels: ["sentry", "slack", "pagerduty"],
+      channels: ["slack", "pagerduty"],
     });
 
     // High: More than 5 cascade delete failures in 10 minutes
@@ -67,7 +67,7 @@ export class AlertingService {
       enabled: true,
       threshold: 5,
       timeWindow: 600000,
-      channels: ["sentry", "slack"],
+      channels: ["slack"],
     });
 
     // Medium: More than 20 orphaned documents detected
@@ -76,7 +76,7 @@ export class AlertingService {
       enabled: true,
       threshold: 20,
       timeWindow: 300000,
-      channels: ["sentry"],
+      channels: ["slack"],
     });
 
     // High: Missing audit logs
@@ -85,7 +85,7 @@ export class AlertingService {
       enabled: true,
       threshold: 1,
       timeWindow: 60000,
-      channels: ["sentry", "slack"],
+      channels: ["slack"],
     });
 
     // Critical: Data corruption detected
@@ -94,7 +94,7 @@ export class AlertingService {
       enabled: true,
       threshold: 1,
       timeWindow: 60000,
-      channels: ["sentry", "slack", "pagerduty"],
+      channels: ["slack", "pagerduty"],
     });
   }
 
@@ -153,7 +153,7 @@ export class AlertingService {
    * Send alert to appropriate channels
    */
   async sendAlert(payload: AlertPayload): Promise<boolean> {
-    const channels = payload.channels || ["sentry"];
+    const channels = payload.channels || ["slack"];
 
     try {
       let allSucceeded = true;
@@ -161,9 +161,6 @@ export class AlertingService {
       for (const channel of channels) {
         try {
           switch (channel) {
-            case "sentry":
-              await this.sendSentryAlert(payload);
-              break;
             case "slack":
               await this.sendSlackAlert(payload);
               break;
@@ -194,32 +191,6 @@ export class AlertingService {
       logger.error({ error, alert: payload }, "Alert sending failed");
       return false;
     }
-  }
-
-  /**
-   * Send alert via Sentry
-   */
-  private async sendSentryAlert(payload: AlertPayload) {
-    const level = this.mapSeverityToSentryLevel(payload.severity);
-
-    Sentry.captureMessage(payload.title, level);
-
-    Sentry.captureException(new Error(payload.description), {
-      level,
-      tags: {
-        category: payload.category,
-        severity: payload.severity,
-      },
-      contexts: {
-        alert: {
-          title: payload.title,
-          description: payload.description,
-          metadata: payload.metadata,
-        },
-      },
-    });
-
-    logger.info({ payload }, "Alert sent to Sentry");
   }
 
   /**
@@ -352,19 +323,6 @@ export class AlertingService {
   }
 
   // Helper methods
-  private mapSeverityToSentryLevel(severity: AlertSeverity): "fatal" | "error" | "warning" | "info" {
-    switch (severity) {
-      case "critical":
-        return "fatal";
-      case "high":
-        return "error";
-      case "medium":
-        return "warning";
-      case "low":
-        return "info";
-    }
-  }
-
   private mapSeverityToPagerDutySeverity(severity: AlertSeverity): "critical" | "error" | "warning" | "info" {
     switch (severity) {
       case "critical":
@@ -407,7 +365,7 @@ export async function alertComplianceIssue(
     description,
     severity,
     category: "compliance",
-    channels: severity === "critical" ? ["sentry", "slack", "pagerduty"] : ["sentry", "slack"],
+    channels: severity === "critical" ? ["slack", "pagerduty"] : ["slack"],
     metadata,
   });
 }
@@ -423,7 +381,7 @@ export async function alertSecurityIssue(
     description,
     severity,
     category: "security",
-    channels: ["sentry", "slack", "pagerduty"],
+    channels: ["slack", "pagerduty"],
     affectedUser,
   });
 }
@@ -439,7 +397,7 @@ export async function alertDataIntegrityIssue(
     description,
     severity: "critical",
     category: "data-integrity",
-    channels: ["sentry", "slack", "pagerduty"],
+    channels: ["slack", "pagerduty"],
     affectedCollection,
     metadata,
   });

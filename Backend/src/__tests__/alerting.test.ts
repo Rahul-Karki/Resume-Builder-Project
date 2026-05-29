@@ -33,7 +33,7 @@ describe("alerting", () => {
       const { alertSecurityIssue } = await import("../observability/alerting");
       const spy = vi.spyOn(alertingService, "sendAlert").mockResolvedValue(true);
       await alertSecurityIssue("Critical alert", "Breach", "critical");
-      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ severity: "critical", channels: ["sentry", "slack", "pagerduty"] }));
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ severity: "critical", channels: ["slack", "pagerduty"] }));
     });
   });
   describe("alertDataIntegrityIssue", () => {

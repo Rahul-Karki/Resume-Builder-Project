@@ -42,6 +42,13 @@ const promRequestDurationHistogram = new Histogram({
   registers: [metricsRegistry],
 });
 
+const clientErrorCounter = new Counter({
+  name: "resume_builder_client_errors_total",
+  help: "Total client-side (frontend) errors reported",
+  labelNames: ["source", "error_type"],
+  registers: [metricsRegistry],
+});
+
 const serviceName = env.SERVICE_NAME;
 const serviceVersion = env.SERVICE_VERSION;
 const environment = env.NODE_ENV;
@@ -340,6 +347,18 @@ export const metricsMiddleware = (req: Request, res: Response, next: NextFunctio
   });
 
   next();
+};
+
+export const clientErrorHandler = (req: Request, res: Response) => {
+  const { message, source, stack, url, userAgent } = req.body || {};
+  const labels = {
+    source: source || "unknown",
+    error_type: message ? message.substring(0, 100) : "unknown",
+  };
+  clientErrorCounter.labels(labels.source, labels.error_type).inc();
+
+  logger.warn({ source, message, url, userAgent }, "Client-side error reported");
+  res.status(200).json({ ok: true });
 };
 
 export const metricsHandler = async (_req: Request, res: Response) => {

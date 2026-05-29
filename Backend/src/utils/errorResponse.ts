@@ -2,7 +2,6 @@ import type { Response } from "express";
 import mongoose from "mongoose";
 import { z } from "zod";
 import { AppError, AuthError, NotFoundError, ValidationError } from "../errors/AppError";
-import { captureBackendException } from "../config/sentry";
 
 type ErrorFallback = {
   statusCode?: number;
@@ -86,10 +85,6 @@ export const sendErrorResponse = (res: Response, error: unknown, fallback: Error
     ...fallback,
     traceId: getTraceId(res, fallback.traceId),
   });
-
-  if (statusCode >= 500) {
-    captureBackendException(error, res.req as never);
-  }
 
   return res.status(statusCode).json(body);
 };

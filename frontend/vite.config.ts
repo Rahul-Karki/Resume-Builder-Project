@@ -28,9 +28,6 @@ export default defineConfig({
           if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/axios/') || id.includes('node_modules/zustand/')) {
             return 'vendor';
           }
-          if (id.includes('node_modules/@sentry/')) {
-            return 'sentry';
-          }
         },
       },
     },

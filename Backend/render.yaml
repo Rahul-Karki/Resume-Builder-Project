@@ -36,16 +36,9 @@ services:
         value: resume-builder-backend
       - key: SERVICE_VERSION
         value: 1.0.0
-      - key: SENTRY_DSN
-        sync: false
-      - key: SENTRY_ENVIRONMENT
-        value: production
-      - key: SENTRY_TRACES_SAMPLE_RATE
-        value: 0.1
-      - key: ENABLE_METRICS
-        value: "true"
-      - key: METRICS_PATH
-        value: /metrics
+
+      - key: OTEL_METRIC_EXPORT_INTERVAL_MS
+        value: "15000"
       - key: REDIS_URL
         sync: false
       - key: UPSTASH_REDIS_REST_URL

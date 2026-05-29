@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import { captureBackendException } from "../config/sentry";
 import { logger } from "../observability";
 import { buildErrorResponse, toAppError } from "../utils/errorResponse";
 import { redactRequestData } from "../utils/redactSensitive";
@@ -21,10 +20,6 @@ export const errorHandler = (error: unknown, req: Request, res: Response, next: 
 
   const { statusCode, body } = buildErrorResponse(error, { message: "Server error", traceId: req.traceId });
   const appError = toAppError(error, { message: "Server error" });
-
-  if (statusCode >= 500) {
-    captureBackendException(error, req);
-  }
 
   try {
     const errorType = appError.code || appError.name || "UNKNOWN_ERROR";

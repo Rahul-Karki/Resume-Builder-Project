@@ -42,9 +42,7 @@ const baseEnvSchema = z.object({
   SERVICE_NAME: z.string().min(1).default("resume-builder-backend"),
   SERVICE_VERSION: z.string().min(1).default("1.0.0"),
   REQUEST_BODY_LIMIT: z.string().default("5mb"),
-  SENTRY_DSN: optionalUrlFromEnv,
-  SENTRY_ENVIRONMENT: z.string().optional().default(""),
-  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+  // Error tracking via Prometheus metrics → Grafana Cloud
   ENABLE_METRICS: booleanFromEnv.default(true),
   METRICS_PATH: z.string().default("/metrics"),
   REDIS_URL: z.string().optional().default(""),
@@ -193,8 +191,7 @@ const envSchema = baseEnvSchema
     OTEL_INSTANCE_ID: (value.OTEL_INSTANCE_ID || value.OTLP_INSTANCE_ID || "").trim(),
     OTLP_INSTANCE_ID: value.OTLP_INSTANCE_ID.trim(),
     GRAFANA_API_TOKEN: value.GRAFANA_API_TOKEN.trim(),
-    SENTRY_DSN: (value.SENTRY_DSN ?? "").trim(),
-    SENTRY_ENVIRONMENT: value.SENTRY_ENVIRONMENT.trim(),
+
     REDIS_URL: value.REDIS_URL.trim(),
     BULLMQ_REDIS_URL: value.BULLMQ_REDIS_URL.trim(),
     ATS_ANALYSIS_QUEUE_PREFIX: value.ATS_ANALYSIS_QUEUE_PREFIX.trim(),

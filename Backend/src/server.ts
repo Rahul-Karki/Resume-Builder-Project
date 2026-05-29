@@ -2,7 +2,6 @@ import "./instrumentation";
 import connectDB from "./config/db";
 import "./models";
 import { env } from "./config/env";
-import { flushBackendSentry, initializeBackendSentry } from "./config/sentry";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
@@ -11,8 +10,6 @@ import app from "./app";
 import { browserPool } from "./lib/browserPool";
 import { dataIntegrityChecker } from "./services/dataIntegrityService";
 import { keepAliveService } from "./utils/keepAlive";
-initializeBackendSentry();
-
 const PORT = env.PORT;
 
 const startServer = async () => {
@@ -109,12 +106,10 @@ const startServer = async () => {
 
 process.on("unhandledRejection", (reason) => {
   logger.error({ reason }, "Unhandled promise rejection");
-    void flushBackendSentry();
 });
 
 process.on("uncaughtException", (error) => {
   logger.error({ error }, "Uncaught exception");
-    void flushBackendSentry();
 });
 
 void startServer().catch((error) => {

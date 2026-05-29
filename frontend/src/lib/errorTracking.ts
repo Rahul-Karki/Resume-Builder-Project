@@ -1,5 +1,3 @@
-import { captureClientException, initializeClientSentry } from "./sentry";
-
 type ClientErrorPayload = {
   message: string;
   stack?: string;
@@ -50,7 +48,6 @@ const dispatchPayload = (payload: ClientErrorPayload) => {
 
 export const reportClientError = (error: unknown, source: ClientErrorPayload["source"]) => {
   const serialized = serializeError(error);
-  captureClientException(error, { source });
   dispatchPayload({
     message: serialized.message,
     stack: serialized.stack,
@@ -67,7 +64,6 @@ export const initializeClientErrorTracking = () => {
   }
 
   isInitialized = true;
-  initializeClientSentry();
 
   window.addEventListener("error", (event) => {
     reportClientError(event.error ?? event.message, "window-error");

@@ -9,7 +9,7 @@ import { correlationIdMiddleware } from "./middleware/correlationId";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { requestTimeoutMiddleware } from "./middleware/requestTimeout";
 import { requestSizeLimitMiddleware } from "./middleware/requestSizeLimit";
-import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
+import { clientErrorHandler, logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { openAPISpec } from "./config/openapi";
 import { auditContextMiddleware, referentialIntegrityMiddleware } from "./middleware/referentialIntegrity";
 
@@ -114,7 +114,7 @@ export const createApp = () => {
         styleSrc: ["'self'"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.googleusercontent.com"],
         fontSrc: ["'self'", "data:"],
-        connectSrc: ["'self'", "https://*.ingest.sentry.io", "https://accounts.google.com"],
+        connectSrc: ["'self'", "https://accounts.google.com"],
         frameSrc: ["'self'", "https://accounts.google.com"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
@@ -165,6 +165,7 @@ export const createApp = () => {
   app.use("/api/templates", templateRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);
+  app.post("/api/client-error", clientErrorHandler);
   app.use(notFoundHandler);
   app.use(errorHandler);
 

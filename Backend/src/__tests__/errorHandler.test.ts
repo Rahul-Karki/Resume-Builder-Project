@@ -1,7 +1,6 @@
 ﻿import { describe, it, expect, vi } from "vitest";
 import { notFoundHandler, errorHandler } from "../middleware/errorHandler";
 
-vi.mock("../config/sentry", () => ({ captureBackendException: vi.fn() }));
 vi.mock("../observability", () => ({ logger: { error: vi.fn(), warn: vi.fn() } }));
 vi.mock("../observability/complianceMetrics", () => ({ recordError: vi.fn() }));
 vi.mock("../utils/redactSensitive", () => ({ redactRequestData: vi.fn((p, q) => ({ params: p, query: q })) }));
@@ -57,14 +56,5 @@ describe("errorHandler", () => {
       process.env.NODE_ENV = origEnv;
     });
 
-    it("should send the error to Sentry", () => {
-      const req = { traceId: "abc", correlationId: "abc", method: "GET", originalUrl: "/test", params: {}, query: {}, user: {} } as any;
-      const res = { headersSent: false, status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
-      const next = vi.fn();
-
-      errorHandler(new Error("test error"), req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-    });
   });
 });

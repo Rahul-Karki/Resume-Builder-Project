@@ -1,5 +1,5 @@
 ﻿// ─── Module: errorTracking ───────────────────────────
-// Description: Client-side error capture and Sentry dispatch
+// Description: Client-side error capture and reporting
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
