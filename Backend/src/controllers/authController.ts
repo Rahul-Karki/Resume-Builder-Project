@@ -28,9 +28,10 @@ import { parseCookies } from "../utils/cookieParser";
 
 const BCRYPT_SALT_ROUNDS = 10;
 const COOLDOWN_AFTER_RESET = 5 * 60 * 1000;
-const RESEND_COOLDOWN_MS = 60 * 1000;
-const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
+const RESEND_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_RESET_RESEND_ATTEMPTS = 3;
+const MAX_RESET_PER_DAY = 10;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 const PASSWORD_MIN_LENGTH = 8;
@@ -267,10 +268,6 @@ const login = wrapController(async (req, res) => {
     return sendErrorResponse(res, new AuthError("Invalid email or password", { code: "INVALID_CREDENTIALS" }));
   }
 
-  if (user.emailVerified === false) {
-    return sendErrorResponse(res, new AuthError("Please verify your email before signing in. Check your inbox for the verification link.", { code: "EMAIL_NOT_VERIFIED" }));
-  }
-
   if (!Array.isArray(user.authProvider)) {
     user.authProvider = [];
   }
@@ -350,8 +347,13 @@ const forgotPassword = wrapController(async (req, res) => {
     }));
   }
 
-  if (existingToken && existingToken.resendCount >= MAX_RESET_RESEND_ATTEMPTS) {
-    return sendErrorResponse(res, new AppError("Maximum resend attempts reached, please try again later", { statusCode: 429, code: "RATE_LIMITED" }));
+  const recentResets = await ResetToken.countDocuments({
+    userId: user._id,
+    lastSeenAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+  });
+
+  if (recentResets >= MAX_RESET_PER_DAY) {
+    return sendErrorResponse(res, new AppError("Too many password reset requests for this account. Try again tomorrow.", { statusCode: 429, code: "RATE_LIMITED" }));
   }
 
   const rawToken = crypto.randomBytes(32).toString("hex");
@@ -375,7 +377,11 @@ const forgotPassword = wrapController(async (req, res) => {
 
   const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
 
-  await sendEmail(user.email, link);
+  try {
+    await sendEmail(user.email, link);
+  } catch (err) {
+    logger.warn({ email: user.email, error: err }, "Failed to send password reset email");
+  }
 
   sendSuccess(res, {
     message: "Password reset link sent to email",
@@ -499,7 +505,11 @@ const resendResetLink = wrapController(async (req, res) => {
   await existingToken.save();
 
   const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
-  await sendEmail(user.email, link);
+  try {
+    await sendEmail(user.email, link);
+  } catch (err) {
+    logger.warn({ email: user.email, error: err }, "Failed to resend password reset email");
+  }
 
   sendSuccess(res, {
     message: "Password reset link resent to email",

@@ -106,7 +106,8 @@ export const createApp = () => {
     },
     frameguard: { action: "deny" },
     referrerPolicy: { policy: "no-referrer" },
-    crossOriginResourcePolicy: { policy: "cross-origin" }, // Enabled cross-origin access
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],

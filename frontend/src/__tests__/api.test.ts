@@ -3,6 +3,7 @@
 describe("api service", () => {
   beforeEach(() => {
     vi.resetModules();
+    localStorage.clear();
   });
 
   it("should bootstrap auth session on initialization", async () => {
@@ -19,6 +20,48 @@ describe("api service", () => {
     const result = await bootstrapAuthSession();
     expect(typeof result).toBe("boolean");
   });
+
+  it("should skip refresh bootstrap when no auth marker exists", async () => {
+    const post = vi.fn().mockResolvedValue({ data: {} });
+
+    vi.doMock("axios", () => ({
+      default: {
+        create: vi.fn().mockReturnValue({
+          interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
+          get: vi.fn(),
+          post,
+        }),
+      },
+    }));
+
+    const { bootstrapAuthSession } = await import("../services/api");
+    const result = await bootstrapAuthSession();
+
+    expect(result).toBe(false);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("should refresh bootstrap only when an auth marker exists", async () => {
+    const post = vi.fn().mockResolvedValue({ data: { csrfToken: "token123" } });
+    localStorage.setItem("accessToken", "session");
+
+    vi.doMock("axios", () => ({
+      default: {
+        create: vi.fn().mockReturnValue({
+          interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
+          get: vi.fn().mockResolvedValue({ data: { csrfToken: "rotated-token" } }),
+          post,
+        }),
+      },
+    }));
+
+    const { bootstrapAuthSession } = await import("../services/api");
+    const result = await bootstrapAuthSession();
+
+    expect(result).toBe(true);
+    expect(post).toHaveBeenCalledWith("/refresh", {}, { timeout: 3000 });
+  });
+
   it("should include CSRF token in mutating request headers", async () => {
     const { api } = await import("../services/api");
     expect(api.interceptors.request).toBeDefined();

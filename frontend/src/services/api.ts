@@ -76,6 +76,8 @@ const getCsrfToken = (): string => {
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const hasAuthSessionMarker = () => Boolean(localStorage.getItem("accessToken"));
+
 const isTransientFailure = (error: any) => {
   const status = error?.response?.status;
   const code = String(error?.code ?? "");
@@ -313,6 +315,10 @@ export const createMissingSection = async (resumeId: string, section: string, co
 };
 
 export async function bootstrapAuthSession() {
+  if (!hasAuthSessionMarker()) {
+    return false;
+  }
+
   try {
     await api.post("/refresh", {}, { timeout: 3000 });
     localStorage.setItem("accessToken", "session");
@@ -375,7 +381,8 @@ api.interceptors.response.use(
       status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
-      !excludedPath
+      !excludedPath &&
+      hasAuthSessionMarker()
     ) {
       originalRequest._retry = true;
 

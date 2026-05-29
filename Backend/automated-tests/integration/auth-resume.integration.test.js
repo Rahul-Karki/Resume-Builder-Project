@@ -68,14 +68,19 @@ test.beforeEach(async () => {
 test("auth signup and login flows work end to end", async () => {
   const user = getTestUser();
 
-  const signupAgent = request.agent(app);
-  const signupResponse = await signupAgent
+  const signupResponse = await request(app)
     .post("/api/auth/signup")
     .send(user)
     .expect(201);
 
   assert.equal(signupResponse.body.user.email, user.email);
-  assert.equal(typeof signupResponse.body.csrfToken, "string");
+  assert.equal(signupResponse.body.user.emailVerified, false);
+
+  // Bypass email verification in test environment
+  await mongoose.model("User").findOneAndUpdate(
+    { email: user.email },
+    { emailVerified: true, emailVerificationToken: null, emailVerificationTokenExpires: null },
+  );
 
   const loginAgent = request.agent(app);
   const loginResponse = await loginAgent
@@ -91,13 +96,24 @@ test("resume CRUD works for an authenticated user", async () => {
   const user = getTestUser();
   const agent = request.agent(app);
 
-  const signupResponse = await agent
+  await agent
     .post("/api/auth/signup")
     .send(user)
     .expect(201);
 
-  const csrfToken = signupResponse.body.csrfToken;
-  const userId = signupResponse.body.user.id;
+  // Bypass email verification in test environment
+  await mongoose.model("User").findOneAndUpdate(
+    { email: user.email },
+    { emailVerified: true, emailVerificationToken: null, emailVerificationTokenExpires: null },
+  );
+
+  const loginResponse = await agent
+    .post("/api/auth/login")
+    .send({ email: user.email, password: user.password })
+    .expect(200);
+
+  const csrfToken = loginResponse.body.csrfToken;
+  const userId = loginResponse.body.user.id;
   const layoutId = `integration-template-${randomUUID().slice(0, 8)}`;
 
   await Template.create({

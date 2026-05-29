@@ -1,8 +1,5 @@
 import crypto from "crypto";
 import { Request, Response } from "express";
-import { env } from "../config/env";
-
-const isProduction = env.NODE_ENV === "production";
 
 const isHttpsRequest = (req: Request) => {
   const forwardedProto = req.headers["x-forwarded-proto"];
@@ -16,7 +13,7 @@ const isHttpsRequest = (req: Request) => {
 };
 
 const getBaseCookieOptions = (req: Request) => {
-  const secure = isProduction && isHttpsRequest(req);
+  const secure = isHttpsRequest(req);
   const sameSite = secure ? "none" as const : "lax" as const;
   return {
     secure,
