@@ -7,7 +7,7 @@ const ENDPOINT = "/api/health";
 // Determine URL: prioritize BACKEND_URL (for production), fallback to local config
 let FULL_URL;
 if (process.env.BACKEND_URL) {
-  FULL_URL = `${process.env.BACKEND_URL}${ENDPOINT}`;
+  FULL_URL = `${process.env.BACKEND_URL.replace(/\/+$/, "")}${ENDPOINT}`;
 } else {
   const PORT = process.env.BACKEND_PORT || process.env.PORT || 5000;
   const HOST = process.env.BACKEND_HOST || "localhost";

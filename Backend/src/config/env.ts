@@ -23,6 +23,7 @@ const baseEnvSchema = z.object({
   MONGO_URI: z.string().min(1, "MONGO_URI is required"),
   FRONTEND_URL: z.string().url("FRONTEND_URL must be a valid URL"),
   FRONTEND_URLS: z.string().optional().default(""),
+  BACKEND_URL: z.string().url().optional().default(""),
   JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
   JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
   JWT_ACCESS_PRIVATE_KEY: z.string().optional().default(""),

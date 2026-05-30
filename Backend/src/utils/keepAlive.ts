@@ -1,6 +1,7 @@
 import http from "http";
 import https from "https";
 import { logger } from "../observability";
+import { env } from "../config/env";
 
 const KEEP_ALIVE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const KEEP_ALIVE_ENDPOINT = "/api/health";
@@ -21,18 +22,18 @@ class KeepAliveService {
 
   initialize(config: KeepAliveConfig = {}): void {
     // Only enable keep-alive in production or when explicitly configured
-    const shouldEnable = config.enabled ?? process.env.NODE_ENV === "production";
+    const shouldEnable = config.enabled ?? env.NODE_ENV === "production";
 
     if (!shouldEnable) {
       logger.debug("Keep-alive service disabled");
       return;
     }
 
-    // Determine full URL: prioritize explicit config URL, then BACKEND_URL env var, fallback to local
+    // Determine full URL: prioritize explicit config URL, then BACKEND_URL env, fallback to local
     if (config.url) {
       this.fullUrl = config.url;
-    } else if (process.env.BACKEND_URL) {
-      this.fullUrl = process.env.BACKEND_URL;
+    } else if (env.BACKEND_URL) {
+      this.fullUrl = env.BACKEND_URL;
     } else {
       const port = config.port ?? parseInt(process.env.BACKEND_PORT || process.env.PORT || "5000", 10);
       const host = config.host ?? process.env.BACKEND_HOST ?? "localhost";
@@ -40,14 +41,17 @@ class KeepAliveService {
       this.fullUrl = `${protocol}://${host}:${port}`;
     }
 
-    // Ensure we have a full URL with protocol
-    if (this.fullUrl && !this.fullUrl.startsWith("http")) {
-      this.fullUrl = `http://${this.fullUrl}`;
+    // Ensure we have a full URL with protocol and no trailing slash
+    if (this.fullUrl) {
+      if (!this.fullUrl.startsWith("http")) {
+        this.fullUrl = `http://${this.fullUrl}`;
+      }
+      this.fullUrl = this.fullUrl.replace(/\/+$/, "");
     }
 
     // Warn if we're in production but don't have a public URL
     const isLocalhost = this.fullUrl?.includes("localhost") || this.fullUrl?.includes("127.0.0.1");
-    if (isLocalhost && process.env.NODE_ENV === "production") {
+    if (isLocalhost && env.NODE_ENV === "production") {
       logger.warn(
         "Keep-alive pinging localhost — this will NOT keep the service alive. " +
         "Set BACKEND_URL to the public URL for effective keep-alive.",
@@ -63,7 +67,7 @@ class KeepAliveService {
 
     logger.info(
       { url: healthCheckUrl, intervalSeconds: KEEP_ALIVE_INTERVAL_MS / 1000 },
-      "Keep-alive service initialized",
+      "Keep-alive service started",
     );
 
     // Perform initial ping after 30 seconds to let server stabilize
@@ -94,7 +98,7 @@ class KeepAliveService {
       res.on("data", () => {});
       res.on("end", () => {
         if (statusOk) {
-          logger.debug(
+          logger.info(
             { statusCode: res.statusCode, durationMs: duration },
             "Keep-alive ping successful",
           );

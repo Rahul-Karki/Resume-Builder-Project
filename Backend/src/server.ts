@@ -55,8 +55,9 @@ const startServer = async () => {
 
     // Initialize keep-alive service after server is running
     keepAliveService.initialize({
+      url: env.BACKEND_URL || undefined,
       port: PORT,
-      enabled: process.env.NODE_ENV === "production" || process.env.ENABLE_KEEP_ALIVE === "true",
+      enabled: env.NODE_ENV === "production" || process.env.ENABLE_KEEP_ALIVE === "true",
     });
   });
 
