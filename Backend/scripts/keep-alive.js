@@ -8,6 +8,8 @@ const ENDPOINT = "/api/health";
 let FULL_URL;
 if (process.env.BACKEND_URL) {
   FULL_URL = `${process.env.BACKEND_URL.replace(/\/+$/, "")}${ENDPOINT}`;
+} else if (process.env.RENDER_EXTERNAL_URL || process.env.RENDER_SERVICE_URL) {
+  FULL_URL = `${(process.env.RENDER_EXTERNAL_URL || process.env.RENDER_SERVICE_URL).replace(/\/+$/, "")}${ENDPOINT}`;
 } else {
   const PORT = process.env.BACKEND_PORT || process.env.PORT || 5000;
   const HOST = process.env.BACKEND_HOST || "localhost";

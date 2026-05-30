@@ -21,19 +21,28 @@ class KeepAliveService {
   private isShuttingDown = false;
 
   initialize(config: KeepAliveConfig = {}): void {
-    // Only enable keep-alive in production or when explicitly configured
-    const shouldEnable = config.enabled ?? env.NODE_ENV === "production";
+    // Only enable keep-alive in production or when explicitly configured.
+    // Also auto-enable on Render (RENDER_EXTERNAL_URL is always set there).
+    const isProduction = env.NODE_ENV === "production";
+    const isRender = Boolean(process.env.RENDER_EXTERNAL_URL || process.env.RENDER_SERVICE_URL);
+    const shouldEnable = config.enabled ?? isProduction;
 
     if (!shouldEnable) {
-      logger.debug("Keep-alive service disabled");
+      if (isRender) {
+        logger.info("Keep-alive service NOT started — set NODE_ENV=production or ENABLE_KEEP_ALIVE=true");
+      } else {
+        logger.info("Keep-alive service disabled (only active in production, or set ENABLE_KEEP_ALIVE=true)");
+      }
       return;
     }
 
-    // Determine full URL: prioritize explicit config URL, then BACKEND_URL env, fallback to local
+    // Determine full URL: prioritize explicit config URL, then BACKEND_URL env, then Render URL, fallback to local
     if (config.url) {
       this.fullUrl = config.url;
     } else if (env.BACKEND_URL) {
       this.fullUrl = env.BACKEND_URL;
+    } else if (process.env.RENDER_EXTERNAL_URL || process.env.RENDER_SERVICE_URL) {
+      this.fullUrl = process.env.RENDER_EXTERNAL_URL || process.env.RENDER_SERVICE_URL || "";
     } else {
       const port = config.port ?? parseInt(process.env.BACKEND_PORT || process.env.PORT || "5000", 10);
       const host = config.host ?? process.env.BACKEND_HOST ?? "localhost";
@@ -54,7 +63,7 @@ class KeepAliveService {
     if (isLocalhost && env.NODE_ENV === "production") {
       logger.warn(
         "Keep-alive pinging localhost — this will NOT keep the service alive. " +
-        "Set BACKEND_URL to the public URL for effective keep-alive.",
+          "Set BACKEND_URL or RENDER_EXTERNAL_URL to the public URL for effective keep-alive.",
       );
     }
 

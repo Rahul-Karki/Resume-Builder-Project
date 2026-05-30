@@ -104,7 +104,7 @@ const syncCreditsFromHeaders = (headers: Record<string, string | string[] | unde
   }
 };
 
-const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const resolveBackendOrigin = (baseUrl: string) => {
   try {

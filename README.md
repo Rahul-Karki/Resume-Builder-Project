@@ -437,6 +437,9 @@ npm run build
 # Run in development mode (with hot-reload via ts-node)
 npm run dev
 
+# Run backend with the keep-alive helper alongside dev server
+npm run start:with-keepalive
+
 # Run tests
 npm run test
 

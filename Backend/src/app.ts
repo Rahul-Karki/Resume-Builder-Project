@@ -40,12 +40,17 @@ export const createApp = () => {
 
     if (configuredOrigins.includes(normalizedOrigin)) return true;
 
-    if (env.ALLOW_PREVIEW_ORIGINS) {
-      if (
-        normalizedOrigin.startsWith("http://localhost:") ||
-        normalizedOrigin.startsWith("https://localhost:")
-      ) return true;
-    }
+    // Allow localhost in development (no ALLOW_PREVIEW_ORIGINS flag needed for dev)
+    if (
+      normalizedOrigin.startsWith("http://localhost:") ||
+      normalizedOrigin.startsWith("https://localhost:")
+    ) return true;
+
+    // Allow Render and Vercel preview deployments by default
+    if (
+      normalizedOrigin.endsWith(".onrender.com") ||
+      normalizedOrigin.endsWith(".vercel.app")
+    ) return true;
 
     const MAX_PATTERN_LENGTH = 100;
     for (const pattern of env.CORS_EXTRA_PATTERNS) {
