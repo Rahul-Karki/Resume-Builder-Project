@@ -232,6 +232,7 @@ export function ATSAnalysisPanel() {
   const [loading, setLoading] = useState(false);
   const [applyingIds, setApplyingIds] = useState<Set<string>>(new Set());
   const [applyingKeywords, setApplyingKeywords] = useState<Set<string>>(new Set());
+  const [applyingToAllKey, setApplyingToAllKey] = useState<string | null>(null);
   const [creatingSections, setCreatingSections] = useState<Set<string>>(new Set());
   const [applyingFormatFixes, setApplyingFormatFixes] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -347,6 +348,21 @@ export function ATSAnalysisPanel() {
       setError(err instanceof Error ? err.message : "Failed to add keyword");
     } finally {
       setApplyingKeywords((prev) => { const next = new Set(prev); next.delete(keyword); return next; });
+    }
+  }, [resume._id]);
+
+  const handleAddKeywordToAll = useCallback(async (keyword: string, sections: string[]) => {
+    if (!resume._id || sections.length === 0) return;
+    setApplyingToAllKey(keyword);
+    try {
+      for (const section of sections) {
+        const result = await applyKeywordPlacement(resume._id, keyword, section);
+        if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add keyword");
+    } finally {
+      setApplyingToAllKey(null);
     }
   }, [resume._id]);
 
@@ -590,20 +606,6 @@ export function ATSAnalysisPanel() {
               </>
             )}
 
-            {/* ATS Optimization Tips (v2) */}
-            {report.atsOptimizationTips && report.atsOptimizationTips.length > 0 && (
-              <>
-                <div className="ats-section-label"><Lightbulb size={13} style={{ marginRight: 6 }} /> Optimization Tips</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
-                  {report.atsOptimizationTips.slice(0, 5).map((tip, i) => (
-                    <div key={`tip-${i}`} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #3b82f6" }}>
-                      <div className="ats-card-detail" style={{ color: "#fafafa", fontSize: 12 }}>{tip}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
             {/* Priority Fixes (v2 object format) */}
             {Array.isArray(report.priorityFixes) && report.priorityFixes.length > 0 && typeof report.priorityFixes[0] === "object" && (
               <>
@@ -762,11 +764,15 @@ export function ATSAnalysisPanel() {
             {report.keywordAnalysis?.missingKeywords && report.keywordAnalysis.missingKeywords.length > 0 && (
               <>
                 <div className="ats-section-label"><AlertCircle size={13} style={{ marginRight: 6 }} /> Missing Keywords</div>
+                <div style={{ fontSize: 11, color: "#a1a1aa", padding: "0 18px 8px" }}>
+                  Click a section button to add the keyword there, or use <strong>Apply to all</strong> to add it to every suggested section. The italic text shows how to naturally include the keyword.
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "0 18px 10px" }}>
                   {report.keywordAnalysis.missingKeywords.slice(0, 8).map((kw, i) => {
                     const keyword = typeof kw === "string" ? kw : kw.keyword;
                     const reason = typeof kw === "string" ? "" : kw.reason;
                     const placement = report.keywordPlacement?.find((kp) => kp.keyword.toLowerCase() === keyword.toLowerCase());
+                    const isApplyingAll = applyingToAllKey === keyword;
                     return (
                       <div key={i} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #ef4444" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -792,15 +798,30 @@ export function ATSAnalysisPanel() {
                                 "{placement.exampleUsage}"
                               </div>
                             )}
-                            <button
-                              className="ats-btn-apply ats-btn-apply-ready"
-                              onClick={() => handleAddKeyword(keyword, placement.placeIn[0] ?? "skills")}
-                              disabled={applyingKeywords.has(keyword)}
-                              style={{ marginTop: 8 }}
-                            >
-                              {applyingKeywords.has(keyword) ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
-                              Add to {placement.placeIn[0] ?? "skills"}
-                            </button>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                              {placement.placeIn.map((section) => (
+                                <button
+                                  key={section}
+                                  className="ats-btn-apply ats-btn-apply-ready"
+                                  onClick={() => handleAddKeyword(keyword, section)}
+                                  disabled={applyingKeywords.has(keyword) || isApplyingAll}
+                                >
+                                  {applyingKeywords.has(keyword) && !isApplyingAll ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
+                                  + {section}
+                                </button>
+                              ))}
+                              {placement.placeIn.length > 1 && (
+                                <button
+                                  className="ats-btn-apply"
+                                  style={{ background: "#6366f1", color: "#fff" }}
+                                  onClick={() => handleAddKeywordToAll(keyword, placement.placeIn)}
+                                  disabled={applyingKeywords.has(keyword) || isApplyingAll}
+                                >
+                                  {isApplyingAll ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
+                                  Apply to all
+                                </button>
+                              )}
+                            </div>
                           </>
                         )}
                         {!placement && (

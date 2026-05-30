@@ -49,7 +49,6 @@ export interface IAtsAnalysis extends Document {
   formatIssues?: unknown[];
   contentImprovements?: unknown[];
   sectionAnalysis?: unknown[];
-  atsOptimizationTips?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -194,7 +193,6 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
     formatIssues: { type: [Schema.Types.Mixed], default: undefined },
     contentImprovements: { type: [Schema.Types.Mixed], default: undefined },
     sectionAnalysis: { type: [Schema.Types.Mixed], default: undefined },
-    atsOptimizationTips: { type: [String], default: undefined },
   },
   { timestamps: true },
 );

@@ -39,7 +39,6 @@ type AiAtsEnhancement = {
   formatIssues?: AtsFormatIssue[];
   contentImprovements?: AtsContentImprovement[];
   sectionAnalysis?: AtsSectionAnalysis[];
-  atsOptimizationTips?: string[];
 };
 
 const SECTION_KEYS: AtsSectionKey[] = ["summary", "experience", "skills", "education", "projects", "certifications", "languages"];
@@ -177,7 +176,7 @@ const callOpenAIJson = async (systemPrompt: string, userPrompt: string, signal: 
     signal,
     body: JSON.stringify({
       model: env.OPENAI_MODEL,
-      temperature: 0.2,
+      temperature: 0,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -207,7 +206,7 @@ const callOpenRouterJson = async (systemPrompt: string, userPrompt: string, sign
     signal,
     body: JSON.stringify({
       model: env.OPENROUTER_MODEL,
-      temperature: 0.2,
+      temperature: 0,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -235,7 +234,7 @@ const callGeminiJson = async (systemPrompt: string, userPrompt: string, signal: 
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+        generationConfig: { temperature: 0, responseMimeType: "application/json" },
       }),
     },
   );
@@ -567,13 +566,6 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
       })
     : [];
 
-  // ── New v2 format: atsOptimizationTips ──
-  const atsOptimizationTips = Array.isArray(value.atsOptimizationTips)
-    ? value.atsOptimizationTips.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
-    : Array.isArray(value.ats_optimization_tips)
-      ? value.ats_optimization_tips.filter((item) => typeof item === "string").map((item) => compactText(item)).filter(Boolean)
-      : [];
-
   return {
     grade: grade === "poor" || grade === "average" || grade === "good" || grade === "excellent" ? grade : undefined,
     overallScore,
@@ -593,7 +585,6 @@ const normalizeEnhancement = (value: Record<string, unknown>): AiAtsEnhancement 
     formatIssues: formatIssues.slice(0, 8),
     contentImprovements: [],
     sectionAnalysis: sectionAnalysis.slice(0, 10),
-    atsOptimizationTips: atsOptimizationTips.slice(0, 5),
   };
 };
 
@@ -718,14 +709,24 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
           path: "personalInfo.summary",
         }];
 
-        perSectionSuggestions.experience = [{
-          id: createSuggestionId("fallback-experience", 0),
-          originalText: "",
-          suggestionText: "Rewrite weak bullets with action verb + task + measurable result. Include one metric in each of your top 3 bullets.",
-          reason: "Result-oriented bullets improve both ATS and recruiter scans.",
-          impact: "high",
-          path: "sections.experience",
-        }];
+        const hasExperience = getSections(job.data.resume).experience.length > 0;
+        perSectionSuggestions.experience = hasExperience
+          ? [{
+              id: createSuggestionId("fallback-experience", 0),
+              originalText: "",
+              suggestionText: "Rewrite weak bullets with action verb + task + measurable result. Include one metric in each of your top 3 bullets.",
+              reason: "Result-oriented bullets improve both ATS and recruiter scans.",
+              impact: "high",
+              path: "sections.experience",
+            }]
+          : [{
+              id: createSuggestionId("fallback-experience", 0),
+              originalText: "",
+              suggestionText: `Add a dedicated Experience section with at least 2-3 entries. For each role, include your title, company, dates, and 3-5 bullet points with measurable achievements. Mention keywords like ${keywordGapsForFallback.join(", ") || "your relevant technologies and tools"}.`,
+              reason: "An experience section is critical for ATS — most systems filter candidates by experience.",
+              impact: "high",
+              path: "sections.experience",
+            }];
 
         perSectionSuggestions.skills = [{
           id: createSuggestionId("fallback-skills", 0),
@@ -777,7 +778,6 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
         ...(enhancement.formatIssues?.length ? { formatIssues: enhancement.formatIssues } : {}),
         ...(enhancement.contentImprovements?.length ? { contentImprovements: enhancement.contentImprovements } : {}),
         ...(enhancement.sectionAnalysis?.length ? { sectionAnalysis: enhancement.sectionAnalysis } : {}),
-        ...(enhancement.atsOptimizationTips?.length ? { atsOptimizationTips: enhancement.atsOptimizationTips } : {}),
       };
 
       logger.info({ jobId: job.id, provider }, "ATS AI enhancement applied");
@@ -1195,7 +1195,6 @@ export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysis
         formatIssues: report.formatIssues ?? undefined,
         contentImprovements: report.contentImprovements ?? undefined,
         sectionAnalysis: report.sectionAnalysis ?? undefined,
-        atsOptimizationTips: report.atsOptimizationTips ?? undefined,
       },
       { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
     );

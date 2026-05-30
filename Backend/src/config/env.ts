@@ -162,20 +162,22 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+const normalizePem = (key: string) => key.replace(/\\n/g, "\n");
+
 const decoded = parsed.success ? {
   ...parsed.data,
   JWT_ACCESS_PRIVATE_KEY: process.env.JWT_ACCESS_PRIVATE_KEY_B64
     ? Buffer.from(process.env.JWT_ACCESS_PRIVATE_KEY_B64, "base64").toString("utf8")
-    : (parsed.data.JWT_ACCESS_PRIVATE_KEY || ""),
+    : normalizePem(parsed.data.JWT_ACCESS_PRIVATE_KEY || ""),
   JWT_ACCESS_PUBLIC_KEY: process.env.JWT_ACCESS_PUBLIC_KEY_B64
     ? Buffer.from(process.env.JWT_ACCESS_PUBLIC_KEY_B64, "base64").toString("utf8")
-    : (parsed.data.JWT_ACCESS_PUBLIC_KEY || ""),
+    : normalizePem(parsed.data.JWT_ACCESS_PUBLIC_KEY || ""),
   JWT_REFRESH_PRIVATE_KEY: process.env.JWT_REFRESH_PRIVATE_KEY_B64
     ? Buffer.from(process.env.JWT_REFRESH_PRIVATE_KEY_B64, "base64").toString("utf8")
-    : (parsed.data.JWT_REFRESH_PRIVATE_KEY || ""),
+    : normalizePem(parsed.data.JWT_REFRESH_PRIVATE_KEY || ""),
   JWT_REFRESH_PUBLIC_KEY: process.env.JWT_REFRESH_PUBLIC_KEY_B64
     ? Buffer.from(process.env.JWT_REFRESH_PUBLIC_KEY_B64, "base64").toString("utf8")
-    : (parsed.data.JWT_REFRESH_PUBLIC_KEY || ""),
+    : normalizePem(parsed.data.JWT_REFRESH_PUBLIC_KEY || ""),
 } : ({} as z.output<typeof envSchema>);
 
 export const env = decoded;

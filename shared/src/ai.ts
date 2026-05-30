@@ -229,7 +229,6 @@ export type AtsAnalysisReport = {
   formatIssues?: AtsFormatIssue[];
   contentImprovements?: AtsContentImprovement[];
   sectionAnalysis?: AtsSectionAnalysis[];
-  atsOptimizationTips?: string[];
 };
 
 export const AI_TONE_OPTIONS: AiTone[] = ["professional", "concise", "technical", "leadership-focused"];
