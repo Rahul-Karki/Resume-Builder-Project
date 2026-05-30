@@ -129,7 +129,6 @@ RETURN THIS EXACT JSON SCHEMA:
       "recommendations": ["<rec 1>", "<rec 2>"]
     }}
   ],
-  "atsOptimizationTips": ["<tip 1>", "<tip 2>", "<tip 3>"],
   "priorityFixes": [
     {{
       "priority": 1,

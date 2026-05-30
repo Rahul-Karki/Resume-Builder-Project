@@ -195,33 +195,50 @@ const callOpenAIJson = async (systemPrompt: string, userPrompt: string, signal: 
 
 const callOpenRouterJson = async (systemPrompt: string, userPrompt: string, signal: AbortSignal) => {
   const baseUrl = env.OPENROUTER_BASE_URL.replace(/\/+$/, "");
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-      "HTTP-Referer": "https://resume-builder-project-3h9o.vercel.app",
-      "X-Title": "Resume Builder",
-    },
-    signal,
-    body: JSON.stringify({
-      model: env.OPENROUTER_MODEL,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
-  });
+  const models = [env.OPENROUTER_MODEL, ...env.OPENROUTER_FALLBACK_MODELS];
+  let lastError: unknown;
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`OpenRouter request failed with status ${response.status}: ${body.slice(0, 200)}`);
+  for (const model of models) {
+    try {
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://resume-builder-project-3h9o.vercel.app",
+          "X-Title": "Resume Builder",
+        },
+        signal,
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      });
+
+      if (response.ok) {
+        const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+        return json.choices?.[0]?.message?.content ?? "{}";
+      }
+
+      const body = await response.text().catch(() => "");
+      if (response.status === 429 || response.status === 503) {
+        lastError = new Error(`OpenRouter rate limited on ${model}: ${response.status} ${body.slice(0, 200)}`);
+        continue;
+      }
+
+      throw new Error(`OpenRouter request failed with status ${response.status}: ${body.slice(0, 200)}`);
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") throw error;
+      lastError = error;
+    }
   }
 
-  const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-  return json.choices?.[0]?.message?.content ?? "{}";
+  throw lastError || new Error("All OpenRouter models exhausted");
 };
 
 const callGeminiJson = async (systemPrompt: string, userPrompt: string, signal: AbortSignal) => {

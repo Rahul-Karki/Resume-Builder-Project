@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Eye, EyeOff, GripVertical, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
-import { api, getLatestAtsAnalysis } from '@/services/api';
+import { api } from '@/services/api';
 import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { useViewport } from '@/hooks/useViewport';
@@ -14,11 +14,10 @@ import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
 import { ATSAnalysisPanel } from '@/components/builder/ATSAnalysisPanel';
 import { Logo } from '@/components/Logo';
 import { PaginatedResumePreview } from '@/components/builder/PaginatedResumePreview';
-import { AtsTipsPanel } from '@/components/builder/AtsTipsPanel';
 import { A4_WIDTH_PX } from '@/utils/resumePagination';
 
 type LeftTab = 'content' | 'style' | 'sections';
-type AssistantTab = 'tips' | 'ai' | 'ats';
+type AssistantTab = 'ai' | 'ats';
 
 type FocusTarget = {
   label: string;
@@ -106,7 +105,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const location = useLocation();
 
   const [leftTab, setLeftTab] = useState<LeftTab>('content');
-  const [assistantTab, setAssistantTab] = useState<AssistantTab>('tips');
+  const [assistantTab, setAssistantTab] = useState<AssistantTab>('ai');
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -116,7 +115,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
   const [previewScale, setPreviewScale] = useState(1);
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
-  const [latestAnalysis, setLatestAnalysis] = useState<any | null>(null);
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
@@ -250,16 +248,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       } catch {
         // keep page usable without auth prefill
       }
-
-      // load latest ATS analysis for this resume (if saved)
-      try {
-        if (resume?._id) {
-          const res = await getLatestAtsAnalysis(resume._id);
-          setLatestAnalysis(res.analysis ?? null);
-        }
-      } catch {
-        setLatestAnalysis(null);
-      }
     };
 
     void run();
@@ -294,48 +282,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
-
-  const resumeStrength = useMemo(() => {
-    const entries = resume.sections.experience;
-    const totalWords = entries.reduce((acc, curr) => acc + getEntryDescription(curr).split(/\s+/).filter(Boolean).length, 0);
-    const metrics = entries.reduce((acc, curr) => acc + (getEntryDescription(curr).match(/\d+/g) || []).length, 0);
-
-    let score = 40;
-    if (totalWords > 50) score += 14;
-    if (totalWords > 120) score += 14;
-    score += Math.min(24, metrics * 4);
-    score += Math.min(10, entries.length * 2);
-
-    return Math.max(10, Math.min(95, Math.round(score)));
-  }, [resume.sections.experience]);
-
-  const weakVerbUsage = useMemo(() => {
-    const ledCount = resume.sections.experience.reduce((acc, entry) => {
-      return acc + ((getEntryDescription(entry).match(/\bled\b/gi) || []).length);
-    }, 0);
-    return ledCount > 1;
-  }, [resume.sections.experience]);
-
-  const hasSummary = useMemo(() => (resume.personalInfo.summary?.trim()?.length ?? 0) > 20, [resume.personalInfo.summary]);
-  const summaryLength = useMemo(() => resume.personalInfo.summary?.trim()?.length ?? 0, [resume.personalInfo.summary]);
-  const hasSkills = useMemo(() => (resume.sections.skills?.length ?? 0) > 0, [resume.sections.skills]);
-  const hasEducation = useMemo(() => (resume.sections.education?.length ?? 0) > 0, [resume.sections.education]);
-  const hasProjects = useMemo(() => (resume.sections.projects?.length ?? 0) > 0, [resume.sections.projects]);
-  const totalBullets = useMemo(() =>
-    resume.sections.experience.reduce((acc, entry) => acc + (entry.bullets?.length ?? 0), 0),
-    [resume.sections.experience]
-  );
-  const bulletsWithMetrics = useMemo(() =>
-    resume.sections.experience.reduce((acc, entry) => {
-      const bullets = entry.bullets ?? [];
-      return acc + bullets.filter((b: string) => /\d/.test(b)).length;
-    }, 0),
-    [resume.sections.experience]
-  );
-  const contactComplete = useMemo(() =>
-    Boolean(resume.personalInfo.email?.trim() && resume.personalInfo.name?.trim()),
-    [resume.personalInfo.email, resume.personalInfo.name]
-  );
 
   const focusedTarget = useMemo<FocusTarget | null>(() => {
     const focused = ui.focusedField as FocusedEditorField | null;
@@ -470,89 +416,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     setTemplateId(normalized);
     await applyTemplateUpgrade(normalized);
   };
-
-  const compactInsights = [
-    {
-      icon: '•',
-      text: `Resume strength score: ${resumeStrength}%`,
-      tone: 'text-zinc-300',
-    },
-    {
-      icon: weakVerbUsage ? '⚠' : '✓',
-      text: weakVerbUsage ? 'Weak verbs detected — replace "Led" with action verbs like "Drove", "Delivered", "Architected"' : 'Strong action verbs used',
-      tone: weakVerbUsage ? 'text-amber-300' : 'text-emerald-300',
-    },
-    ...(!hasSummary ? [{
-      icon: '⚠',
-      text: 'Add a 2-3 line professional summary — ATS systems weight it heavily for keyword matching',
-      tone: 'text-amber-300',
-    }] : summaryLength < 80 ? [{
-      icon: '⚠',
-      text: `Summary is too short (${summaryLength} chars). Aim for 80-200 characters for optimal ATS parsing`,
-      tone: 'text-amber-300',
-    }] : summaryLength > 500 ? [{
-      icon: '⚠',
-      text: `Summary is too long (${summaryLength} chars). Keep under 500 characters for ATS readability`,
-      tone: 'text-amber-300',
-    }] : [{
-      icon: '✓',
-      text: `Summary length is good (${summaryLength} chars)`,
-      tone: 'text-emerald-300',
-    }]),
-    ...(bulletsWithMetrics < 2 ? [{
-      icon: '⚠',
-      text: 'Add measurable metrics (numbers, %, $) to at least 2 bullets — quantified impact boosts ATS content score',
-      tone: 'text-amber-300',
-    }] : bulletsWithMetrics >= 4 ? [{
-      icon: '✓',
-      text: `Great job — ${bulletsWithMetrics} bullets include metrics, strongly improving ATS content quality score`,
-      tone: 'text-emerald-300',
-    }] : [{
-      icon: '✓',
-      text: `${bulletsWithMetrics} bullets include metrics. Add more to maximize ATS content quality scoring`,
-      tone: 'text-emerald-300',
-    }]),
-    ...(!hasSkills ? [{
-      icon: '⚠',
-      text: 'Add a skills section — ATS systems use it as a primary keyword signal',
-      tone: 'text-amber-300',
-    }] : []),
-    ...(!hasEducation ? [{
-      icon: '⚠',
-      text: 'Education section is missing — many ATS filters require it even for experienced roles',
-      tone: 'text-amber-300',
-    }] : []),
-    ...(!hasProjects && resume.sections.experience.length < 2 ? [{
-      icon: '💡',
-      text: 'Add a projects section to showcase practical experience if you have limited work history',
-      tone: 'text-blue-300',
-    }] : []),
-    ...(totalBullets < 6 ? [{
-      icon: '💡',
-      text: `Only ${totalBullets} bullet points across all experience. Aim for 3-5 bullets per role for ATS depth`,
-      tone: 'text-blue-300',
-    }] : []),
-    ...(!contactComplete ? [{
-      icon: '⚠',
-      text: 'Ensure name and email are filled — these are critical for ATS parsing and recruiter contact',
-      tone: 'text-amber-300',
-    }] : []),
-    {
-      icon: '💡',
-      text: 'Use standard section headings (Summary, Experience, Skills, Education) — custom headers confuse ATS parsers',
-      tone: 'text-blue-300',
-    },
-    {
-      icon: '💡',
-      text: 'Avoid tables, columns, icons, and graphics — ATS systems often fail to parse them correctly',
-      tone: 'text-blue-300',
-    },
-    {
-      icon: '💡',
-      text: 'Include relevant keywords from job descriptions in your summary and skills sections naturally',
-      tone: 'text-blue-300',
-    },
-  ];
 
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
 
@@ -692,7 +555,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <div className="p-3 border-b border-zinc-800/70">
             <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
               {([
-                ['tips', 'Tips'],
                 ['ai', 'AI'],
                 ['ats', 'ATS'],
               ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
@@ -703,11 +565,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
-            {assistantTab === 'tips' && (
-              <div className="space-y-2.5">
-                <AtsTipsPanel latestAnalysis={latestAnalysis} compactInsights={compactInsights} />
-              </div>
-            )}
             {assistantTab === 'ai' && <AIAssistantPanel />}
             {assistantTab === 'ats' && <ATSAnalysisPanel />}
           </div>
@@ -721,7 +578,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <div className="p-3 border-b border-zinc-800/70">
             <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
               {([
-                ['tips', 'Tips'],
                 ['ai', 'AI'],
                 ['ats', 'ATS'],
               ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
@@ -732,11 +588,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
-            {assistantTab === 'tips' && (
-              <div className="space-y-2.5">
-                <AtsTipsPanel latestAnalysis={latestAnalysis} compactInsights={compactInsights} />
-              </div>
-            )}
             {assistantTab === 'ai' && <AIAssistantPanel />}
             {assistantTab === 'ats' && <ATSAnalysisPanel />}
           </div>

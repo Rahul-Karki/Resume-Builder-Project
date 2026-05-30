@@ -59,6 +59,7 @@ const baseEnvSchema = z.object({
   GEMINI_MODEL: z.string().min(1).default("gemini-2.0-flash"),
   OPENROUTER_API_KEY: z.string().optional().default(""),
   OPENROUTER_MODEL: z.string().min(1).default("openai/gpt-4o-mini"),
+  OPENROUTER_FALLBACK_MODELS: z.string().optional().default(""),
   OPENROUTER_BASE_URL: z.string().default("https://openrouter.ai/api/v1"),
   AI_REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1000).default(12000),
   AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
@@ -145,6 +146,10 @@ const envSchema = baseEnvSchema
     GEMINI_API_KEY: value.GEMINI_API_KEY.trim(),
     OPENROUTER_API_KEY: value.OPENROUTER_API_KEY.trim(),
     OPENROUTER_MODEL: value.OPENROUTER_MODEL.trim(),
+    OPENROUTER_FALLBACK_MODELS: value.OPENROUTER_FALLBACK_MODELS
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean),
     OPENROUTER_BASE_URL: value.OPENROUTER_BASE_URL.trim(),
     UPSTASH_REDIS_REST_URL: value.UPSTASH_REDIS_REST_URL.trim(),
     UPSTASH_REDIS_REST_TOKEN: value.UPSTASH_REDIS_REST_TOKEN.trim(),
