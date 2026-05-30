@@ -32,7 +32,7 @@ const baseEnvSchema = z.object({
   JWT_REFRESH_PUBLIC_KEY: z.string().optional().default(""),
   JWT_REFRESH_PUBLIC_KEY_OLD: z.string().optional().default(""),
   RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
-  RESEND_FROM: z.string().email("RESEND_FROM must be a valid email").optional(),
+  RESEND_FROM: z.string().email("RESEND_FROM must be a valid email"),
   GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   SERVICE_NAME: z.string().min(1).default("resume-builder-backend"),
@@ -95,14 +95,6 @@ const envSchema = baseEnvSchema
           message: `Invalid URL in FRONTEND_URLS: ${origin}`,
         });
       }
-    }
-
-    if (!value.RESEND_FROM) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["RESEND_FROM"],
-        message: "RESEND_FROM must be set",
-      });
     }
 
     if (!value.METRICS_PATH.startsWith("/")) {
