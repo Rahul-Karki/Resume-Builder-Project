@@ -69,17 +69,16 @@ describe("auth integration", () => {
   it("auth signup and login flows work end to end", async () => {
     const user = getTestUser();
 
-    const signupAgent = request.agent(app);
-    const signupResponse = await signupAgent
+    const agent = request.agent(app);
+    const signupResponse = await agent
       .post("/api/auth/signup")
       .send(user)
       .expect(201);
 
     expect(signupResponse.body.user.email).toBe(user.email);
-    expect(typeof signupResponse.body.csrfToken).toBe("string");
+    // Signup doesn't return csrfToken — user must verify email, then login
 
-    const loginAgent = request.agent(app);
-    const loginResponse = await loginAgent
+    const loginResponse = await agent
       .post("/api/auth/login")
       .send({ email: user.email, password: user.password })
       .expect(200);
@@ -92,13 +91,18 @@ describe("auth integration", () => {
     const user = getTestUser();
     const agent = request.agent(app);
 
-    const signupResponse = await agent
+    await agent
       .post("/api/auth/signup")
       .send(user)
       .expect(201);
 
-    const csrfToken = signupResponse.body.csrfToken;
-    const userId = signupResponse.body.user.id;
+    const loginResponse = await agent
+      .post("/api/auth/login")
+      .send({ email: user.email, password: user.password })
+      .expect(200);
+
+    const csrfToken = loginResponse.body.csrfToken;
+    const userId = loginResponse.body.user.id;
     const layoutId = `integration-template-${randomUUID().slice(0, 8)}`;
 
     await Template.create({

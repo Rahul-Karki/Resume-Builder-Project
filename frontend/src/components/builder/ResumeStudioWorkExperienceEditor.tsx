@@ -316,6 +316,27 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     return ledCount > 1;
   }, [resume.sections.experience]);
 
+  const hasSummary = useMemo(() => (resume.personalInfo.summary?.trim()?.length ?? 0) > 20, [resume.personalInfo.summary]);
+  const summaryLength = useMemo(() => resume.personalInfo.summary?.trim()?.length ?? 0, [resume.personalInfo.summary]);
+  const hasSkills = useMemo(() => (resume.sections.skills?.length ?? 0) > 0, [resume.sections.skills]);
+  const hasEducation = useMemo(() => (resume.sections.education?.length ?? 0) > 0, [resume.sections.education]);
+  const hasProjects = useMemo(() => (resume.sections.projects?.length ?? 0) > 0, [resume.sections.projects]);
+  const totalBullets = useMemo(() =>
+    resume.sections.experience.reduce((acc, entry) => acc + (entry.bullets?.length ?? 0), 0),
+    [resume.sections.experience]
+  );
+  const bulletsWithMetrics = useMemo(() =>
+    resume.sections.experience.reduce((acc, entry) => {
+      const bullets = entry.bullets ?? [];
+      return acc + bullets.filter((b: string) => /\d/.test(b)).length;
+    }, 0),
+    [resume.sections.experience]
+  );
+  const contactComplete = useMemo(() =>
+    Boolean(resume.personalInfo.email?.trim() && resume.personalInfo.name?.trim()),
+    [resume.personalInfo.email, resume.personalInfo.name]
+  );
+
   const focusedTarget = useMemo<FocusTarget | null>(() => {
     const focused = ui.focusedField as FocusedEditorField | null;
     if (!focused) return null;
@@ -458,17 +479,77 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     },
     {
       icon: weakVerbUsage ? '⚠' : '✓',
-      text: weakVerbUsage ? 'Weak verbs detected in experience text' : 'Strong action verbs used in experience',
+      text: weakVerbUsage ? 'Weak verbs detected — replace "Led" with action verbs like "Drove", "Delivered", "Architected"' : 'Strong action verbs used',
       tone: weakVerbUsage ? 'text-amber-300' : 'text-emerald-300',
     },
-    {
+    ...(!hasSummary ? [{
+      icon: '⚠',
+      text: 'Add a 2-3 line professional summary — ATS systems weight it heavily for keyword matching',
+      tone: 'text-amber-300',
+    }] : summaryLength < 80 ? [{
+      icon: '⚠',
+      text: `Summary is too short (${summaryLength} chars). Aim for 80-200 characters for optimal ATS parsing`,
+      tone: 'text-amber-300',
+    }] : summaryLength > 500 ? [{
+      icon: '⚠',
+      text: `Summary is too long (${summaryLength} chars). Keep under 500 characters for ATS readability`,
+      tone: 'text-amber-300',
+    }] : [{
       icon: '✓',
-      text: 'Add measurable metrics in at least 2 bullets',
+      text: `Summary length is good (${summaryLength} chars)`,
       tone: 'text-emerald-300',
+    }]),
+    ...(bulletsWithMetrics < 2 ? [{
+      icon: '⚠',
+      text: 'Add measurable metrics (numbers, %, $) to at least 2 bullets — quantified impact boosts ATS content score',
+      tone: 'text-amber-300',
+    }] : bulletsWithMetrics >= 4 ? [{
+      icon: '✓',
+      text: `Great job — ${bulletsWithMetrics} bullets include metrics, strongly improving ATS content quality score`,
+      tone: 'text-emerald-300',
+    }] : [{
+      icon: '✓',
+      text: `${bulletsWithMetrics} bullets include metrics. Add more to maximize ATS content quality scoring`,
+      tone: 'text-emerald-300',
+    }]),
+    ...(!hasSkills ? [{
+      icon: '⚠',
+      text: 'Add a skills section — ATS systems use it as a primary keyword signal',
+      tone: 'text-amber-300',
+    }] : []),
+    ...(!hasEducation ? [{
+      icon: '⚠',
+      text: 'Education section is missing — many ATS filters require it even for experienced roles',
+      tone: 'text-amber-300',
+    }] : []),
+    ...(!hasProjects && resume.sections.experience.length < 2 ? [{
+      icon: '💡',
+      text: 'Add a projects section to showcase practical experience if you have limited work history',
+      tone: 'text-blue-300',
+    }] : []),
+    ...(totalBullets < 6 ? [{
+      icon: '💡',
+      text: `Only ${totalBullets} bullet points across all experience. Aim for 3-5 bullets per role for ATS depth`,
+      tone: 'text-blue-300',
+    }] : []),
+    ...(!contactComplete ? [{
+      icon: '⚠',
+      text: 'Ensure name and email are filled — these are critical for ATS parsing and recruiter contact',
+      tone: 'text-amber-300',
+    }] : []),
+    {
+      icon: '💡',
+      text: 'Use standard section headings (Summary, Experience, Skills, Education) — custom headers confuse ATS parsers',
+      tone: 'text-blue-300',
     },
     {
-      icon: '✓',
-      text: 'Missing React/TypeScript keywords in summary',
+      icon: '💡',
+      text: 'Avoid tables, columns, icons, and graphics — ATS systems often fail to parse them correctly',
+      tone: 'text-blue-300',
+    },
+    {
+      icon: '💡',
+      text: 'Include relevant keywords from job descriptions in your summary and skills sections naturally',
       tone: 'text-blue-300',
     },
   ];

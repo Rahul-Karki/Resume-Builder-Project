@@ -25,6 +25,8 @@ describe("env configuration", () => {
     vi.stubEnv("JWT_REFRESH_SECRET", "refresh-secret");
     vi.stubEnv("RESEND_API_KEY", "resend-key");
     vi.stubEnv("GOOGLE_CLIENT_ID", "google-id");
+    vi.stubEnv("LOG_LEVEL", "info");
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
     const { env } = await import("../config/env");
     expect(env.LOG_LEVEL).toBe("info");
     expect(env.SERVICE_NAME).toBe("resume-builder-backend");

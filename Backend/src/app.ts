@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -97,7 +98,7 @@ export const createApp = () => {
     threshold: 1024, // only compress responses larger than 1KB
   }));
 
-  // 3. Helmet for security headers
+  // 3. Helmet for security headers with per-request CSP nonces
   app.use(helmet({
     strictTransportSecurity: {
       maxAge: 31536000,
@@ -108,20 +109,27 @@ export const createApp = () => {
     referrerPolicy: { policy: "no-referrer" },
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://accounts.google.com"],
-        styleSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "blob:", "https://*.googleusercontent.com"],
-        fontSrc: ["'self'", "data:"],
-        connectSrc: ["'self'", "https://accounts.google.com"],
-        frameSrc: ["'self'", "https://accounts.google.com"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    },
   }));
+  // Per-request CSP with nonces for inline scripts
+  app.use((_req, res, next) => {
+    const nonce = crypto.randomBytes(16).toString("base64");
+    res.locals.cspNonce = nonce;
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        `script-src 'self' https://accounts.google.com 'nonce-${nonce}'`,
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob: https://*.googleusercontent.com",
+        "font-src 'self' data:",
+        "connect-src 'self' https://accounts.google.com",
+        "frame-src 'self' https://accounts.google.com",
+        "object-src 'none'",
+        "upgrade-insecure-requests",
+      ].join("; ")
+    );
+    next();
+  });
 
   // 4. Global instrumentation and size checks before body parsing
   app.use(correlationIdMiddleware);
@@ -148,20 +156,23 @@ export const createApp = () => {
     res.json(openAPISpec);
   });
 
-  // Versioned API routes — accept header negotiation
-  // Clients can use Accept: application/vnd.resume-builder.v1+json
-  const apiVersionRouter = express.Router();
+  // API routes — single mount point under /api
+  // Legacy /api/v1 prefix is supported via a simple rewrite middleware
+  const apiRouter = express.Router();
 
-  apiVersionRouter.use("/auth", authRoutes);
-  apiVersionRouter.use("/", refreshRoutes);
-  apiVersionRouter.use("/ai", aiRoutes);
-  apiVersionRouter.use("/resumes", resumeRoutes);
-  apiVersionRouter.use("/admin", adminRoutes);
+  apiRouter.use("/auth", authRoutes);
+  apiRouter.use("/", refreshRoutes);
+  apiRouter.use("/ai", aiRoutes);
+  apiRouter.use("/resumes", resumeRoutes);
+  apiRouter.use("/admin", adminRoutes);
 
-  // Unversioned routes (preferred for new clients)
-  app.use("/api/v1", apiVersionRouter);
-  // Legacy /api/ prefix — already in apiVersionRouter, no duplicate mounts needed
-  app.use("/api", apiVersionRouter);
+  // Primary mount
+  app.use("/api", apiRouter);
+  // Legacy /api/v1 support: strip the /v1 prefix so middleware fires only once
+  app.use("/api/v1", (req, _res, next) => {
+    req.url = req.url.replace(/^\/v1/, "");
+    next();
+  }, apiRouter);
   // Templates and health — not in auth-protected router
   app.use("/api/templates", templateRoutes);
   app.use("/api/health", healthRoutes);

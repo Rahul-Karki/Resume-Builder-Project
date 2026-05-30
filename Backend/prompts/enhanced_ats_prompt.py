@@ -18,9 +18,11 @@ The analysis must be practical, actionable, section-aware, and optimized for rea
 CORE GOALS:
 1. Calculate a highly accurate ATS compatibility score out of 100.
 2. Detect: missing keywords, weak impact statements, formatting issues, parsing issues, section problems, readability issues, keyword stuffing, low-quality bullet points, poor metric usage, bad resume structure, weak action verbs, inconsistent formatting, ATS-unfriendly design patterns.
-3. Generate DIRECTLY APPLICABLE improvements.
-4. Every suggestion MUST: specify exact location, explain WHY it hurts ATS score, provide improved replacement content, provide one-click apply changes.
-5. Output MUST be optimized for: frontend rendering, inline editing, diff highlighting, click-to-apply improvements, section-by-section updates.
+3. Generate DIRECTLY APPLICABLE improvements that maximize ATS score gain.
+4. Every suggestion MUST: specify exact location, explain WHY it hurts ATS score, provide improved replacement content, provide one-click apply changes, and ESTIMATE THE POINTS GAINED toward the overall ATS score.
+5. Rank suggestions by score impact — highest potential gain first.
+6. Align every suggestion with one of the 5 ATS scoring categories (keywordMatch, parsing, contentQuality, experienceRelevance, formatting) and state which category it improves.
+7. Output MUST be optimized for: frontend rendering, inline editing, diff highlighting, click-to-apply improvements, section-by-section updates.
 
 ATS SCORING ENGINE — Score each category 0-100, then compute weighted overall score:
 
@@ -57,6 +59,9 @@ OUTPUT REQUIREMENTS:
 1) Output valid JSON only (no markdown).
 2) Score each of the 5 weighted categories 0-100 (keywordMatch, parsing, contentQuality, experienceRelevance, formatting), then compute weighted overallScore.
 3) If JOB_DESCRIPTION is empty, infer target role keywords from resume.
+4) Every suggestion MUST include a realistic "atsGain" (0-15 points) estimating how much applying it would increase the overall score.
+5) Order suggestions by atsGain descending — highest impact first.
+6) Each suggestion must reference which ATS category it improves (keywordMatch, parsing, contentQuality, experienceRelevance, or formatting).
 
 RETURN THIS EXACT JSON SCHEMA:
 {{
@@ -108,6 +113,7 @@ RETURN THIS EXACT JSON SCHEMA:
       "reason": "<why this improves the score>",
       "impact": "<score impact description>",
       "atsGain": <0-15>,
+      "atsCategory": "<keywordMatch|parsing|contentQuality|experienceRelevance|formatting>",
       "clickToApply": {{
         "type": "replace",
         "targetText": "<exact old text>",
@@ -128,7 +134,8 @@ RETURN THIS EXACT JSON SCHEMA:
     {{
       "priority": 1,
       "issue": "<what to fix>",
-      "expectedScoreIncrease": <0-25>
+      "expectedScoreIncrease": <0-25>,
+      "atsCategory": "<keywordMatch|parsing|contentQuality|experienceRelevance|formatting>"
     }}
   ]
 }}

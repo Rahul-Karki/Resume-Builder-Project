@@ -30,7 +30,7 @@ const getAuthCookieOptions = (req: Request) => ({
 
 const getCsrfCookieOptions = (req: Request) => ({
   ...getBaseCookieOptions(req),
-  httpOnly: false, // MUST be false so JS can read via document.cookie for double-submit CSRF pattern
+  httpOnly: true, // Prevent XSS from reading the token; JS gets it from response body instead
 });
 
 const createCsrfToken = () => crypto.randomBytes(32).toString("hex");

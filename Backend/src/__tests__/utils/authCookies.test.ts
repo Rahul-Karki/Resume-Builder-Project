@@ -53,7 +53,7 @@ describe("authCookies", () => {
   });
 
   describe("setCsrfCookie", () => {
-    it("should return token and set client-readable cookie", () => {
+    it("should return token and set HttpOnly cookie", () => {
       const req = createReq();
       const res = createRes();
 
@@ -63,7 +63,7 @@ describe("authCookies", () => {
       expect(res.cookies.length).toBe(1);
       expect(res.cookies[0].name).toBe("csrfToken");
       expect(res.cookies[0].value).toBe(csrfToken);
-      expect(res.cookies[0].options.httpOnly).toBe(false);
+      expect(res.cookies[0].options.httpOnly).toBe(true);
     });
   });
 

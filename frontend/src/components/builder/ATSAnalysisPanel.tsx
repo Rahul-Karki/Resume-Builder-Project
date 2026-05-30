@@ -155,11 +155,11 @@ const css = `
   }
   .ats-btn-apply-rollback:hover { border-color: #ef4444; color: #fca5a5; }
 
-  .ats-loader-block { background: rgba(255, 255, 255, 0.03); border-radius: 6px; height: 14px; margin: 10px 0; position: relative; overflow: hidden; }
+  .ats-loader-block { background: rgba(255, 255, 255, 0.05); border-radius: 6px; height: 14px; margin: 10px 0; position: relative; overflow: hidden; }
   .ats-loader-block::after {
-    content: ""; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
-    animation: shimmer 1.5s infinite;
+    content: ""; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent);
+    animation: shimmer 1.4s ease-in-out infinite;
   }
 
   .ats-progress-bar { height: 8px; border-radius: 4px; background: #27272a; overflow: hidden; margin: 10px 0; }
@@ -261,22 +261,36 @@ export function ATSAnalysisPanel() {
     if (!resume._id) { setError("Please save your resume first."); return; }
     setLoading(true); setError(null);
     try {
-      await queueAtsAnalysis(resume._id, {
+      const result = await queueAtsAnalysis(resume._id, {
         jobTitle: resume.personalInfo.title || resume.title,
         reportType: "resume-analysis",
       });
-      setTimeout(async () => {
+      const analysis = (result as any)?.analysis ?? null;
+      if (analysis && analysis.overallScore != null) {
+        setReport(analysis);
+        setAnalysisDocId(analysis._id ?? analysis.id ?? null);
+        setSuggestionStatus({});
+        setLoading(false);
+        return;
+      }
+      let pollAttempts = 0;
+      const poll = async (): Promise<void> => {
+        if (pollAttempts >= 15) { setLoading(false); setError("Analysis timed out. Please try again."); return; }
+        pollAttempts++;
         try {
           const data = await getLatestAtsAnalysis(resume._id!);
-          const analysis = data?.analysis as any;
-          if (analysis) {
-            setReport(analysis);
-            setAnalysisDocId(analysis._id ?? null);
+          const a = data?.analysis as any;
+          if (a && a.overallScore != null && a.rewriteSuggestions?.length > 0) {
+            setReport(a);
+            setAnalysisDocId(a._id ?? a.id ?? null);
             setSuggestionStatus({});
-          } else setError("Analysis queued. Please try again.");
-        } catch { setError("Analysis queued. Please try again."); }
-        finally { setLoading(false); }
-      }, 2000);
+            setLoading(false);
+            return;
+          }
+        } catch { /* continue polling */ }
+        setTimeout(poll, 1500);
+      };
+      setTimeout(poll, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "ATS analysis failed");
       setLoading(false);
@@ -284,18 +298,37 @@ export function ATSAnalysisPanel() {
   }, [resume._id, resume.personalInfo.title, resume.title]);
 
   const handleApplySuggestion = useCallback(async (suggestion: AiSuggestion) => {
-    if (!resume._id || !analysisDocId || !suggestion.id) return;
+    if (!resume._id || !suggestion.id) return;
     setApplyingIds((prev) => new Set(prev).add(suggestion.id));
     try {
-      const result = await applyAtsSuggestion(resume._id, analysisDocId, suggestion.id);
+      const result = await applyAtsSuggestion(resume._id, analysisDocId ?? "", suggestion.id);
       if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
       setSuggestionStatus((prev) => ({ ...prev, [suggestion.id]: "applied" }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to apply suggestion");
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        if (!report) { setError("No analysis available. Run ATS check first."); return; }
+        const allSugs = Object.values(getSectionSuggestions(report)).flat();
+        const match = allSugs.find((s) => s.id === suggestion.id);
+        if (!match || !match.suggestionText || !match.path) {
+          setError("Suggestion data incomplete. Please re-run analysis.");
+          return;
+        }
+        try {
+          const section = match.path.startsWith("personalInfo") ? "summary" : "experience";
+          const payload = { section, copyPasteTemplate: match.suggestionText, suggestionId: match.id };
+          const result = await createMissingSection(resume._id, section, match.suggestionText);
+          if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
+          setSuggestionStatus((prev) => ({ ...prev, [suggestion.id]: "applied" }));
+        } catch (fallbackErr: any) {
+          setError(fallbackErr?.response?.data?.message || "Failed to apply suggestion. Try re-running analysis.");
+        }
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to apply suggestion");
+      }
     } finally {
       setApplyingIds((prev) => { const next = new Set(prev); next.delete(suggestion.id); return next; });
     }
-  }, [resume._id, analysisDocId]);
+  }, [resume._id, analysisDocId, report]);
 
   const handleApplyAll = useCallback(async () => {
     for (const s of pendingSuggestions) {
@@ -395,13 +428,39 @@ export function ATSAnalysisPanel() {
           )}
         </div>
 
-        {/* Loading skeleton */}
+        {/* Loading skeleton — realistic preview of results */}
         {loading && !report && (
           <div style={{ padding: "0 18px 14px" }}>
-            <div className="ats-loader-block" style={{ width: "60%", height: 68, borderRadius: 10 }} />
-            <div className="ats-loader-block" style={{ width: "90%" }} />
-            <div className="ats-loader-block" style={{ width: "70%" }} />
-            <div className="ats-loader-block" style={{ width: "80%" }} />
+            <div style={{ display: "flex", gap: 16, padding: "14px 0", alignItems: "center" }}>
+              <div className="ats-loader-block" style={{ width: 80, height: 80, borderRadius: "50%" }} />
+              <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div className="ats-loader-block" style={{ height: 48, borderRadius: 10 }} />
+                <div className="ats-loader-block" style={{ height: 48, borderRadius: 10 }} />
+                <div className="ats-loader-block" style={{ height: 48, borderRadius: 10 }} />
+                <div className="ats-loader-block" style={{ height: 48, borderRadius: 10 }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, margin: "6px 0 14px" }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="ats-loader-block" style={{ flex: 1, height: 44, borderRadius: 8 }} />
+              ))}
+            </div>
+            <div className="ats-loader-block" style={{ width: "40%", height: 12, borderRadius: 6, marginBottom: 10 }} />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="ats-card" style={{ margin: "0 0 10px" }}>
+                <div className="ats-loader-block" style={{ width: "50%", height: 12, borderRadius: 6 }} />
+                <div className="ats-loader-block" style={{ width: "90%", height: 10, borderRadius: 6, marginTop: 8 }} />
+                <div className="ats-loader-block" style={{ width: "70%", height: 10, borderRadius: 6, marginTop: 6 }} />
+              </div>
+            ))}
+            <div className="ats-loader-block" style={{ width: "100%", height: 8, borderRadius: 4, marginTop: 8 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+              <div className="ats-loader-block" style={{ width: 24, height: 24, borderRadius: "50%" }} />
+              <div className="ats-loader-block" style={{ width: "60%", height: 12, borderRadius: 6 }} />
+            </div>
+            <div style={{ textAlign: "center", marginTop: 12 }}>
+              <div className="ats-loader-block" style={{ width: "40%", height: 10, borderRadius: 6, margin: "0 auto" }} />
+            </div>
           </div>
         )}
 

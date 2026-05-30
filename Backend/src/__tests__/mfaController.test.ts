@@ -6,9 +6,15 @@ vi.mock("../utils/controllerObservability", () => ({ startControllerSpan: vi.fn(
 vi.mock("../utils/errorResponse", () => ({ sendErrorResponse: vi.fn((res: any, err: any) => res.status(err?.statusCode ?? 500).json({ message: err?.message ?? "Error" })) }));
 vi.mock("../errors/AppError", () => ({ AuthError: class extends Error { statusCode = 401; code = "AUTH_REQUIRED"; constructor(m: string) { super(m); } } }));
 vi.mock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock("otplib", () => ({
+  generateSecret: vi.fn(() => "JBSWY3DPEHPK3PXPANQGS2LTONQGC3TE"),
+  verify: vi.fn(),
+  generateURI: vi.fn(({ secret }) => `otpauth://totp/ResumeBuilder:test@test.com?secret=${secret}`),
+}));
 
 import { setupMfa, verifyMfa, disableMfa, getMfaStatus } from "../controllers/mfaController";
 import User from "../models/User";
+import { verify as otplibVerify } from "otplib";
 
 const buildUser = (overrides = {}) => ({
   _id: "user1",
@@ -58,7 +64,7 @@ describe("mfaController", () => {
 
   describe("verifyMfa", () => {
     it("should return 401 when the TOTP code is invalid (real crypto)", async () => {
-      vi.mocked(User.findById).mockResolvedValue(buildUser({ mfaSecret: "dGVzdC1zZWNyZXQ=", mfaSetupAt: new Date() }) as any);
+      vi.mocked(User.findById).mockResolvedValue(buildUser({ mfaSecret: "JBSWY3DPEHPK3PXPANQGS2LTONQGC3TE", mfaSetupAt: new Date() }) as any);
 
       const req = { user: { id: "user1" }, body: { token: "123456" }, headers: {} } as any;
       const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
@@ -69,7 +75,7 @@ describe("mfaController", () => {
     });
 
     it("should return 422 when the TOTP code is invalid", async () => {
-      vi.mocked(User.findById).mockResolvedValue(buildUser({ mfaSecret: "dGVzdC1zZWNyZXQ=" }) as any);
+      vi.mocked(User.findById).mockResolvedValue(buildUser({ mfaSecret: "JBSWY3DPEHPK3PXPANQGS2LTONQGC3TE" }) as any);
 
       const req = { user: { id: "user1" }, body: { code: "000000" }, headers: {} } as any;
       const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;

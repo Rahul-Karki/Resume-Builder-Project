@@ -59,7 +59,7 @@ export const verifyMfa = wrapController(async (req, res) => {
   if (!user) return sendError(res, "User not found", 404);
   if (!user.mfaSecret) return sendError(res, "MFA not setup", 400);
 
-  const isValid = verifyTotp({ token: String(token), secret: user.mfaSecret });
+  const isValid = await verifyTotp({ token: String(token), secret: user.mfaSecret });
 
   if (!isValid) {
     logger.warn({ userId: user._id }, "Invalid MFA token");

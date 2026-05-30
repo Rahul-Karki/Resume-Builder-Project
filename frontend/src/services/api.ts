@@ -48,19 +48,11 @@ const isExcludedPath = (url?: string) => {
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const MAX_TRANSIENT_RETRIES = 3;
 
-const parseCookieValue = (name: string): string => {
-  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}=(.*?)(?:;|$)`));
-  return match ? decodeURIComponent(match[1]) : "";
-};
-
-// ⚠️ SECURITY: CSRF token is stored ONLY in HttpOnly cookie set by backend.
-// We read from the cookie for the request header, but NEVER store in memory.
-// This prevents XSS attackers from accessing the token via global scope.
+// ⚠️ SECURITY: CSRF token is stored in an HttpOnly cookie set by the backend.
+// The token is returned in response bodies for the frontend to read.
+// It is stored ONLY in this module-level variable — NEVER read from document.cookie
+// (the cookie is HttpOnly, making it inaccessible to JavaScript).
 // withCredentials: true ensures the browser sends the cookie automatically.
-//
-// For cross-origin setups (frontend/backend on different origins), the cookie
-// is not readable via document.cookie. We store the token in a module-level
-// variable extracted from response bodies as a fallback.
 
 let _csrfToken: string | null = null;
 
@@ -69,9 +61,7 @@ const setCsrfToken = (token: string) => {
 };
 
 const getCsrfToken = (): string => {
-  // Try memory first (set from response body in cross-origin setups)
-  // Fall back to cookie (same-origin setups where cookie is readable via JS)
-  return _csrfToken ?? parseCookieValue("csrfToken") ?? "";
+  return _csrfToken ?? "";
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

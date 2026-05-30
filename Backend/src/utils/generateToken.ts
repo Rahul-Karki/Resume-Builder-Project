@@ -1,45 +1,59 @@
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
 import { env } from "../config/env";
 import { logger } from "../observability";
 
 let accessKeyPair: { publicKey: string; privateKey: string } | null = null;
 let refreshKeyPair: { publicKey: string; privateKey: string } | null = null;
 
-const KEY_BITS = 4096;
-
-const getOrGenerateAccessKeys = () => {
+const getAccessKeyPair = () => {
   if (accessKeyPair) return accessKeyPair;
-  if (env.JWT_ACCESS_PUBLIC_KEY && env.JWT_ACCESS_PRIVATE_KEY) {
-    accessKeyPair = { publicKey: env.JWT_ACCESS_PUBLIC_KEY, privateKey: env.JWT_ACCESS_PRIVATE_KEY };
-    return accessKeyPair;
-  }
-  logger.info("Generating ephemeral RSA key pair for access tokens (set JWT_ACCESS_PUBLIC_KEY + JWT_ACCESS_PRIVATE_KEY in production)");
-  const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: KEY_BITS, publicKeyEncoding: { type: "spki", format: "pem" }, privateKeyEncoding: { type: "pkcs8", format: "pem" } });
-  accessKeyPair = { publicKey, privateKey };
+  accessKeyPair = { publicKey: env.JWT_ACCESS_PUBLIC_KEY, privateKey: env.JWT_ACCESS_PRIVATE_KEY };
   return accessKeyPair;
 };
 
-const getOrGenerateRefreshKeys = () => {
+const getRefreshKeyPair = () => {
   if (refreshKeyPair) return refreshKeyPair;
-  if (env.JWT_REFRESH_PUBLIC_KEY && env.JWT_REFRESH_PRIVATE_KEY) {
-    refreshKeyPair = { publicKey: env.JWT_REFRESH_PUBLIC_KEY, privateKey: env.JWT_REFRESH_PRIVATE_KEY };
-    return refreshKeyPair;
-  }
-  logger.info("Generating ephemeral RSA key pair for refresh tokens (set JWT_REFRESH_PUBLIC_KEY + JWT_REFRESH_PRIVATE_KEY in production)");
-  const { publicKey, privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: KEY_BITS, publicKeyEncoding: { type: "spki", format: "pem" }, privateKeyEncoding: { type: "pkcs8", format: "pem" } });
-  refreshKeyPair = { publicKey, privateKey };
+  refreshKeyPair = { publicKey: env.JWT_REFRESH_PUBLIC_KEY, privateKey: env.JWT_REFRESH_PRIVATE_KEY };
   return refreshKeyPair;
 };
 
+// Prefer HMAC (HS256) when an explicit secret is provided. Fall back to RSA (RS256)
+// only when the secret is absent and RSA keypair is available.
 const generateAccessToken = (userId: string) => {
-  const { privateKey } = getOrGenerateAccessKeys();
-  return jwt.sign({ userId }, privateKey, { algorithm: "RS256", expiresIn: "15m" });
+  const hasHmac = typeof env.JWT_ACCESS_SECRET === "string" && env.JWT_ACCESS_SECRET.trim().length > 0;
+  const hasRsa = typeof env.JWT_ACCESS_PRIVATE_KEY === "string" && env.JWT_ACCESS_PRIVATE_KEY.trim().length > 0 &&
+    typeof env.JWT_ACCESS_PUBLIC_KEY === "string" && env.JWT_ACCESS_PUBLIC_KEY.trim().length > 0;
+
+  if (hasHmac) {
+    return jwt.sign({ userId }, env.JWT_ACCESS_SECRET, { algorithm: "HS256", expiresIn: "15m" });
+  }
+
+  if (hasRsa) {
+    const { privateKey } = getAccessKeyPair();
+    logger.info("Using RSA keys to sign access token");
+    return jwt.sign({ userId }, privateKey, { algorithm: "RS256", expiresIn: "15m" });
+  }
+
+  // No key material available — throw to make failures explicit.
+  throw new Error("No JWT access signing key configured");
 };
 
 const generateRefreshToken = (userId: string) => {
-  const { privateKey } = getOrGenerateRefreshKeys();
-  return jwt.sign({ userId }, privateKey, { algorithm: "RS256", expiresIn: "7d" });
+  const hasHmac = typeof env.JWT_REFRESH_SECRET === "string" && env.JWT_REFRESH_SECRET.trim().length > 0;
+  const hasRsa = typeof env.JWT_REFRESH_PRIVATE_KEY === "string" && env.JWT_REFRESH_PRIVATE_KEY.trim().length > 0 &&
+    typeof env.JWT_REFRESH_PUBLIC_KEY === "string" && env.JWT_REFRESH_PUBLIC_KEY.trim().length > 0;
+
+  if (hasHmac) {
+    return jwt.sign({ userId }, env.JWT_REFRESH_SECRET, { algorithm: "HS256", expiresIn: "7d" });
+  }
+
+  if (hasRsa) {
+    const { privateKey } = getRefreshKeyPair();
+    logger.info("Using RSA keys to sign refresh token");
+    return jwt.sign({ userId }, privateKey, { algorithm: "RS256", expiresIn: "7d" });
+  }
+
+  throw new Error("No JWT refresh signing key configured");
 };
 
-export { generateAccessToken, generateRefreshToken, getOrGenerateAccessKeys, getOrGenerateRefreshKeys };
+export { generateAccessToken, generateRefreshToken, getAccessKeyPair, getRefreshKeyPair };

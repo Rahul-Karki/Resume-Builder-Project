@@ -43,11 +43,11 @@ export const verifyTokenWithRotation = <T extends object>(
   const rotation = currentRotation || getRotationState();
 
   try {
-    return jwt.verify(token, rotation.primarySecret) as T;
+    return jwt.verify(token, rotation.primarySecret, { algorithms: ["HS256"] }) as T;
   } catch {
     if (rotation.secondarySecret) {
       try {
-        return jwt.verify(token, rotation.secondarySecret) as T;
+        return jwt.verify(token, rotation.secondarySecret, { algorithms: ["HS256"] }) as T;
       } catch {
         return null;
       }

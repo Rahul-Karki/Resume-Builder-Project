@@ -9,12 +9,13 @@ beforeEach(() => { vi.clearAllMocks(); });
 
 describe("sendEmail", () => {
   describe("sendEmail", () => {
+    beforeEach(() => { vi.stubEnv("NODE_ENV", "development"); });
     it("should send an email via Resend API", async () => {
       mockEmailsSend.mockResolvedValue({ error: null });
       const { sendEmail } = await import("../../utils/sendEmail");
       await expect(sendEmail("test@example.com", "https://reset.link")).resolves.toBeUndefined();
       expect(mockEmailsSend).toHaveBeenCalledWith(
-        expect.objectContaining({ to: "test@example.com", subject: "Reset Password" }),
+        expect.objectContaining({ to: "test@example.com", subject: "Reset your password" }),
       );
     });
 

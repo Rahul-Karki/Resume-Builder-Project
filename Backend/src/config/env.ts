@@ -7,7 +7,6 @@ const booleanFromEnv = z.preprocess((value) => {
     if (normalized === "true") return true;
     if (normalized === "false") return false;
   }
-
   return value;
 }, z.boolean());
 
@@ -15,7 +14,6 @@ const optionalUrlFromEnv = z.preprocess((value) => {
   if (typeof value === "string" && value.trim() === "") {
     return undefined;
   }
-
   return value;
 }, z.string().url().optional());
 
@@ -27,44 +25,33 @@ const baseEnvSchema = z.object({
   FRONTEND_URLS: z.string().optional().default(""),
   JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
   JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
-  JWT_ACCESS_PUBLIC_KEY: z.string().optional().default(""),
   JWT_ACCESS_PRIVATE_KEY: z.string().optional().default(""),
-  JWT_REFRESH_PUBLIC_KEY: z.string().optional().default(""),
+  JWT_ACCESS_PUBLIC_KEY: z.string().optional().default(""),
+  JWT_ACCESS_PUBLIC_KEY_OLD: z.string().optional().default(""),
   JWT_REFRESH_PRIVATE_KEY: z.string().optional().default(""),
+  JWT_REFRESH_PUBLIC_KEY: z.string().optional().default(""),
+  JWT_REFRESH_PUBLIC_KEY_OLD: z.string().optional().default(""),
   RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
   RESEND_FROM: z.string().email("RESEND_FROM must be a valid email").optional(),
-  EMAIL_FROM: z.string().email("EMAIL_FROM must be a valid email").optional(),
   GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
-  GOOGLE_CLIENT_SECRET: z.string().optional().default(""),
-  LOG_LEVEL: z
-    .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
-    .default("info"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   SERVICE_NAME: z.string().min(1).default("resume-builder-backend"),
   SERVICE_VERSION: z.string().min(1).default("1.0.0"),
-  REQUEST_BODY_LIMIT: z.string().default("5mb"),
-  // Error tracking via Prometheus metrics → Grafana Cloud
+  REQUEST_BODY_LIMIT: z.string().default("1mb"),
   ENABLE_METRICS: booleanFromEnv.default(true),
   METRICS_PATH: z.string().default("/metrics"),
   REDIS_URL: z.string().optional().default(""),
-  BULLMQ_REDIS_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_URL: z.string().optional().default(""),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().default(""),
-  // Soft limit to cap Upstash REST API calls per-process (helps free-tier limits)
   UPSTASH_CALLS_PER_MIN: z.coerce.number().int().min(10).default(600),
   USE_MEMORY_ONLY_CACHE: booleanFromEnv.default(false),
   REDIS_CONNECT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(5000),
   REDIS_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).default(300),
   REDIS_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(900000),
   REDIS_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(100),
-  RESUME_DOWNLOAD_QUEUE_PREFIX: z.string().min(1).default("resume-builder"),
-  RESUME_DOWNLOAD_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(2),
   RESUME_DOWNLOAD_JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(2),
-  RESUME_DOWNLOAD_BACKOFF_DELAY_MS: z.coerce.number().int().min(1000).default(5000),
-  RESUME_DOWNLOAD_STALE_PENDING_MS: z.coerce.number().int().min(60000).default(900000),
   RESUME_DOWNLOAD_JOB_TIMEOUT_MS: z.coerce.number().int().min(5000).default(120000),
-  ATS_ANALYSIS_QUEUE_PREFIX: z.string().min(1).default("resume-builder-ats"),
-  ATS_ANALYSIS_JOB_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(2),
-  ATS_ANALYSIS_BACKOFF_DELAY_MS: z.coerce.number().int().min(1000).default(3000),
+  RESUME_DOWNLOAD_STALE_PENDING_MS: z.coerce.number().int().min(60000).default(900000),
   AI_PROVIDER: z.enum(["openai", "gemini", "openrouter", "auto"]).default("auto"),
   OPENAI_API_KEY: z.string().optional().default(""),
   OPENAI_MODEL: z.string().min(1).default("gpt-4.1-mini"),
@@ -77,21 +64,15 @@ const baseEnvSchema = z.object({
   AI_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
   AI_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
   AI_CREDITS_ENFORCED: booleanFromEnv.default(false),
-  RESUME_DOWNLOAD_STORAGE_DIR: z.string().optional().default(""),
-  RESUME_DOWNLOAD_PUBLIC_BASE_URL: z.string().optional().default(""),
   PUPPETEER_EXECUTABLE_PATH: z.string().optional().default(""),
   GRAFANA_OTLP_ENDPOINT: optionalUrlFromEnv,
   OTEL_INSTANCE_ID: z.string().optional().default(""),
-  OTLP_INSTANCE_ID: z.string().optional().default(""),
   GRAFANA_API_TOKEN: z.string().optional().default(""),
   GRAFANA_LOKI_URL: optionalUrlFromEnv.default(""),
   LOKI_INSTANCE_ID: z.string().optional().default(""),
-  OTEL_SERVICE_NAME: z.string().min(1).optional(),
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrlFromEnv,
   OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: optionalUrlFromEnv,
   OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: optionalUrlFromEnv,
-  OTEL_EXPORTER_OTLP_HEADERS: z.string().optional().default(""),
-  OTEL_TRACES_SAMPLER_ARG: z.coerce.number().min(0).max(1).default(1),
   OTEL_METRIC_EXPORT_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
   INTEGRITY_CHECK_INTERVAL_MS: z.coerce.number().int().min(60000).default(3600000),
   CREATE_INDEXES_ON_STARTUP: booleanFromEnv.default(true),
@@ -116,11 +97,11 @@ const envSchema = baseEnvSchema
       }
     }
 
-    if (!value.RESEND_FROM && !value.EMAIL_FROM) {
+    if (!value.RESEND_FROM) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["RESEND_FROM"],
-        message: "Either RESEND_FROM or EMAIL_FROM must be set",
+        message: "RESEND_FROM must be set",
       });
     }
 
@@ -144,18 +125,6 @@ const envSchema = baseEnvSchema
       }
     }
 
-    if (value.BULLMQ_REDIS_URL) {
-      try {
-        new URL(value.BULLMQ_REDIS_URL);
-      } catch {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["BULLMQ_REDIS_URL"],
-          message: "BULLMQ_REDIS_URL must be a valid Redis connection URL",
-        });
-      }
-    }
-
     if (value.UPSTASH_REDIS_REST_URL) {
       try {
         new URL(value.UPSTASH_REDIS_REST_URL);
@@ -168,17 +137,6 @@ const envSchema = baseEnvSchema
       }
     }
 
-    const hasUpstashUrl = value.UPSTASH_REDIS_REST_URL.trim().length > 0;
-    const hasUpstashToken = value.UPSTASH_REDIS_REST_TOKEN.trim().length > 0;
-
-    if (hasUpstashUrl !== hasUpstashToken) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["UPSTASH_REDIS_REST_TOKEN"],
-        message: "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be provided together",
-      });
-    }
-
   })
   .transform((value) => ({
     ...value,
@@ -186,18 +144,11 @@ const envSchema = baseEnvSchema
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
-    RESEND_FROM: value.RESEND_FROM ?? value.EMAIL_FROM!,
-    SERVICE_NAME: value.SERVICE_NAME || value.OTEL_SERVICE_NAME || "resume-builder-backend",
-    OTEL_EXPORTER_OTLP_HEADERS: value.OTEL_EXPORTER_OTLP_HEADERS.trim(),
+    OTEL_INSTANCE_ID: value.OTEL_INSTANCE_ID.trim(),
     GRAFANA_LOKI_URL: value.GRAFANA_LOKI_URL.trim(),
     LOKI_INSTANCE_ID: value.LOKI_INSTANCE_ID.trim(),
-    OTEL_INSTANCE_ID: (value.OTEL_INSTANCE_ID || value.OTLP_INSTANCE_ID || "").trim(),
-    OTLP_INSTANCE_ID: value.OTLP_INSTANCE_ID.trim(),
     GRAFANA_API_TOKEN: value.GRAFANA_API_TOKEN.trim(),
-
     REDIS_URL: value.REDIS_URL.trim(),
-    BULLMQ_REDIS_URL: value.BULLMQ_REDIS_URL.trim(),
-    ATS_ANALYSIS_QUEUE_PREFIX: value.ATS_ANALYSIS_QUEUE_PREFIX.trim(),
     OPENAI_API_KEY: value.OPENAI_API_KEY.trim(),
     GEMINI_API_KEY: value.GEMINI_API_KEY.trim(),
     OPENROUTER_API_KEY: value.OPENROUTER_API_KEY.trim(),
@@ -219,4 +170,20 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const env = parsed.data;
+const decoded = parsed.success ? {
+  ...parsed.data,
+  JWT_ACCESS_PRIVATE_KEY: process.env.JWT_ACCESS_PRIVATE_KEY_B64
+    ? Buffer.from(process.env.JWT_ACCESS_PRIVATE_KEY_B64, "base64").toString("utf8")
+    : (parsed.data.JWT_ACCESS_PRIVATE_KEY || ""),
+  JWT_ACCESS_PUBLIC_KEY: process.env.JWT_ACCESS_PUBLIC_KEY_B64
+    ? Buffer.from(process.env.JWT_ACCESS_PUBLIC_KEY_B64, "base64").toString("utf8")
+    : (parsed.data.JWT_ACCESS_PUBLIC_KEY || ""),
+  JWT_REFRESH_PRIVATE_KEY: process.env.JWT_REFRESH_PRIVATE_KEY_B64
+    ? Buffer.from(process.env.JWT_REFRESH_PRIVATE_KEY_B64, "base64").toString("utf8")
+    : (parsed.data.JWT_REFRESH_PRIVATE_KEY || ""),
+  JWT_REFRESH_PUBLIC_KEY: process.env.JWT_REFRESH_PUBLIC_KEY_B64
+    ? Buffer.from(process.env.JWT_REFRESH_PUBLIC_KEY_B64, "base64").toString("utf8")
+    : (parsed.data.JWT_REFRESH_PUBLIC_KEY || ""),
+} : ({} as z.output<typeof envSchema>);
+
+export const env = decoded;

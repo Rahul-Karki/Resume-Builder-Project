@@ -23,12 +23,12 @@ vi.mock("../models/User", () => {
   };
 });
 vi.mock("../models/ResetToken", () => ({
-  default: Object.assign(vi.fn(), { findOne: vi.fn(), deleteMany: vi.fn(), create: vi.fn() }),
+  default: Object.assign(vi.fn(), { findOne: vi.fn(), deleteMany: vi.fn(), create: vi.fn(), countDocuments: vi.fn() }),
 }));
 vi.mock("bcrypt");
 vi.mock("../utils/generateToken", () => ({ generateAccessToken: vi.fn(() => "access"), generateRefreshToken: vi.fn(() => "refresh") }));
 vi.mock("../utils/hashToken", () => ({ default: vi.fn((t) => "hashed-" + t) }));
-vi.mock("../utils/sendEmail", () => ({ sendEmail: vi.fn() }));
+vi.mock("../utils/sendEmail", () => ({ sendEmail: vi.fn(), sendVerificationEmail: vi.fn() }));
 vi.mock("../utils/google", () => ({ verifyGoogleToken: vi.fn() }));
 vi.mock("../utils/authCookies", () => ({ setAuthCookies: vi.fn(() => "csrf-token"), clearAuthCookies: vi.fn() }));
 vi.mock("../utils/tokenBlacklist", () => ({ blacklistRefreshToken: vi.fn(), blacklistAccessToken: vi.fn() }));
@@ -45,10 +45,37 @@ vi.mock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), err
 vi.mock("../utils/controllerObservability", () => ({ startControllerSpan: vi.fn(() => ({})), markSpanSuccess: vi.fn(), markSpanError: vi.fn(), finishControllerSpan: vi.fn() }));
 vi.mock("../utils/securityLogger", () => ({ logLoginAttempt: vi.fn(), logLogout: vi.fn(), logSuspiciousActivity: vi.fn() }));
 vi.mock("../utils/businessMetrics", () => ({ recordUserSignup: vi.fn(), recordLogin: vi.fn(), recordLoginFailure: vi.fn(), recordSuspiciousActivity: vi.fn() }));
-vi.mock("../errors/AppError", () => ({
-  AuthError: class extends Error { statusCode = 401; code = "AUTH_REQUIRED"; constructor(m: string) { super(m); } },
-  NotFoundError: class extends Error { statusCode = 404; code = "NOT_FOUND"; constructor(m: string) { super(m); } },
-}));
+vi.mock("../errors/AppError", () => {
+  class MockAppError extends Error {
+    statusCode: number;
+    code: string;
+    constructor(message: string, options: any = {}) {
+      super(message);
+      this.name = "AppError";
+      this.statusCode = options.statusCode ?? 500;
+      this.code = options.code ?? "SERVER_ERROR";
+    }
+  }
+  class MockValidationError extends MockAppError {
+    constructor(message = "Invalid request payload", details?: unknown) {
+      super(message, { statusCode: 400, code: "VALIDATION_ERROR" });
+      this.name = "ValidationError";
+    }
+  }
+  class MockAuthError extends MockAppError {
+    constructor(message = "Authentication required", options: any = {}) {
+      super(message, { statusCode: options.statusCode ?? 401, code: options.code ?? "AUTH_REQUIRED" });
+      this.name = "AuthError";
+    }
+  }
+  class MockNotFoundError extends MockAppError {
+    constructor(message = "Resource not found") {
+      super(message, { statusCode: 404, code: "NOT_FOUND" });
+      this.name = "NotFoundError";
+    }
+  }
+  return { AppError: MockAppError, ValidationError: MockValidationError, AuthError: MockAuthError, NotFoundError: MockNotFoundError };
+});
 
 import { registerUser, login, forgotPassword, resetPassword, googleLogin, getCurrentUser, logout } from "../controllers/authController";
 import User from "../models/User";
@@ -80,7 +107,7 @@ describe("authController", () => {
       vi.mocked(User.findOne).mockResolvedValue(null);
       vi.mocked(bcrypt.hash).mockResolvedValue("hashed-password" as never);
 
-      const req = { body: { name: "Test", email: "test@test.com", password: "pass123" }, originalUrl: "/api/register", headers: {} } as any;
+      const req = { body: { name: "Test", email: "test@test.com", password: "Pass1234" }, originalUrl: "/api/register", headers: {} } as any;
       const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
 
       await registerUser(req, res);
@@ -169,7 +196,7 @@ describe("authController", () => {
       vi.mocked(bcrypt.hash).mockResolvedValue("new-hashed" as never);
       vi.mocked(ResetToken.deleteMany).mockResolvedValue({ deletedCount: 1 } as any);
 
-      const req = { body: { token: "valid-token", password: "newpass", confirmPassword: "newpass" }, originalUrl: "/api/reset-password", headers: {} } as any;
+      const req = { body: { token: "valid-token", password: "Newpass1", confirmPassword: "Newpass1" }, originalUrl: "/api/reset-password", headers: {} } as any;
       const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
 
       await resetPassword(req, res);

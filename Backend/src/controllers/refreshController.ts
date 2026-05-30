@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { generateAccessToken, generateRefreshToken, getOrGenerateRefreshKeys } from "../utils/generateToken";
+import { generateAccessToken, generateRefreshToken, getRefreshKeyPair } from "../utils/generateToken";
 import { parseCookies } from "../utils/cookieParser";
 import { setAuthCookies, setCsrfCookie } from "../utils/authCookies";
 import { env } from "../config/env";
@@ -24,8 +24,46 @@ const refreshAccessToken = wrapController(async (req, res) => {
     return sendErrorResponse(res, new Error("Refresh token has been revoked"), { statusCode: 403, code: "AUTH_REQUIRED" });
   }
 
-  const { publicKey } = getOrGenerateRefreshKeys();
-  const decoded = jwt.verify(token, publicKey, { algorithms: ["RS256"] }) as { userId: string };
+  // Verify refresh token using HMAC when a secret is configured (supports
+  // optional rotation via JWT_REFRESH_SECRET_NEW). Otherwise fall back to RSA.
+  let decoded: { userId: string } | null = null;
+  const hasHmac = typeof env.JWT_REFRESH_SECRET === "string" && env.JWT_REFRESH_SECRET.trim().length > 0;
+  const hasRsa = typeof env.JWT_REFRESH_PUBLIC_KEY === "string" && env.JWT_REFRESH_PUBLIC_KEY.trim().length > 0;
+
+  if (hasHmac) {
+    try {
+      decoded = jwt.verify(token, env.JWT_REFRESH_SECRET, { algorithms: ["HS256"] }) as { userId: string };
+    } catch {
+      const newSecret = process.env.JWT_REFRESH_SECRET_NEW?.trim();
+      if (newSecret && newSecret !== env.JWT_REFRESH_SECRET) {
+        try {
+          decoded = jwt.verify(token, newSecret, { algorithms: ["HS256"] }) as { userId: string };
+        } catch {
+          return sendErrorResponse(res, new Error("Invalid refresh token"), { statusCode: 403, code: "AUTH_REQUIRED" });
+        }
+      } else {
+        return sendErrorResponse(res, new Error("Invalid refresh token"), { statusCode: 403, code: "AUTH_REQUIRED" });
+      }
+    }
+  } else if (hasRsa) {
+    const keys = getRefreshKeyPair();
+    try {
+      decoded = jwt.verify(token, keys.publicKey, { algorithms: ["RS256"] }) as { userId: string };
+    } catch {
+      const oldKey = env.JWT_REFRESH_PUBLIC_KEY_OLD?.trim();
+      if (oldKey) {
+        try {
+          decoded = jwt.verify(token, oldKey, { algorithms: ["RS256"] }) as { userId: string };
+        } catch {
+          return sendErrorResponse(res, new Error("Invalid refresh token"), { statusCode: 403, code: "AUTH_REQUIRED" });
+        }
+      } else {
+        return sendErrorResponse(res, new Error("Invalid refresh token"), { statusCode: 403, code: "AUTH_REQUIRED" });
+      }
+    }
+  } else {
+    return sendErrorResponse(res, new Error("No refresh verification key configured"), { statusCode: 500 });
+  }
 
   await blacklistRefreshToken(token);
 

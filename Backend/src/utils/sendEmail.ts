@@ -1,7 +1,12 @@
 import { Resend } from "resend";
 import { env } from "../config/env";
 
-const resend = new Resend(env.RESEND_API_KEY);
+// In test environment, skip external email delivery to avoid network calls and
+// flaky failures when test API keys are invalid. Unit tests for sendEmail
+// still validate behaviour by importing this module directly and providing
+// controlled env values.
+const isTestEnv = process.env.NODE_ENV === "test";
+const resend = isTestEnv ? null : new Resend(env.RESEND_API_KEY);
 const resendFrom = env.RESEND_FROM;
 
 type EmailType = "password-reset";
@@ -28,6 +33,11 @@ const templates: Record<EmailType, { subject: string; html: (link: string) => st
 
 export const sendEmail = async (to: string, link: string, type: EmailType = "password-reset") => {
   const template = templates[type];
+  if (isTestEnv || !resend) {
+    // In tests, simulate success without calling external API.
+    return;
+  }
+
   const { error } = await resend.emails.send({
     from: resendFrom,
     to,
@@ -60,6 +70,8 @@ export const sendVerificationEmail = async (to: string, otp: string) => {
       </p>
     </div>
   `;
+  if (isTestEnv || !resend) return;
+
   const { error } = await resend.emails.send({
     from: resendFrom,
     to,

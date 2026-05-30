@@ -91,8 +91,11 @@ router.get(
   resumeCacheMiddleware,
   baseGetResumeById,
 );
+const largeBodyParser = express.json({ limit: "10mb" });
+
 router.post(
   "/",
+  largeBodyParser,
   validateRequest({ body: createResumeSchema }),
   resumeMutationLimiter,
   createReferentialIntegrityMiddleware("resumes", (req) => ({ userId: req.user?.id })),
@@ -100,6 +103,7 @@ router.post(
 );
 router.put(
   "/:id",
+  largeBodyParser,
   validateRequest({ params: objectIdParamSchema, body: updateResumeSchema }),
   resumeMutationLimiter,
   createReferentialIntegrityMiddleware("resumes", (req) => ({ userId: req.user?.id }), "update"),
@@ -123,13 +127,6 @@ router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }
 
 router.post(
   "/:id/analyze-ats",
-  validateRequest({ params: objectIdParamSchema }),
-  creditDeductionMiddleware({ operation: "ats-analysis" }),
-  createReferentialIntegrityMiddleware("atsanalyses", (req) => ({ resumeId: req.params.id })),
-  analyzeAts,
-);
-router.post(
-  "/:id/ats-analysis",
   validateRequest({ params: objectIdParamSchema }),
   creditDeductionMiddleware({ operation: "ats-analysis" }),
   createReferentialIntegrityMiddleware("atsanalyses", (req) => ({ resumeId: req.params.id })),

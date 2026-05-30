@@ -1,52 +1,8 @@
 import React, { useState, ReactNode } from "react";
 import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
 import { WorkEntry, LanguageEntry } from "@/types/resume-types";
+import styles from "./editorPanel.module.css";
 
-/* ─── CSS Animations ─────────────────────────────────────────────────────────── */
-const css = `
-  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-  .editor-fade-in { animation: fadeSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .editor-card { animation: fadeSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
-`;
-
-// ─── Shared Input Styles ───────────────────────────────────────────────────────
-const inp: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  color: "#fafafa",
-  fontSize: 14,
-  fontFamily: "'Outfit', sans-serif",
-  outline: "none",
-  boxSizing: "border-box",
-};
-
-const inpFocus: React.CSSProperties = {
-  color: "#fafafa",
-};
-
-const ta: React.CSSProperties = {
-  ...inp,
-  resize: "vertical",
-  lineHeight: 1.6,
-  minHeight: 80,
-  padding: "14px",
-};
-
-const label: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  color: "#d4d4d8",
-  textTransform: "uppercase",
-  letterSpacing: "0.9px",
-  display: "block",
-  marginBottom: 10,
-};
-
-const fieldGroup = (children: React.ReactNode, key?: string) => (
-  <div key={key} style={{ marginBottom: 20 }}>{children}</div>
-);
-
-// Input with focus state handler
 function Input({
   value,
   onChange,
@@ -62,30 +18,19 @@ function Input({
   type?: string;
   style?: React.CSSProperties;
 }) {
-  const [isFocused, setIsFocused] = useState(false);
-
   return (
     <input
       type={type}
       value={value}
       onChange={e => onChange(e.target.value)}
-      onFocus={() => {
-        setIsFocused(true);
-        onFocus?.();
-      }}
-      onBlur={() => setIsFocused(false)}
+      onFocus={() => onFocus?.()}
       placeholder={placeholder}
-      className="editor-input"
-      style={{
-        ...inp,
-        ...(isFocused ? inpFocus : {}),
-        ...style,
-      }}
+      className={`editor-input ${styles.editorInp}`}
+      style={style}
     />
   );
 }
 
-// TextArea with focus state handler
 function FocusedTextArea({
   value,
   onChange,
@@ -101,41 +46,20 @@ function FocusedTextArea({
   rows?: number;
   hint?: string;
 }) {
-  const [isFocused, setIsFocused] = useState(false);
-
   return (
     <>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
-        onFocus={() => {
-          setIsFocused(true);
-          onFocus?.();
-        }}
-        onBlur={() => setIsFocused(false)}
+        onFocus={() => onFocus?.()}
         placeholder={placeholder}
         rows={rows}
-        className="editor-textarea"
-        style={{
-          ...ta,
-          ...(isFocused ? inpFocus : {}),
-        }}
+        className={`editor-textarea ${styles.editorTa}`}
       />
-      {hint && (
-        <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 8, fontStyle: "italic", lineHeight: 1.5 }}>
-          {hint}
-        </div>
-      )}
+      {hint && <div className={styles.hint}>{hint}</div>}
     </>
   );
 }
-
-const modeToggleWrap: React.CSSProperties = {
-  display: "inline-flex",
-  gap: 4,
-  padding: 4,
-  borderRadius: 10,
-};
 
 function ContentModeToggle({
   value,
@@ -145,7 +69,7 @@ function ContentModeToggle({
   onChange: (value: "bullets" | "paragraph") => void;
 }) {
   return (
-    <div style={modeToggleWrap}>
+    <div className={styles.modeToggleWrap}>
       {(["bullets", "paragraph"] as const).map((mode) => {
         const active = value === mode;
         return (
@@ -154,17 +78,7 @@ function ContentModeToggle({
             type="button"
             onClick={() => onChange(mode)}
             aria-pressed={active}
-            style={{
-              borderRadius: 8,
-              color: active ? "#fafafa" : "#a1a1aa",
-              fontSize: 12,
-              fontWeight: active ? 800 : 600,
-              textTransform: "capitalize",
-              padding: "5px 12px",
-              cursor: "pointer",
-              textDecoration: active ? "underline" : "none",
-              textUnderlineOffset: 3,
-            }}
+            className={`${styles.modeBtn} ${active ? styles.modeBtnActive : styles.modeBtnInactive}`}
           >
             {mode}
           </button>
@@ -174,40 +88,31 @@ function ContentModeToggle({
   );
 }
 
-// ─── Expandable Card ───────────────────────────────────────────────────────────
 function EntryCard({ title, subtitle, onRemove, children, defaultOpen = true }: {
   title: string; subtitle?: string; onRemove: () => void;
   children: React.ReactNode; defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="editor-card" style={{ overflow: "hidden", marginBottom: 14 }} role="region" aria-label={title || "Entry"}>
-      <div style={{ display: "flex", alignItems: "center", padding: "16px 18px", cursor: "pointer" }} onClick={() => setOpen(o => !o)} role="button" tabIndex={0} aria-expanded={open} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}>
+    <div className={styles.editorCard} role="region" aria-label={title || "Entry"}>
+      <div className={styles.entryCardHeader} onClick={() => setOpen(o => !o)} role="button" tabIndex={0} aria-expanded={open} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#e4e4e7" }}>{title || <span style={{ color: "#71717a" }}>Untitled</span>}</div>
-          {subtitle && <div style={{ fontSize: 12, color: "#a1a1aa", marginTop: 2 }}>{subtitle}</div>}
+          <div className={styles.entryCardTitle}>{title || <span className={styles.entryCardUntitled}>Untitled</span>}</div>
+          {subtitle && <div className={styles.entryCardSubtitle}>{subtitle}</div>}
         </div>
         <button onClick={e => { e.stopPropagation(); onRemove(); }}
-          style={{ cursor: "pointer", color: "#a1a1aa", fontSize: 14, padding: "4px 8px", marginRight: 8 }}
+          className={styles.entryCardRemove}
           aria-label={`Remove ${title || "entry"}`}>✕</button>
-        <span style={{ fontSize: 12, color: "#a1a1aa", transform: open ? "rotate(180deg)" : "none", transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)" }} aria-hidden="true">▾</span>
+        <span className={`${styles.entryCardChevron} ${open ? styles.entryCardChevronOpen : ""}`} aria-hidden="true">▾</span>
       </div>
-      {open && <div style={{ padding: "0 16px 18px" }}>{children}</div>}
+      {open && <div className={styles.entryCardBody}>{children}</div>}
     </div>
   );
 }
 
-// ─── Add Button ────────────────────────────────────────────────────────────────
 function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{
-      width: "100%", padding: "14px",
-      color: "#a1a1aa", fontSize: 14, fontWeight: 700,
-      cursor: "pointer", fontFamily: "inherit",
-      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-    }}
-    aria-label={`Add ${l}`}
-    >
+    <button onClick={onClick} className={styles.addBtn} aria-label={`Add ${l}`}>
       + {l}
     </button>
   );
@@ -241,27 +146,17 @@ function InlineEnhanceTip({ text }: { text: string }) {
   if (!tip) return null;
 
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
+    <div className={styles.enhanceTipContainer}>
       <button
         type="button"
         onClick={() => setVisible(!visible)}
         title="AI writing tip"
-        style={{
-          borderRadius: 6, color: visible ? "#fafafa" : "#a1a1aa",
-          fontSize: 11, fontWeight: 700, padding: "3px 8px",
-          cursor: "pointer", fontFamily: "inherit", marginLeft: 6,
-        }}
-
+        className={`${styles.enhanceBtn} ${visible ? styles.enhanceBtnVisible : styles.enhanceBtnHidden}`}
       >
         ✦ Enhance
       </button>
       {visible && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 20,
-          borderRadius: 10,
-          padding: "10px 12px", fontSize: 12, color: "#FFFFFF", lineHeight: 1.6,
-          maxWidth: 300,
-        }}>
+        <div className={styles.enhanceTooltip}>
           {tip}
         </div>
       )}
@@ -269,37 +164,38 @@ function InlineEnhanceTip({ text }: { text: string }) {
   );
 }
 
-// ─── Field components ──────────────────────────────────────────────────────────
 function Inp({ label: l, value, onChange, placeholder, type = "text" }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
-  return fieldGroup(<>
-    <span style={label}>{l}</span>
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="editor-input" style={inp} />
-  </>);
+  return (
+    <div className={styles.fieldGroup}>
+      <span className={styles.editorLabel}>{l}</span>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className={`editor-input ${styles.editorInp}`} />
+    </div>
+  );
 }
 
 function TextArea({ label: l, value, onChange, placeholder, rows = 4 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
 }) {
-  return fieldGroup(<>
-    <span style={label}>{l}</span>
-    <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      rows={rows} className="editor-textarea" style={ta}
-    />
-  </>);
+  return (
+    <div className={styles.fieldGroup}>
+      <span className={styles.editorLabel}>{l}</span>
+      <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        rows={rows} className={`editor-textarea ${styles.editorTa}`}
+      />
+    </div>
+  );
 }
 
-// ─── PERSONAL SECTION ─────────────────────────────────────────────────────────
 function PersonalSection() {
   const { resume, updatePersonalInfo, setFocusedField } = useResumeBuilderStore();
   const p = resume.personalInfo;
   const showTechLinks = resume.templateCategory === "tech";
 
-  // Helper for consistent input rendering
   const renderInput = (field: keyof typeof p, labelText: string, placeholder: string, type = "text") => (
-    <div style={{ marginBottom: 20 }}>
-      <span style={label}>{labelText}</span>
+    <div className={styles.fieldGroup}>
+      <span className={styles.editorLabel}>{labelText}</span>
       <Input
         type={type}
         value={p[field] as string}
@@ -311,7 +207,7 @@ function PersonalSection() {
   );
 
   return (
-    <div style={{ padding: "6px 6px 24px" }}>
+    <div className={styles.personalSection}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 4 }}>
         {renderInput("name", "Full Name", "Maya Thompson")}
         {renderInput("title", "Job Title", "Operations and Client Services Manager")}
@@ -333,8 +229,8 @@ function PersonalSection() {
       )}
 
       <div>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <span style={label}>Professional Summary</span>
+        <div className={styles.flexRow}>
+          <span className={styles.editorLabel}>Professional Summary</span>
         </div>
         <FocusedTextArea
           value={p.summary}
@@ -383,11 +279,10 @@ function ExperienceSection() {
 
 
   return (
-    <div style={{ padding: "0 4px 24px" }}>
-      {/* Section Header */}
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Work Experience</h2>
-        <p style={{ fontSize: 12, color: "#a08090", lineHeight: 1.5 }}>
+    <div className={styles.sectionPadding}>
+      <div className={styles.fieldGroup}>
+        <h2 className={styles.sectionTitle}>Work Experience</h2>
+        <p className={styles.sectionSubtitle}>
           Detail your professional journey. Focus on achievements rather than just duties.
         </p>
       </div>
@@ -410,24 +305,9 @@ function ExperienceSection() {
         />
       ))}
 
-      {/* Add Experience Button */}
       <button
         onClick={addExperience}
-        style={{
-          width: "100%",
-          padding: "14px",
-          borderRadius: 12,
-          color: "#a1a1aa",
-          fontSize: 13,
-          fontWeight: 600,
-          cursor: "pointer",
-          fontFamily: "'Outfit', sans-serif",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-
+        className={styles.fullWidthBtn}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -436,33 +316,25 @@ function ExperienceSection() {
       </button>
 
       {optimizationModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ padding: 24, maxWidth: 600, width: '100%', position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3 style={{ fontSize: 18, color: '#f5f0f2', margin: 0 }}>Optimization Suggestion</h3>
-              <button onClick={() => setOptimizationModal(null)} style={{ color: '#888', cursor: 'pointer' }}>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Optimization Suggestion</h3>
+              <button onClick={() => setOptimizationModal(null)} className={styles.modalClose}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
-            <div style={{ padding: 16, marginBottom: 20 }}>
-              <pre style={{ fontSize: 13, color: "#f5f0f2", whiteSpace: "pre-wrap", fontFamily: "'Outfit', sans-serif", lineHeight: 1.6, margin: 0 }}>
+            <div className={styles.modalBody}>
+              <pre className={styles.modalPre}>
                 {optimizationModal}
               </pre>
             </div>
             <button
               onClick={() => setOptimizationModal(null)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                color: "#fff",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "'Outfit', sans-serif",
-              }}
+              className={styles.modalGotIt}
             >
               Got it
             </button>
@@ -470,9 +342,8 @@ function ExperienceSection() {
         </div>
       )}
 
-      {/* Error Toast */}
       {apiError && (
-        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", color: "#fff", padding: "12px 20px", display: "flex", alignItems: "center", gap: 10, zIndex: 100 }}>
+        <div className={styles.errorToast}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
@@ -520,15 +391,15 @@ function ExperienceCard({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      style={{ opacity: 0.8, cursor: "grab" }}
+      className={styles.experienceCard}
     >
       <EntryCard
         title={entry.role || "Untitled Job"}
         subtitle={entry.company}
         onRemove={onRemove}
       >
-        <div style={{ marginBottom: 20 }}>
-          <span style={label}>Job Title</span>
+        <div className={styles.fieldGroup}>
+          <span className={styles.editorLabel}>Job Title</span>
           <Input
             value={entry.role}
             onChange={(v) => onUpdate("role", v)}
@@ -536,8 +407,8 @@ function ExperienceCard({
           />
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <span style={label}>Company</span>
+        <div className={styles.fieldGroup}>
+          <span className={styles.editorLabel}>Company</span>
           <Input
             value={entry.company}
             onChange={(v) => onUpdate("company", v)}
@@ -547,7 +418,7 @@ function ExperienceCard({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
           <div>
-            <span style={label}>Start Date</span>
+            <span className={styles.editorLabel}>Start Date</span>
             <Input
               value={entry.start}
               onChange={(v) => onUpdate("start", v)}
@@ -555,7 +426,7 @@ function ExperienceCard({
             />
           </div>
           <div>
-            <span style={label}>End Date</span>
+            <span className={styles.editorLabel}>End Date</span>
             <Input
               value={entry.end}
               onChange={(v) => onUpdate("end", v)}
@@ -564,8 +435,8 @@ function ExperienceCard({
           </div>
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <span style={label}>Location</span>
+        <div className={styles.fieldGroup}>
+          <span className={styles.editorLabel}>Location</span>
           <Input
             value={entry.location || ""}
             onChange={(v) => onUpdate("location", v)}
@@ -573,9 +444,9 @@ function ExperienceCard({
           />
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-            <span style={label}>Content Mode</span>
+        <div className={styles.fieldGroup}>
+          <div className={styles.flexRow}>
+            <span className={styles.editorLabel}>Content Mode</span>
           </div>
           <ContentModeToggle
             value={entry.contentMode}
@@ -584,9 +455,9 @@ function ExperienceCard({
         </div>
 
         {entry.contentMode === "paragraph" && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-              <span style={label}>Description</span>
+          <div className={styles.fieldGroup}>
+            <div className={styles.flexRow}>
+              <span className={styles.editorLabel}>Description</span>
             </div>
             <FocusedTextArea
               value={entry.description}
@@ -594,38 +465,28 @@ function ExperienceCard({
               placeholder="Describe your role and achievements..."
               rows={5}
             />
-            {/* AI Enhance removed */}
           </div>
         )}
 
         {entry.contentMode === "bullets" && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-              <span style={label}>Bullet Points</span>
+          <div className={styles.fieldGroup}>
+            <div className={styles.flexRow}>
+              <span className={styles.editorLabel}>Bullet Points</span>
             </div>
             {entry.bullets.map((bullet, idx) => (
-              <div key={idx} style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <FocusedTextArea
-                    value={bullet}
-                    onChange={(v) => onUpdateBullet(idx, v)}
-                    placeholder="e.g., Led a team of 5 developers..."
-                    rows={2}
-                  />
-                  <button
-                    onClick={() => onRemoveBullet(idx)}
-                    style={{
-                      cursor: "pointer",
-                      color: "#a1a1aa",
-                      fontSize: 14,
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                    }}
-
-                  >
-                    ✕
-                  </button>
-                </div>
+              <div key={idx} className={styles.bulletRow}>
+                <FocusedTextArea
+                  value={bullet}
+                  onChange={(v) => onUpdateBullet(idx, v)}
+                  placeholder="e.g., Led a team of 5 developers..."
+                  rows={2}
+                />
+                <button
+                  onClick={() => onRemoveBullet(idx)}
+                  className={styles.bulletRemove}
+                >
+                  ✕
+                </button>
               </div>
             ))}
             <AddBtn label="Bullet Point" onClick={onAddBullet} />
@@ -641,9 +502,9 @@ function EducationSection() {
   const education = resume.sections.education;
 
   return (
-    <div style={{ padding: "0 4px 24px" }}>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Education</h2>
+    <div className={styles.sectionPadding}>
+      <div className={styles.fieldGroup}>
+        <h2 className={styles.sectionTitle}>Education</h2>
       </div>
 
       {education.map((entry) => (
@@ -655,7 +516,7 @@ function EducationSection() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
             <div>
-              <span style={label}>Institution</span>
+              <span className={styles.editorLabel}>Institution</span>
               <Input
                 value={entry.institution}
                 onChange={(v) => updateEducation(entry.id, "institution", v)}
@@ -664,7 +525,7 @@ function EducationSection() {
               />
             </div>
             <div>
-              <span style={label}>Degree</span>
+              <span className={styles.editorLabel}>Degree</span>
               <Input
                 value={entry.degree}
                 onChange={(v) => updateEducation(entry.id, "degree", v)}
@@ -676,7 +537,7 @@ function EducationSection() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <span style={label}>Field</span>
+              <span className={styles.editorLabel}>Field</span>
               <Input
                 value={entry.field}
                 onChange={(v) => updateEducation(entry.id, "field", v)}
@@ -685,7 +546,7 @@ function EducationSection() {
               />
             </div>
             <div>
-              <span style={label}>Year</span>
+              <span className={styles.editorLabel}>Year</span>
               <Input
                 value={entry.year}
                 onChange={(v) => updateEducation(entry.id, "year", v)}
@@ -694,7 +555,7 @@ function EducationSection() {
               />
             </div>
             <div>
-              <span style={label}>CGPA / GPA</span>
+              <span className={styles.editorLabel}>CGPA / GPA</span>
               <Input
                 value={entry.cgpa}
                 onChange={(v) => updateEducation(entry.id, "cgpa", v)}
@@ -716,9 +577,9 @@ function SkillsSection() {
   const skills = resume.sections.skills;
 
   return (
-    <div style={{ padding: "0 4px 24px" }}>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Skills</h2>
+    <div className={styles.sectionPadding}>
+      <div className={styles.fieldGroup}>
+        <h2 className={styles.sectionTitle}>Skills</h2>
       </div>
 
       {skills.map((entry) => (
@@ -728,8 +589,8 @@ function SkillsSection() {
           subtitle={`${entry.items.length} skill${entry.items.length === 1 ? "" : "s"}`}
           onRemove={() => removeSkillGroup(entry.id)}
         >
-          <div style={{ marginBottom: 20 }}>
-            <span style={label}>Category</span>
+          <div className={styles.fieldGroup}>
+            <span className={styles.editorLabel}>Category</span>
             <Input
               value={entry.category}
               onChange={(v) => updateSkillGroup(entry.id, "category", v)}
@@ -739,7 +600,7 @@ function SkillsSection() {
           </div>
 
           <div>
-            <span style={label}>Items (comma separated)</span>
+            <span className={styles.editorLabel}>Items (comma separated)</span>
             <FocusedTextArea
               value={entry.items.join(", ")}
               onChange={(v) => updateSkillGroup(entry.id, "items", v.split(",").map((item) => item.trim()).filter(Boolean))}
@@ -761,10 +622,10 @@ function ProjectsSection() {
   const projects = resume.sections.projects;
 
   return (
-    <div style={{ padding: "0 4px 24px" }}>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Projects</h2>
-        <p style={{ fontSize: 12, color: "#a08090", lineHeight: 1.5 }}>
+    <div className={styles.sectionPadding}>
+      <div className={styles.fieldGroup}>
+        <h2 className={styles.sectionTitle}>Projects</h2>
+        <p className={styles.sectionSubtitle}>
           Highlight the strongest project outcomes and measurable impact.
         </p>
       </div>
@@ -776,8 +637,8 @@ function ProjectsSection() {
           subtitle={entry.tech}
           onRemove={() => removeProject(entry.id)}
         >
-          <div style={{ marginBottom: 20 }}>
-            <span style={label}>Project Name</span>
+          <div className={styles.fieldGroup}>
+            <span className={styles.editorLabel}>Project Name</span>
             <Input
               value={entry.name}
               onChange={(v) => updateProject(entry.id, "name", v)}
@@ -788,7 +649,7 @@ function ProjectsSection() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ marginBottom: 20 }}>
             <div>
-              <span style={label}>Tech Stack</span>
+              <span className={styles.editorLabel}>Tech Stack</span>
               <Input
                 value={entry.tech}
                 onChange={(v) => updateProject(entry.id, "tech", v)}
@@ -797,7 +658,7 @@ function ProjectsSection() {
               />
             </div>
             <div>
-              <span style={label}>Link</span>
+              <span className={styles.editorLabel}>Link</span>
               <Input
                 value={entry.link}
                 onChange={(v) => updateProject(entry.id, "link", v)}
@@ -807,8 +668,8 @@ function ProjectsSection() {
             </div>
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <span style={label}>Content Mode</span>
+          <div className={styles.fieldGroup}>
+            <span className={styles.editorLabel}>Content Mode</span>
             <ContentModeToggle
               value={entry.contentMode}
               onChange={(mode) => updateProject(entry.id, "contentMode", mode)}
@@ -817,7 +678,7 @@ function ProjectsSection() {
 
           {entry.contentMode === "paragraph" ? (
             <div>
-              <span style={label}>Description</span>
+              <span className={styles.editorLabel}>Description</span>
               <FocusedTextArea
                 value={entry.description}
                 onChange={(v) => updateProject(entry.id, "description", v)}
@@ -828,9 +689,9 @@ function ProjectsSection() {
             </div>
           ) : (
             <div>
-              <span style={label}>Bullet Points</span>
+              <span className={styles.editorLabel}>Bullet Points</span>
               {entry.bullets.map((bullet, idx) => (
-                <div key={`${entry.id}-bullet-${idx}`} style={{ marginBottom: 10, display: "flex", gap: 8, alignItems: "center" }}>
+                <div key={`${entry.id}-bullet-${idx}`} className={styles.bulletRow}>
                   <FocusedTextArea
                     value={bullet}
                     onChange={(v) => updateProjectBullet(entry.id, idx, v)}
@@ -841,7 +702,7 @@ function ProjectsSection() {
                   <button
                     type="button"
                     onClick={() => removeProjectBullet(entry.id, idx)}
-                    style={{ cursor: "pointer", color: "#a1a1aa", fontSize: 14, padding: "4px 8px" }}
+                    className={styles.bulletRemove}
                   >
                     ✕
                   </button>
@@ -863,9 +724,9 @@ function CertificationsSection() {
   const certifications = resume.sections.certifications;
 
   return (
-    <div style={{ padding: "0 4px 24px" }}>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Certifications</h2>
+    <div className={styles.sectionPadding}>
+      <div className={styles.fieldGroup}>
+        <h2 className={styles.sectionTitle}>Certifications</h2>
       </div>
 
       {certifications.map((entry) => (
@@ -875,8 +736,8 @@ function CertificationsSection() {
           subtitle={entry.issuer}
           onRemove={() => removeCertification(entry.id)}
         >
-          <div style={{ marginBottom: 20 }}>
-            <span style={label}>Name</span>
+          <div className={styles.fieldGroup}>
+            <span className={styles.editorLabel}>Name</span>
             <Input
               value={entry.name}
               onChange={(v) => updateCertification(entry.id, "name", v)}
@@ -887,7 +748,7 @@ function CertificationsSection() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <span style={label}>Issuer</span>
+              <span className={styles.editorLabel}>Issuer</span>
               <Input
                 value={entry.issuer}
                 onChange={(v) => updateCertification(entry.id, "issuer", v)}
@@ -896,7 +757,7 @@ function CertificationsSection() {
               />
             </div>
             <div>
-              <span style={label}>Year</span>
+              <span className={styles.editorLabel}>Year</span>
               <Input
                 value={entry.year}
                 onChange={(v) => updateCertification(entry.id, "year", v)}
@@ -905,8 +766,8 @@ function CertificationsSection() {
               />
             </div>
           </div>
-          <div style={{ marginTop: 16 }}>
-            <span style={label}>Credential URL</span>
+          <div className={styles.fieldGroup} style={{ marginTop: 4 }}>
+            <span className={styles.editorLabel}>Credential URL</span>
             <Input
               value={entry.url ?? ""}
               onChange={(v) => updateCertification(entry.id, "url", v)}
@@ -927,9 +788,9 @@ function LanguagesSection() {
   const languages = resume.sections.languages;
 
   return (
-    <div style={{ padding: "0 4px 24px" }}>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#f5f0f2", marginBottom: 4 }}>Languages</h2>
+    <div className={styles.sectionPadding}>
+      <div className={styles.fieldGroup}>
+        <h2 className={styles.sectionTitle}>Languages</h2>
       </div>
 
       {languages.map((entry: LanguageEntry) => (
@@ -941,7 +802,7 @@ function LanguagesSection() {
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <span style={label}>Language</span>
+              <span className={styles.editorLabel}>Language</span>
               <Input
                 value={entry.language}
                 onChange={(v) => updateLanguage(entry.id, "language", v)}
@@ -950,13 +811,12 @@ function LanguagesSection() {
               />
             </div>
             <div>
-              <span style={label}>Proficiency</span>
+              <span className={styles.editorLabel}>Proficiency</span>
               <select
                 value={entry.proficiency}
                 onFocus={() => setFocusedField({ section: "languages", kind: "language", entityId: entry.id, field: "proficiency", label: "Proficiency" })}
                 onChange={(e) => updateLanguage(entry.id, "proficiency", e.target.value)}
-                className="editor-input"
-                style={inp}
+                className={`editor-input ${styles.editorInp}`}
               >
                 {(["Native", "Fluent", "Advanced", "Intermediate", "Basic"] as const).map((level) => (
                   <option key={level} value={level}>{level}</option>
@@ -990,12 +850,9 @@ export const EditorPanel = React.memo(function EditorPanel(): ReactNode {
   const [activeSection, setActiveSection] = useState<string>("personal");
 
   return (
-    <div className="editor-fade-in" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <style>{css}</style>
-
-      <div style={{ flex: 1, overflowY: "auto" }} className="themed-scrollbar">
-        {/* Section selector */}
-        <div style={{ padding: "12px 14px 8px", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+    <div className={styles.editorPanelContainer}>
+      <div className={styles.editorPanelScroll}>
+        <div className={styles.sectionSelector}>
           {(["personal", ...resume.sectionOrder] as const).map((key) => {
             if (key !== "personal" && !resume.sectionVisibility[key]) return null;
             const label = key === "personal" ? "Personal" : key.charAt(0).toUpperCase() + key.slice(1);
@@ -1006,17 +863,7 @@ export const EditorPanel = React.memo(function EditorPanel(): ReactNode {
                 onClick={() => setActiveSection(key)}
                 aria-pressed={active}
                 aria-label={`Edit ${label} section`}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: active ? "1px solid rgba(160,128,144,0.65)" : "1px solid rgba(255,255,255,0.08)",
-                  background: active ? "linear-gradient(180deg, rgba(160,128,144,0.24), rgba(160,128,144,0.1))" : "rgba(255,255,255,0.01)",
-                  boxShadow: active ? "0 0 0 1px rgba(160,128,144,0.35), 0 8px 20px rgba(160,128,144,0.2)" : "none",
-                  color: active ? "#f5f0f2" : "#e8dfe3",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: active ? 800 : 700,
-                }}
+                className={`${styles.sectionBtn} ${active ? styles.sectionBtnActive : styles.sectionBtnInactive}`}
               >
                 {label}
               </button>
@@ -1024,8 +871,8 @@ export const EditorPanel = React.memo(function EditorPanel(): ReactNode {
           })}
         </div>
 
-        <div style={{ padding: "12px 14px", display: "grid", gap: 14 }}>
-          <div style={{ minWidth: 0 }}>{sectionContent[activeSection]}</div>
+        <div className={styles.sectionContent}>
+          <div className={styles.sectionContentInner}>{sectionContent[activeSection]}</div>
         </div>
       </div>
     </div>

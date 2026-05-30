@@ -368,7 +368,13 @@ const callProvider = async (provider: AiProviderName, systemPrompt: string, user
       : await callGemini(systemPrompt, userPrompt);
 
   const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-  const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(cleaned) as Record<string, unknown>;
+  } catch {
+    logger.warn({ provider, raw: raw.slice(0, 200) }, "AI provider returned malformed JSON; using empty object");
+    parsed = {};
+  }
 
   const tokenCount = provider === "openai"
     ? countOpenAITokens(systemPrompt, userPrompt, cleaned)

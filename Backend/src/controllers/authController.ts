@@ -26,16 +26,20 @@ import { sendSuccess, sendCreated } from "../utils/apiResponse";
 import { blacklistRefreshToken, blacklistAccessToken } from "../utils/tokenBlacklist";
 import { parseCookies } from "../utils/cookieParser";
 
-const BCRYPT_SALT_ROUNDS = 10;
-const COOLDOWN_AFTER_RESET = 5 * 60 * 1000;
-const RESEND_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
-const RESET_TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_RESET_RESEND_ATTEMPTS = 3;
-const MAX_RESET_PER_DAY = 10;
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOGIN_LOCKOUT_DURATION_MS = 15 * 60 * 1000;
-const PASSWORD_MIN_LENGTH = 8;
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+import {
+  BCRYPT_SALT_ROUNDS,
+  COOLDOWN_AFTER_RESET,
+  RESEND_COOLDOWN_MS,
+  RESET_TOKEN_TTL_MS,
+  MAX_RESET_RESEND_ATTEMPTS,
+  MAX_RESET_PER_DAY,
+  MAX_LOGIN_ATTEMPTS,
+  LOGIN_LOCKOUT_DURATION_MS,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_REGEX,
+  MAX_OTP_ATTEMPTS,
+  OTP_EXPIRY_MS,
+} from "../constants/auth";
 const frontendBaseUrl = env.FRONTEND_URL;
 
 const getAuthProviders = (user: { authProvider?: string[] }) =>
@@ -112,6 +116,8 @@ const registerUser = wrapController(async (req, res) => {
     await sendVerificationEmail(user.email, verificationOtp);
   } catch (err) {
     logger.warn({ email: user.email, error: err }, "Failed to send verification email");
+    await user.deleteOne();
+    return sendErrorResponse(res, new AppError("Failed to send verification email. Please check your email address and try again.", { statusCode: 500, code: "EMAIL_FAILED" }));
   }
 
   recordUserSignup({ email: user.email, provider: "local" });
@@ -128,9 +134,6 @@ const registerUser = wrapController(async (req, res) => {
     }
   });
 }, "auth.registerUser");
-
-const MAX_OTP_ATTEMPTS = 3;
-const OTP_EXPIRY_MS = 10 * 60 * 1000;
 
 const generateOtp = () => String(crypto.randomInt(100000, 999999));
 
@@ -197,7 +200,6 @@ const verifyEmail = wrapController(async (req, res) => {
 
   sendSuccess(res, {
     message: "Email verified successfully",
-    accessToken,
     csrfToken: csrfTokenValue,
     user: {
       id: user._id,
@@ -270,11 +272,10 @@ const login = wrapController(async (req, res) => {
     logger.warn({ email, remainingMin }, "Login blocked: account locked");
     recordLoginFailure("account_locked");
     logLoginAttempt(req, email, false, "Account locked");
-    return sendErrorResponse(res, new Error(`Account locked. Try again in ${remainingMin} minute(s).`), {
+    return sendErrorResponse(res, new AppError(`Account locked. Try again in ${remainingMin} minute(s).`, {
       statusCode: 429,
       code: "ACCOUNT_LOCKED",
-      message: `Account locked. Try again in ${remainingMin} minute(s).`,
-    });
+    }));
   }
 
   if (!user.password) {
@@ -287,24 +288,39 @@ const login = wrapController(async (req, res) => {
   const isMatch = await bcrypt.compare(password, user.password!);
 
   if (!isMatch) {
-    // Atomic increment to prevent race conditions
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: user._id, lockUntil: { $lte: new Date() }, loginAttempts: { $lt: MAX_LOGIN_ATTEMPTS - 1 } },
-      { $inc: { loginAttempts: 1 } },
+    // Atomic: increment & conditionally lock in a single pipeline to prevent TOCTOU race
+    const result = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        $or: [
+          { lockUntil: null },
+          { lockUntil: { $lte: new Date() } },
+        ],
+      },
+      [
+        {
+          $set: {
+            loginAttempts: {
+              $cond: {
+                if: { $gte: [{ $add: [{ $ifNull: ["$loginAttempts", 0] }, 1] }, MAX_LOGIN_ATTEMPTS] },
+                then: 0,
+                else: { $add: [{ $ifNull: ["$loginAttempts", 0] }, 1] },
+              },
+            },
+            lockUntil: {
+              $cond: {
+                if: { $gte: [{ $add: [{ $ifNull: ["$loginAttempts", 0] }, 1] }, MAX_LOGIN_ATTEMPTS] },
+                then: new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS),
+                else: "$lockUntil",
+              },
+            },
+          },
+        },
+      ],
       { new: true, select: "loginAttempts lockUntil" }
     );
 
-    // If no document matched, loginAttempts crossed threshold — lock the account
-    if (!updatedUser) {
-      await User.findOneAndUpdate(
-        { _id: user._id },
-        {
-          $set: {
-            lockUntil: new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS),
-            loginAttempts: 0,
-          },
-        }
-      );
+    if (result?.lockUntil) {
       logger.warn({ email, lockoutDurationMin: LOGIN_LOCKOUT_DURATION_MS / 60000 }, "Account locked due to too many failed attempts");
     }
 
@@ -345,6 +361,8 @@ const login = wrapController(async (req, res) => {
   }, 200, csrfToken);
 }, "auth.login");
 
+const PASSWORD_RESET_GENERIC_MESSAGE = "If an account with that email exists, a password reset link has been sent.";
+
 const forgotPassword = wrapController(async (req, res) => {
   const rawEmail = String(req.body?.email ?? "").trim().toLowerCase();
   const email = rawEmail;
@@ -356,83 +374,74 @@ const forgotPassword = wrapController(async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) {
-    logger.warn({ email }, "Forgot password user not found");
-    return sendSuccess(res, {
-      message: "If an account with that email exists, a password reset link has been sent.",
-    });
-  }
-
   const isGoogleOnlyUser =
-    Array.isArray(user.authProvider) &&
+    !!user && Array.isArray(user.authProvider) &&
     user.authProvider.includes("google") &&
     !user.authProvider.includes("local");
 
-  if (isGoogleOnlyUser && !user.password) {
-    logger.warn({ email }, "Forgot password blocked for google-only account");
-    return sendErrorResponse(res, new AuthError("This account uses Google login. Please continue with Google.", { statusCode: 400, code: "AUTH_REQUIRED" }));
-  }
+  // Only proceed with reset if user exists and is not google-only
+  const canSendReset = !!user && !isGoogleOnlyUser;
 
-  if (
-    user.passwordResetAt &&
+  if (canSendReset && user.passwordResetAt &&
     Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
   ) {
     return sendErrorResponse(res, new AppError("Password was recently updated. Try again later.", { statusCode: 429, code: "RATE_LIMITED" }));
   }
 
-  const existingToken = await ResetToken.findOne({ userId: user._id });
+  if (canSendReset) {
+    const existingToken = await ResetToken.findOne({ userId: user._id });
 
-  if (
-    existingToken &&
-    Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS
-  ) {
-    return sendErrorResponse(res, new AppError("Please wait before requesting another reset email", {
-      statusCode: 429,
-      code: "RATE_LIMITED",
-      details: { retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000) },
-    }));
-  }
+    if (
+      existingToken &&
+      Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS
+    ) {
+      return sendErrorResponse(res, new AppError("Please wait before requesting another reset email", {
+        statusCode: 429,
+        code: "RATE_LIMITED",
+        details: { retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000) },
+      }));
+    }
 
-  const recentResets = await ResetToken.countDocuments({
-    userId: user._id,
-    lastSeenAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-  });
-
-  if (recentResets >= MAX_RESET_PER_DAY) {
-    return sendErrorResponse(res, new AppError("Too many password reset requests for this account. Try again tomorrow.", { statusCode: 429, code: "RATE_LIMITED" }));
-  }
-
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  const hashed = hashToken(rawToken);
-
-  if (existingToken) {
-    existingToken.token = hashed;
-    existingToken.expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-    existingToken.resendCount += 1;
-    existingToken.lastSeenAt = new Date();
-    await existingToken.save();
-  } else {
-    await ResetToken.create({
+    const recentResets = await ResetToken.countDocuments({
       userId: user._id,
-      token: hashed,
-      expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
-      resendCount: 0,
-      lastSeenAt: new Date(),
+      lastSeenAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
     });
+
+    if (recentResets >= MAX_RESET_PER_DAY) {
+      return sendErrorResponse(res, new AppError("Too many password reset requests for this account. Try again tomorrow.", { statusCode: 429, code: "RATE_LIMITED" }));
+    }
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashed = hashToken(rawToken);
+
+    if (existingToken) {
+      existingToken.token = hashed;
+      existingToken.expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+      existingToken.resendCount += 1;
+      existingToken.lastSeenAt = new Date();
+      await existingToken.save();
+    } else {
+      await ResetToken.create({
+        userId: user._id,
+        token: hashed,
+        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        resendCount: 0,
+        lastSeenAt: new Date(),
+      });
+    }
+
+    const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
+
+    try {
+      await sendEmail(user.email, link);
+    } catch (err) {
+      logger.warn({ email: user.email, error: err }, "Failed to send password reset email");
+    }
   }
 
-  const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
-
-  try {
-    await sendEmail(user.email, link);
-  } catch (err) {
-    logger.warn({ email: user.email, error: err }, "Failed to send password reset email");
-  }
-
-  sendSuccess(res, {
-    message: "Password reset link sent to email",
-  });
-  logger.info({ userId: user._id.toString(), email: user.email }, "Password reset link sent");
+  // Constant-timing response — identical for all cases (exists, not found, google-only)
+  sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
+  logger.info({ email: rawEmail, sent: canSendReset }, "Password reset flow completed");
 }, "auth.forgotPassword");
 
 const resetPassword = wrapController(async (req, res) => {
@@ -495,72 +504,64 @@ const resendResetLink = wrapController(async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) {
-    logger.warn({ email }, "Resend reset link user not found");
-    return sendSuccess(res, {
-      message: "If an account with that email exists, a password reset link has been sent.",
-    });
-  }
-
   const isGoogleOnlyUser =
-    Array.isArray(user.authProvider) &&
+    !!user && Array.isArray(user.authProvider) &&
     user.authProvider.includes("google") &&
     !user.authProvider.includes("local");
 
-  if (isGoogleOnlyUser && !user.password) {
-    logger.warn({ email }, "Resend reset blocked for google-only account");
-    return sendErrorResponse(res, new AuthError("This account uses Google login. Please continue with Google.", { statusCode: 400, code: "AUTH_REQUIRED" }));
-  }
+  const canResend = !!user && !isGoogleOnlyUser;
 
-  const existingToken = await ResetToken.findOne({
-    userId: user._id,
-    expiresAt: { $gt: new Date() },
-  });
+  if (canResend) {
+    const existingToken = await ResetToken.findOne({
+      userId: user._id,
+      expiresAt: { $gt: new Date() },
+    });
 
-  if (!existingToken) {
-    return sendErrorResponse(res, new ValidationError("No reset request found, please initiate forgot password again"));
-  }
+    if (existingToken && existingToken.resendCount >= MAX_RESET_RESEND_ATTEMPTS) {
+      return sendErrorResponse(res, new AppError("Maximum resend attempts reached, please try again later", { statusCode: 429, code: "RATE_LIMITED" }));
+    }
 
-  if (existingToken.resendCount >= MAX_RESET_RESEND_ATTEMPTS) {
-    return sendErrorResponse(res, new AppError("Maximum resend attempts reached, please try again later", { statusCode: 429, code: "RATE_LIMITED" }));
-  }
+    if (
+      user.passwordResetAt &&
+      Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
+    ) {
+      return sendErrorResponse(res, new AppError("Password was recently updated. Try again later.", { statusCode: 429, code: "RATE_LIMITED" }));
+    }
 
-  if (
-    user.passwordResetAt &&
-    Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
-  ) {
-    return sendErrorResponse(res, new AppError("Password was recently updated. Try again later.", { statusCode: 429, code: "RATE_LIMITED" }));
-  }
+    if (existingToken && Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS) {
+      return sendErrorResponse(res, new AppError("Please wait before requesting another reset email", {
+        statusCode: 429,
+        code: "RATE_LIMITED",
+        details: { retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000) },
+      }));
+    }
 
-  if (Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS) {
-    return sendErrorResponse(res, new AppError("Please wait before requesting another reset email", {
-      statusCode: 429,
-      code: "RATE_LIMITED",
-      details: { retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000) },
-    }));
-  }
+    if (!existingToken) {
+      return sendErrorResponse(res, new ValidationError("No reset request found, please initiate forgot password again"));
+    }
 
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  const hashed = hashToken(rawToken);
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashed = hashToken(rawToken);
 
-  existingToken.token = hashed;
-  existingToken.expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-  existingToken.resendCount += 1;
-  existingToken.lastSeenAt = new Date(Date.now());
+    existingToken.token = hashed;
+    existingToken.expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+    existingToken.resendCount += 1;
+    existingToken.lastSeenAt = new Date(Date.now());
 
-  await existingToken.save();
+    await existingToken.save();
 
-  const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
-  try {
-    await sendEmail(user.email, link);
-  } catch (err) {
-    logger.warn({ email: user.email, error: err }, "Failed to resend password reset email");
+    const link = `${frontendBaseUrl}/reset-password?token=${rawToken}`;
+    try {
+      await sendEmail(user.email, link);
+    } catch (err) {
+      logger.warn({ email: user.email, error: err }, "Failed to resend password reset email");
+    }
   }
 
   sendSuccess(res, {
-    message: "Password reset link resent to email",
+    message: "If an account with that email exists, a password reset link has been sent.",
   });
-  logger.info({ userId: user._id.toString(), email: user.email }, "Password reset link resent");
+  logger.info({ email: rawEmail, resent: canResend }, "Password reset resend completed");
 }, "auth.resendResetLink");
 
 const googleLogin = wrapController(async (req, res) => {
@@ -582,6 +583,7 @@ const googleLogin = wrapController(async (req, res) => {
       avatar: payload.picture,
       googleId: payload.sub,
       authProvider: ["google"],
+      emailVerified: payload.email_verified === true,
     });
   } else if (user.googleId && user.googleId !== payload.sub) {
     logger.warn({ email: payload.email, userId: user._id.toString() }, "Google login blocked due to mismatched linked account");
