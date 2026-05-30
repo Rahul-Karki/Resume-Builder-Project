@@ -25,8 +25,9 @@ export interface IUser extends Document {
   lockUntil: Date | null;
   // Email verification
   emailVerified: boolean;
-  emailVerificationToken?: string | null;
-  emailVerificationTokenExpires?: Date | null;
+  emailVerificationOtp?: string | null;
+  emailVerificationOtpExpires?: Date | null;
+  emailVerificationAttempts: number;
 }
 
 const getNextCreditsResetAt = () => {
@@ -145,13 +146,18 @@ const UserSchema: Schema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
-    emailVerificationToken: {
+    emailVerificationOtp: {
       type: String,
       default: null,
     },
-    emailVerificationTokenExpires: {
+    emailVerificationOtpExpires: {
       type: Date,
       default: null,
+    },
+    emailVerificationAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
   { timestamps: true }

@@ -54,7 +54,7 @@ const router = express.Router();
 // routes
 router.post("/signup", signupLimiter, validateRequest({ body: authSignupSchema }), registerUser);
 router.post("/login", loginLimiter, validateRequest({ body: authLoginSchema }), login);
-router.post("/verify-email", validateRequest({ body: z.object({ token: z.string().min(1) }).strict() }), verifyEmail);
+router.post("/verify-email", validateRequest({ body: z.object({ email: z.string().email(), otp: z.string().length(6).regex(/^\d{6}$/, "OTP must be 6 digits") }).strict() }), verifyEmail);
 router.post("/resend-verification", passwordRecoveryLimiter, validateRequest({ body: authEmailSchema }), resendVerificationEmail);
 
 router.post("/forgot-password", passwordRecoveryLimiter, validateRequest({ body: authEmailSchema }), forgotPassword);

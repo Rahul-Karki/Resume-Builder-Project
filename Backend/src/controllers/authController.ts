@@ -93,7 +93,7 @@ const registerUser = wrapController(async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
-  const verificationToken = crypto.randomBytes(32).toString("hex");
+  const verificationOtp = generateOtp();
 
   const user = new User({
     name,
@@ -102,14 +102,14 @@ const registerUser = wrapController(async (req, res) => {
     role: UserRole.USER,
     authProvider: ["local"],
     emailVerified: false,
-    emailVerificationToken: verificationToken,
-    emailVerificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    emailVerificationOtp: verificationOtp,
+    emailVerificationOtpExpires: new Date(Date.now() + OTP_EXPIRY_MS),
   });
 
   await user.save();
 
   try {
-    await sendVerificationEmail(user.email, verificationToken);
+    await sendVerificationEmail(user.email, verificationOtp);
   } catch (err) {
     logger.warn({ email: user.email, error: err }, "Failed to send verification email");
   }
@@ -129,31 +129,76 @@ const registerUser = wrapController(async (req, res) => {
   });
 }, "auth.registerUser");
 
-const verifyEmail = wrapController(async (req, res) => {
-  const { token } = req.body;
+const MAX_OTP_ATTEMPTS = 3;
+const OTP_EXPIRY_MS = 10 * 60 * 1000;
 
-  if (!token) {
-    return sendErrorResponse(res, new ValidationError("Verification token is required"));
+const generateOtp = () => String(crypto.randomInt(100000, 999999));
+
+const verifyEmail = wrapController(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!otp) {
+    return sendErrorResponse(res, new ValidationError("Verification code is required"));
   }
 
-  const user = await User.findOne({
-    emailVerificationToken: token,
-    emailVerificationTokenExpires: { $gt: new Date() },
-  });
+  if (!email) {
+    return sendErrorResponse(res, new ValidationError("Email is required"));
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
 
   if (!user) {
-    return sendErrorResponse(res, new ValidationError("Invalid or expired verification token"));
+    return sendErrorResponse(res, new ValidationError("Invalid or expired verification code"));
+  }
+
+  if (user.emailVerified) {
+    return sendSuccess(res, { message: "Email is already verified" });
+  }
+
+  if (user.emailVerificationAttempts >= MAX_OTP_ATTEMPTS) {
+    user.emailVerificationOtp = undefined;
+    user.emailVerificationOtpExpires = undefined;
+    await user.save({ validateModifiedOnly: true });
+    logger.warn({ userId: user._id.toString(), email: user.email }, "OTP max attempts exceeded");
+    return sendErrorResponse(res, new ValidationError("Too many failed attempts. Request a new code."));
+  }
+
+  if (!user.emailVerificationOtp || !user.emailVerificationOtpExpires || user.emailVerificationOtpExpires <= new Date()) {
+    user.emailVerificationAttempts += 1;
+    await user.save({ validateModifiedOnly: true });
+    return sendErrorResponse(res, new ValidationError("Invalid or expired verification code"));
+  }
+
+  if (user.emailVerificationOtp !== otp) {
+    user.emailVerificationAttempts += 1;
+    await user.save({ validateModifiedOnly: true });
+    const remaining = MAX_OTP_ATTEMPTS - user.emailVerificationAttempts;
+    if (remaining <= 0) {
+      user.emailVerificationOtp = undefined;
+      user.emailVerificationOtpExpires = undefined;
+      await user.save({ validateModifiedOnly: true });
+      logger.warn({ userId: user._id.toString(), email: user.email }, "OTP max attempts exceeded");
+      return sendErrorResponse(res, new ValidationError("Too many failed attempts. Request a new code."));
+    }
+    return sendErrorResponse(res, new ValidationError(`Invalid verification code. ${remaining} attempt(s) remaining.`));
   }
 
   user.emailVerified = true;
-  user.emailVerificationToken = undefined;
-  user.emailVerificationTokenExpires = undefined;
+  user.emailVerificationOtp = undefined;
+  user.emailVerificationOtpExpires = undefined;
+  user.emailVerificationAttempts = 0;
   await user.save({ validateModifiedOnly: true });
+
+  const accessToken = generateAccessToken(user._id.toString());
+  const refreshToken = generateRefreshToken(user._id.toString());
+  const csrfTokenValue = setAuthCookies(req, res, accessToken, refreshToken);
 
   logger.info({ userId: user._id.toString(), email: user.email }, "Email verified");
 
   sendSuccess(res, {
     message: "Email verified successfully",
+    accessToken,
+    csrfToken: csrfTokenValue,
     user: {
       id: user._id,
       email: user.email,
@@ -181,13 +226,14 @@ const resendVerificationEmail = wrapController(async (req, res) => {
     return sendSuccess(res, { message: "Email is already verified" });
   }
 
-  const verificationToken = crypto.randomBytes(32).toString("hex");
-  user.emailVerificationToken = verificationToken;
-  user.emailVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const verificationOtp = generateOtp();
+  user.emailVerificationOtp = verificationOtp;
+  user.emailVerificationOtpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
+  user.emailVerificationAttempts = 0;
   await user.save({ validateModifiedOnly: true });
 
   try {
-    await sendVerificationEmail(user.email, verificationToken);
+    await sendVerificationEmail(user.email, verificationOtp);
   } catch (err) {
     logger.warn({ email: user.email, error: err }, "Failed to resend verification email");
     return sendErrorResponse(res, new AppError("Failed to send verification email", { statusCode: 500, code: "EMAIL_FAILED" }));

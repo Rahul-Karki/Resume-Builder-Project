@@ -1,11 +1,12 @@
-import { useState, type ComponentProps, type FormEvent } from "react"
-import { Link } from "react-router-dom"
+import { useState, useRef, type ComponentProps, type FormEvent } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import GoogleAuthButton from "./ui/GoogleLoginButton"
 import { api } from "@/services/api"
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/
 
 export function SignupForm({ ...props }: ComponentProps<"div">) {
+  const navigate = useNavigate()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -15,7 +16,13 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
-  const [showVerificationMessage, setShowVerificationMessage] = useState(false)
+  const [showOtpInput, setShowOtpInput] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [otpAttempts, setOtpAttempts] = useState(0)
+  const [otpExhausted, setOtpExhausted] = useState(false)
+  const otpRef = useRef<HTMLInputElement>(null)
 
   const handleSignup = async (e: FormEvent) => {
     e.preventDefault()
@@ -25,7 +32,6 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
     setError("")
     setSuccess("")
 
-    // ✅ Validation
     if (!email || !password || !confirmPassword || !name) {
       setError("Please fill in all fields")
       return
@@ -51,11 +57,11 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
       })
 
       if (res.status === 201) {
-        setShowVerificationMessage(true)
-        setSuccess("Account created! Check your email for the verification link.")
+        setShowOtpInput(true)
+        setSuccess("Account created! Enter the verification code sent to your email.")
+        setTimeout(() => otpRef.current?.focus(), 100)
       }
     } catch (err: any) {
-      // ✅ Proper error handling
       if (err.response) {
         setError(err.response.data?.message || "Signup failed")
       } else if (err.request) {
@@ -68,10 +74,53 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
     }
   }
 
-  const handleGoogleLogin = () => {
-    const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-    window.location.href = `${baseURL}/auth/google`;
-  };
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6 || otpLoading || otpExhausted) return
+
+    setError("")
+    setOtpLoading(true)
+
+    try {
+      const res = await api.post("/auth/verify-email", { email, otp })
+      if (res.status === 200) {
+        navigate("/resumes")
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Invalid verification code"
+      const newAttempts = otpAttempts + 1
+      setOtpAttempts(newAttempts)
+      setOtp("")
+
+      if (msg.includes("Too many") || newAttempts >= 3) {
+        setOtpExhausted(true)
+        setError("Too many failed attempts. Please request a new code.")
+      } else {
+        const remaining = 3 - newAttempts
+        setError(`Invalid code. ${remaining} attempt(s) remaining.`)
+      }
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    if (resendLoading) return
+    setResendLoading(true)
+    setError("")
+    setSuccess("")
+
+    try {
+      await api.post("/auth/resend-verification", { email })
+      setOtpAttempts(0)
+      setOtpExhausted(false)
+      setOtp("")
+      setSuccess("New verification code sent!")
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to resend code")
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   return (
     <div
@@ -87,22 +136,105 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
     >
       <div style={{ marginBottom: 2, textAlign: "center", width: "100%" }}>
         <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 300, letterSpacing: "-0.8px", color: "#F0EFE8", margin: 0, lineHeight: 1.08 }}>
-          Sign up
+          {showOtpInput ? "Verify your email" : "Sign up"}
         </h1>
       </div>
 
       <form onSubmit={handleSignup} style={{ display: "grid", gap: 10, width: "100%" }}>
-        {showVerificationMessage ? (
-          <div style={{ padding: "20px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>✉️</div>
-            <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 300, color: "#F0EFE8", margin: "0 0 8px" }}>Check your email</h2>
-            <p style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.5, margin: 0 }}>
-              We sent a verification link to <strong style={{ color: "#F0EFE8" }}>{email}</strong>.
-              Click the link to activate your account, then sign in.
+        {showOtpInput ? (
+          <div style={{ padding: "12px 0", textAlign: "center" }}>
+            <p style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.5, margin: "0 0 16px" }}>
+              Enter the 6-digit code sent to <strong style={{ color: "#F0EFE8" }}>{email}</strong>
             </p>
-            <Link to="/login" style={{ display: "inline-block", marginTop: 16, color: "#C8F55A", fontWeight: 700, textDecoration: "none", fontSize: 13 }}>
-              Go to Sign In
-            </Link>
+            <input
+              ref={otpRef}
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "").slice(0, 6)
+                setOtp(val)
+                if (val.length === 6) {
+                  setTimeout(() => handleVerifyOtp(), 150)
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && otp.length === 6) handleVerifyOtp()
+              }}
+              placeholder="000000"
+              style={{
+                width: "100%",
+                maxWidth: 200,
+                borderRadius: 14,
+                border: "1px solid #3f3f46",
+                background: "#18181b",
+                color: "#fafafa",
+                padding: "14px 16px",
+                fontSize: 28,
+                fontWeight: 700,
+                letterSpacing: 8,
+                textAlign: "center",
+                outline: "none",
+                boxSizing: "border-box",
+                margin: "0 auto",
+              }}
+            />
+            {error && (
+              <div style={{ padding: "9px 11px", borderRadius: 10, background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.18)", color: "#FCA5A5", fontSize: 12.5, lineHeight: 1.45, marginTop: 12 }}>
+                {error}
+              </div>
+            )}
+            {success && (
+              <div style={{ padding: "9px 11px", borderRadius: 10, background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.18)", color: "#86EFAC", fontSize: 12.5, lineHeight: 1.45, marginTop: 12 }}>
+                {success}
+              </div>
+            )}
+            {otpExhausted ? (
+              <p style={{ color: "#FCA5A5", fontSize: 12, marginTop: 12, lineHeight: 1.5 }}>
+                You've used all attempts. Please request a new code below.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleVerifyOtp}
+                disabled={otp.length !== 6 || otpLoading}
+                style={{
+                  width: "100%",
+                  maxWidth: 200,
+                  border: "none",
+                  borderRadius: 14,
+                  background: otp.length === 6 && !otpLoading ? "#C8F55A" : "rgba(200,245,90,0.35)",
+                  color: "#0E0E0E",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  padding: "11px 16px",
+                  cursor: otp.length === 6 && !otpLoading ? "pointer" : "not-allowed",
+                  marginTop: 12,
+                }}
+              >
+                {otpLoading ? "Verifying…" : "Verify"}
+              </button>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={resendLoading}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: resendLoading ? "#71717a" : "#C8F55A",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: resendLoading ? "wait" : "pointer",
+                  textDecoration: "underline",
+                  padding: 0,
+                }}
+              >
+                {resendLoading ? "Sending…" : "Resend code"}
+              </button>
+            </div>
           </div>
         ) : (<>
         <div style={fieldStyle}>

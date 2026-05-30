@@ -4,29 +4,9 @@ import { env } from "../config/env";
 const resend = new Resend(env.RESEND_API_KEY);
 const resendFrom = env.RESEND_FROM;
 
-type EmailType = "verification" | "password-reset";
+type EmailType = "password-reset";
 
 const templates: Record<EmailType, { subject: string; html: (link: string) => string }> = {
-  "verification": {
-    subject: "Verify your email address",
-    html: (link: string) => `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #1a1a2e;">Verify your email</h2>
-        <p style="color: #555; line-height: 1.6;">
-          Thanks for signing up! Click the button below to verify your email address.
-        </p>
-        <a href="${link}" style="display: inline-block; padding: 12px 24px; background: #1a1a2e; color: #fff; text-decoration: none; border-radius: 6px; margin: 16px 0;">
-          Verify Email
-        </a>
-        <p style="color: #999; font-size: 13px;">
-          Or copy this link: <a href="${link}" style="color: #666;">${link}</a>
-        </p>
-        <p style="color: #999; font-size: 12px; margin-top: 24px;">
-          If you didn't create an account, you can safely ignore this email.
-        </p>
-      </div>
-    `,
-  },
   "password-reset": {
     subject: "Reset your password",
     html: (link: string) => `
@@ -60,9 +40,35 @@ export const sendEmail = async (to: string, link: string, type: EmailType = "pas
   }
 };
 
-export const sendVerificationEmail = async (to: string, token: string) => {
-  const link = `${env.FRONTEND_URL}/verify-email?token=${encodeURIComponent(token)}`;
-  return sendEmail(to, link, "verification");
+export const sendVerificationEmail = async (to: string, otp: string) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #1a1a2e;">Verify your email</h2>
+      <p style="color: #555; line-height: 1.6;">
+        Thanks for signing up! Use the verification code below to activate your account.
+      </p>
+      <div style="text-align: center; margin: 24px 0;">
+        <span style="display: inline-block; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #1a1a2e; background: #f5f5f5; padding: 12px 24px; border-radius: 8px;">
+          ${otp}
+        </span>
+      </div>
+      <p style="color: #999; font-size: 13px;">
+        This code expires in 24 hours.
+      </p>
+      <p style="color: #999; font-size: 12px; margin-top: 24px;">
+        If you didn't create an account, you can safely ignore this email.
+      </p>
+    </div>
+  `;
+  const { error } = await resend.emails.send({
+    from: resendFrom,
+    to,
+    subject: "Verify your email address",
+    html,
+  });
+  if (error) {
+    throw new Error(error.message || "Failed to send verification email");
+  }
 };
 
 export const sendPasswordResetEmail = async (to: string, token: string) => {
