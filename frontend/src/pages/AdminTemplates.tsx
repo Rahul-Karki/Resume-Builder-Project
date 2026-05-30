@@ -75,6 +75,11 @@ export function AdminTemplates() {
     style: {
       ...sampleData.style,
       ...template.cssVars,
+      showDividers: template.cssVars.showDividers === "true",
+      bulletStyle: template.cssVars.bulletStyle as ResumeStyle["bulletStyle"],
+      headerAlign: template.cssVars.headerAlign as ResumeStyle["headerAlign"],
+      pageMargin: template.cssVars.pageMargin as ResumeStyle["pageMargin"],
+      sectionSpacing: template.cssVars.sectionSpacing as ResumeStyle["sectionSpacing"],
     } as ResumeStyle,
     sectionVisibility: {
       ...sampleData.sectionVisibility,

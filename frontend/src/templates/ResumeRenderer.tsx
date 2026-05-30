@@ -469,7 +469,7 @@ export function ResumeRenderer({ resume, forExport = false }: Props) {
         width: "100%",
         height: "100%",
         minHeight: "100%",
-        background: resume.style.backgroundColor,
+        background: renderableResume.style.backgroundColor,
         boxSizing: "border-box",
         overflow: "visible",
       }}

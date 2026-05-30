@@ -212,6 +212,7 @@ const callOpenRouterJson = async (systemPrompt: string, userPrompt: string, sign
         body: JSON.stringify({
           model,
           temperature: 0,
+          max_tokens: 4096,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: systemPrompt },
@@ -1224,7 +1225,7 @@ export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysis
         atsAnalyzedAt: new Date(report.analyzedAt ?? new Date().toISOString()),
         latestAtsAnalysis: report,
       },
-      { new: true },
+      { returnDocument: "after" },
     ).catch((saveError: unknown) => {
       logger.warn({ saveError, jobId: job.data.analysisId, resumeId: job.data.resumeId }, "Failed to persist resume ATS score");
     });

@@ -14,6 +14,32 @@ import { verifyTokenWithRotation } from "../utils/secretsRotation";
 const AUTH_QUERY_TIMEOUT_MS = 5000;
 const AUTH_USER_CACHE_TTL_S = 60;
 
+function verifyAccessToken(token: string): { userId: string } | null {
+  const hasHmac = env.JWT_ACCESS_SECRET?.trim().length > 0;
+  const hasRsa = env.JWT_ACCESS_PUBLIC_KEY?.trim().length > 0;
+
+  if (hasHmac) {
+    return verifyTokenWithRotation(token) as { userId: string } | null;
+  }
+
+  if (hasRsa) {
+    try {
+      return jwt.verify(token, env.JWT_ACCESS_PUBLIC_KEY, { algorithms: ["RS256"] }) as { userId: string };
+    } catch {
+      const oldKey = env.JWT_ACCESS_PUBLIC_KEY_OLD?.trim();
+      if (oldKey) {
+        try {
+          return jwt.verify(token, oldKey, { algorithms: ["RS256"] }) as { userId: string };
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function authenticateUser(
   req: Request,
   res: Response
@@ -23,35 +49,8 @@ export async function authenticateUser(
 
   if (!token) return null;
 
-  // Delegate to verification+fetch flow in middleware for sync handling.
-  // Here we keep a minimal path that attempts verification using the same
-  // strategy as the middleware and then fetches user details.
-
-  let decodedPayload: any = null;
-  const hasHmac = typeof env.JWT_ACCESS_SECRET === "string" && env.JWT_ACCESS_SECRET.trim().length > 0;
-  const hasRsa = typeof env.JWT_ACCESS_PUBLIC_KEY === "string" && env.JWT_ACCESS_PUBLIC_KEY.trim().length > 0;
-
-  if (hasHmac) {
-    decodedPayload = verifyTokenWithRotation(token) as { userId: string } | null;
-    if (!decodedPayload) return null;
-  } else if (hasRsa) {
-    try {
-      decodedPayload = jwt.verify(token, env.JWT_ACCESS_PUBLIC_KEY, { algorithms: ["RS256"] }) as { userId: string };
-    } catch {
-      const oldKey = env.JWT_ACCESS_PUBLIC_KEY_OLD?.trim();
-      if (oldKey) {
-        try {
-          decodedPayload = jwt.verify(token, oldKey, { algorithms: ["RS256"] }) as { userId: string };
-        } catch {
-          return null;
-        }
-      } else {
-        return null;
-      }
-    }
-  } else {
-    return null;
-  }
+  const decodedPayload = verifyAccessToken(token);
+  if (!decodedPayload) return null;
 
   return await fetchUserById(String(decodedPayload.userId), token);
 }
@@ -114,8 +113,6 @@ export const authMiddleware = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  // Synchronous checks first so tests that call middleware without awaiting
-  // still observe immediate 401/403 responses for missing or invalid tokens.
   const cookies = parseCookies(req.headers.cookie);
   const token = cookies.accessToken;
 
@@ -125,56 +122,13 @@ export const authMiddleware = async (
     return;
   }
 
-  // Attempt synchronous verification to catch invalid-token errors immediately.
-  let decodedPayload: any = null;
-  const hasHmac2 = typeof env.JWT_ACCESS_SECRET === "string" && env.JWT_ACCESS_SECRET.trim().length > 0;
-  const hasRsa2 = typeof env.JWT_ACCESS_PUBLIC_KEY === "string" && env.JWT_ACCESS_PUBLIC_KEY.trim().length > 0;
-
-  if (hasHmac2) {
-    try {
-      decodedPayload = jwt.verify(token, env.JWT_ACCESS_SECRET, { algorithms: ["HS256"] }) as { userId: string };
-    } catch {
-      const newSecret = process.env.JWT_ACCESS_SECRET_NEW?.trim();
-      if (newSecret && newSecret !== env.JWT_ACCESS_SECRET) {
-        try {
-          decodedPayload = jwt.verify(token, newSecret, { algorithms: ["HS256"] }) as { userId: string };
-        } catch {
-          logAuthFailure(req, "Invalid token");
-          sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
-          return;
-        }
-      } else {
-        logAuthFailure(req, "Invalid token");
-        sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
-        return;
-      }
-    }
-  } else if (hasRsa2) {
-    try {
-      decodedPayload = jwt.verify(token, env.JWT_ACCESS_PUBLIC_KEY, { algorithms: ["RS256"] }) as { userId: string };
-    } catch {
-      const oldKey = env.JWT_ACCESS_PUBLIC_KEY_OLD?.trim();
-      if (oldKey) {
-        try {
-          decodedPayload = jwt.verify(token, oldKey, { algorithms: ["RS256"] }) as { userId: string };
-        } catch {
-          logAuthFailure(req, "Invalid token");
-          sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
-          return;
-        }
-      } else {
-        logAuthFailure(req, "Invalid token");
-        sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
-        return;
-      }
-    }
-  } else {
+  const decodedPayload = verifyAccessToken(token);
+  if (!decodedPayload) {
     logAuthFailure(req, "Invalid token");
     sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
     return;
   }
 
-  // At this point token is syntactically valid — fetch user details (async)
   try {
     const user = await fetchUserById(String(decodedPayload.userId), token);
     if (!user) {
@@ -192,6 +146,5 @@ export const authMiddleware = async (
     }
     logAuthFailure(req, "Invalid token");
     sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
-    return;
   }
 };

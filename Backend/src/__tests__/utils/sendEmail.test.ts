@@ -5,7 +5,10 @@ vi.mock("resend", () => ({
   Resend: vi.fn(function () { return { emails: { send: mockEmailsSend } }; }),
 }));
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubEnv("EMAIL_PROVIDER", "resend");
+});
 
 describe("sendEmail", () => {
   describe("sendEmail", () => {

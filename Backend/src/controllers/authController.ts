@@ -317,7 +317,7 @@ const login = wrapController(async (req, res) => {
           },
         },
       ],
-      { new: true, select: "loginAttempts lockUntil" }
+      { returnDocument: "after", select: "loginAttempts lockUntil" }
     );
 
     if (result?.lockUntil) {

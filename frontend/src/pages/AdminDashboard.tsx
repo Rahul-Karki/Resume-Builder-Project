@@ -120,9 +120,9 @@ export function AdminDashboard() {
                 onClick={() => setSelected(a.templateId)}
                 style={{
                   padding: "3px 10px", borderRadius: 20, border: "1px solid",
-                  borderColor: (selected ?? analytics[0]?.templateId) === a.templateId ? "#C8F55A" : "#1E1E1E",
-                  background: (selected ?? analytics[0]?.templateId) === a.templateId ? "rgba(200,245,90,0.1)" : "transparent",
-                  color: (selected ?? analytics[0]?.templateId) === a.templateId ? "#C8F55A" : "#444",
+                  borderColor: (selected ?? publishedAnalytics[0]?.templateId) === a.templateId ? "#C8F55A" : "#1E1E1E",
+                  background: (selected ?? publishedAnalytics[0]?.templateId) === a.templateId ? "rgba(200,245,90,0.1)" : "transparent",
+                  color: (selected ?? publishedAnalytics[0]?.templateId) === a.templateId ? "#C8F55A" : "#444",
                   fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 }}>
                 {a.name}

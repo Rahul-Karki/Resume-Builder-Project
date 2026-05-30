@@ -312,6 +312,7 @@ const callOpenRouter = async (systemPrompt: string, userPrompt: string) => withT
         body: JSON.stringify({
           model,
           temperature: 0.2,
+          max_tokens: 4096,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: systemPrompt },

@@ -322,6 +322,9 @@ export const consumeRateLimit = async (
 export const deleteByPattern = async (pattern: string): Promise<number> => {
   const provider = getCacheProvider();
 
+  // Always clear memory cache regardless of provider
+  memoryCache.deleteByPattern(pattern);
+
   if (provider === "redis") {
     const deleted = await withRedis(async (client) => {
       const keys: string[] = [];
@@ -343,17 +346,7 @@ export const deleteByPattern = async (pattern: string): Promise<number> => {
       return deletedCount;
     });
 
-    memoryCache.deleteByPattern(pattern);
-
     return deleted ?? 0;
-  }
-
-  if (provider === "upstash") {
-    // Avoid expensive KEYS command on Upstash (O(N) scan + DEL = 2+ commands).
-    // Since cacheSet writes to both Upstash AND memoryCache, and cacheGet
-    // falls back to memoryCache on miss, invalidating in-memory is sufficient.
-    // Stale Upstash entries will simply expire via TTL.
-    return memoryCache.deleteByPattern(pattern);
   }
 
   return 0;

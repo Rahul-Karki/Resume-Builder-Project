@@ -35,30 +35,39 @@ export const createApp = () => {
     .map((origin) => origin?.trim().replace(/\/$/, ""))
     .filter((origin): origin is string => Boolean(origin));
 
+  const isOriginAllowed = (origin: string): boolean => {
+    const normalizedOrigin = origin.trim().replace(/\/$/, "");
+
+    if (configuredOrigins.includes(normalizedOrigin)) return true;
+
+    if (env.ALLOW_PREVIEW_ORIGINS) {
+      if (
+        normalizedOrigin.startsWith("http://localhost:") ||
+        normalizedOrigin.startsWith("https://localhost:")
+      ) return true;
+    }
+
+    for (const pattern of env.CORS_EXTRA_PATTERNS) {
+      try {
+        const regex = new RegExp(pattern);
+        if (regex.test(normalizedOrigin)) return true;
+      } catch {
+        // Invalid regex in env config — skip silently
+      }
+    }
+
+    return false;
+  };
+
   const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
       if (!origin) {
-        // In production, only allow safe methods without Origin header
-        // (e.g., health checks). Mutating requests from non-browser clients
-        // still require authentication and rate limiting.
+        // Allow server-to-server requests (e.g., health checks, cron)
         callback(null, true);
         return;
       }
 
-      const normalizedOrigin = origin.trim().replace(/\/$/, "");
-
-      if (configuredOrigins.includes(normalizedOrigin)) {
-        callback(null, true);
-        return;
-      }
-
-      // Allow Vercel preview deployments and custom domains
-      if (
-        normalizedOrigin.endsWith(".vercel.app") ||
-        normalizedOrigin.endsWith(".onrender.com") ||
-        normalizedOrigin.startsWith("http://localhost:") ||
-        normalizedOrigin.startsWith("https://localhost:")
-      ) {
+      if (isOriginAllowed(origin)) {
         callback(null, true);
         return;
       }

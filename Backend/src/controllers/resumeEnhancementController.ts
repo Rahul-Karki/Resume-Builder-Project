@@ -114,7 +114,7 @@ export const analyzeAts = wrapController(async (req, res) => {
       grammarIssues: [], formattingChecks: [], rewriteSuggestions: [],
       summary: "ATS analysis queued.", lastError: "",
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 
   const job = {

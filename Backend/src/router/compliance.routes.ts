@@ -10,6 +10,7 @@ import {
   complianceReportQuerySchema,
   complianceViolationsQuerySchema,
   alertTestBodySchema,
+  objectIdParamSchema,
 } from "../validation/schemas";
 
 const router = express.Router();
@@ -55,7 +56,7 @@ router.get("/audit-logs", validateRequest({ query: auditLogsQuerySchema }), asyn
   }
 });
 
-router.get("/audit-logs/:documentId", async (req: Request, res: Response) => {
+router.get("/audit-logs/:documentId", validateRequest({ params: objectIdParamSchema }), async (req: Request, res: Response) => {
   try {
     const { documentId } = req.params;
 

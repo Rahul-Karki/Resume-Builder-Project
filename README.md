@@ -328,7 +328,7 @@ resume-builder/
 │   │   ├── observability/           # Monitoring (metrics, logging)
 │   │   ├── validation/              # Zod schemas
 │   │   └── types/                   # TypeScript type definitions
-│   ├── automated-tests/             # 17 unit + integration tests
+│   ├── automated-tests/             # 15 top-level tests + 3 integration tests
 │   ├── prompts/                     # AI prompt templates (Python)
 │   ├── deploy/                      # Deployment configs
 │   └── Dockerfile                   # Multi-stage build (builder + runtime)
@@ -340,7 +340,7 @@ resume-builder/
 │   │   ├── hooks/                   # Custom hooks (useAISuggestions, useMyResume)
 │   │   ├── store/                   # Zustand store (resume editor state)
 │   │   ├── services/                # API client (Axios + CSRF)
-│   │   ├── templates/               # 12 template React components
+│   │   ├── components/templates/    # 12 template React components
 │   │   ├── types/                   # TypeScript type definitions
 │   │   ├── utils/                   # Utilities (logger, PDF, print, etc.)
 │   │   ├── data/                    # Static data (templates, sample resume)
@@ -630,8 +630,11 @@ openssl rand -base64 32
 | **DELETE** | `/api/resumes/:id` | Yes | Soft-delete resume |
 | **POST** | `/api/resumes/:id/restore` | Yes | Restore deleted resume |
 | **POST** | `/api/resumes/:id/download` | Yes | Enqueue PDF download job |
-| **GET** | `/api/resumes/downloads/:jobId` | Yes | Poll download status |
-| **GET** | `/api/resumes/downloads/:jobId/stream` | Yes | SSE stream job updates |
+| **GET** | `/api/resumes/job-status/:id` | Yes | Poll download status |
+| **GET** | `/api/resumes/job-events/:id` | Yes | SSE stream job updates |
+| **POST** | `/api/resumes/job-cancel/:id` | Yes | Cancel a download job |
+| **GET** | `/api/resumes/download-result/:id` | Yes | Fetch the generated PDF |
+| **GET** | `/api/resumes/preview-data/:id` | Yes | Fetch preview data for a job |
 
 ### AI Endpoints
 
@@ -661,9 +664,9 @@ openssl rand -base64 32
 
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| **GET** | `/api/admin/dashboard` | Admin | Dashboard analytics (cached) |
+| **GET** | `/api/admin/analytics/dashboard` | Admin | Dashboard analytics (cached) |
 | **GET** | `/api/admin/audit-logs` | Admin | Compliance audit logs |
-| **GET** | `/api/admin/integrity-check` | Admin | Data integrity report |
+| **POST** | `/api/admin/integrity-check` | Admin | Data integrity report |
 | **GET** | `/api/compliance/audit-export` | Admin | Export audit logs (CSV) |
 
 ### Health & Monitoring
@@ -823,7 +826,7 @@ npm run test:cache:templates
 npm run test:download:prod
 ```
 
-**Test files:** `Backend/automated-tests/*.test.js` and `Backend/automated-tests/integration/*.test.js`
+**Test files:** `Backend/automated-tests/*.test.js` and `Backend/automated-tests/*.test.ts`, plus `Backend/automated-tests/integration/*.test.js` and `Backend/automated-tests/integration/*.test.ts`
 
 ### Frontend Tests
 

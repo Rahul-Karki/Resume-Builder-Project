@@ -15,6 +15,11 @@ export interface CssVars {
   headingFont:     string;
   fontSize:        string;
   lineHeight:      string;
+  pageMargin:      string;
+  sectionSpacing:  string;
+  showDividers:    string;
+  bulletStyle:     string;
+  headerAlign:     string;
 }
 
 export interface Slots {
@@ -109,6 +114,11 @@ export const DEFAULT_CSS_VARS: CssVars = {
   headingFont:     "EB Garamond, serif",
   fontSize:        "10.5pt",
   lineHeight:      "1.5",
+  pageMargin:      "normal",
+  sectionSpacing:  "normal",
+  showDividers:    "true",
+  bulletStyle:     "•",
+  headerAlign:     "left",
 };
 
 export const DEFAULT_SLOTS: Slots = {

@@ -31,8 +31,11 @@ const baseEnvSchema = z.object({
   JWT_REFRESH_PRIVATE_KEY: z.string().optional().default(""),
   JWT_REFRESH_PUBLIC_KEY: z.string().optional().default(""),
   JWT_REFRESH_PUBLIC_KEY_OLD: z.string().optional().default(""),
-  RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
-  RESEND_FROM: z.string().email("RESEND_FROM must be a valid email"),
+  EMAIL_PROVIDER: z.enum(["brevo", "resend", "console"]).default("resend"),
+  BREVO_API_KEY: z.string().optional().default(""),
+  BREVO_FROM: z.string().optional().default(""),
+  RESEND_API_KEY: z.string().optional().default(""),
+  RESEND_FROM: z.string().optional().default(""),
   GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   SERVICE_NAME: z.string().min(1).default("resume-builder-backend"),
@@ -77,6 +80,8 @@ const baseEnvSchema = z.object({
   OTEL_METRIC_EXPORT_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
   INTEGRITY_CHECK_INTERVAL_MS: z.coerce.number().int().min(60000).default(3600000),
   CREATE_INDEXES_ON_STARTUP: booleanFromEnv.default(true),
+  ALLOW_PREVIEW_ORIGINS: booleanFromEnv.default(false),
+  CORS_EXTRA_PATTERNS: z.string().optional().default(""),
 });
 
 const envSchema = baseEnvSchema
@@ -154,6 +159,12 @@ const envSchema = baseEnvSchema
     UPSTASH_REDIS_REST_URL: value.UPSTASH_REDIS_REST_URL.trim(),
     UPSTASH_REDIS_REST_TOKEN: value.UPSTASH_REDIS_REST_TOKEN.trim(),
     PUPPETEER_EXECUTABLE_PATH: value.PUPPETEER_EXECUTABLE_PATH.trim(),
+    CORS_EXTRA_PATTERNS: value.CORS_EXTRA_PATTERNS
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean),
+    BREVO_API_KEY: value.BREVO_API_KEY.trim(),
+    BREVO_FROM: value.BREVO_FROM.trim(),
   }));
 
 const parsed = envSchema.safeParse(process.env);

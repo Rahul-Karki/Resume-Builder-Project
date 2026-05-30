@@ -349,11 +349,24 @@ export const metricsMiddleware = (req: Request, res: Response, next: NextFunctio
   next();
 };
 
+const MAX_CLIENT_ERROR_BODY_BYTES = 8192;
+
 export const clientErrorHandler = (req: Request, res: Response) => {
-  const { message, source, stack, url, userAgent } = req.body || {};
+  const rawBody = req.body || {};
+
+  if (typeof rawBody !== "object" || Buffer.byteLength(JSON.stringify(rawBody), "utf8") > MAX_CLIENT_ERROR_BODY_BYTES) {
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  const message = typeof rawBody.message === "string" ? rawBody.message.substring(0, 500) : "unknown";
+  const source = typeof rawBody.source === "string" ? rawBody.source.substring(0, 100) : "unknown";
+  const url = typeof rawBody.url === "string" ? rawBody.url.substring(0, 500) : undefined;
+  const userAgent = typeof rawBody.userAgent === "string" ? rawBody.userAgent.substring(0, 300) : undefined;
+
   const labels = {
-    source: source || "unknown",
-    error_type: message ? message.substring(0, 100) : "unknown",
+    source,
+    error_type: message.substring(0, 100),
   };
   clientErrorCounter.labels(labels.source, labels.error_type).inc();
 

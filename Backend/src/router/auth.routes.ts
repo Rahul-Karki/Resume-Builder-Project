@@ -49,12 +49,27 @@ const loginLimiter = createRedisRateLimitMiddleware({
 	message: "Too many login attempts. Please try again later.",
 });
 
+const verifyEmailLimiter = createRedisRateLimitMiddleware({
+	scope: "auth-verify-email",
+	windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+	max: Math.max(5, Math.floor(env.REDIS_RATE_LIMIT_MAX / 4)),
+	message: "Too many verification attempts. Please try again later.",
+});
+
+const mfaLimiter = createRedisRateLimitMiddleware({
+	scope: "auth-mfa",
+	windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+	max: Math.max(5, Math.floor(env.REDIS_RATE_LIMIT_MAX / 4)),
+	keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+	message: "Too many MFA attempts. Please try again later.",
+});
+
 const router = express.Router();
 
 // routes
 router.post("/signup", signupLimiter, validateRequest({ body: authSignupSchema }), registerUser);
 router.post("/login", loginLimiter, validateRequest({ body: authLoginSchema }), login);
-router.post("/verify-email", validateRequest({ body: z.object({ email: z.string().email(), otp: z.string().length(6).regex(/^\d{6}$/, "OTP must be 6 digits") }).strict() }), verifyEmail);
+router.post("/verify-email", verifyEmailLimiter, validateRequest({ body: z.object({ email: z.string().email(), otp: z.string().length(6).regex(/^\d{6}$/, "OTP must be 6 digits") }).strict() }), verifyEmail);
 router.post("/resend-verification", passwordRecoveryLimiter, validateRequest({ body: authEmailSchema }), resendVerificationEmail);
 
 router.post("/forgot-password", passwordRecoveryLimiter, validateRequest({ body: authEmailSchema }), forgotPassword);
@@ -71,9 +86,9 @@ router.get("/me", authMiddleware, getCurrentUser);
 // ─── MFA Routes ─────────────────────────────────────────────────────────────────
 import { setupMfa, verifyMfa, disableMfa, getMfaStatus } from "../controllers/mfaController";
 
-router.post("/mfa/setup", authMiddleware, setupMfa);
-router.post("/mfa/verify", authMiddleware, verifyMfa);
-router.post("/mfa/disable", authMiddleware, disableMfa);
-router.get("/mfa/status", authMiddleware, getMfaStatus);
+router.post("/mfa/setup", mfaLimiter, authMiddleware, setupMfa);
+router.post("/mfa/verify", mfaLimiter, authMiddleware, verifyMfa);
+router.post("/mfa/disable", mfaLimiter, authMiddleware, disableMfa);
+router.get("/mfa/status", mfaLimiter, authMiddleware, getMfaStatus);
 
 export default router;

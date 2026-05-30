@@ -1,17 +1,113 @@
-import { Resend } from "resend";
 import { env } from "../config/env";
+import { logger } from "../observability";
 
-// In test environment, skip external email delivery to avoid network calls and
-// flaky failures when test API keys are invalid. Unit tests for sendEmail
-// still validate behaviour by importing this module directly and providing
-// controlled env values.
-const isTestEnv = process.env.NODE_ENV === "test";
-const resend = isTestEnv ? null : new Resend(env.RESEND_API_KEY);
-const resendFrom = env.RESEND_FROM;
+interface EmailPayload {
+  to: string;
+  subject: string;
+  html: string;
+}
 
-type EmailType = "password-reset";
+interface EmailProvider {
+  send(payload: EmailPayload): Promise<void>;
+}
 
-const templates: Record<EmailType, { subject: string; html: (link: string) => string }> = {
+class BrevoProvider implements EmailProvider {
+  private readonly apiKey: string;
+  private readonly from: string;
+  private readonly ready: boolean;
+
+  constructor() {
+    this.apiKey = env.BREVO_API_KEY;
+    this.from = env.BREVO_FROM || "noreply@yourdomain.com";
+    this.ready = !!this.apiKey;
+  }
+
+  async send(payload: EmailPayload): Promise<void> {
+    if (!this.ready) {
+      logger.warn({ to: payload.to }, "BREVO_API_KEY not set — email skipped");
+      return;
+    }
+
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": this.apiKey,
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: this.from },
+        to: [{ email: payload.to }],
+        subject: payload.subject,
+        htmlContent: payload.html,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Brevo API error (${response.status}): ${body}`);
+    }
+  }
+}
+
+class ResendProvider implements EmailProvider {
+  private readonly apiKey: string;
+  private readonly from: string;
+  private readonly ready: boolean;
+
+  constructor() {
+    this.apiKey = env.RESEND_API_KEY;
+    this.from = env.RESEND_FROM || "onboarding@resend.dev";
+    this.ready = !!this.apiKey;
+  }
+
+  async send(payload: EmailPayload): Promise<void> {
+    if (!this.ready) {
+      logger.warn({ to: payload.to }, "RESEND_API_KEY not set — email skipped");
+      return;
+    }
+
+    const { Resend } = await import("resend");
+    const client = new Resend(this.apiKey);
+
+    const { error } = await client.emails.send({
+      from: this.from,
+      to: payload.to,
+      subject: payload.subject,
+      html: payload.html,
+    });
+
+    if (error) {
+      throw new Error(error.message || "Resend email failed");
+    }
+  }
+}
+
+class ConsoleProvider implements EmailProvider {
+  async send(payload: EmailPayload): Promise<void> {
+    logger.info(
+      { to: payload.to, subject: payload.subject },
+      `[ConsoleEmail] ${payload.subject} -> ${payload.to}`,
+    );
+  }
+}
+
+function createProvider(): EmailProvider {
+  switch (env.EMAIL_PROVIDER) {
+    case "brevo":
+      return new BrevoProvider();
+    case "resend":
+      return new ResendProvider();
+    case "console":
+      return new ConsoleProvider();
+    default:
+      return new ConsoleProvider();
+  }
+}
+
+const provider = createProvider();
+
+const TEMPLATES = {
   "password-reset": {
     subject: "Reset your password",
     html: (link: string) => `
@@ -29,28 +125,18 @@ const templates: Record<EmailType, { subject: string; html: (link: string) => st
       </div>
     `,
   },
-};
+} as const;
 
-export const sendEmail = async (to: string, link: string, type: EmailType = "password-reset") => {
-  const template = templates[type];
-  if (isTestEnv || !resend) {
-    // In tests, simulate success without calling external API.
-    return;
-  }
+export const sendEmail = async (to: string, link: string, type: keyof typeof TEMPLATES = "password-reset") => {
+  if (env.NODE_ENV === "test") return;
 
-  const { error } = await resend.emails.send({
-    from: resendFrom,
-    to,
-    subject: template.subject,
-    html: template.html(link),
-  });
-
-  if (error) {
-    throw new Error(error.message || "Failed to send email with Resend");
-  }
+  const template = TEMPLATES[type];
+  await provider.send({ to, subject: template.subject, html: template.html(link) });
 };
 
 export const sendVerificationEmail = async (to: string, otp: string) => {
+  if (env.NODE_ENV === "test") return;
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
       <h2 style="color: #1a1a2e;">Verify your email</h2>
@@ -62,25 +148,14 @@ export const sendVerificationEmail = async (to: string, otp: string) => {
           ${otp}
         </span>
       </div>
-      <p style="color: #999; font-size: 13px;">
-        This code expires in 24 hours.
-      </p>
+      <p style="color: #999; font-size: 13px;">This code expires in 24 hours.</p>
       <p style="color: #999; font-size: 12px; margin-top: 24px;">
         If you didn't create an account, you can safely ignore this email.
       </p>
     </div>
   `;
-  if (isTestEnv || !resend) return;
 
-  const { error } = await resend.emails.send({
-    from: resendFrom,
-    to,
-    subject: "Verify your email address",
-    html,
-  });
-  if (error) {
-    throw new Error(error.message || "Failed to send verification email");
-  }
+  await provider.send({ to, subject: "Verify your email address", html });
 };
 
 export const sendPasswordResetEmail = async (to: string, token: string) => {

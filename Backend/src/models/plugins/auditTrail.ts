@@ -36,10 +36,21 @@ export const runWithAuditContext = <T>(context: AuditContext, fn: () => T): T =>
   return auditContextStore.run(context, fn);
 };
 
+const getCollectionName = (schema: Schema, doc?: any): string => {
+  const explicit = schema.get("collection");
+  if (explicit && typeof explicit === "string") return explicit;
+  const modelName = doc?.constructor?.modelName;
+  if (modelName) {
+    if (modelName.endsWith("s")) return modelName.toLowerCase();
+    return modelName.toLowerCase() + "s";
+  }
+  return "unknown";
+};
+
 export function auditTrailPlugin(schema: Schema) {
   // Skip audit logging for AuditLog itself
-  const modelName = schema.get("collection");
-  if (modelName === "auditlogs" || modelName === "auditLogs") {
+  const collectionOption = schema.get("collection");
+  if (collectionOption === "auditlogs" || collectionOption === "auditLogs") {
     return;
   }
 
@@ -69,7 +80,7 @@ export function auditTrailPlugin(schema: Schema) {
       }
 
       await AuditLog.create({
-        collectionName: schema.get("collection"),
+        collectionName: getCollectionName(schema, doc),
         documentId: doc._id,
         userId: context?.userId,
         userEmail: context?.userEmail,
@@ -92,15 +103,30 @@ export function auditTrailPlugin(schema: Schema) {
     delete doc._auditOriginal;
   });
 
+  // Store model name per query for deleteOne auditing
+  const deleteModelNames = new WeakMap<object, string>();
+
+  schema.pre("deleteOne", function () {
+    const query = this as any;
+    const model = query.model;
+    if (model?.modelName) {
+      deleteModelNames.set(query, model.modelName);
+    }
+  });
+
   // Log deletes (hard delete)
   schema.post("deleteOne", async function () {
-    const filter = (this as any).getFilter();
+    const query = this as any;
+    const filter = query.getFilter();
     const context = getAuditContext();
 
     try {
-      // Get the document before deletion (we don't have it here, but log the deletion)
+      const modelName = deleteModelNames.get(query);
+      const collectionName = modelName
+        ? (modelName.endsWith("s") ? modelName.toLowerCase() : modelName.toLowerCase() + "s")
+        : getCollectionName(schema);
       await AuditLog.create({
-        collectionName: schema.get("collection"),
+        collectionName,
         documentId: filter._id || filter.id,
         userId: context?.userId,
         userEmail: context?.userEmail,
@@ -113,6 +139,8 @@ export function auditTrailPlugin(schema: Schema) {
       });
     } catch (error) {
       console.error("Failed to create delete audit log:", error);
+    } finally {
+      deleteModelNames.delete(query);
     }
   });
 
@@ -124,7 +152,7 @@ export function auditTrailPlugin(schema: Schema) {
     if (doc.deletedAt && (!doc._auditOriginal || !doc._auditOriginal.deletedAt)) {
       try {
         await AuditLog.create({
-          collectionName: schema.get("collection"),
+          collectionName: getCollectionName(schema, doc),
           documentId: doc._id,
           userId: context?.userId,
           userEmail: context?.userEmail,
@@ -151,7 +179,7 @@ export function auditTrailPlugin(schema: Schema) {
     if (!doc.deletedAt && doc._auditOriginal?.deletedAt) {
       try {
         await AuditLog.create({
-          collectionName: schema.get("collection"),
+          collectionName: getCollectionName(schema, doc),
           documentId: doc._id,
           userId: context?.userId,
           userEmail: context?.userEmail,

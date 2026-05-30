@@ -6,6 +6,7 @@ import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./obse
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
 import { createAllIndexes } from "./config/indexes";
+import { runMigrations } from "./migrations/runner";
 import app from "./app";
 import { browserPool } from "./lib/browserPool";
 import { dataIntegrityChecker } from "./services/dataIntegrityService";
@@ -17,7 +18,12 @@ const startServer = async () => {
   if (env.CREATE_INDEXES_ON_STARTUP) {
     await createAllIndexes();
   }
-  
+
+  // Run pending database migrations
+  await runMigrations().catch((error) => {
+    logger.error({ error }, "Migration run failed — continuing startup");
+  });
+
   // Initialize data integrity checker for compliance monitoring
   dataIntegrityChecker.startPeriodicChecks(env.INTEGRITY_CHECK_INTERVAL_MS || 3600000);
   

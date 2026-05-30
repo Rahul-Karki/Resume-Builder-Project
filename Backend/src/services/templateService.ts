@@ -151,7 +151,7 @@ export class TemplateService {
         updatedBy: adminId,
         ...(dto.status === "published" ? { publishedAt: new Date() } : {}),
       },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean();
   }
 
@@ -163,7 +163,7 @@ export class TemplateService {
   ): Promise<ITemplate | null> {
     const update: Record<string, unknown> = { status, updatedBy: adminId };
     if (status === "published") update.publishedAt = new Date();
-    return Template.findByIdAndUpdate(id, update, { new: true }).lean();
+    return Template.findByIdAndUpdate(id, update, { returnDocument: "after" }).lean();
   }
 
   // TOGGLE PREMIUM

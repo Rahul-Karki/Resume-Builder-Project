@@ -13,6 +13,11 @@ export interface ICssVars {
   headingFont: string;
   fontSize: string;
   lineHeight: string;
+  pageMargin: string;
+  sectionSpacing: string;
+  showDividers: string;
+  bulletStyle: string;
+  headerAlign: string;
 }
 
 export interface ISlots {
@@ -59,6 +64,11 @@ const CssVarsSchema = new Schema<ICssVars>({
   headingFont:     { type: String, default: "EB Garamond, serif" },
   fontSize:        { type: String, default: "10.5pt" },
   lineHeight:      { type: String, default: "1.5" },
+  pageMargin:      { type: String, default: "normal" },
+  sectionSpacing:  { type: String, default: "normal" },
+  showDividers:    { type: String, default: "true" },
+  bulletStyle:     { type: String, default: "•" },
+  headerAlign:     { type: String, default: "left" },
 }, { _id: false });
 
 const SlotsSchema = new Schema<ISlots>({
