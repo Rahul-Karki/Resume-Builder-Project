@@ -96,18 +96,6 @@ RETURN THIS EXACT JSON SCHEMA:
       "fixSuggestion": "<how to fix>"
     }}
   ],
-  "contentImprovements": [
-    {{
-      "id": "<unique-id>",
-      "section": "<summary|experience|skills|education|projects>",
-      "original": "<exact original text>",
-      "improved": "<improved text>",
-      "reason": "<why this improves the score>",
-      "impact": "<score impact description>",
-      "atsGain": <0-15>,
-      "atsCategory": "<keywordMatch|parsing|contentQuality|experienceRelevance|formatting>"
-    }}
-  ],
   "sectionAnalysis": [
     {{
       "section": "<section name>",

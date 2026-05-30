@@ -99,26 +99,6 @@ JSON SCHEMA (return exactly these keys)
       {{ "keyword": "", "place_in": ["summary", "skills", "experience", "projects"], "how_to_use": "" }}
     ]
   }},
-  "rewrite_suggestions": [
-    {{
-      "area": "summary|experience_bullet|skills_section|project_bullet",
-      "before": "",
-      "after": "",
-      "keywords_used": [""],
-      "reason": "",
-      "expected_score_gain": 0
-    }}
-  ],
-  "action_plan": [
-    {{
-      "priority": "P0|P1|P2",
-      "action": "",
-      "where": "",
-      "steps": [""],
-      "before_after_example": {{ "before": "", "after": "" }},
-      "expected_score_gain": 0
-    }}
-  ],
   "quick_wins": [""],
   "estimated_score_after_fixes": 0,
   "questions_for_user": ["" ]

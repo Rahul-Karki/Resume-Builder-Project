@@ -50,39 +50,6 @@ class BrevoProvider implements EmailProvider {
   }
 }
 
-class ResendProvider implements EmailProvider {
-  private readonly apiKey: string;
-  private readonly from: string;
-  private readonly ready: boolean;
-
-  constructor() {
-    this.apiKey = env.RESEND_API_KEY;
-    this.from = env.RESEND_FROM || "onboarding@resend.dev";
-    this.ready = !!this.apiKey;
-  }
-
-  async send(payload: EmailPayload): Promise<void> {
-    if (!this.ready) {
-      logger.warn({ to: payload.to }, "RESEND_API_KEY not set — email skipped");
-      return;
-    }
-
-    const { Resend } = await import("resend");
-    const client = new Resend(this.apiKey);
-
-    const { error } = await client.emails.send({
-      from: this.from,
-      to: payload.to,
-      subject: payload.subject,
-      html: payload.html,
-    });
-
-    if (error) {
-      throw new Error(error.message || "Resend email failed");
-    }
-  }
-}
-
 class ConsoleProvider implements EmailProvider {
   async send(payload: EmailPayload): Promise<void> {
     logger.info(
@@ -96,8 +63,6 @@ function createProvider(): EmailProvider {
   switch (env.EMAIL_PROVIDER) {
     case "brevo":
       return new BrevoProvider();
-    case "resend":
-      return new ResendProvider();
     case "console":
       return new ConsoleProvider();
     default:
