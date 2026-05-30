@@ -7,7 +7,7 @@ const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}$/;
 
 const plainText = (maxLength: number) => z.string().trim().max(maxLength).transform((value) => String(sanitizePlainText(value)));
 
-const emailSchema = z.email().max(254).transform((value) => value.trim().toLowerCase());
+const emailSchema = z.string().email().max(254).transform((value) => value.trim().toLowerCase());
 
 const emptyObjectSchema = z.object({}).strict();
 

@@ -42,7 +42,15 @@ const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") =>
   await (TemplateUsage as any).recordUse(String(template._id), layoutId, type);
 };
 
-const setPathValue = (target: any, path: string, value: string) => {
+const VALID_PATH_PREFIXES = ["personalInfo.summary", "sections."];
+
+export const setPathValue = (target: any, path: string, value: string) => {
+  if (typeof path !== "string" || path.includes("__proto__") || path.includes("prototype") || path.includes("constructor")) {
+    throw new Error("Invalid suggestion path");
+  }
+  if (!VALID_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+    throw new Error("Unsupported suggestion path");
+  }
   if (path === "personalInfo.summary") {
     target.personalInfo = target.personalInfo ?? {};
     target.personalInfo.summary = value;

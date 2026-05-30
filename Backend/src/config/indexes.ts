@@ -12,6 +12,16 @@
 
 import mongoose from "mongoose";
 
+const MODEL_COLLECTION_MAP: Record<string, string> = {
+  User: "users",
+  Resume: "resumes",
+  ResumeVersion: "resumeversions",
+  Template: "templates",
+  TemplateUsage: "templateusages",
+  ResetToken: "resettokens",
+  AtsAnalysis: "atsanalyses",
+};
+
 /**
  * Index definitions with analysis
  */
@@ -247,7 +257,12 @@ export async function createAllIndexes() {
 
     console.log("Creating MongoDB indexes...");
 
-    for (const [collectionName, indexes] of Object.entries(INDEX_DEFINITIONS)) {
+    for (const [modelName, indexes] of Object.entries(INDEX_DEFINITIONS)) {
+      const collectionName = MODEL_COLLECTION_MAP[modelName];
+      if (!collectionName) {
+        console.warn(`⚠ No collection mapping for model '${modelName}', skipping`);
+        continue;
+      }
       const collection = db.collection(collectionName);
 
       for (const [indexName, indexDef] of Object.entries(indexes)) {

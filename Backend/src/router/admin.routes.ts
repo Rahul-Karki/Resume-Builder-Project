@@ -4,6 +4,7 @@ import { env } from "../config/env";
 import {
   listTemplates,
   getTemplate,
+  previewTemplate,
   createTemplate,
   updateTemplate,
   setTemplateStatus,
@@ -73,6 +74,7 @@ router.get("/analytics/templates", adminCache("admin-analytics"), getAnalytics);
 // Template CRUD
 router.get("/templates", validateRequest({ query: templateListQuerySchema }), adminCache("admin-templates"), listTemplates);
 router.get("/templates/:id", validateRequest({ params: objectIdParamSchema }), adminCache("admin-templates-item"), getTemplate);
+router.get("/templates/:id/preview", validateRequest({ params: objectIdParamSchema }), previewTemplate);
 router.post("/templates", validateRequest({ body: createTemplateSchema }), adminTemplateMutationLimiter, createTemplate);
 router.put("/templates/reorder", validateRequest({ body: reorderTemplatesSchema }), adminTemplateMutationLimiter, reorderTemplates);   // before :id route
 router.put("/templates/:id", validateRequest({ params: objectIdParamSchema, body: updateTemplateSchema }), adminTemplateMutationLimiter, updateTemplate);

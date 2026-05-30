@@ -31,7 +31,7 @@ const baseEnvSchema = z.object({
   JWT_REFRESH_PRIVATE_KEY: z.string().optional().default(""),
   JWT_REFRESH_PUBLIC_KEY: z.string().optional().default(""),
   JWT_REFRESH_PUBLIC_KEY_OLD: z.string().optional().default(""),
-  EMAIL_PROVIDER: z.enum(["brevo", "resend", "console"]).default("resend"),
+  EMAIL_PROVIDER: z.enum(["brevo", "resend", "console"]).default("brevo"),
   BREVO_API_KEY: z.string().optional().default(""),
   BREVO_FROM: z.string().optional().default(""),
   RESEND_API_KEY: z.string().optional().default(""),

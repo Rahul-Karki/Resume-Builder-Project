@@ -1,4 +1,4 @@
-"""Enhanced ATS scoring + improvement prompt templates (v2 with clickToApply).
+"""Enhanced ATS scoring + improvement prompt templates (v3 — score-only, no clickToApply).
 """
 
 # ============================================================
@@ -13,16 +13,15 @@ Your task is to analyze resumes exactly like modern enterprise ATS systems used 
 The ATS analysis must follow industry-standard hiring and resume screening practices similar to systems used by:
 - Greenhouse, Lever, Workday, Taleo, iCIMS, Ashby, SmartRecruiters
 
-The analysis must be practical, actionable, section-aware, and optimized for real-world recruiter screening.
+The analysis must be practical, section-aware, and optimized for real-world recruiter screening.
 
 CORE GOALS:
 1. Calculate a highly accurate ATS compatibility score out of 100.
 2. Detect: missing keywords, weak impact statements, formatting issues, parsing issues, section problems, readability issues, keyword stuffing, low-quality bullet points, poor metric usage, bad resume structure, weak action verbs, inconsistent formatting, ATS-unfriendly design patterns.
-3. Generate DIRECTLY APPLICABLE improvements that maximize ATS score gain.
-4. Every suggestion MUST: specify exact location, explain WHY it hurts ATS score, provide improved replacement content, provide one-click apply changes, and ESTIMATE THE POINTS GAINED toward the overall ATS score.
+3. Detect sections that are missing or empty and tell the user to fill them.
+4. Every suggestion MUST: specify the section, explain WHY it hurts ATS score, and describe what to improve.
 5. Rank suggestions by score impact — highest potential gain first.
 6. Align every suggestion with one of the 5 ATS scoring categories (keywordMatch, parsing, contentQuality, experienceRelevance, formatting) and state which category it improves.
-7. Output MUST be optimized for: frontend rendering, inline editing, diff highlighting, click-to-apply improvements, section-by-section updates.
 
 ATS SCORING ENGINE — Score each category 0-100, then compute weighted overall score:
 
@@ -34,22 +33,22 @@ ATS SCORING ENGINE — Score each category 0-100, then compute weighted overall 
 
 IMPORTANT RULES:
 - Never invent experience, employers, tools, years, or degrees.
-- Every suggestion must include clickToApply payload.
+- If a section is missing or empty, flag it and suggest what content to add — do NOT create fake entries.
 - Detect weak bullets like "responsible for", "worked on", "helped with" and suggest stronger rewrites.
 - Detect ATS-unfriendly formatting (tables, icons, multi-column, images, progress bars, unusual symbols).
 - Provide semantic keyword recommendations based on target job role, tech stack, project domain, experience level.
 - Explain WHY each issue affects ATS systems.
 - Prioritize high-impact fixes first.
 - Simulate realistic recruiter behavior: first 6-second scan, keyword filtering, relevance ranking, parsing confidence.
-- Never hallucinate fake experience. Only improve wording and structure.
+- Never hallucinate fake experience. Only suggest filling empty or weak sections.
 - Output valid JSON only.
 """.strip()
 
 # -------------------------------------------------------------------
-# ENHANCED MAIN SCORING PROMPT (v2 with clickToApply)
+# ENHANCED MAIN SCORING PROMPT (v3 — no clickToApply)
 # -------------------------------------------------------------------
 ENHANCED_ATS_SCORING_PROMPT = """
-TASK: Industry-standard ATS analysis + actionable score-improvement plan with one-click apply support.
+TASK: ATS score analysis with section-wise improvement suggestions.
 
 INPUTS:
 - RESUME_TEXT: {resume_text}
@@ -59,8 +58,8 @@ OUTPUT REQUIREMENTS:
 1) Output valid JSON only (no markdown).
 2) Score each of the 5 weighted categories 0-100 (keywordMatch, parsing, contentQuality, experienceRelevance, formatting), then compute weighted overallScore.
 3) If JOB_DESCRIPTION is empty, infer target role keywords from resume.
-4) Every suggestion MUST include a realistic "atsGain" (0-15 points) estimating how much applying it would increase the overall score.
-5) Order suggestions by atsGain descending — highest impact first.
+4) If a section is missing or empty, flag it and suggest what content to add.
+5) Order suggestions by importance — highest impact first.
 6) Each suggestion must reference which ATS category it improves (keywordMatch, parsing, contentQuality, experienceRelevance, or formatting).
 
 RETURN THIS EXACT JSON SCHEMA:
@@ -94,14 +93,7 @@ RETURN THIS EXACT JSON SCHEMA:
       "section": "<section name>",
       "problem": "<what's wrong>",
       "reason": "<why it hurts ATS>",
-      "fixSuggestion": "<how to fix>",
-      "startIndex": <number>,
-      "endIndex": <number>,
-      "clickToApply": {{
-        "type": "replace|insert|remove",
-        "targetText": "<exact text to find>",
-        "replacementText": "<new text>"
-      }}
+      "fixSuggestion": "<how to fix>"
     }}
   ],
   "contentImprovements": [
@@ -113,12 +105,7 @@ RETURN THIS EXACT JSON SCHEMA:
       "reason": "<why this improves the score>",
       "impact": "<score impact description>",
       "atsGain": <0-15>,
-      "atsCategory": "<keywordMatch|parsing|contentQuality|experienceRelevance|formatting>",
-      "clickToApply": {{
-        "type": "replace",
-        "targetText": "<exact old text>",
-        "replacementText": "<new text>"
-      }}
+      "atsCategory": "<keywordMatch|parsing|contentQuality|experienceRelevance|formatting>"
     }}
   ],
   "sectionAnalysis": [

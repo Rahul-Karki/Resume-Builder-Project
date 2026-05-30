@@ -28,11 +28,9 @@ class KeepAliveService {
       return;
     }
 
-    // Determine full URL: prioritize explicit URL, then Render external URL, then BACKEND_URL env var, fallback to local config
+    // Determine full URL: prioritize explicit config URL, then BACKEND_URL env var, fallback to local
     if (config.url) {
       this.fullUrl = config.url;
-    } else if (process.env.RENDER_EXTERNAL_URL) {
-      this.fullUrl = process.env.RENDER_EXTERNAL_URL;
     } else if (process.env.BACKEND_URL) {
       this.fullUrl = process.env.BACKEND_URL;
     } else {
@@ -47,12 +45,12 @@ class KeepAliveService {
       this.fullUrl = `http://${this.fullUrl}`;
     }
 
-    // Warn if we're in production but don't have a public URL (self-pings to localhost won't prevent Render spin-down)
+    // Warn if we're in production but don't have a public URL
     const isLocalhost = this.fullUrl?.includes("localhost") || this.fullUrl?.includes("127.0.0.1");
-    if (isLocalhost && (process.env.NODE_ENV === "production" || process.env.RENDER === "true")) {
+    if (isLocalhost && process.env.NODE_ENV === "production") {
       logger.warn(
-        "Keep-alive pinging localhost — this will NOT prevent Render from spinning down the service. " +
-        "Set BACKEND_URL or RENDER_EXTERNAL_URL to the public URL for effective keep-alive.",
+        "Keep-alive pinging localhost — this will NOT keep the service alive. " +
+        "Set BACKEND_URL to the public URL for effective keep-alive.",
       );
     }
 

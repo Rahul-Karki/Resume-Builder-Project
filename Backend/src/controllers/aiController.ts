@@ -139,8 +139,12 @@ const createAiHandler = (aiType: string, cacheKeyPrefix: string, handlerFn: AiHa
           creditsEstimated: req.creditContext?.estimatedCredits,
           creditsDeducted: 0,
         });
-        res.status(200).json(JSON.parse(cached));
-        return;
+        try {
+          res.status(200).json(JSON.parse(cached));
+        } catch {
+          logger.warn({ requestId, userId, cacheKey }, "AI cache parse error, falling through");
+        }
+        if (res.headersSent) return;
       }
     }
 

@@ -9,8 +9,18 @@ import { AppError } from "../errors/AppError";
 import crypto from "crypto";
 import { generateSecret, verify as verifyTotp, generateURI as otplGenerateUri } from "otplib";
 
-function hashBackupCode(code: string): string {
-  return crypto.createHash("sha256").update(code).digest("hex");
+export function hashBackupCode(code: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hashed = crypto.scryptSync(code, salt, 64).toString("hex");
+  return `${salt}:${hashed}`;
+}
+
+export function verifyBackupCode(code: string, hashedCode: string): boolean {
+  const parts = hashedCode.split(":");
+  if (parts.length !== 2) return false;
+  const [salt, hash] = parts;
+  const computed = crypto.scryptSync(code, salt, 64).toString("hex");
+  return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(hash));
 }
 
 function generateBackupCodes(count = 8): { plain: string[]; hashed: string[] } {

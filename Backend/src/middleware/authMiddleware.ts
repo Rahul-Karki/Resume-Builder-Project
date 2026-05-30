@@ -55,23 +55,7 @@ export async function authenticateUser(
   return await fetchUserById(String(decodedPayload.userId), token);
 }
 
-async function fetchUserById(userId: string, token: string | undefined) {
-  const revoked = await isTokenBlacklisted(token || "", "access");
-  if (revoked) return null;
-
-  const cacheKey = `auth-user:${userId}`;
-  const useCache = process.env.NODE_ENV !== "test";
-  const cached = useCache ? memoryCache.get(cacheKey) : null;
-  if (cached) {
-    const cachedUser = JSON.parse(cached) as { id: string; role: string; name: string; email?: string };
-    const auditCtx = getAuditContext();
-    if (auditCtx) {
-      auditCtx.userId = cachedUser.id;
-      auditCtx.userEmail = cachedUser.email;
-    }
-    return cachedUser;
-  }
-
+async function queryUserFromDb(userId: string): Promise<{ id: string; role: string; name: string; email?: string } | null> {
   const query = User.findById(userId)
     .select("name role email")
     .lean();
@@ -90,12 +74,37 @@ async function fetchUserById(userId: string, token: string | undefined) {
   if (!user) return null;
 
   const u = user as { _id: unknown; role: unknown; name: unknown; email?: unknown };
-  const authedUser = {
+  return {
     id: String(u._id),
     role: String(u.role),
     name: String(u.name),
     email: u.email ? String(u.email) : undefined,
   };
+}
+
+async function fetchUserById(userId: string, token: string | undefined) {
+  const revoked = await isTokenBlacklisted(token || "", "access");
+  if (revoked) return null;
+
+  const cacheKey = `auth-user:${userId}`;
+  const useCache = process.env.NODE_ENV !== "test";
+  const cached = useCache ? memoryCache.get(cacheKey) : null;
+  if (cached) {
+    try {
+      const cachedUser = JSON.parse(cached) as { id: string; role: string; name: string; email?: string };
+      const auditCtx = getAuditContext();
+      if (auditCtx) {
+        auditCtx.userId = cachedUser.id;
+        auditCtx.userEmail = cachedUser.email;
+      }
+      return cachedUser;
+    } catch {
+      memoryCache.delete(cacheKey);
+    }
+  }
+
+  const authedUser = await queryUserFromDb(userId);
+  if (!authedUser) return null;
 
   memoryCache.set(cacheKey, JSON.stringify(authedUser), AUTH_USER_CACHE_TTL_S);
 

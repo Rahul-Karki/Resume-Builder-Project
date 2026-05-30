@@ -142,9 +142,15 @@ const updateResume = wrapController(async (req, res) => {
     if (!userId) return;
 
     const payload = {
-        ...req.body,
+        title: req.body?.title,
+        personalInfo: req.body?.personalInfo,
+        sections: req.body?.sections,
+        style: req.body?.style,
+        sectionOrder: req.body?.sectionOrder,
+        sectionVisibility: req.body?.sectionVisibility,
         templateId: req.body?.templateId === undefined ? undefined : normalizeResumeTemplateId(req.body.templateId),
     };
+    Object.keys(payload).forEach((key) => { if ((payload as any)[key] === undefined) delete (payload as any)[key]; });
 
     const resume = await Resume.findOneAndUpdate(
         { _id: req.params.id, userId },

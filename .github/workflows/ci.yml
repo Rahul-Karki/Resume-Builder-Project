@@ -6,8 +6,14 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   secrets-scan:
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,6 +25,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test-backend:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     
     defaults:
@@ -27,7 +34,7 @@ jobs:
 
     services:
       mongodb:
-        image: mongo:6.0
+        image: mongo:7.0
         ports:
           - 27017:27017
       redis:
@@ -47,10 +54,13 @@ jobs:
         
     - run: npm ci
     
+    - name: Type Check
+      run: npx tsc --noEmit
+      
     - name: Run Build
       run: npm run build
       
-    - name: Run Automated Tests
+    - name: Run Automated Tests (node:test)
       env:
         NODE_ENV: test
         PORT: 5000
@@ -60,8 +70,17 @@ jobs:
         JWT_REFRESH_SECRET: test-refresh-secret
         FRONTEND_URL: http://localhost:5173
       run: npm test
+    
+    - name: Run Vitest Unit Tests with Coverage
+      env:
+        NODE_ENV: test
+        JWT_ACCESS_SECRET: test-access-secret
+        JWT_REFRESH_SECRET: test-refresh-secret
+        FRONTEND_URL: http://localhost:5173
+      run: npx vitest run --coverage
 
   test-frontend:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     
     defaults:

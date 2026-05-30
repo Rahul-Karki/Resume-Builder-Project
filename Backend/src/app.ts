@@ -47,7 +47,9 @@ export const createApp = () => {
       ) return true;
     }
 
+    const MAX_PATTERN_LENGTH = 100;
     for (const pattern of env.CORS_EXTRA_PATTERNS) {
+      if (pattern.length > MAX_PATTERN_LENGTH) continue;
       try {
         const regex = new RegExp(pattern);
         if (regex.test(normalizedOrigin)) return true;
@@ -107,8 +109,9 @@ export const createApp = () => {
     threshold: 1024, // only compress responses larger than 1KB
   }));
 
-  // 3. Helmet for security headers with per-request CSP nonces
+  // 3. Helmet for security headers (CSP handled by custom middleware below)
   app.use(helmet({
+    contentSecurityPolicy: false,
     strictTransportSecurity: {
       maxAge: 31536000,
       includeSubDomains: true,

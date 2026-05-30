@@ -2,18 +2,27 @@ import jwt from "jsonwebtoken";
 import { env } from "../config/env";
 import { logger } from "../observability";
 
-let accessKeyPair: { publicKey: string; privateKey: string } | null = null;
-let refreshKeyPair: { publicKey: string; privateKey: string } | null = null;
+let accessKeyPair: { publicKey: string; privateKey: string; cachedAt: number } | null = null;
+let refreshKeyPair: { publicKey: string; privateKey: string; cachedAt: number } | null = null;
+const KEY_CACHE_TTL_MS = 300_000; // 5 minutes
+
+const isKeyCacheValid = (entry: { cachedAt: number } | null): boolean => {
+  return entry !== null && (Date.now() - entry.cachedAt) < KEY_CACHE_TTL_MS;
+};
 
 const getAccessKeyPair = () => {
-  if (accessKeyPair) return accessKeyPair;
-  accessKeyPair = { publicKey: env.JWT_ACCESS_PUBLIC_KEY, privateKey: env.JWT_ACCESS_PRIVATE_KEY };
+  if (isKeyCacheValid(accessKeyPair)) {
+    return { publicKey: accessKeyPair!.publicKey, privateKey: accessKeyPair!.privateKey };
+  }
+  accessKeyPair = { publicKey: env.JWT_ACCESS_PUBLIC_KEY, privateKey: env.JWT_ACCESS_PRIVATE_KEY, cachedAt: Date.now() };
   return accessKeyPair;
 };
 
 const getRefreshKeyPair = () => {
-  if (refreshKeyPair) return refreshKeyPair;
-  refreshKeyPair = { publicKey: env.JWT_REFRESH_PUBLIC_KEY, privateKey: env.JWT_REFRESH_PRIVATE_KEY };
+  if (isKeyCacheValid(refreshKeyPair)) {
+    return { publicKey: refreshKeyPair!.publicKey, privateKey: refreshKeyPair!.privateKey };
+  }
+  refreshKeyPair = { publicKey: env.JWT_REFRESH_PUBLIC_KEY, privateKey: env.JWT_REFRESH_PRIVATE_KEY, cachedAt: Date.now() };
   return refreshKeyPair;
 };
 

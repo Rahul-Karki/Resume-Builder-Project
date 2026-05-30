@@ -8,6 +8,7 @@ import { invalidateRedisCache, redisCacheScopes } from "../middleware/redisCache
 import { AppError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { sendSuccess } from "../utils/apiResponse";
+import { buildResumeHtml } from "../modules/export/buildResumeHtml";
 
 const invalidateTemplateCaches = async () => {
   await invalidateRedisCache([
@@ -50,6 +51,110 @@ export const getTemplate = wrapController(async (req, res) => {
   logger.info({ templateId: String(req.params.id) }, "Template fetched");
   return sendSuccess(res, tpl);
 }, "template.getTemplate");
+
+export const previewTemplate = wrapController(async (req, res) => {
+  const tpl = await TemplateService.getById(String(req.params.id));
+  if (!tpl) return sendErrorResponse(res, new AppError("Template not found.", { statusCode: 404, code: "NOT_FOUND", expose: true }));
+
+  const DEFAULT_SAMPLE_DATA = {
+    title: "Sample Resume",
+    personalInfo: {
+      name: "Alex Johnson",
+      title: "Senior Software Engineer",
+      summary: "Experienced software engineer with 8+ years building scalable web applications. Proficient in React, Node.js, TypeScript, and cloud infrastructure. Passionate about clean architecture and developer experience.",
+      email: "alex@example.com",
+      phone: "+1 (555) 123-4567",
+      location: "San Francisco, CA",
+      linkedin: "linkedin.com/in/alexjohnson",
+      github: "github.com/alexjohnson",
+    },
+    sections: {
+      experience: [
+        {
+          company: "TechCorp Inc.",
+          position: "Senior Software Engineer",
+          location: "San Francisco, CA",
+          startDate: "2021-03",
+          endDate: "Present",
+          highlights: [
+            "Led a team of 5 engineers to build a real-time analytics platform processing 10M+ events daily",
+            "Reduced API response times by 40% through query optimization and caching strategies",
+            "Designed and implemented microservices architecture serving 500K+ users",
+          ],
+        },
+        {
+          company: "StartupXYZ",
+          position: "Full Stack Developer",
+          location: "Remote",
+          startDate: "2018-06",
+          endDate: "2021-02",
+          highlights: [
+            "Built the core product from MVP to production handling 100K+ monthly active users",
+            "Implemented CI/CD pipeline reducing deployment time by 60%",
+            "Mentored 3 junior developers through structured code review process",
+          ],
+        },
+      ],
+      education: [
+        {
+          institution: "University of California, Berkeley",
+          degree: "B.S. Computer Science",
+          gpa: "3.8",
+          startDate: "2014-08",
+          endDate: "2018-05",
+        },
+      ],
+      skills: [
+        { name: "React", level: "Expert" },
+        { name: "TypeScript", level: "Expert" },
+        { name: "Node.js", level: "Advanced" },
+        { name: "Python", level: "Advanced" },
+        { name: "AWS", level: "Intermediate" },
+        { name: "Docker", level: "Intermediate" },
+        { name: "PostgreSQL", level: "Advanced" },
+        { name: "GraphQL", level: "Intermediate" },
+      ],
+      projects: [
+        {
+          name: "Open Source Analytics Dashboard",
+          description: "A real-time dashboard for monitoring application performance metrics",
+          url: "github.com/alexjohnson/analytics-dashboard",
+          startDate: "2022-01",
+          endDate: "2022-06",
+          highlights: ["1,200+ GitHub stars", "Used by 3 companies in production"],
+        },
+      ],
+      certifications: [
+        { name: "AWS Solutions Architect", issuer: "Amazon Web Services", year: "2023" },
+      ],
+      languages: [
+        { language: "English", proficiency: "Native" },
+        { language: "Spanish", proficiency: "Professional" },
+      ],
+    },
+    style: {
+      accentColor: tpl.cssVars.accentColor,
+      headingColor: tpl.cssVars.headingColor,
+      textColor: tpl.cssVars.textColor,
+      mutedColor: tpl.cssVars.mutedColor,
+      borderColor: tpl.cssVars.borderColor,
+      backgroundColor: tpl.cssVars.backgroundColor,
+      bodyFont: tpl.cssVars.bodyFont,
+      headingFont: tpl.cssVars.headingFont,
+      fontSize: tpl.cssVars.fontSize,
+      lineHeight: tpl.cssVars.lineHeight,
+      pageMargin: tpl.cssVars.pageMargin,
+      sectionSpacing: tpl.cssVars.sectionSpacing,
+      showDividers: tpl.cssVars.showDividers === "true",
+      bulletStyle: tpl.cssVars.bulletStyle,
+      headerAlign: tpl.cssVars.headerAlign,
+    },
+  };
+
+  const html = buildResumeHtml(DEFAULT_SAMPLE_DATA as any, tpl.layoutId);
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.status(200).send(html);
+}, "template.previewTemplate");
 
 export const createTemplate = wrapController(async (req, res) => {
   const dto: CreateTemplateDto = {

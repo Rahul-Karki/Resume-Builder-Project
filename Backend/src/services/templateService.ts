@@ -210,7 +210,7 @@ export class TemplateService {
     }));
   }
 
-  // Aggregate analytics for ALL templates
+  // Aggregate analytics for ALL templates using a single aggregation pipeline
   static async getAllAnalytics(days: number = 30): Promise<TemplateAnalytics[]> {
     const { start, end } = dateRange(days);
     const weekStart = dateRange(7).start;
@@ -220,92 +220,104 @@ export class TemplateService {
     prevWeekEnd.setUTCDate(prevWeekEnd.getUTCDate() - 1);
 
     const templates = await Template.find().lean();
+    if (templates.length === 0) return [];
 
-    const analytics: TemplateAnalytics[] = await Promise.all(
-      templates.map(async (tpl) => {
-        const id = String(tpl._id);
+    const templateIds = templates.map((t) => String(t._id));
 
-        // Monthly data
-        const monthlyRows = await TemplateUsage.find({
-          templateId: id,
-          date: { $gte: start, $lte: end },
-        }).sort({ date: 1 }).lean();
+    // Single aggregation: group by templateId with separate sums for monthly/weekly/prev-week
+    const usageAgg = await TemplateUsage.aggregate([
+      { $match: { templateId: { $in: templateIds }, date: { $gte: prevWeekStart, $lte: end } } },
+      {
+        $facet: {
+          monthly: [
+            { $match: { date: { $gte: start } } },
+            {
+              $group: {
+                _id: "$templateId",
+                totalUses: { $sum: "$count" },
+                dailyRows: {
+                  $push: {
+                    date: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                    count: "$count",
+                    resumesCreated: "$resumesCreated",
+                    resumesEdited: "$resumesEdited",
+                  },
+                },
+              },
+            },
+          ],
+          weekly: [
+            { $match: { date: { $gte: weekStart } } },
+            { $group: { _id: "$templateId", total: { $sum: "$count" } } },
+          ],
+          prevWeek: [
+            { $match: { date: { $gte: prevWeekStart, $lte: prevWeekEnd } } },
+            { $group: { _id: "$templateId", total: { $sum: "$count" } } },
+          ],
+        },
+      },
+    ]);
 
-        // Weekly data (last 7d)
-        const weeklyRows = monthlyRows.filter(r => r.date >= weekStart);
+    const monthlyMap = new Map(usageAgg[0]?.monthly?.map((r: any) => [r._id, r]) ?? []);
+    const weeklyMap = new Map(usageAgg[0]?.weekly?.map((r: any) => [r._id, r.total]) ?? []);
+    const prevWeekMap = new Map(usageAgg[0]?.prevWeek?.map((r: any) => [r._id, r.total]) ?? []);
 
-        // Prev-week data for trend
-        const prevWeekRows = await TemplateUsage.find({
-          templateId: id,
-          date: { $gte: prevWeekStart, $lte: prevWeekEnd },
-        }).lean();
+    const analytics: TemplateAnalytics[] = templates.map((tpl) => {
+      const id = String(tpl._id);
+      const monthly = monthlyMap.get(id);
+      const monthlyUses = monthly?.totalUses ?? 0;
+      const weeklyUses = weeklyMap.get(id) ?? 0;
+      const prevWeekUses = prevWeekMap.get(id) ?? 0;
 
-        const monthlyUses = monthlyRows.reduce((s, r) => s + r.count, 0);
-        const weeklyUses  = weeklyRows.reduce((s, r) => s + r.count, 0);
-        const prevWeekUses = prevWeekRows.reduce((s, r) => s + r.count, 0);
+      const trend: "up" | "down" | "stable" =
+        weeklyUses > prevWeekUses + 2 ? "up" :
+        weeklyUses < prevWeekUses - 2 ? "down" : "stable";
 
-        const trend: "up" | "down" | "stable" =
-          weeklyUses > prevWeekUses + 2 ? "up" :
-          weeklyUses < prevWeekUses - 2 ? "down" : "stable";
-
-        const daily: DailyUsage[] = monthlyRows.map(r => ({
-          date:           r.date.toISOString().slice(0, 10),
-          count:          r.count,
-          resumesCreated: r.resumesCreated,
-          resumesEdited:  r.resumesEdited,
-        }));
-
-        return {
-          templateId: id,
-          layoutId:   tpl.layoutId,
-          name:       tpl.name,
-          status:     tpl.status,
-          totalUses:  monthlyUses,
-          weeklyUses,
-          monthlyUses,
-          daily,
-          trend,
-        };
-      })
-    );
+      return {
+        templateId: id,
+        layoutId:   tpl.layoutId,
+        name:       tpl.name,
+        status:     tpl.status,
+        totalUses:  monthlyUses,
+        weeklyUses,
+        monthlyUses,
+        daily: monthly?.dailyRows ?? [],
+        trend,
+      };
+    });
 
     return analytics.sort((a, b) => b.monthlyUses - a.monthlyUses);
   }
 
-  // Dashboard summary stats
+  // Dashboard summary stats — single aggregation for usage, template counts via Promise.all
   static async getDashboardStats(): Promise<DashboardStats> {
-    const [totalTemplates, publishedTemplates, draftTemplates, premiumTemplates] =
-      await Promise.all([
-        Template.countDocuments(),
-        Template.countDocuments({ status: "published" }),
-        Template.countDocuments({ status: "draft" }),
-        Template.countDocuments({ isPremium: true }),
-      ]);
-
-    const { start: weekStart } = dateRange(7);
-    const { start: monthStart } = dateRange(30);
-
-    const [weeklyAgg, monthlyAgg] = await Promise.all([
-      TemplateUsage.aggregate([
-        { $match: { date: { $gte: weekStart } } },
-        { $group: { _id: null, total: { $sum: "$count" } } },
+    const [templateCounts, analytics] = await Promise.all([
+      Template.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            published: { $sum: { $cond: [{ $eq: ["$status", "published"] }, 1, 0] } },
+            draft: { $sum: { $cond: [{ $eq: ["$status", "draft"] }, 1, 0] } },
+            premium: { $sum: { $cond: ["$isPremium", 1, 0] } },
+          },
+        },
       ]),
-      TemplateUsage.aggregate([
-        { $match: { date: { $gte: monthStart } } },
-        { $group: { _id: null, total: { $sum: "$count" } } },
-      ]),
+      TemplateService.getAllAnalytics(30),
     ]);
 
-    const analytics = await TemplateService.getAllAnalytics(30);
-    const published  = analytics.filter(a => a.status === "published");
+    const counts = templateCounts[0] ?? { total: 0, published: 0, draft: 0, premium: 0 };
+    const published = analytics.filter(a => a.status === "published");
+    const totalUsesThisWeek = analytics.reduce((s, a) => s + a.weeklyUses, 0);
+    const totalUsesThisMonth = analytics.reduce((s, a) => s + a.monthlyUses, 0);
 
     return {
-      totalTemplates,
-      publishedTemplates,
-      draftTemplates,
-      premiumTemplates,
-      totalUsesThisWeek:  weeklyAgg[0]?.total  ?? 0,
-      totalUsesThisMonth: monthlyAgg[0]?.total ?? 0,
+      totalTemplates:     counts.total,
+      publishedTemplates: counts.published,
+      draftTemplates:     counts.draft,
+      premiumTemplates:   counts.premium,
+      totalUsesThisWeek,
+      totalUsesThisMonth,
       mostUsed:  published[0] ?? null,
       leastUsed: published.length > 0 ? published[published.length - 1] : null,
     };
