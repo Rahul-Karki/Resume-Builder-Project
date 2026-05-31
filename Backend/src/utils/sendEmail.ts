@@ -31,6 +31,8 @@ class NodemailerProvider implements EmailProvider {
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,
       secure: env.SMTP_PORT === 465,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
       auth: {
         user: env.SMTP_USER || undefined,
         pass: env.SMTP_PASS || undefined,

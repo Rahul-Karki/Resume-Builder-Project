@@ -115,9 +115,7 @@ const registerUser = wrapController(async (req, res) => {
   try {
     await sendVerificationEmail(user.email, verificationOtp);
   } catch (err) {
-    logger.warn({ email: user.email, error: err }, "Failed to send verification email");
-    await user.deleteOne();
-    return sendErrorResponse(res, new AppError("Failed to send verification email. Please check your email address and try again.", { statusCode: 500, code: "EMAIL_FAILED", expose: true }));
+    logger.warn({ email: user.email, error: err }, "Failed to send verification email — user created, they can resend later");
   }
 
   recordUserSignup({ email: user.email, provider: "local" });
