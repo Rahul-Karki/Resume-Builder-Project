@@ -161,7 +161,7 @@ export class BaseQueue<T = Record<string, unknown>> {
       },
       {
         sort: { priority: -1, scheduledAt: 1 },
-        new: true,
+        returnDocument: "after",
       },
     );
 
