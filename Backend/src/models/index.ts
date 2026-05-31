@@ -33,3 +33,4 @@ import "./TemplateUsage";
 import "./ResetToken";
 import "./AuditLog";
 import "./Jobs";
+import "./PendingUser";

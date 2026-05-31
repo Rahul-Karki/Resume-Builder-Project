@@ -276,7 +276,7 @@ export async function createAllIndexes() {
           if (err.code === 86) {
             console.warn(`↻ Index '${indexName}' on '${collectionName}' has conflicting specs — dropping and recreating`);
             try {
-              await collection.dropIndex(indexName);
+              await collection.dropIndex(indexDef.spec);
               await collection.createIndex(indexDef.spec, indexDef.options);
               console.log(`✓ Recreated index '${indexName}' on '${collectionName}'`);
             } catch (retryError) {

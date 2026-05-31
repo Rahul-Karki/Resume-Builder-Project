@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import User from "../models/User";
+import PendingUser from "../models/PendingUser";
 import bcrypt from "bcrypt";
 import { generateAccessToken, generateRefreshToken } from "../utils/generateToken";
 import hashToken from "../utils/hashToken";
@@ -39,6 +40,9 @@ import {
   PASSWORD_REGEX,
   MAX_OTP_ATTEMPTS,
   OTP_EXPIRY_MS,
+  OTP_RESEND_BASE_COOLDOWN_MS,
+  OTP_RESEND_MAX_COOLDOWN_MS,
+  OTP_RESEND_MAX_ATTEMPTS,
 } from "../constants/auth";
 const frontendBaseUrl = env.FRONTEND_URL;
 
@@ -90,47 +94,38 @@ const registerUser = wrapController(async (req, res) => {
   }
 
   const check = await User.findOne({ email });
-
   if (check) {
     logger.warn({ email }, "Register rejected because user exists");
     return sendErrorResponse(res, new AuthError("An account with this email already exists", { statusCode: 409, code: "CONFLICT" }));
   }
 
+  // Remove any existing pending registration for this email
+  await PendingUser.deleteOne({ email });
+
   const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
   const verificationOtp = generateOtp();
 
-  const user = new User({
+  const pending = new PendingUser({
     name,
     email,
     password: hashedPassword,
     role: UserRole.USER,
     authProvider: ["local"],
-    emailVerified: false,
     emailVerificationOtp: verificationOtp,
     emailVerificationOtpExpires: new Date(Date.now() + OTP_EXPIRY_MS),
   });
 
-  await user.save();
+  await pending.save();
 
   try {
-    await sendVerificationEmail(user.email, verificationOtp);
+    await sendVerificationEmail(email, verificationOtp);
   } catch (err) {
-    logger.warn({ email: user.email, error: err }, "Failed to send verification email — user created, they can resend later");
+    logger.warn({ email, error: err }, "Failed to send verification email");
   }
 
-  recordUserSignup({ email: user.email, provider: "local" });
+  logger.info({ email }, "Pending registration created - awaiting OTP verification");
 
-  logger.info({ userId: user._id.toString(), email: user.email }, "User registered - verification required");
-
-  return sendCreated(res, {
-    user: {
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      emailVerified: false,
-    }
-  });
+  return sendCreated(res, { message: "Verification code sent to your email" });
 }, "auth.registerUser");
 
 const generateOtp = () => String(crypto.randomInt(100000, 999999));
@@ -146,55 +141,67 @@ const verifyEmail = wrapController(async (req, res) => {
     return sendErrorResponse(res, new ValidationError("Email is required"));
   }
 
-  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  const normalizedEmail = email.toLowerCase().trim();
 
-  if (!user) {
-    return sendErrorResponse(res, new ValidationError("Invalid or expired verification code"));
-  }
-
-  if (user.emailVerified) {
+  // Check if user already exists (already verified)
+  const existingUser = await User.findOne({ email: normalizedEmail });
+  if (existingUser) {
     return sendSuccess(res, { message: "Email is already verified" });
   }
 
-  if (user.emailVerificationAttempts >= MAX_OTP_ATTEMPTS) {
-    user.emailVerificationOtp = undefined;
-    user.emailVerificationOtpExpires = undefined;
-    await user.save({ validateModifiedOnly: true });
-    logger.warn({ userId: user._id.toString(), email: user.email }, "OTP max attempts exceeded");
-    return sendErrorResponse(res, new ValidationError("Too many failed attempts. Request a new code."));
+  // Find pending registration
+  const pending = await PendingUser.findOne({ email: normalizedEmail });
+
+  if (!pending) {
+    return sendErrorResponse(res, new ValidationError("No pending registration found. Please sign up first."));
   }
 
-  if (!user.emailVerificationOtp || !user.emailVerificationOtpExpires || user.emailVerificationOtpExpires <= new Date()) {
-    user.emailVerificationAttempts += 1;
-    await user.save({ validateModifiedOnly: true });
+  if (pending.emailVerificationAttempts >= MAX_OTP_ATTEMPTS) {
+    await PendingUser.deleteOne({ email: normalizedEmail });
+    logger.warn({ email }, "OTP max attempts exceeded — pending registration deleted");
+    return sendErrorResponse(res, new ValidationError("Too many failed attempts. Please sign up again."));
+  }
+
+  if (!pending.emailVerificationOtp || !pending.emailVerificationOtpExpires || pending.emailVerificationOtpExpires <= new Date()) {
+    pending.emailVerificationAttempts += 1;
+    await pending.save({ validateModifiedOnly: true });
     return sendErrorResponse(res, new ValidationError("Invalid or expired verification code"));
   }
 
-  if (user.emailVerificationOtp !== otp) {
-    user.emailVerificationAttempts += 1;
-    await user.save({ validateModifiedOnly: true });
-    const remaining = MAX_OTP_ATTEMPTS - user.emailVerificationAttempts;
+  if (pending.emailVerificationOtp !== otp) {
+    pending.emailVerificationAttempts += 1;
+    await pending.save({ validateModifiedOnly: true });
+    const remaining = MAX_OTP_ATTEMPTS - pending.emailVerificationAttempts;
     if (remaining <= 0) {
-      user.emailVerificationOtp = undefined;
-      user.emailVerificationOtpExpires = undefined;
-      await user.save({ validateModifiedOnly: true });
-      logger.warn({ userId: user._id.toString(), email: user.email }, "OTP max attempts exceeded");
-      return sendErrorResponse(res, new ValidationError("Too many failed attempts. Request a new code."));
+      await PendingUser.deleteOne({ email: normalizedEmail });
+      logger.warn({ email }, "OTP max attempts exceeded — pending registration deleted");
+      return sendErrorResponse(res, new ValidationError("Too many failed attempts. Please sign up again."));
     }
     return sendErrorResponse(res, new ValidationError(`Invalid verification code. ${remaining} attempt(s) remaining.`));
   }
 
-  user.emailVerified = true;
-  user.emailVerificationOtp = undefined;
-  user.emailVerificationOtpExpires = undefined;
-  user.emailVerificationAttempts = 0;
-  await user.save({ validateModifiedOnly: true });
+  // OTP valid — create the real user
+  const user = new User({
+    name: pending.name,
+    email: pending.email,
+    password: pending.password,
+    role: pending.role,
+    authProvider: pending.authProvider,
+    emailVerified: true,
+  });
+
+  await user.save();
+
+  // Remove pending registration
+  await PendingUser.deleteOne({ email: normalizedEmail });
+
+  recordUserSignup({ email: user.email, provider: "local" });
 
   const accessToken = generateAccessToken(user._id.toString());
   const refreshToken = generateRefreshToken(user._id.toString());
   const csrfTokenValue = setAuthCookies(req, res, accessToken, refreshToken);
 
-  logger.info({ userId: user._id.toString(), email: user.email }, "Email verified");
+  logger.info({ userId: user._id.toString(), email: user.email }, "User registered and email verified");
 
   sendSuccess(res, {
     message: "Email verified successfully",
@@ -216,30 +223,58 @@ const resendVerificationEmail = wrapController(async (req, res) => {
     return sendErrorResponse(res, new ValidationError("Email is required"));
   }
 
-  const user = await User.findOne({ email });
+  const normalizedEmail = email.toLowerCase().trim();
 
-  if (!user) {
-    return sendErrorResponse(res, new NotFoundError("User not found"));
-  }
-
-  if (user.emailVerified) {
+  // Check if user already exists and is verified
+  const existingUser = await User.findOne({ email: normalizedEmail });
+  if (existingUser?.emailVerified) {
     return sendSuccess(res, { message: "Email is already verified" });
   }
 
-  const verificationOtp = generateOtp();
-  user.emailVerificationOtp = verificationOtp;
-  user.emailVerificationOtpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
-  user.emailVerificationAttempts = 0;
-  await user.save({ validateModifiedOnly: true });
+  // Find pending registration
+  const pending = await PendingUser.findOne({ email: normalizedEmail });
 
-  try {
-    await sendVerificationEmail(user.email, verificationOtp);
-  } catch (err) {
-    logger.warn({ email: user.email, error: err }, "Failed to resend verification email");
-    return sendErrorResponse(res, new AppError("Failed to send verification email", { statusCode: 500, code: "EMAIL_FAILED" }));
+  if (!pending) {
+    return sendErrorResponse(res, new NotFoundError("No pending registration found. Please sign up first."));
   }
 
-  logger.info({ userId: user._id.toString(), email: user.email }, "Verification email resent");
+  // Exponential backoff: check cooldown based on resend attempts
+  const backoffMs = Math.min(
+    OTP_RESEND_BASE_COOLDOWN_MS * Math.pow(2, pending.resendAttempts),
+    OTP_RESEND_MAX_COOLDOWN_MS,
+  );
+
+  if (pending.lastResendAt && Date.now() - pending.lastResendAt.getTime() < backoffMs) {
+    const waitSeconds = Math.ceil((backoffMs - (Date.now() - pending.lastResendAt.getTime())) / 1000);
+    return sendErrorResponse(res, new AppError(
+      `Please wait ${waitSeconds}s before requesting a new code.`,
+      { statusCode: 429, code: "RESEND_COOLDOWN" },
+    ));
+  }
+
+  if (pending.resendAttempts >= OTP_RESEND_MAX_ATTEMPTS) {
+    return sendErrorResponse(res, new AppError(
+      "Too many resend attempts. Please sign up again.",
+      { statusCode: 429, code: "RESEND_EXCEEDED" },
+    ));
+  }
+
+  const verificationOtp = generateOtp();
+  pending.emailVerificationOtp = verificationOtp;
+  pending.emailVerificationOtpExpires = new Date(Date.now() + OTP_EXPIRY_MS);
+  pending.emailVerificationAttempts = 0;
+  pending.resendAttempts += 1;
+  pending.lastResendAt = new Date();
+  await pending.save({ validateModifiedOnly: true });
+
+  try {
+    await sendVerificationEmail(pending.email, verificationOtp);
+  } catch (err) {
+    logger.warn({ email: pending.email, error: err }, "Failed to resend verification email");
+    return sendErrorResponse(res, new AppError("Failed to resend verification email. Please try again.", { statusCode: 500, code: "EMAIL_FAILED", expose: true }));
+  }
+
+  logger.info({ email: pending.email, attempt: pending.resendAttempts }, "Verification email resent");
 
   sendSuccess(res, { message: "Verification email sent" });
 }, "auth.resendVerificationEmail");

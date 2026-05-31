@@ -58,7 +58,7 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
 
       if (res.status === 201) {
         setShowOtpInput(true)
-        setSuccess("Account created! Enter the verification code sent to your email.")
+        setSuccess("Verification code sent! Check your inbox (and spam folder).")
         setTimeout(() => otpRef.current?.focus(), 100)
       }
     } catch (err: any) {
@@ -114,7 +114,7 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
       setOtpAttempts(0)
       setOtpExhausted(false)
       setOtp("")
-      setSuccess("New verification code sent!")
+      setSuccess("New code sent! Check your inbox (and spam folder).")
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to resend code")
     } finally {
@@ -145,6 +145,9 @@ export function SignupForm({ ...props }: ComponentProps<"div">) {
           <div style={{ padding: "12px 0", textAlign: "center" }}>
             <p style={{ color: "#a1a1aa", fontSize: 13, lineHeight: 1.5, margin: "0 0 16px" }}>
               Enter the 6-digit code sent to <strong style={{ color: "#F0EFE8" }}>{email}</strong>
+            </p>
+            <p style={{ color: "#71717a", fontSize: 11, margin: "-10px 0 14px" }}>
+              Didn't receive it? Check your spam folder.
             </p>
             <input
               ref={otpRef}

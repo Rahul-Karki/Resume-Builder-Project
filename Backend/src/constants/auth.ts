@@ -12,6 +12,9 @@ export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
 
 export const MAX_OTP_ATTEMPTS = 3;
 export const OTP_EXPIRY_MS = 10 * 60 * 1000;
+export const OTP_RESEND_BASE_COOLDOWN_MS = 30 * 1000;
+export const OTP_RESEND_MAX_COOLDOWN_MS = 5 * 60 * 1000;
+export const OTP_RESEND_MAX_ATTEMPTS = 5;
 
 export const AUTH_USER_CACHE_TTL_S = 60;
 export const AUTH_QUERY_TIMEOUT_MS = 5000;
