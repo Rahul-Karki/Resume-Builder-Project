@@ -13,6 +13,7 @@ const MAX_CSRF_LENGTH = 256;
 // The set is exported so that routers can assert expected exemptions.
 export const CSRF_EXEMPT_PATHS = new Set([
   "/api/csrf",
+  "/api/refresh",
   "/api/auth/signup",
   "/api/auth/login",
   "/api/auth/google-login",
