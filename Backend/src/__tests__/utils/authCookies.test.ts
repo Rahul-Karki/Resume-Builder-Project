@@ -50,6 +50,17 @@ describe("authCookies", () => {
       expect(res.cookies[0].options.sameSite).toBe("lax");
       expect(res.cookies[0].options.secure).toBe(false);
     });
+
+    it("should use SameSite=None for secure auth cookies", () => {
+      const req = createReq({ secure: true, headers: { "x-forwarded-proto": "https" } });
+      const res = createRes();
+
+      setAccessTokenCookie(req as any, res as any, "access-123");
+
+      expect(res.cookies.length).toBe(1);
+      expect(res.cookies[0].options.sameSite).toBe("none");
+      expect(res.cookies[0].options.secure).toBe(true);
+    });
   });
 
   describe("setCsrfCookie", () => {

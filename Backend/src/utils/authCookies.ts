@@ -12,27 +12,23 @@ const isHttpsRequest = (req: Request) => {
   return req.secure || isForwardedHttps;
 };
 
-const getBaseCookieOptions = (req: Request) => {
+const getBaseCookieOptions = (req: Request, sameSite: "lax" | "none") => {
   const secure = isHttpsRequest(req);
-  // Access & refresh tokens use strict/lax below; CSRF cookie uses sameSite lax
-  // to allow the browser to send it on top-level navigations while blocking
-  // cross-site form POSTs. The double-submit cookie pattern provides defense in depth.
-  const sameSite = "lax" as const;
   return {
     secure,
     sameSite,
     path: "/",
-    ...(secure ? { partitioned: true } : {}),
+    ...(secure && sameSite === "none" ? { partitioned: true } : {}),
   };
 };
 
 const getAuthCookieOptions = (req: Request) => ({
-  ...getBaseCookieOptions(req),
+  ...getBaseCookieOptions(req, isHttpsRequest(req) ? "none" : "lax"),
   httpOnly: true,
 });
 
 const getCsrfCookieOptions = (req: Request) => ({
-  ...getBaseCookieOptions(req),
+  ...getBaseCookieOptions(req, "lax"),
   httpOnly: false, // Must be readable by JS for double-submit cookie pattern (X-CSRF-Token header)
 });
 
