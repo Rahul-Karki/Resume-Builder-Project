@@ -1,39 +1,43 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
-import { AdminTemplate, DashboardStats, TemplateAnalytics } from "@/types/admin.types";
+import { DashboardStats, TemplateAnalytics } from "@/types/admin.types";
+import { BACKEND_WAKING_UP_MESSAGE, getFriendlyApiErrorMessage } from "@/utils/backendStatus";
 
 type ApiEnvelope<T> = { ok: boolean; data: T; error?: string };
 
-const getErrorMessage = (error: unknown) => {
-  const e = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-  return e.response?.data?.error ?? e.response?.data?.message ?? e.message ?? "Failed to load data";
-};
+const getErrorMessage = (error: unknown) => getFriendlyApiErrorMessage(error, BACKEND_WAKING_UP_MESSAGE);
 
 export function useDashboardStats(period: 7 | 30) {
   return useQuery({
     queryKey: ["admin", "dashboard-stats", period],
     queryFn: async (): Promise<{ stats: DashboardStats; analytics: TemplateAnalytics[] }> => {
-      const [templatesRes, analyticsRes] = await Promise.all([
-        api.get<ApiEnvelope<AdminTemplate[]>>("/admin/templates"),
+      const [dashboardRes, analyticsRes] = await Promise.all([
+        api.get<ApiEnvelope<DashboardStats>>("/admin/analytics/dashboard"),
         api.get<ApiEnvelope<TemplateAnalytics[]>>(`/admin/analytics/templates?days=${period}`),
       ]);
 
-      const templates = templatesRes.data.data ?? [];
+      const dashboardStats = dashboardRes.data.data ?? {
+        totalUsers: 0,
+        totalTemplates: 0,
+        publishedTemplates: 0,
+        draftTemplates: 0,
+        premiumTemplates: 0,
+        totalUsesThisWeek: 0,
+        totalUsesThisMonth: 0,
+        mostUsed: null,
+        leastUsed: null,
+      };
       const analyticsData = analyticsRes.data.data ?? [];
       const publishedAnalytics = analyticsData.filter((item) => item.status === "published");
 
-      const computedStats: DashboardStats = {
-        totalTemplates: templates.length,
-        publishedTemplates: templates.filter((item) => item.status === "published").length,
-        draftTemplates: templates.filter((item) => item.status === "draft").length,
-        premiumTemplates: templates.filter((item) => item.isPremium).length,
-        totalUsesThisWeek: analyticsData.reduce((sum, item) => sum + (item.weeklyUses || 0), 0),
-        totalUsesThisMonth: analyticsData.reduce((sum, item) => sum + (item.monthlyUses || 0), 0),
-        mostUsed: publishedAnalytics[0] ?? null,
-        leastUsed: publishedAnalytics.length > 0 ? publishedAnalytics[publishedAnalytics.length - 1] : null,
+      return {
+        stats: {
+          ...dashboardStats,
+          mostUsed: dashboardStats?.mostUsed ?? publishedAnalytics[0] ?? null,
+          leastUsed: dashboardStats?.leastUsed ?? (publishedAnalytics.length > 0 ? publishedAnalytics[publishedAnalytics.length - 1] : null),
+        },
+        analytics: analyticsData,
       };
-
-      return { stats: computedStats, analytics: analyticsData };
     },
     staleTime: 60 * 1000,
     refetchInterval: 120 * 1000,

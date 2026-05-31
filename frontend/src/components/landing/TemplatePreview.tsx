@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/services/api";
+import { BACKEND_WAKING_UP_MESSAGE } from "@/utils/backendStatus";
 
 // ─── TemplatesPreview.tsx ─────────────────────────────────────────────────────
 // Horizontal-scrolling carousel of all templates.
@@ -350,7 +351,7 @@ export function TemplatesPreview() {
       if (!mounted) return;
 
       setLoadingTemplates(false);
-      setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
+      setLoadError(BACKEND_WAKING_UP_MESSAGE);
     };
 
     void fetchTemplates();
@@ -446,7 +447,7 @@ export function TemplatesPreview() {
 
                   setTemplates(mergeTemplates(mapped));
                 } catch {
-                  setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
+                  setLoadError(BACKEND_WAKING_UP_MESSAGE);
                 } finally {
                   setLoadingTemplates(false);
                 }

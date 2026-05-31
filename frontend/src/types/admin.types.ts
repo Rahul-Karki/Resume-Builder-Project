@@ -76,6 +76,7 @@ export interface TemplateAnalytics {
 }
 
 export interface DashboardStats {
+  totalUsers:         number;
   totalTemplates:     number;
   publishedTemplates: number;
   draftTemplates:     number;

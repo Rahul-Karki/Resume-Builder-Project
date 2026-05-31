@@ -7,6 +7,7 @@ import { Logo } from "@/components/Logo";
 import { api } from "@/services/api";
 import { TemplateMeta, templates as localTemplateCatalog } from "@/data/templateMeta";
 import { ThumbnailSVG } from "./ThumbnailSVG";
+import { BACKEND_WAKING_UP_MESSAGE } from "@/utils/backendStatus";
 
 type SlotKey = "summary" | "experience" | "education" | "skills" | "projects" | "certifications" | "languages";
 
@@ -407,7 +408,7 @@ export default function TemplatesPage() {
     } catch {
       if (reset) {
         // If API fails completely, fall back to local templates
-        setLoadError("Could not load public templates from the database. The server may be waking up (cold start). Please retry in a few seconds.");
+        setLoadError(BACKEND_WAKING_UP_MESSAGE);
         setTemplates(mergeWithLocalTemplateCatalog([]));
         setPage(1);
         setTotalPages(1);

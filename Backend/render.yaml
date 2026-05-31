@@ -87,7 +87,7 @@ services:
       - key: BACKEND_URL
         sync: false
       - key: ENABLE_KEEP_ALIVE
-        value: "true"
+        value: "false"
       # Do NOT set PUPPETEER_EXECUTABLE_PATH. Puppeteer's build command (npx puppeteer browsers install chrome)
       # installs Chromium to node_modules/puppeteer-core/.local-chromium/ and auto-detects it.
       # Overriding with a custom path like /usr/bin/chromium will fail unless Chromium is installed there.

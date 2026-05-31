@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { AdminTemplate, DashboardStats, TemplateAnalytics } from "@/types/admin.types";
+import { DashboardStats, TemplateAnalytics } from "@/types/admin.types";
 import { api } from "@/services/api";
+import { BACKEND_WAKING_UP_MESSAGE, getFriendlyApiErrorMessage } from "@/utils/backendStatus";
 
 type ApiEnvelope<T> = {
   ok: boolean;
@@ -8,10 +9,7 @@ type ApiEnvelope<T> = {
   error?: string;
 };
 
-const getErrorMessage = (error: unknown) => {
-  const e = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-  return e.response?.data?.error ?? e.response?.data?.message ?? e.message ?? "Failed to load analytics";
-};
+const getErrorMessage = (error: unknown) => getFriendlyApiErrorMessage(error, BACKEND_WAKING_UP_MESSAGE);
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
@@ -24,27 +22,30 @@ export function useAnalytics(period: 7 | 30 = 30) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [templatesRes, analyticsRes] = await Promise.all([
-        api.get<ApiEnvelope<AdminTemplate[]>>("/admin/templates"),
+      const [dashboardRes, analyticsRes] = await Promise.all([
+        api.get<ApiEnvelope<DashboardStats>>("/admin/analytics/dashboard"),
         api.get<ApiEnvelope<TemplateAnalytics[]>>(`/admin/analytics/templates?days=${period}`),
       ]);
 
-      const templates = templatesRes.data.data ?? [];
+      const dashboardStats = dashboardRes.data.data ?? {
+        totalUsers: 0,
+        totalTemplates: 0,
+        publishedTemplates: 0,
+        draftTemplates: 0,
+        premiumTemplates: 0,
+        totalUsesThisWeek: 0,
+        totalUsesThisMonth: 0,
+        mostUsed: null,
+        leastUsed: null,
+      };
       const analyticsData = analyticsRes.data.data ?? [];
       const publishedAnalytics = analyticsData.filter((item) => item.status === "published");
 
-      const computedStats: DashboardStats = {
-        totalTemplates: templates.length,
-        publishedTemplates: templates.filter((item) => item.status === "published").length,
-        draftTemplates: templates.filter((item) => item.status === "draft").length,
-        premiumTemplates: templates.filter((item) => item.isPremium).length,
-        totalUsesThisWeek: analyticsData.reduce((sum, item) => sum + (item.weeklyUses || 0), 0),
-        totalUsesThisMonth: analyticsData.reduce((sum, item) => sum + (item.monthlyUses || 0), 0),
-        mostUsed: publishedAnalytics[0] ?? null,
-        leastUsed: publishedAnalytics.length > 0 ? publishedAnalytics[publishedAnalytics.length - 1] : null,
-      };
-
-      setStats(computedStats);
+      setStats({
+        ...dashboardStats,
+        mostUsed: dashboardStats?.mostUsed ?? publishedAnalytics[0] ?? null,
+        leastUsed: dashboardStats?.leastUsed ?? (publishedAnalytics.length > 0 ? publishedAnalytics[publishedAnalytics.length - 1] : null),
+      });
       setAnalytics(analyticsData);
     } catch (e) {
       setError(getErrorMessage(e));

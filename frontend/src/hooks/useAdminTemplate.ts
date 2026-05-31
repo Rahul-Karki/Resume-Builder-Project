@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { AdminTemplate, TemplateFormData, TemplateStatus } from "@/types/admin.types";
 import { api } from "@/services/api";
 import type { AxiosError } from "axios";
+import { BACKEND_WAKING_UP_MESSAGE, getFriendlyApiErrorMessage } from "@/utils/backendStatus";
 
 type ApiEnvelope<T> = {
   ok: boolean;
@@ -9,15 +10,7 @@ type ApiEnvelope<T> = {
   error?: string;
 };
 
-const getErrorMessage = (error: unknown) => {
-  const axiosError = error as AxiosError<{ error?: string; message?: string }>;
-  return (
-    axiosError.response?.data?.error ??
-    axiosError.response?.data?.message ??
-    axiosError.message ??
-    "Request failed"
-  );
-};
+const getErrorMessage = (error: unknown) => getFriendlyApiErrorMessage(error, BACKEND_WAKING_UP_MESSAGE);
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 

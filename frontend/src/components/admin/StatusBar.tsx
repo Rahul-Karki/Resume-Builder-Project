@@ -37,6 +37,7 @@ function StatCard({ label, value, sub, accent = "#C8F55A" }: StatCardProps) {
 export function StatsBar({ stats }: Props) {
   return (
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <StatCard label="Total Users"     value={stats.totalUsers}         sub="All registered accounts" accent="#818CF8" />
       <StatCard label="Total Templates"    value={stats.totalTemplates}     sub={`${stats.publishedTemplates} published · ${stats.draftTemplates} draft`} />
       <StatCard label="Premium Templates"  value={stats.premiumTemplates}   sub="Paid-only access" accent="#F59E0B" />
       <StatCard label="Uses This Week"     value={stats.totalUsesThisWeek}  sub="All templates combined" accent="#4ADE80" />
@@ -52,7 +53,7 @@ export function StatsBar({ stats }: Props) {
 export function StatsBarSkeleton() {
   return (
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-      {Array.from({ length: 4 }).map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} style={{
           background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12,
           padding: "18px 20px", flex: 1, minWidth: 200,

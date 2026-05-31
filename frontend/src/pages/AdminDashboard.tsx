@@ -4,6 +4,7 @@ import { StatsBar, StatsBarSkeleton } from "@/components/admin/StatusBar";
 import { BarChart, AnalyticsRow } from "@/components/admin/AnalyticsChart";
 import { useViewport } from "@/hooks/useViewport";
 import { Skeleton, SkeletonChart } from "@/components/Skeleton";
+import { BACKEND_WAKING_UP_MESSAGE, isBackendWakingUpError } from "@/utils/backendStatus";
 
 function PeriodBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -110,7 +111,7 @@ export function AdminDashboard() {
       {/* Error banner - shown on top while keeping data visible if cached */}
       {isError && (
         <ErrorBanner
-          message={error instanceof Error ? error.message : "Failed to load analytics"}
+          message={error && isBackendWakingUpError(error) ? BACKEND_WAKING_UP_MESSAGE : error instanceof Error ? error.message : "Failed to load analytics"}
           onRetry={handleRetry}
         />
       )}
