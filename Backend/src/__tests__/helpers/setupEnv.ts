@@ -6,8 +6,6 @@ const defaults: Record<string, string> = {
   JWT_ACCESS_SECRET: "test-access-secret",
   JWT_REFRESH_SECRET: "test-refresh-secret",
   EMAIL_PROVIDER: "console",
-  BREVO_API_KEY: "test-brevo-api-key",
-  BREVO_FROM: "noreply@example.com",
   GOOGLE_CLIENT_ID: "test-google-client-id",
   ENABLE_METRICS: "false",
   USE_MEMORY_ONLY_CACHE: "true",

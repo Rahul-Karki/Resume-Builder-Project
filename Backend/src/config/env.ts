@@ -32,9 +32,12 @@ const baseEnvSchema = z.object({
   JWT_REFRESH_PRIVATE_KEY: z.string().optional().default(""),
   JWT_REFRESH_PUBLIC_KEY: z.string().optional().default(""),
   JWT_REFRESH_PUBLIC_KEY_OLD: z.string().optional().default(""),
-  EMAIL_PROVIDER: z.enum(["brevo", "console"]).default("brevo"),
-  BREVO_API_KEY: z.string().optional().default(""),
-  BREVO_FROM: z.string().optional().default(""),
+  EMAIL_PROVIDER: z.enum(["nodemailer", "console"]).default("nodemailer"),
+  SMTP_HOST: z.string().default("smtp.gmail.com"),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  SMTP_USER: z.string().optional().default(""),
+  SMTP_PASS: z.string().optional().default(""),
+  EMAIL_FROM: z.string().default("noreply@yourdomain.com"),
   GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   SERVICE_NAME: z.string().min(1).default("resume-builder-backend"),
@@ -163,8 +166,6 @@ const envSchema = baseEnvSchema
       .split(",")
       .map((p) => p.trim())
       .filter(Boolean),
-    BREVO_API_KEY: value.BREVO_API_KEY.trim(),
-    BREVO_FROM: value.BREVO_FROM.trim(),
   }));
 
 const parsed = envSchema.safeParse(process.env);

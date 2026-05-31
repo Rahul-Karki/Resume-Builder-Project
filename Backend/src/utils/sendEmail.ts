@@ -1,3 +1,4 @@
+import nodemailer from "nodemailer";
 import { env } from "../config/env";
 import { logger } from "../observability";
 
@@ -11,45 +12,6 @@ interface EmailProvider {
   send(payload: EmailPayload): Promise<void>;
 }
 
-class BrevoProvider implements EmailProvider {
-  private readonly apiKey: string;
-  private readonly from: string;
-  private readonly ready: boolean;
-
-  constructor() {
-    this.apiKey = env.BREVO_API_KEY;
-    this.from = env.BREVO_FROM || "noreply@yourdomain.com";
-    this.ready = !!this.apiKey;
-  }
-
-  async send(payload: EmailPayload): Promise<void> {
-    if (!this.ready) {
-      logger.warn({ to: payload.to }, "BREVO_API_KEY not set — email skipped");
-      return;
-    }
-
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": this.apiKey,
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        sender: { email: this.from },
-        to: [{ email: payload.to }],
-        subject: payload.subject,
-        htmlContent: payload.html,
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new Error(`Brevo API error (${response.status}): ${body}`);
-    }
-  }
-}
-
 class ConsoleProvider implements EmailProvider {
   async send(payload: EmailPayload): Promise<void> {
     logger.info(
@@ -59,14 +21,41 @@ class ConsoleProvider implements EmailProvider {
   }
 }
 
+class NodemailerProvider implements EmailProvider {
+  private transporter: nodemailer.Transporter;
+  private from: string;
+
+  constructor() {
+    this.from = env.EMAIL_FROM;
+    this.transporter = nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_PORT === 465,
+      auth: {
+        user: env.SMTP_USER || undefined,
+        pass: env.SMTP_PASS || undefined,
+      },
+    });
+  }
+
+  async send(payload: EmailPayload): Promise<void> {
+    await this.transporter.sendMail({
+      from: this.from,
+      to: payload.to,
+      subject: payload.subject,
+      html: payload.html,
+    });
+  }
+}
+
 function createProvider(): EmailProvider {
   switch (env.EMAIL_PROVIDER) {
-    case "brevo":
-      return new BrevoProvider();
+    case "nodemailer":
+      return new NodemailerProvider();
     case "console":
       return new ConsoleProvider();
     default:
-      return new ConsoleProvider();
+      return new NodemailerProvider();
   }
 }
 
