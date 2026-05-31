@@ -51,6 +51,7 @@ export function AdminDashboard() {
   const { data, isLoading, isError, error, refetch } = useDashboardStats(period);
   const stats = data?.stats ?? null;
   const analytics = data?.analytics ?? [];
+  const isDemoData = data?.isDemoData ?? false;
 
   const publishedAnalytics = useMemo(
     () => analytics.filter((item) => item.status === "published"),
@@ -114,6 +115,21 @@ export function AdminDashboard() {
           message={error && isBackendWakingUpError(error) ? BACKEND_WAKING_UP_MESSAGE : error instanceof Error ? error.message : "Failed to load analytics"}
           onRetry={handleRetry}
         />
+      )}
+
+      {isDemoData && !isLoading && (
+        <div style={{
+          padding: "12px 16px",
+          marginBottom: 20,
+          borderRadius: 10,
+          background: "rgba(200,245,90,0.08)",
+          border: "1px solid rgba(200,245,90,0.22)",
+          color: "#C8F55A",
+          fontSize: 13,
+          fontWeight: 600,
+        }}>
+          Showing demo data until live analytics are available.
+        </div>
       )}
 
       {/* Stats row */}
