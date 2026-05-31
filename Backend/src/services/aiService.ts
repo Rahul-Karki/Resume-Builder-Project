@@ -243,6 +243,15 @@ const withTimeout = async <T>(operation: (signal: AbortSignal) => Promise<T>) =>
   }
 };
 
+const MAX_AI_RESPONSE_BYTES = 5 * 1024 * 1024; // 5MB
+
+const checkResponseSize = (response: Response): void => {
+  const contentLength = response.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > MAX_AI_RESPONSE_BYTES) {
+    throw new Error(`AI response too large: ${contentLength} bytes exceeds ${MAX_AI_RESPONSE_BYTES} limit`);
+  }
+};
+
 const callOpenAI = async (systemPrompt: string, userPrompt: string) => withTimeout(async (signal) => {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -266,6 +275,7 @@ const callOpenAI = async (systemPrompt: string, userPrompt: string) => withTimeo
     throw new Error(`OpenAI request failed with status ${response.status}`);
   }
 
+  checkResponseSize(response);
   const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
   return json.choices?.[0]?.message?.content ?? "{}";
 });
@@ -289,6 +299,7 @@ const callGemini = async (systemPrompt: string, userPrompt: string) => withTimeo
     throw new Error(`Gemini request failed with status ${response.status}`);
   }
 
+  checkResponseSize(response);
   const json = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   return json.candidates?.[0]?.content?.parts?.[0]?.text ?? "{}";
 });
@@ -305,7 +316,7 @@ const callOpenRouter = async (systemPrompt: string, userPrompt: string) => withT
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://resume-builder-project-3h9o.vercel.app",
+          "HTTP-Referer": env.FRONTEND_URL || "http://localhost:5173",
           "X-Title": "Resume Builder",
         },
         signal,
@@ -322,6 +333,7 @@ const callOpenRouter = async (systemPrompt: string, userPrompt: string) => withT
       });
 
       if (response.ok) {
+        checkResponseSize(response);
         const json = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
         return json.choices?.[0]?.message?.content ?? "{}";
       }
@@ -504,23 +516,69 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
 
   let lastError: unknown;
 
-  for (const selectedProvider of providerOrder) {
+  // Fire the preferred provider first (instant), then race with others
+  const preferredProvider = providerOrder[0];
+  const fallbackProviders = providerOrder.slice(1);
+
+  if (fallbackProviders.length === 0) {
+    // No fallback — just try the single provider
     try {
-      const { parsed, tokenCount, model } = await callProvider(selectedProvider, systemPrompt, userPrompt);
-
-      await logAiUsage(selectedProvider, model, feature, tokenCount.input, tokenCount.output, userId, false, true);
-
+      const { parsed, tokenCount, model } = await callProvider(preferredProvider, systemPrompt, userPrompt);
+      await logAiUsage(preferredProvider, model, feature, tokenCount.input, tokenCount.output, userId, false, true);
       return {
         ...parsed as T,
         _tokens: { input: tokenCount.input, output: tokenCount.output },
-        _provider: selectedProvider,
+        _provider: preferredProvider,
         _model: model,
         _fallback: false,
       };
     } catch (error) {
       lastError = error;
-      logger.warn({ error, provider: selectedProvider }, "AI provider request failed; trying next provider if available");
-      await logAiUsage(selectedProvider, "", feature, 0, 0, userId, false, false);
+      logger.warn({ error, provider: preferredProvider }, "AI provider request failed");
+      await logAiUsage(preferredProvider, "", feature, 0, 0, userId, false, false);
+    }
+  } else {
+    // Try preferred first; if it fails, fire all fallbacks concurrently
+    try {
+      const { parsed, tokenCount, model } = await callProvider(preferredProvider, systemPrompt, userPrompt);
+      await logAiUsage(preferredProvider, model, feature, tokenCount.input, tokenCount.output, userId, false, true);
+      return {
+        ...parsed as T,
+        _tokens: { input: tokenCount.input, output: tokenCount.output },
+        _provider: preferredProvider,
+        _model: model,
+        _fallback: false,
+      };
+    } catch (error) {
+      lastError = error;
+      logger.warn({ error, provider: preferredProvider }, "Preferred AI provider failed; racing fallbacks");
+      await logAiUsage(preferredProvider, "", feature, 0, 0, userId, false, false);
+    }
+
+    // Race all fallback providers concurrently
+    const results = await Promise.allSettled(
+      fallbackProviders.map(async (selectedProvider) => {
+        const { parsed, tokenCount, model } = await callProvider(selectedProvider, systemPrompt, userPrompt);
+        return { parsed, tokenCount, model, selectedProvider };
+      }),
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        const { parsed, tokenCount, model, selectedProvider } = result.value;
+        await logAiUsage(selectedProvider, model, feature, tokenCount.input, tokenCount.output, userId, false, true);
+        return {
+          ...parsed as T,
+          _tokens: { input: tokenCount.input, output: tokenCount.output },
+          _provider: selectedProvider,
+          _model: model,
+          _fallback: true,
+        };
+      }
+      lastError = result.reason;
+      const failedProvider = fallbackProviders[results.indexOf(result)];
+      logger.warn({ error: result.reason, provider: failedProvider }, "Fallback AI provider failed");
+      await logAiUsage(failedProvider, "", feature, 0, 0, userId, false, false);
     }
   }
 
@@ -734,7 +792,8 @@ const extractKeywords = (resume: Record<string, unknown>, keywords: string[]) =>
 
 const computeSectionScores = (resume: Record<string, unknown>): AtsScoreBreakdown => {
   const sections = getResumeSections(resume);
-  const summaryScore = clampScore((sections.summary.length / 180) * 100);
+  const summaryText = sections.summary ?? "";
+  const summaryScore = clampScore((summaryText.length / 180) * 100);
 
   const experienceBullets = sections.experience.flatMap((entry) => Array.isArray(entry.bullets) ? entry.bullets.map((bullet) => compactText(bullet)) : []);
   const strongBullets = experienceBullets.filter((bullet) => actionVerbScore(bullet) && hasMetric(bullet)).length;

@@ -379,27 +379,29 @@ const forgotPassword = wrapController(async (req, res) => {
     user.authProvider.includes("google") &&
     !user.authProvider.includes("local");
 
-  // Only proceed with reset if user exists and is not google-only
-  const canSendReset = !!user && !isGoogleOnlyUser;
+  // Always execute the same structural code path to avoid timing side channels.
+  // Whether the email exists, is Google-only, or unknown — we always simulate
+  // the same work so response timing is uniform.
+  if (user && !isGoogleOnlyUser) {
+    if (user.passwordResetAt &&
+      Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
+    ) {
+      // Simulate delay to maintain constant-time feel
+      await new Promise((r) => setTimeout(r, 100));
+      sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
+      return;
+    }
 
-  if (canSendReset && user.passwordResetAt &&
-    Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
-  ) {
-    return sendErrorResponse(res, new AppError("Password was recently updated. Try again later.", { statusCode: 429, code: "RATE_LIMITED" }));
-  }
-
-  if (canSendReset) {
     const existingToken = await ResetToken.findOne({ userId: user._id });
 
     if (
       existingToken &&
       Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS
     ) {
-      return sendErrorResponse(res, new AppError("Please wait before requesting another reset email", {
-        statusCode: 429,
-        code: "RATE_LIMITED",
-        details: { retryAfterSeconds: Math.ceil((RESEND_COOLDOWN_MS - (Date.now() - existingToken.lastSeenAt.getTime())) / 1000) },
-      }));
+      // Simulate delay
+      await new Promise((r) => setTimeout(r, 100));
+      sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
+      return;
     }
 
     const recentResets = await ResetToken.countDocuments({
@@ -408,7 +410,9 @@ const forgotPassword = wrapController(async (req, res) => {
     });
 
     if (recentResets >= MAX_RESET_PER_DAY) {
-      return sendErrorResponse(res, new AppError("Too many password reset requests for this account. Try again tomorrow.", { statusCode: 429, code: "RATE_LIMITED" }));
+      await new Promise((r) => setTimeout(r, 100));
+      sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
+      return;
     }
 
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -437,11 +441,15 @@ const forgotPassword = wrapController(async (req, res) => {
     } catch (err) {
       logger.warn({ email: user.email, error: err }, "Failed to send password reset email");
     }
+  } else {
+    // Simulate work for non-existent or Google-only accounts to match timing
+    await Promise.resolve();
+    await new Promise((r) => setTimeout(r, 50));
   }
 
   // Constant-timing response — identical for all cases (exists, not found, google-only)
   sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
-  logger.info({ email: rawEmail, sent: canSendReset }, "Password reset flow completed");
+  logger.info({ email: rawEmail, sent: !!user && !isGoogleOnlyUser }, "Password reset flow completed");
 }, "auth.forgotPassword");
 
 const resetPassword = wrapController(async (req, res) => {

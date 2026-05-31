@@ -1,24 +1,45 @@
 import crypto from "crypto";
 import { logger } from "../observability";
+import { BaseQueue } from "./baseQueue";
+import type { ResumeDownloadJobData } from "../../../shared/src/jobs";
+import { processResumeDownloadJob } from "../lib/workerShim";
 
 export const createResumeDownloadJobId = (data: Record<string, unknown>) =>
   `resume-download-${String(data.resumeId ?? crypto.randomUUID())}`;
 
-let activeJobCount = 0;
-const MAX_CONCURRENT = 5;
+const queue = new BaseQueue<ResumeDownloadJobData>("resume-download", async (job) => {
+  await processResumeDownloadJob({
+    id: job.id,
+    data: job.data,
+    attemptsMade: job.attemptsMade,
+    opts: { attempts: 3 },
+  });
+}, { maxConcurrency: 2, maxAttempts: 3 });
 
-export const canAcceptJob = (): boolean => activeJobCount < MAX_CONCURRENT;
+export const canAcceptJob = (): boolean => queue.activeJobCount < 2;
 
 export const runJob = async <T>(processor: () => Promise<T>): Promise<T> => {
-  if (activeJobCount >= MAX_CONCURRENT) {
-    logger.warn({ activeJobCount }, "Resume download queue at capacity");
-  }
-  activeJobCount++;
-  try {
-    return await processor();
-  } finally {
-    activeJobCount--;
-  }
+  return processor();
 };
 
-export const getActiveJobCount = () => activeJobCount;
+export const getActiveJobCount = () => queue.activeJobCount;
+
+export const enqueueResumeDownload = async (
+  jobId: string,
+  data: ResumeDownloadJobData,
+): Promise<void> => {
+  await queue.add(jobId, data);
+};
+
+export const startResumeQueue = (): void => {
+  queue.start();
+  logger.info("Resume download queue started with MongoDB persistence");
+};
+
+export const stopResumeQueue = (): void => {
+  queue.stop();
+};
+
+export const recoverResumeJobs = async (): Promise<number> => {
+  return queue.recoverPending();
+};

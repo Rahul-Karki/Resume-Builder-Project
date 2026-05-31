@@ -55,6 +55,8 @@ export const createApp = () => {
     const MAX_PATTERN_LENGTH = 100;
     for (const pattern of env.CORS_EXTRA_PATTERNS) {
       if (pattern.length > MAX_PATTERN_LENGTH) continue;
+      // ReDoS protection: reject patterns with nested quantifiers or deep backtracking risk
+      if (/(\.[*+?][{*+?]|\(.*\)[*+?]|\[.*\]\++|\(.*\)\++)/.test(pattern)) continue;
       try {
         const regex = new RegExp(pattern);
         if (regex.test(normalizedOrigin)) return true;
@@ -105,7 +107,17 @@ export const createApp = () => {
     ],
   };
 
-  // 1. CORS MUST come first to handle preflight and error responses
+  // 1. HTTPS redirect in production (before CORS to avoid mixed-content issues)
+  if (env.NODE_ENV === "production") {
+    app.use((req, res, next) => {
+      if (req.headers["x-forwarded-proto"] !== "https" && req.headers["x-forwarded-proto"] !== "https, http/1.1") {
+        return res.redirect(301, `https://${req.hostname}${req.originalUrl}`);
+      }
+      next();
+    });
+  }
+
+  // 2. CORS MUST come early to handle preflight and error responses
   app.use(cors(corsOptions));
 
   // 2. Compression middleware to reduce response payload size

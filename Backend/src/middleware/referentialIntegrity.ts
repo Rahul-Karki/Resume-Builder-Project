@@ -138,8 +138,9 @@ export class ReferentialIntegrityValidator {
 
   /**
    * Validate orphaned documents (references to non-existent parents)
+   * Uses batched cursor iteration to avoid loading all parent IDs into memory.
    */
-  async findOrphanedDocuments(collection: string): Promise<any[]> {
+  async findOrphanedDocuments(collection: string, batchSize = 500): Promise<any[]> {
     const relevantRules = this.rules.filter((r) => r.collection === collection);
     const orphans: any[] = [];
 
@@ -158,13 +159,20 @@ export class ReferentialIntegrityValidator {
           continue;
         }
 
-        // Find documents with non-existent references
-        const parentIds = await Model.find({}, { _id: 1 }).lean();
-        const parentIdSet = new Set(parentIds.map((p) => p._id.toString()));
-
-        const orphaned = await ChildModel.find({
-          [rule.field]: { $nin: parentIds.map((p) => p._id) },
-        }).lean();
+        // Use aggregation pipeline with $lookup to find orphans in one query
+        const orphaned = await ChildModel.aggregate([
+          {
+            $lookup: {
+              from: Model.collection.name,
+              localField: rule.field,
+              foreignField: "_id",
+              as: "parent",
+            },
+          },
+          { $match: { parent: { $size: 0 } } },
+          { $limit: 1000 },
+          { $project: { parent: 0 } },
+        ]);
 
         orphans.push(...orphaned);
       } catch (error) {

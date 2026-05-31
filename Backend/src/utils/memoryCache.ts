@@ -1,8 +1,4 @@
-/**
- * Lightweight in-memory LRU cache with TTL support.
- * Used as a fallback when Redis/Upstash is unavailable or to avoid
- * consuming Redis commands on the free tier.
- */
+import { env } from "../config/env";
 
 type CacheEntry = {
   value: string;
@@ -12,6 +8,7 @@ type CacheEntry = {
 export class MemoryLRUCache {
   private cache = new Map<string, CacheEntry>();
   private readonly maxSize: number;
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(maxSize = 200) {
     this.maxSize = maxSize;
@@ -29,7 +26,6 @@ export class MemoryLRUCache {
       return null;
     }
 
-    // Move to end for LRU ordering
     this.cache.delete(key);
     this.cache.set(key, entry);
 
@@ -37,10 +33,8 @@ export class MemoryLRUCache {
   }
 
   set(key: string, value: string, ttlSeconds: number): void {
-    // Remove existing entry first (ensures LRU ordering)
     this.cache.delete(key);
 
-    // Evict oldest entries if at capacity
     while (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey !== undefined) {
@@ -86,7 +80,6 @@ export class MemoryLRUCache {
     return this.cache.size;
   }
 
-  /** Remove all expired entries. Call periodically to reclaim memory. */
   cleanup(): void {
     const now = Date.now();
 
@@ -97,10 +90,25 @@ export class MemoryLRUCache {
     }
   }
 
+  /** Start periodic cleanup at the given interval (ms). */
+  startCleanup(intervalMs = 60000): void {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => this.cleanup(), intervalMs);
+    this.cleanupTimer.unref();
+  }
+
+  /** Stop periodic cleanup. */
+  stopCleanup(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+  }
+
   clear(): void {
     this.cache.clear();
   }
 }
 
-/** Singleton instance shared across the backend process. */
-export const memoryCache = new MemoryLRUCache(200);
+export const memoryCache = new MemoryLRUCache(env.MEMORY_CACHE_MAX_SIZE);
+memoryCache.startCleanup(60000);

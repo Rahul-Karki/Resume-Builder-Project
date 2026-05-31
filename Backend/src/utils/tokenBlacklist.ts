@@ -36,7 +36,7 @@ export const isTokenBlacklisted = async (token: string, type: "access" | "refres
     const result = await withRedis(async (client) => client.get(key));
     return result === "1";
   } catch {
-    logger.error({ key }, "Token blacklist check failed — Redis unavailable. Rejecting token as safety measure.");
-    return true;
+    logger.warn({ key }, "Token blacklist check failed — Redis unavailable. Allowing token to proceed to avoid mass logout.");
+    return false;
   }
 };

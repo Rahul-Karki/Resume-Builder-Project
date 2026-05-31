@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Template, { ITemplate } from "../models/Template";
 import User from "../models/User";
 import { UserRole } from "../enums/userRole";
@@ -406,16 +407,31 @@ const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
 ];
 
 export async function ensureDefaultTemplatesInBackend(): Promise<void> {
-  const admin = await User.findOne({ role: { $in: [UserRole.ADMIN, UserRole.SUPERADMIN] } })
-    .select("_id role")
-    .lean<{ _id: unknown; role: string }>();
-
-  if (!admin?._id) {
-    logger.warn("Skipping default template bootstrap: no admin/superadmin user found");
+  // Skip if templates already exist (idempotent)
+  const existingCount = await Template.countDocuments();
+  if (existingCount > 0) {
+    logger.info({ count: existingCount }, "Default templates already seeded — skipping bootstrap");
     return;
   }
 
-  const adminId = String(admin._id);
+  // Find a user to use as creator — prefer admin, fall back to any user, then generate placeholder
+  let adminId: string;
+  const admin = await User.findOne({ role: { $in: [UserRole.ADMIN, UserRole.SUPERADMIN] } })
+    .select("_id")
+    .lean<{ _id: unknown }>();
+
+  if (admin?._id) {
+    adminId = String(admin._id);
+  } else {
+    const anyUser = await User.findOne().select("_id").lean<{ _id: unknown }>();
+    if (anyUser?._id) {
+      adminId = String(anyUser._id);
+      logger.info("No admin user found — seeding templates with first available user as creator");
+    } else {
+      adminId = new mongoose.Types.ObjectId().toString();
+      logger.warn("No users exist — seeding templates with generated placeholder createdBy");
+    }
+  }
   let insertedCount = 0;
   let updatedCount = 0;
 

@@ -11,6 +11,8 @@ import app from "./app";
 import { browserPool } from "./lib/browserPool";
 import { dataIntegrityChecker } from "./services/dataIntegrityService";
 import { keepAliveService } from "./utils/keepAlive";
+import { startAtsQueue, stopAtsQueue, recoverAtsJobs } from "./queue/atsQueue";
+import { startResumeQueue, stopResumeQueue, recoverResumeJobs } from "./queue/resumeQueue";
 const PORT = env.PORT;
 
 const startServer = async () => {
@@ -28,6 +30,15 @@ const startServer = async () => {
   dataIntegrityChecker.startPeriodicChecks(env.INTEGRITY_CHECK_INTERVAL_MS || 3600000);
   
   await ensureDefaultTemplatesInBackend();
+
+  // Start persistent job queues and recover any pending jobs from before restart
+  const atsRecovered = await recoverAtsJobs();
+  const resumeRecovered = await recoverResumeJobs();
+  if (atsRecovered > 0 || resumeRecovered > 0) {
+    logger.info({ atsRecovered, resumeRecovered }, "Recovered pending queue jobs after restart");
+  }
+  startAtsQueue();
+  startResumeQueue();
   const cacheProvider = getCacheProvider();
   // Skip cache warmup when using memory-only cache — avoids wasting a Redis/Upstash PING
   if (cacheProvider !== "none") {
@@ -79,11 +90,26 @@ const startServer = async () => {
     // Stop data integrity checker
     dataIntegrityChecker.stopPeriodicChecks();
 
-    // Stop accepting new connections
+    // Stop job queues
+    stopAtsQueue();
+    stopResumeQueue();
+
+    // Force shutdown after timeout (default 30s)
+    let shutdownComplete = false;
+    const shutdownTimeout = setTimeout(() => {
+      if (!shutdownComplete) {
+        logger.error("Graceful shutdown timeout, forcing exit");
+        process.exit(1);
+      }
+    }, 30000);
+
+    // Stop accepting new connections; exit only after cleanup completes
     server.close(async () => {
       try {
         await closeRedisClient();
         await browserPool.shutdown();
+        shutdownComplete = true;
+        clearTimeout(shutdownTimeout);
         logger.info("Shutdown completed successfully");
         process.exit(0);
       } catch (error) {
@@ -91,15 +117,6 @@ const startServer = async () => {
         process.exit(1);
       }
     });
-
-    // Force shutdown after timeout (default 30s)
-    const shutdownTimeout = setTimeout(() => {
-      logger.error("Graceful shutdown timeout, forcing exit");
-      process.exit(1);
-    }, 30000);
-
-    // Clear timeout if shutdown completes
-    server.once("close", () => clearTimeout(shutdownTimeout));
   };
 
   process.once("SIGINT", () => {

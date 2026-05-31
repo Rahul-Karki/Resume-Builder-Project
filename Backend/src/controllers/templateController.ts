@@ -9,6 +9,7 @@ import { AppError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { sendSuccess } from "../utils/apiResponse";
 import { buildResumeHtml } from "../modules/export/buildResumeHtml";
+import { ensureDefaultTemplatesInBackend } from "../bootstrap/defaultTemplates";
 
 const invalidateTemplateCaches = async () => {
   await invalidateRedisCache([
@@ -31,7 +32,15 @@ export const listTemplates = wrapController(async (req, res) => {
   const { status, category, audience } = req.query as Record<string, string>;
   const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10));
   const limit = Math.min(100, Math.max(1, parseInt(String(req.query.limit ?? "50"), 10)));
-  const result = await TemplateService.getAll({ status, category, audience }, page, limit);
+  let result = await TemplateService.getAll({ status, category, audience }, page, limit);
+
+  // Auto-seed default templates if the catalog is empty
+  if (result.total === 0) {
+    logger.info("Template catalog empty — triggering default template bootstrap");
+    await ensureDefaultTemplatesInBackend();
+    result = await TemplateService.getAll({ status, category, audience }, page, limit);
+  }
+
   logger.info({ status, category, audience, count: result.templates.length, page, totalPages: result.totalPages, total: result.total }, "Templates listed");
   return sendSuccess(res, result.templates);
 }, "template.listTemplates");
@@ -236,7 +245,15 @@ export const getDashboardStats = wrapController(async (req, res) => {
 
 export const getAnalytics = wrapController(async (req, res) => {
   const days = Math.min(parseInt(String(req.query.days ?? "30"), 10), 90);
-  const analytics = await TemplateService.getAllAnalytics(days);
+  let analytics = await TemplateService.getAllAnalytics(days);
+
+  // Auto-seed default templates if the catalog is empty
+  if (analytics.length === 0) {
+    logger.info("Analytics empty — triggering default template bootstrap");
+    await ensureDefaultTemplatesInBackend();
+    analytics = await TemplateService.getAllAnalytics(days);
+  }
+
   logger.info({ userId: req.user?.id, days }, "Template analytics fetched");
   return sendSuccess(res, analytics);
 }, "template.getAnalytics");

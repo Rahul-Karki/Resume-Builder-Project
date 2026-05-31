@@ -13,6 +13,11 @@ vi.mock("../models/TemplateUsage", () => ({ default: { recordUse: vi.fn() } }));
 vi.mock("../services/resumeVersionService", () => ({ createResumeVersion: vi.fn() }));
 vi.mock("../lib/workerShim");
 vi.mock("../middleware/redisCache", () => ({ invalidateRedisCache: vi.fn() }));
+vi.mock("../utils/aiCredits", () => ({
+  deductAiCredits: vi.fn().mockResolvedValue({ aiCreditsRemaining: 50, aiCreditsResetAt: new Date(), aiCreditsPlan: "free" }),
+  refreshAiCreditsIfNeeded: vi.fn().mockResolvedValue({ aiCreditsRemaining: 50, aiCreditsResetAt: new Date(), aiCreditsPlan: "free" }),
+  assertAiCreditsAvailable: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock("../utils/controllerObservability", () => ({ startControllerSpan: vi.fn(() => ({})), markSpanSuccess: vi.fn(), markSpanError: vi.fn(), finishControllerSpan: vi.fn() }));
 vi.mock("../utils/errorResponse", () => ({ sendErrorResponse: vi.fn((res: any, err: any) => res.status(err?.statusCode ?? 500).json({ message: err?.message ?? "Error" })) }));
 vi.mock("../errors/AppError", () => ({
@@ -53,7 +58,7 @@ describe("resumeEnhancementController", () => {
       vi.mocked(Template.findOne).mockReturnValue({ select: vi.fn().mockReturnThis(), lean: vi.fn().mockResolvedValue(null) } as any);
 
       const req = { user: { id: "user1" }, params: { id: "res1" }, body: { jobTitle: "Software Engineer" } } as any;
-      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+      const res = { status: vi.fn().mockReturnThis(), json: vi.fn(), setHeader: vi.fn() } as any;
 
       await analyzeAts(req, res);
 

@@ -102,4 +102,45 @@ describe("csrfProtection", () => {
     expect(nextCalled).toBe(true);
     expect(res.statusCode).toBe(null);
   });
+
+  it("requires CSRF token for logout route (state-changing — not exempt)", () => {
+    const req = createReq({
+      method: "POST",
+      path: "/api/auth/logout",
+      headers: {
+        cookie: "csrfToken=mismatch-cookie",
+        "x-csrf-token": "mismatch-header",
+      },
+    }) as any;
+    const res = createRes() as any;
+    let nextCalled = false;
+
+    csrfProtection(req, res, () => {
+      nextCalled = true;
+    });
+
+    // Logout is now CSRF-protected (was removed from exempt paths)
+    expect(nextCalled).toBe(false);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("allows logout with matching CSRF tokens", () => {
+    const req = createReq({
+      method: "POST",
+      path: "/api/auth/logout",
+      headers: {
+        cookie: "csrfToken=valid-token",
+        "x-csrf-token": "valid-token",
+      },
+    }) as any;
+    const res = createRes() as any;
+    let nextCalled = false;
+
+    csrfProtection(req, res, () => {
+      nextCalled = true;
+    });
+
+    expect(nextCalled).toBe(true);
+    expect(res.statusCode).toBe(null);
+  });
 });

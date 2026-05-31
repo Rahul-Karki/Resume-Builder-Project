@@ -81,6 +81,7 @@ const baseEnvSchema = z.object({
   CREATE_INDEXES_ON_STARTUP: booleanFromEnv.default(true),
   ALLOW_PREVIEW_ORIGINS: booleanFromEnv.default(false),
   CORS_EXTRA_PATTERNS: z.string().optional().default(""),
+  MEMORY_CACHE_MAX_SIZE: z.coerce.number().int().min(1).default(2000),
 });
 
 const envSchema = baseEnvSchema
