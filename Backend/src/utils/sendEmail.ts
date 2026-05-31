@@ -50,14 +50,52 @@ class NodemailerProvider implements EmailProvider {
   }
 }
 
+class SendGridProvider implements EmailProvider {
+  private readonly apiKey: string;
+  private readonly from: string;
+
+  constructor() {
+    this.apiKey = env.SENDGRID_API_KEY;
+    this.from = env.EMAIL_FROM;
+  }
+
+  async send(payload: EmailPayload): Promise<void> {
+    if (!this.apiKey) {
+      logger.warn({ to: payload.to }, "SENDGRID_API_KEY not set — email skipped");
+      return;
+    }
+
+    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: payload.to }] }],
+        from: { email: this.from },
+        subject: payload.subject,
+        content: [{ type: "text/html", value: payload.html }],
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`SendGrid error (${response.status}): ${body}`);
+    }
+  }
+}
+
 function createProvider(): EmailProvider {
   switch (env.EMAIL_PROVIDER) {
+    case "sendgrid":
+      return new SendGridProvider();
     case "nodemailer":
       return new NodemailerProvider();
     case "console":
       return new ConsoleProvider();
     default:
-      return new NodemailerProvider();
+      return new SendGridProvider();
   }
 }
 
