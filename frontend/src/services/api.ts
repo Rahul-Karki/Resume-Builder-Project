@@ -10,6 +10,7 @@ import { logger } from "@/utils/logger";
 import { performanceMonitor } from "@/utils/performance";
 import { errorTracker } from "@/utils/errorTracking";
 import { aiCreditsManager } from "@/utils/aiCredits";
+import { isBackendWakingUpError } from "@/utils/backendStatus";
 
 type AiOperation = 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
 
@@ -17,6 +18,7 @@ type RetriableConfig = {
   _retry?: boolean;
   _csrfRetried?: boolean;
   _retryCount?: number;
+  _wakeupRetryCount?: number;
   url?: string;
   headers?: Record<string, string>;
   method?: string;
@@ -47,6 +49,7 @@ const isExcludedPath = (url?: string) => {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const MAX_TRANSIENT_RETRIES = 3;
+const MAX_WAKEUP_RETRIES = 6;
 
 // ⚠️ SECURITY: CSRF token is stored in an HttpOnly cookie set by the backend.
 // The token is returned in response bodies for the frontend to read.
@@ -354,6 +357,22 @@ api.interceptors.response.use(
     const originalRequest = error?.config as RetriableConfig | undefined;
     const excludedPath = isExcludedPath(originalRequest?.url);
     const method = (originalRequest?.method ?? "GET").toUpperCase();
+
+    if (
+      originalRequest &&
+      !excludedPath &&
+      SAFE_METHODS.has(method) &&
+      isBackendWakingUpError(error)
+    ) {
+      const wakeupRetryCount = originalRequest._wakeupRetryCount ?? 0;
+
+      if (wakeupRetryCount < MAX_WAKEUP_RETRIES) {
+        originalRequest._wakeupRetryCount = wakeupRetryCount + 1;
+        const backoffMs = Math.min(2000 * 2 ** wakeupRetryCount, 15000);
+        await wait(backoffMs);
+        return api(originalRequest);
+      }
+    }
 
     if (
       originalRequest &&

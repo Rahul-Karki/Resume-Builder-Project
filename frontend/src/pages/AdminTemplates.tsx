@@ -28,7 +28,8 @@ export function AdminTemplates() {
   const [previewScale, setPreviewScale] = useState(1);
 
   const PREVIEW_PAGE_WIDTH = 794;
-  const PREVIEW_PAGE_HEIGHT = 1123;
+  // Give the admin preview more vertical room so longer templates render fully.
+  const PREVIEW_PAGE_HEIGHT = 1480;
 
   useEffect(() => {
     const updateScale = () => {
@@ -43,7 +44,7 @@ export function AdminTemplates() {
         const sidebarWidth = 320;
         const overlayPaddingX = 48;
         const maxAvailableWidth = Math.min(modalMaxWidth, window.innerWidth - overlayPaddingX) - sidebarWidth - 48;
-        const availableHeight = window.innerHeight - 260;
+        const availableHeight = window.innerHeight - 180;
         const widthScale = maxAvailableWidth / PREVIEW_PAGE_WIDTH;
         const heightScale = availableHeight / PREVIEW_PAGE_HEIGHT;
         setPreviewScale(Math.min(1, Math.max(0.6, Math.min(widthScale, heightScale))));
