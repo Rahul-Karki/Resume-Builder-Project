@@ -1,5 +1,5 @@
 import React, { ReactNode, Component, ErrorInfo } from "react";
-import { reportClientError } from "../lib/errorTracking";
+import { reportClientError } from "@/lib/errorTracking";
 
 interface Props {
   children: ReactNode;

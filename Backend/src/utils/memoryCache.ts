@@ -48,13 +48,49 @@ export class MemoryLRUCache {
       value,
       expiresAt: Date.now() + ttlSeconds * 1000,
     });
+
+    this.registerTag(key);
   }
 
   delete(key: string): boolean {
     return this.cache.delete(key);
   }
 
+  /** Tag index: maps a cache key prefix to the set of matching keys for fast pattern deletion. */
+  private tagIndex = new Map<string, Set<string>>();
+
+  private registerTag(key: string): void {
+    const colonIdx = key.indexOf(":");
+    if (colonIdx === -1) return;
+    const prefix = key.substring(0, colonIdx);
+    let keys = this.tagIndex.get(prefix);
+    if (!keys) {
+      keys = new Set();
+      this.tagIndex.set(prefix, keys);
+    }
+    keys.add(key);
+  }
+
   deleteByPattern(pattern: string): number {
+    // Fast path: pattern ends with ":*" or is "*" — use tag index
+    const colonStar = pattern.endsWith(":*") || pattern === "*";
+
+    if (colonStar) {
+      const prefix = pattern.slice(0, -2);
+      const tagged = this.tagIndex.get(prefix);
+      if (tagged) {
+        let deleted = 0;
+        for (const key of tagged) {
+          if (this.cache.delete(key)) deleted++;
+        }
+        this.tagIndex.delete(prefix);
+        return deleted;
+      }
+      // Tag not found for this prefix — fall through to regex
+    }
+
+    // Fallback: build regex for complex patterns (rare)
+    // NOTE: this scan is O(n) in the number of cached entries — avoid heavy use
     const regex = new RegExp(
       "^" +
         pattern
@@ -65,7 +101,6 @@ export class MemoryLRUCache {
     );
 
     let deleted = 0;
-
     for (const key of Array.from(this.cache.keys())) {
       if (regex.test(key)) {
         this.cache.delete(key);

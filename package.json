@@ -1,6 +1,9 @@
 {
   "name": "resume-builder-platform",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "build": "npm run build --prefix Backend && npm run build --prefix frontend",
     "start": "cd Backend && npm start",

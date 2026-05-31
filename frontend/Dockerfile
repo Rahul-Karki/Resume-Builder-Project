@@ -8,8 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 
 COPY package*.json ./
-RUN npm ci --only=production --ignore-scripts && \
-    npm ci
+RUN npm ci
 
 COPY . .
 

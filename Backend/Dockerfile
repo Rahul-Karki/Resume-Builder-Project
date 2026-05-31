@@ -14,7 +14,8 @@ ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
 COPY Backend/package*.json ./
 COPY shared ./shared
 
-RUN npm ci --omit=dev && npm cache clean --force
+# Install production deps, then download Chromium via Puppeteer's postinstall
+RUN npm ci --omit=dev && npx puppeteer browsers install chrome && npm cache clean --force
 
 # =============================================================================
 # Stage 2: Build TypeScript

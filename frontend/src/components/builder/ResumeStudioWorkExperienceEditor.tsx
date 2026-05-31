@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Eye, EyeOff, GripVertical, Bot, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { Eye, EyeOff, GripVertical, Bot, PanelLeftClose, PanelLeftOpen, X, Pen, Monitor, Sparkles, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useResumeBuilderStore } from '@/store/useResumeBuilderStore';
 import type { FocusedEditorField, ResumeDocument, SectionVisibility, WorkEntry } from '@/types/resume-types';
 import { api } from '@/services/api';
@@ -18,6 +18,7 @@ import { A4_WIDTH_PX } from '@/utils/resumePagination';
 
 type LeftTab = 'content' | 'style' | 'sections';
 type AssistantTab = 'ai' | 'ats';
+type MobileView = 'editor' | 'preview' | 'ai';
 
 type FocusTarget = {
   label: string;
@@ -26,8 +27,6 @@ type FocusTarget = {
 };
 
 type ContextActionKind = 'improve' | 'rewrite' | 'shorten' | 'ats';
-
-
 
 type TemplateOption = {
   layoutId: string;
@@ -40,6 +39,8 @@ const getEntryDescription = (entry: WorkEntry): string => {
   if (entry.description.trim()) return entry.description;
   return entry.bullets.find((bullet) => bullet.trim()) || '';
 };
+
+const TAB_BAR_HEIGHT = 60;
 
 function SectionsTab(): React.ReactElement {
   const { resume, toggleSectionVisibility, reorderSections } = useResumeBuilderStore();
@@ -86,6 +87,65 @@ function SectionsTab(): React.ReactElement {
   );
 }
 
+function MobileTabBar({
+  active,
+  onChange,
+  assistantOpen,
+  onToggleAssistant,
+}: {
+  active: MobileView;
+  onChange: (view: MobileView) => void;
+  assistantOpen: boolean;
+  onToggleAssistant: () => void;
+}) {
+  const tabs: { id: MobileView; label: string; icon: React.ReactNode }[] = [
+    { id: 'editor', label: 'Edit', icon: <Pen size={16} /> },
+    { id: 'preview', label: 'Preview', icon: <Monitor size={16} /> },
+    { id: 'ai', label: 'AI', icon: <Sparkles size={16} /> },
+  ];
+
+  return (
+    <div
+      style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        height: TAB_BAR_HEIGHT, zIndex: 60,
+        background: '#0C0C0F', borderTop: '1px solid rgba(63,63,70,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        fontFamily: "'Outfit', sans-serif",
+      }}
+    >
+      {tabs.map((tab) => {
+        const isActive = active === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              padding: '8px 4px', border: 'none', cursor: 'pointer',
+              background: 'transparent', fontFamily: 'inherit',
+              color: isActive ? '#C8F55A' : '#71717a',
+              transition: 'color 0.15s',
+              position: 'relative',
+            }}
+          >
+            {tab.id === 'ai' && assistantOpen && (
+              <span style={{
+                position: 'absolute', top: 4, right: 'calc(50% - 22px)',
+                width: 6, height: 6, borderRadius: '50%',
+                background: '#C8F55A',
+              }} />
+            )}
+            {tab.icon}
+            <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 500 }}>{tab.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const {
     resume,
@@ -107,18 +167,22 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const [leftTab, setLeftTab] = useState<LeftTab>('content');
   const [assistantTab, setAssistantTab] = useState<AssistantTab>('ai');
   const [assistantOpen, setAssistantOpen] = useState(false);
-  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<MobileView>('editor');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<string>('classic');
   const [templateOptions, setTemplateOptions] = useState<TemplateOption[]>([]);
   const [previewScale, setPreviewScale] = useState(1);
+  const [mobilePreviewZoom, setMobilePreviewZoom] = useState(1);
   const [actionLoading, setActionLoading] = useState<ContextActionKind | null>(null);
 
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
+  const mobileMainRef = useRef<HTMLElement | null>(null);
+  const touchStartX = useRef(0);
   const isMobile = useViewport(768);
+  const isTablet = useViewport(1024);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -174,7 +238,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         setTemplateOptions(result.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
       } catch {
         if (!active) return;
-        // On error, show just the current template
         const currentId = normalizeResumeTemplateId(resume.templateId);
         const local = localTemplateCatalog.find((t) => t.id === currentId);
         setTemplateOptions([
@@ -189,9 +252,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     return () => {
       active = false;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
-  // After resume loads from server, ensure its templateId is in the dropdown
   useEffect(() => {
     const currentId = normalizeResumeTemplateId(resume.templateId);
     setTemplateOptions((prev) => {
@@ -230,7 +292,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       if (observer) observer.disconnect();
       window.removeEventListener('resize', computeScale);
     };
-  }, [assistantOpen, mobileEditorOpen, isMobile]);
+  }, [assistantOpen, isMobile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -246,7 +308,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         if (!resume.personalInfo.name?.trim() && nextName) updatePersonalInfo('name', nextName);
         if (!resume.personalInfo.email?.trim() && nextEmail) updatePersonalInfo('email', nextEmail);
       } catch {
-        // keep page usable without auth prefill
       }
     };
 
@@ -370,15 +431,11 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   }, [resume.personalInfo.summary, resume.sections.experience, resume.sections.projects, resume.sections.skills, ui.focusedField, updateBullet, updateExperience, updatePersonalInfo, updateProject, updateProjectBullet, updateSkillGroup]);
 
   const runContextAction = useCallback(async (kind: ContextActionKind) => {
-    // Open assistant drawer for full AI interactions
     setAssistantTab('ai');
     setAssistantOpen(true);
+    setMobileView('ai');
     setStatusMessage('AI Assistant opened for contextual action.');
   }, []);
-
-  
-
-  // Finalize & Optimize flow removed — ATS-driven suggestions now surfaced in Tips after analysis.
 
   const handleSave = async () => {
     setApiError(null);
@@ -397,10 +454,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     setStatusMessage('Opening print preview...');
 
     try {
-      // Capture the rendered resume DOM from the editor and print it
-      // This ensures the print preview matches the editor display exactly
       await printResume('#resume-preview-root');
-      
       setStatusMessage('Print dialog opened. Select "Save as PDF" to download with custom filename and location.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to open print preview.';
@@ -417,43 +471,149 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     await applyTemplateUpgrade(normalized);
   };
 
-  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const handleMobileViewChange = useCallback((view: MobileView) => {
+    if (view === 'ai') {
+      setAssistantOpen(true);
+    }
+    setMobileView(view);
+  }, []);
+
+  const handleAssistantToggle = useCallback(() => {
+    setAssistantOpen((prev) => !prev);
+    if (!assistantOpen) {
+      setMobileView('ai');
+    }
+  }, [assistantOpen]);
+
+  const handleZoomIn = () => {
+    setMobilePreviewZoom((z) => Math.min(z + 0.15, 1.5));
+  };
+
+  const handleZoomOut = () => {
+    setMobilePreviewZoom((z) => Math.max(z - 0.15, 0.4));
+  };
+
+  const handleZoomReset = () => {
+    setMobilePreviewZoom(1);
+  };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const threshold = 50;
+    if (Math.abs(deltaX) <= threshold) return;
+    const views: MobileView[] = ['editor', 'preview', 'ai'];
+    const currentIndex = views.indexOf(mobileView);
+    if (deltaX < 0 && currentIndex < views.length - 1) {
+      handleMobileViewChange(views[currentIndex + 1]);
+    } else if (deltaX > 0 && currentIndex > 0) {
+      handleMobileViewChange(views[currentIndex - 1]);
+    }
+  }, [mobileView, handleMobileViewChange]);
+
+  const renderEditorSidebar = () => (
+    <>
+      <div className="p-3 border-b border-zinc-800/70">
+        <div className="flex gap-2 bg-transparent p-1 rounded-xl">
+          {([
+            ['content', 'Content'],
+            ['style', 'Style'],
+            ['sections', 'Sections'],
+          ] as Array<[LeftTab, string]>).map(([tab, label]) => (
+            <button
+              key={tab}
+              onClick={() => setLeftTab(tab)}
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors border ${leftTab === tab ? 'bg-[#08100A] text-[#C8F55A] border-zinc-700' : 'text-zinc-300 hover:bg-zinc-800 border-transparent'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div ref={editorPaneRef} className="flex-1 overflow-y-auto themed-scrollbar">
+        {leftTab === 'content' && <EditorPanel />}
+        {leftTab === 'style' && <StylePanel />}
+        {leftTab === 'sections' && <SectionsTab />}
+      </div>
+    </>
+  );
+
+  const renderPreview = (scale: number) => (
+    <div
+      ref={previewHostRef}
+      style={{
+        height: '100%', width: '100%',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        overflow: 'auto',
+      }}
+      className="themed-scrollbar"
+    >
+      <div
+        id="resume-preview-root"
+        style={{ width: `${A4_WIDTH_PX * scale}px` }}
+      >
+        <PaginatedResumePreview resume={resume} scale={scale} />
+      </div>
+    </div>
+  );
+
+  const renderMobilePreviewZoomControls = () => (
+    <div style={{
+      position: 'absolute', bottom: TAB_BAR_HEIGHT + 12, left: '50%', transform: 'translateX(-50%)',
+      display: 'flex', gap: 6, alignItems: 'center',
+      background: 'rgba(12,12,15,0.92)', border: '1px solid rgba(63,63,70,0.6)',
+      borderRadius: 12, padding: '6px 10px',
+      zIndex: 10, backdropFilter: 'blur(8px)',
+    }}>
+      <button onClick={handleZoomOut} style={zoomBtnStyle}><ZoomOut size={14} /></button>
+      <button onClick={handleZoomReset} style={{ ...zoomBtnStyle, fontSize: 10, fontWeight: 700, color: '#d4d4d8', minWidth: 40 }}>
+        {Math.round(mobilePreviewZoom * 100)}%
+      </button>
+      <button onClick={handleZoomIn} style={zoomBtnStyle}><ZoomIn size={14} /></button>
+    </div>
+  );
 
   return (
     <div className="h-screen overflow-hidden bg-[#09090b] text-[#F0EFE8] font-['Outfit']">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap');
 
-        /* Hide default scrollbar when explicitly requested */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Themed thin scrollbar for editor panes and textareas */
         .themed-scrollbar::-webkit-scrollbar { width: 10px; }
         .themed-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .themed-scrollbar::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.14); border-radius: 9999px; border: 3px solid rgba(0,0,0,0); background-clip: padding-box; }
         .themed-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.22); }
         .themed-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(200,200,200,0.14) transparent; }
 
-        /* Small rounded native scrollbar for textareas specifically */
         textarea.editor-textarea { scrollbar-width: thin; }
         textarea.editor-textarea::-webkit-scrollbar { width: 8px; }
         textarea.editor-textarea::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.18); border-radius: 8px; }
 
-        /* Shift preview to the left when assistant open on desktop (space for right drawer) */
         .preview-shift { transition: transform 220ms cubic-bezier(.16,1,.3,1); }
         .preview-shift.shift-left { transform: translateX(-360px); }
         @media (max-width: 1024px) { .preview-shift.shift-left { transform: none; } }
+
+        .panel-slide-enter { animation: panelSlideIn 0.25s cubic-bezier(.16,1,.3,1); }
+        @keyframes panelSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
+      {/* ── Header ── */}
       <header className="h-12 border-b border-zinc-800/70 flex items-center justify-between px-3 md:px-4 lg:px-6 bg-[#0C0C0F]/95 backdrop-blur-sm sticky top-0 z-30 builder-header">
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setMobileEditorOpen((prev) => !prev)}
+            onClick={() => {
+              if (isMobile) { setMobileView('editor'); return; }
+            }}
             className="md:hidden inline-flex items-center justify-center h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300"
             aria-label="Toggle editor"
           >
-            {mobileEditorOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+            {mobileView === 'editor' ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
           </button>
           <Logo isCompact />
           <div className="text-xs text-zinc-400 hidden sm:block tracking-wide">Editor</div>
@@ -463,7 +623,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
           <select
             value={templateId}
             onChange={(event) => void handleTemplateChange(event.target.value)}
-            className="bg-zinc-900 border border-zinc-700/80 rounded-lg px-2.5 py-1 text-xs text-zinc-100"
+            className="bg-zinc-900 border border-zinc-700/80 rounded-lg px-2.5 py-1 text-xs text-zinc-100 max-w-[120px] sm:max-w-none"
           >
             {templateOptions.map((templateOption) => (
               <option key={templateOption.layoutId} value={templateOption.layoutId}>
@@ -490,69 +650,214 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         </div>
       </header>
 
+      {/* ── Status Bar ── */}
       <div className="text-[11px] text-zinc-500 border-b border-zinc-800/70 px-3 md:px-4 lg:px-6 py-1.5 min-h-7 bg-[#0B0B0D] builder-status">
         {statusMessage || ui.saveError || (ui.isDirty ? 'Unsaved changes' : 'All changes saved')}
       </div>
 
+      {/* ── Main Content ── */}
       <div className="flex h-[calc(100vh-76px)] overflow-hidden builder-layout">
-        <aside className="hidden md:flex w-105 shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar builder-aside">
-          <div className="p-3 border-b border-zinc-800/70">
-            <div className="flex gap-2 bg-transparent p-1 rounded-xl">
-              {([
-                ['content', 'Content'],
-                ['style', 'Style'],
-                ['sections', 'Sections'],
-              ] as Array<[LeftTab, string]>).map(([tab, label]) => (
-                <button
-                  key={tab}
-                  onClick={() => setLeftTab(tab)}
-                  className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors border ${leftTab === tab ? 'bg-[#08100A] text-[#C8F55A] border-zinc-700' : 'text-zinc-300 hover:bg-zinc-800 border-transparent'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          <div ref={editorPaneRef} className="flex-1 overflow-y-auto themed-scrollbar">
-            {leftTab === 'content' && <EditorPanel />}
-            {leftTab === 'style' && <StylePanel />}
-            {leftTab === 'sections' && <SectionsTab />}
-          </div>
-        </aside>
+        {/* ── Desktop / Tablet: Sidebar Editor ── */}
+        {!isMobile && (
+          <aside
+            className={`shrink-0 border-r border-zinc-800/70 bg-[#0D0D10] flex-col overflow-hidden themed-scrollbar builder-aside ${isTablet ? 'w-[380px]' : 'w-[420px]'} hidden md:flex`}
+          >
+            {renderEditorSidebar()}
+          </aside>
+        )}
 
-        <main className={`flex-1 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isMobile ? 'mr-90' : ''}`}>
-          <div className="flex items-center justify-end gap-2 px-3 py-1.5 bg-[#0A0A0D] border-b border-[#1A1A1D]" />
-          <div ref={previewHostRef} className="h-full w-full p-1.5 md:p-2.5 flex items-start justify-center overflow-auto themed-scrollbar">
+        {/* ── Desktop / Tablet: Preview ── */}
+        {!isMobile && (
+          <main className={`flex-1 min-w-0 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isTablet ? 'mr-90' : ''}`}>
+            <div className="flex items-center justify-end gap-2 px-3 py-1.5 bg-[#0A0A0D] border-b border-[#1A1A1D]" />
+            {renderPreview(previewScale)}
+          </main>
+        )}
+
+        {/* ── Mobile: Panel Content ── */}
+        {isMobile && (
+          <main ref={mobileMainRef} className="flex-1 min-w-0 bg-[#0A0A0D] overflow-hidden relative"
+            onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            {/* Editor Panel */}
             <div
-              id="resume-preview-root"
               style={{
-                width: `${A4_WIDTH_PX * previewScale}px`,
+                position: 'absolute', inset: 0,
+                visibility: mobileView === 'editor' ? 'visible' : 'hidden',
+                transform: mobileView === 'editor' ? 'translateX(0)' : 'translateX(-100%)',
+                transition: 'transform 0.25s cubic-bezier(.16,1,.3,1), visibility 0.25s',
+                display: 'flex', flexDirection: 'column',
+                background: '#0D0D10', zIndex: 2, overflow: 'hidden',
               }}
             >
-              <PaginatedResumePreview resume={resume} scale={previewScale} />
+              <div className="p-3 border-b border-zinc-800/70 flex items-center gap-2">
+                {([
+                  ['content', 'Content'],
+                  ['style', 'Style'],
+                  ['sections', 'Sections'],
+                ] as Array<[LeftTab, string]>).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setLeftTab(tab)}
+                    className={`flex-1 rounded-lg px-3 py-2 text-xs sm:text-sm font-semibold transition-colors border ${leftTab === tab ? 'bg-[#08100A] text-[#C8F55A] border-zinc-700' : 'text-zinc-300 hover:bg-zinc-800 border-transparent'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div ref={editorPaneRef} className="flex-1 overflow-y-auto themed-scrollbar">
+                {leftTab === 'content' && <EditorPanel />}
+                {leftTab === 'style' && <StylePanel />}
+                {leftTab === 'sections' && <SectionsTab />}
+              </div>
             </div>
-          </div>
-        </main>
+
+            {/* Preview Panel */}
+            <div
+              style={{
+                position: 'absolute', inset: 0,
+                visibility: mobileView === 'preview' ? 'visible' : 'hidden',
+                transform: mobileView === 'preview' ? 'translateX(0)' : 'translateX(100%)',
+                transition: 'transform 0.25s cubic-bezier(.16,1,.3,1), visibility 0.25s',
+                background: '#0A0A0D', zIndex: 2, overflow: 'hidden',
+              }}
+            >
+              {renderPreview(previewScale * mobilePreviewZoom)}
+              {renderMobilePreviewZoomControls()}
+            </div>
+
+            {/* AI Panel (mobile fullscreen) */}
+            <div
+              style={{
+                position: 'absolute', inset: 0,
+                visibility: mobileView === 'ai' && assistantOpen ? 'visible' : 'hidden',
+                transform: mobileView === 'ai' && assistantOpen ? 'translateX(0)' : 'translateX(100%)',
+                transition: 'transform 0.25s cubic-bezier(.16,1,.3,1), visibility 0.25s',
+                background: '#0C0D11', zIndex: 3, overflow: 'hidden',
+                display: 'flex', flexDirection: 'column',
+              }}
+            >
+              <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between">
+                <div className="text-sm font-semibold">AI Assistant</div>
+                <button
+                  onClick={() => { setAssistantOpen(false); setMobileView('preview'); }}
+                  className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center"
+                  aria-label="Close assistant"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-3 border-b border-zinc-800/70">
+                <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
+                  {([
+                    ['ai', 'AI'],
+                    ['ats', 'ATS'],
+                  ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
+                    <button
+                      key={tab}
+                      onClick={() => setAssistantTab(tab)}
+                      className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto themed-scrollbar p-4" style={{ paddingBottom: TAB_BAR_HEIGHT + 16 }}>
+                {assistantTab === 'ai' && <AIAssistantPanel />}
+                {assistantTab === 'ats' && <ATSAnalysisPanel />}
+              </div>
+            </div>
+          </main>
+        )}
+
+        {/* ── AI Assistant Panel (Tablet / Desktop) ── */}
+        {!isMobile && assistantOpen && (
+          <aside
+            className={`${isTablet ? 'fixed inset-x-0 bottom-0 z-50 h-[60vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)]' : 'w-90 border-l border-zinc-700/80 bg-[#0C0D11]'} flex flex-col`}
+          >
+            {isTablet ? (
+              <>
+                <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between flex-shrink-0">
+                  <div className="text-sm font-semibold">AI Assistant</div>
+                  <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center" aria-label="Close assistant"><X size={16} /></button>
+                </div>
+                <div className="p-3 border-b border-zinc-800/70 flex-shrink-0">
+                  <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
+                    {([
+                      ['ai', 'AI'],
+                      ['ats', 'ATS'],
+                    ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
+                      <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
+                  {assistantTab === 'ai' && <AIAssistantPanel />}
+                  {assistantTab === 'ats' && <ATSAnalysisPanel />}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="p-3.5 border-b border-zinc-800/70 flex items-center justify-between flex-shrink-0">
+                  <div className="text-sm font-semibold">AI Assistant</div>
+                  <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center" aria-label="Close assistant"><X size={16} /></button>
+                </div>
+                <div className="p-3 border-b border-zinc-800/70 flex-shrink-0">
+                  <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
+                    {([
+                      ['ai', 'AI'],
+                      ['ats', 'ATS'],
+                    ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
+                      <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300 hover:bg-zinc-800'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
+                  {assistantTab === 'ai' && <AIAssistantPanel />}
+                  {assistantTab === 'ats' && <ATSAnalysisPanel />}
+                </div>
+              </>
+            )}
+          </aside>
+        )}
       </div>
 
-      <button
-        onClick={() => setAssistantOpen(true)}
-        className="fixed right-4 bottom-4 z-40 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#C8F55A] text-[#0A0A0A] text-sm font-semibold shadow-[0_10px_32px_rgba(200,245,90,0.35)] hover:-translate-y-px transition-transform"
-        aria-label="Open AI Assistant"
-      >
-        <Bot size={16} /> AI Assistant
-      </button>
+      {/* ── Mobile: Bottom Tab Bar ── */}
+      {isMobile && (
+        <MobileTabBar
+          active={mobileView}
+          onChange={handleMobileViewChange}
+          assistantOpen={assistantOpen}
+          onToggleAssistant={handleAssistantToggle}
+        />
+      )}
 
-      
+      {/* ── Desktop AI Assistant FAB ── */}
+      {!isMobile && !assistantOpen && (
+        <button
+          onClick={() => setAssistantOpen(true)}
+          className="fixed right-4 bottom-4 z-40 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#C8F55A] text-[#0A0A0A] text-sm font-semibold shadow-[0_10px_32px_rgba(200,245,90,0.35)] hover:-translate-y-px transition-transform"
+          aria-label="Open AI Assistant"
+        >
+          <Bot size={16} /> AI Assistant
+        </button>
+      )}
 
-      {isMobile ? (
-        <div className={`fixed inset-x-0 bottom-0 z-50 h-[74vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col transition-transform duration-250 ${assistantOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between">
+      {/* ── AI Assistant bottom sheet (mobile, when triggered from preview) ── */}
+      {isMobile && assistantOpen && mobileView !== 'ai' && (
+        <div className={`fixed inset-x-0 bottom-0 z-50 h-[60vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col transition-transform duration-250 ${assistantOpen ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ bottom: TAB_BAR_HEIGHT }}
+        >
+          <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between flex-shrink-0">
             <div className="text-sm font-semibold">AI Assistant</div>
             <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center" aria-label="Close assistant"><X size={16} /></button>
           </div>
-          <div className="p-3 border-b border-zinc-800/70">
+          <div className="p-3 border-b border-zinc-800/70 flex-shrink-0">
             <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
               {([
                 ['ai', 'AI'],
@@ -569,61 +874,9 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
             {assistantTab === 'ats' && <ATSAnalysisPanel />}
           </div>
         </div>
-      ) : (
-        <div className={`fixed right-0 top-12 bottom-0 z-50 w-90 bg-[#0C0D11] border-l border-zinc-700/80 shadow-[-24px_0_60px_rgba(0,0,0,0.5)] flex flex-col transition-transform duration-250 ${assistantOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="p-3.5 border-b border-zinc-800/70 flex items-center justify-between">
-            <div className="text-sm font-semibold">AI Assistant</div>
-            <button onClick={() => setAssistantOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center" aria-label="Close assistant"><X size={16} /></button>
-          </div>
-          <div className="p-3 border-b border-zinc-800/70">
-            <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800/70">
-              {([
-                ['ai', 'AI'],
-                ['ats', 'ATS'],
-              ] as Array<[AssistantTab, string]>).map(([tab, label]) => (
-                <button key={tab} onClick={() => setAssistantTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${assistantTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300 hover:bg-zinc-800'}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto themed-scrollbar p-4">
-            {assistantTab === 'ai' && <AIAssistantPanel />}
-            {assistantTab === 'ats' && <ATSAnalysisPanel />}
-          </div>
-        </div>
       )}
 
-      {isMobile && mobileEditorOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <button className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" aria-label="Close editor" onClick={() => setMobileEditorOpen(false)} />
-          <div className="absolute left-0 top-0 h-full w-[92vw] max-w-85 bg-[#0D0D10] border-r border-zinc-700/80 shadow-[20px_0_50px_rgba(0,0,0,0.5)] flex flex-col">
-            <div className="p-3 border-b border-zinc-800/70 flex items-center justify-between">
-              <div className="text-sm font-semibold">Editor</div>
-              <button onClick={() => setMobileEditorOpen(false)} className="h-8 w-8 rounded-lg border border-zinc-700 text-zinc-300 inline-flex items-center justify-center"><X size={16} /></button>
-            </div>
-            <div className="p-3 border-b border-zinc-800/70">
-              <div className="flex gap-1 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800/70">
-                {([
-                  ['content', 'Content'],
-                  ['style', 'Style'],
-                  ['sections', 'Sections'],
-                ] as Array<[LeftTab, string]>).map(([tab, label]) => (
-                  <button key={tab} onClick={() => setLeftTab(tab)} className={`flex-1 rounded-lg py-1.5 text-xs font-medium ${leftTab === tab ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-300'}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div ref={editorPaneRef} className="flex-1 overflow-y-auto themed-scrollbar">
-              {leftTab === 'content' && <EditorPanel />}
-              {leftTab === 'style' && <StylePanel />}
-              {leftTab === 'sections' && <SectionsTab />}
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* ── Error Toast ── */}
       {apiError && (
         <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-70 bg-red-950/95 border border-red-700 text-red-100 px-4 py-2.5 rounded-xl text-sm">
           {apiError}
@@ -631,6 +884,14 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       )}
     </div>
   );
+};
+
+const zoomBtnStyle: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  width: 30, height: 30,
+  borderRadius: 8, border: '1px solid rgba(63,63,70,0.6)',
+  background: 'transparent', color: '#a1a1aa',
+  cursor: 'pointer', fontFamily: 'inherit',
 };
 
 export default ResumeStudioWorkExperienceEditor;

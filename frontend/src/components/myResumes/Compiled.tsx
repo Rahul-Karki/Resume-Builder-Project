@@ -14,7 +14,8 @@ import { EmptyState } from "./EmptyState";
 import { PreviewModal } from "./ResumePreviewModal";
 import { Toast } from "./Toast";
 import { DelModal } from "./DeleteConfirmModal";
-import { SkeletonCard as SkeletonCardReusable, SkeletonText } from "@/components/Skeleton";
+import { SkeletonCard as SkeletonCardReusable } from "@/components/Skeleton";
+import { useViewport } from "@/hooks/useViewport";
 
 export default function Compiled() {
   const { user, rawResumes, resumes, loading, error, authRequired, refresh } = useMyResumes();
@@ -27,14 +28,7 @@ export default function Compiled() {
   const [templateOverlayOpen, setTemplateOverlayOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [sortOpen, setSortOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const updateViewport = () => setIsMobile(window.innerWidth < 900);
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
+  const isMobile = useViewport(900);
  
   const showMsg = (message: string) => {
     setToast(message);

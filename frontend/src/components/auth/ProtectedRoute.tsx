@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { type ReactNode, useEffect, useState } from "react";
-import { api } from "../../services/api";
+import { api } from "@/services/api";
 import { PageSkeleton } from "@/components/Skeleton";
 
 type Props = {

@@ -542,11 +542,8 @@ METRICS_PATH=/metrics
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 
 # ─── Rate Limiting ───────────────────────
-RATE_LIMIT_WINDOW_MS=900000           # 15 minutes
-RATE_LIMIT_MAX_REQUESTS=100           # per window
-RATE_LIMIT_LOGIN_MAX=5                # login attempts
-RATE_LIMIT_AI_MAX=30                  # AI requests per day
-RATE_LIMIT_PDF_MAX=20                 # PDF downloads per hour
+REDIS_RATE_LIMIT_WINDOW_MS=900000     # 15 minutes
+REDIS_RATE_LIMIT_MAX=100               # requests per window per key
 
 # ─── AI Credits ──────────────────────────
 AI_CREDITS_PER_USER=100               # Initial credits
@@ -621,6 +618,10 @@ openssl rand -base64 32
 | **POST** | `/api/auth/reset-password` | No | Reset password with token |
 | **GET** | `/api/refresh/csrf` | No | Issue CSRF token |
 | **POST** | `/api/refresh` | No | Refresh access token |
+| **POST** | `/api/auth/mfa/setup` | Yes | Set up TOTP MFA |
+| **POST** | `/api/auth/mfa/verify` | Yes | Verify and enable MFA |
+| **POST** | `/api/auth/mfa/disable` | Yes | Disable MFA |
+| **GET** | `/api/auth/mfa/status` | Yes | Get MFA status |
 
 ### Resume Endpoints
 
@@ -669,8 +670,14 @@ openssl rand -base64 32
 |--------|-------|------|-------------|
 | **GET** | `/api/admin/analytics/dashboard` | Admin | Dashboard analytics (cached) |
 | **GET** | `/api/admin/audit-logs` | Admin | Compliance audit logs |
-| **POST** | `/api/admin/integrity-check` | Admin | Data integrity report |
-| **GET** | `/api/compliance/audit-export` | Admin | Export audit logs (CSV) |
+| **GET** | `/api/admin/audit-logs/:documentId` | Admin | Audit history for a document |
+| **GET** | `/api/admin/audit-export` | Admin | Export audit logs (CSV) |
+| **GET** | `/api/admin/integrity-status` | Admin | Data integrity health status |
+| **POST** | `/api/admin/integrity-check` | Admin | Run full integrity check |
+| **GET** | `/api/admin/compliance-report` | Admin | Compliance report |
+| **GET** | `/api/admin/compliance-violations` | Admin | Compliance violations list |
+| **POST** | `/api/admin/alert-test` | Admin | Test alert dispatch |
+| **GET** | `/api/admin/metrics/compliance` | Admin | Compliance metrics |
 
 ### Health & Monitoring
 
@@ -694,7 +701,7 @@ curl -X POST http://localhost:5000/api/resumes \
   -d '{
     "templateId": "modern",
     "personalInfo": {
-      "fullName": "Jane Doe",
+      "name": "Jane Doe",
       "email": "jane@example.com",
       "phone": "+1 (555) 123-4567",
       "location": "San Francisco, CA",
@@ -704,9 +711,9 @@ curl -X POST http://localhost:5000/api/resumes \
       "experience": [
         {
           "company": "Tech Corp",
-          "position": "Senior Engineer",
-          "startDate": "2021-01",
-          "endDate": "present",
+          "role": "Senior Engineer",
+          "start": "2021-01",
+          "end": "present",
           "bullets": ["Led team of 5 engineers", "Shipped feature X"]
         }
       ]
@@ -860,7 +867,7 @@ See [TESTING_STANDARDS.md](docs/TESTING_STANDARDS.md) for:
 **Key rules:**
 - All external API calls must be mocked
 - Every public function needs 3 tests: happy path, edge case, error case
-- Minimum 80% line coverage per module
+- Minimum 30% line coverage (frontend), 80% (backend)
 
 ---
 
@@ -880,7 +887,7 @@ See [TESTING_STANDARDS.md](docs/TESTING_STANDARDS.md) for:
 | `template_usages` | Template analytics | — | templateId, date, count |
 | `resume_download_jobs` | PDF generation jobs | — | resumeId, status, pdfData, createdAt |
 | `reset_tokens` | Password reset tokens | 24 hours | hashedToken, userId, expiresAt |
-| `mfa_secrets` | TOTP backup codes | — | userId, secret, backupCodes |
+
 
 ### Key Indexes
 
@@ -911,25 +918,14 @@ All requests logged with correlation ID and detailed context:
 
 ```json
 {
-  "level": 30,
-  "time": "2026-05-23T10:30:00Z",
-  "pid": 1234,
-  "hostname": "backend-server",
-  "req": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "method": "POST",
-    "url": "/api/ai/improve-text",
-    "headers": { "user-agent": "axios/1.13" },
-    "remoteAddress": "127.0.0.1"
-  },
-  "res": {
-    "statusCode": 200,
-    "responseTime": 1234
-  },
-  "userId": "user-123",
-  "feature": "ai-improve-text",
-  "credits_deducted": 1,
-  "msg": "AI request completed successfully"
+  "status": "ok",
+  "mongo": "up",
+  "redis": "up",
+  "uptime": {
+    "uptimeSeconds": 86400,
+    "uptimeHuman": "1d 0h 0m 0s",
+    "startTime": "2026-05-30T10:30:00.000Z"
+  }
 }
 ```
 
@@ -1052,7 +1048,7 @@ All admin actions logged:
 1. **Fork** the repository
 2. **Create feature branch:** `git checkout -b feature/your-feature`
 3. **Follow conventions:** See [TESTING_AND_DOCS_STANDARDS.md](docs/TESTING_AND_DOCS_STANDARDS.md)
-4. **Write tests:** Minimum 80% coverage required
+4. **Write tests:** Minimum 30% (frontend) / 80% (backend) coverage required
 5. **Run verification:** `npm run verify` (lint + build + test)
 6. **Commit:** `git commit -am "feat: describe your change"`
 7. **Push:** `git push origin feature/your-feature`

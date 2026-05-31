@@ -24,7 +24,7 @@ import Resume from "../models/Resume";
 import AtsAnalysis from "../models/AtsAnalysis";
 import Template from "../models/Template";
 
-const mockLeanFind = (result: any) => ({ sort: vi.fn().mockReturnThis(), skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), lean: vi.fn().mockResolvedValue(result) });
+const mockLeanFind = (result: any) => ({ select: vi.fn().mockReturnThis(), sort: vi.fn().mockReturnThis(), skip: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), lean: vi.fn().mockResolvedValue(result) });
 const mockResumeDoc = (overrides = {}) => ({
   _id: "res1",
   name: "My Resume",

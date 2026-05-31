@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePageOffsets, CONTENT_HEIGHT_PX } from "../utils/resumePagination";
+import { computePageOffsets, CONTENT_HEIGHT_PX } from "@/utils/resumePagination";
 
 describe("resumePagination", () => {
   it("returns a single page when content fits", () => {

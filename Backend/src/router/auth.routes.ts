@@ -10,7 +10,6 @@ import {
 	authLoginSchema,
 	authResetPasswordSchema,
 	authSignupSchema,
-	emptyObjectSchema,
 	googleLoginSchema,
 	oauthLinkSchema,
 	oauthUnlinkSchema,
@@ -80,15 +79,16 @@ router.post("/resend", passwordRecoveryLimiter, validateRequest({ body: authEmai
 router.post("/google-login", oauthLimiter, validateRequest({ body: googleLoginSchema }), googleLogin);
 router.post("/link-google", authMiddleware, validateRequest({ body: oauthLinkSchema }), linkGoogleAccount);
 router.post("/unlink-oauth", authMiddleware, validateRequest({ body: oauthUnlinkSchema }), unlinkOAuthProvider);
-router.post("/logout", validateRequest({ body: emptyObjectSchema }), authMiddleware, logout);
+router.post("/logout", authMiddleware, logout);
 router.get("/me", authMiddleware, getCurrentUser);
 
 // ─── MFA Routes ─────────────────────────────────────────────────────────────────
 import { setupMfa, verifyMfa, disableMfa, getMfaStatus } from "../controllers/mfaController";
+import { mfaSetupSchema, mfaVerifySchema, mfaDisableSchema } from "../validation/schemas";
 
-router.post("/mfa/setup", mfaLimiter, authMiddleware, setupMfa);
-router.post("/mfa/verify", mfaLimiter, authMiddleware, verifyMfa);
-router.post("/mfa/disable", mfaLimiter, authMiddleware, disableMfa);
+router.post("/mfa/setup", mfaLimiter, authMiddleware, validateRequest({ body: mfaSetupSchema }), setupMfa);
+router.post("/mfa/verify", mfaLimiter, authMiddleware, validateRequest({ body: mfaVerifySchema }), verifyMfa);
+router.post("/mfa/disable", mfaLimiter, authMiddleware, validateRequest({ body: mfaDisableSchema }), disableMfa);
 router.get("/mfa/status", mfaLimiter, authMiddleware, getMfaStatus);
 
 export default router;

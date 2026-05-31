@@ -8,6 +8,7 @@ import { logger } from "../observability";
 import { wrapController } from "../utils/controllerWrapper";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { blacklistRefreshToken, isTokenBlacklisted } from "../utils/tokenBlacklist";
+import User from "../models/User";
 
 const refreshAccessToken = wrapController(async (req, res) => {
   const cookies = parseCookies(req.headers.cookie);
@@ -65,10 +66,15 @@ const refreshAccessToken = wrapController(async (req, res) => {
     return sendErrorResponse(res, new Error("No refresh verification key configured"), { statusCode: 500 });
   }
 
-  await blacklistRefreshToken(token);
+  const user = await User.findById(decoded.userId).select("tokenVersion").lean();
+  if (!user) {
+    return sendErrorResponse(res, new Error("User not found"), { statusCode: 404, code: "AUTH_REQUIRED" });
+  }
 
-  const newAccessToken = generateAccessToken(decoded.userId);
-  const newRefreshToken = generateRefreshToken(decoded.userId);
+  const newAccessToken = generateAccessToken(decoded.userId, user.tokenVersion);
+  const newRefreshToken = generateRefreshToken(decoded.userId, user.tokenVersion);
+
+  await blacklistRefreshToken(token);
   const csrfToken = setAuthCookies(req, res, newAccessToken, newRefreshToken);
   logger.info({ userId: decoded.userId }, "Access token refreshed (rotation applied)");
   return res.status(200).json({ message: "Token refreshed", csrfToken });

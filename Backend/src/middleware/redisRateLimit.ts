@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { consumeRateLimit } from "../utils/redis";
+import { memoryRateLimiter } from "../utils/memoryRateLimit";
+import { logger } from "../observability";
 
 const RATE_LIMIT_NAMESPACE = "resume-builder:rate-limit";
 
@@ -27,11 +29,15 @@ export const createRedisRateLimitMiddleware = ({
     const limiterKey = `${RATE_LIMIT_NAMESPACE}:${scope}:${hashValue(keyBuilder?.(req) ?? defaultKeyBuilder(req))}`;
     const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
 
-    const result = await consumeRateLimit(limiterKey, windowSeconds);
+    let result: { count: number; ttlSeconds: number } | null = null;
+    try {
+      result = await consumeRateLimit(limiterKey, windowSeconds);
+    } catch (error) {
+      logger.warn({ error, scope }, "Rate limiter threw — falling back to in-memory");
+    }
 
     if (!result) {
-      next();
-      return;
+      result = memoryRateLimiter.consume(limiterKey, windowSeconds * 1000);
     }
 
     const remaining = Math.max(max - result.count, 0);

@@ -140,15 +140,24 @@ describe("BaseQueue", () => {
   });
 
   it("recoverPending calls updateMany on stuck jobs", async () => {
-    model.updateMany = vi.fn().mockResolvedValue({ modifiedCount: 5 });
+    model.updateMany = vi.fn()
+      .mockResolvedValueOnce({ modifiedCount: 3 })
+      .mockResolvedValueOnce({ modifiedCount: 2 });
 
     const queue = new BaseQueue("test", vi.fn(), { maxConcurrency: 3, maxAttempts: 3 });
     const recovered = await queue.recoverPending();
 
     expect(recovered).toBe(5);
-    expect(model.updateMany).toHaveBeenCalledWith(
-      { type: "test", status: { $in: ["pending", "processing"] } },
+    expect(model.updateMany).toHaveBeenCalledTimes(2);
+    expect(model.updateMany).toHaveBeenNthCalledWith(
+      1,
+      { type: "test", status: "pending" },
       { $set: { status: "pending", startedAt: null, attemptsMade: 0 } },
+    );
+    expect(model.updateMany).toHaveBeenNthCalledWith(
+      2,
+      { type: "test", status: "processing" },
+      { $set: { status: "pending", startedAt: null } },
     );
   });
 });

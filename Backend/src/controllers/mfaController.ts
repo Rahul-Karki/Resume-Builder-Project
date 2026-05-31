@@ -52,6 +52,7 @@ export const setupMfa = wrapController(async (req, res) => {
 
   logger.info({ userId: user._id }, "MFA setup initiated");
 
+  res.setHeader("Cache-Control", "no-store");
   return sendSuccess(res, {
     secret,
     backupCodes,

@@ -1,4 +1,5 @@
-import { DashboardStats } from "../../types/admin.types";
+import { DashboardStats } from "@/types/admin.types";
+import { Skeleton } from "@/components/Skeleton";
 
 interface Props { stats: DashboardStats; }
 
@@ -44,6 +45,26 @@ export function StatsBar({ stats }: Props) {
         <StatCard label="Most Used" value={stats.mostUsed.name}
           sub={`${stats.mostUsed.weeklyUses.toLocaleString()} uses this week`} accent="#C8F55A" />
       )}
+    </div>
+  );
+}
+
+export function StatsBarSkeleton() {
+  return (
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} style={{
+          background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12,
+          padding: "18px 20px", flex: 1, minWidth: 200,
+        }}>
+          <Skeleton className="h-2.5 w-28 rounded-md" style={{ marginBottom: 12 }} />
+          <Skeleton className="h-7 w-20 rounded-md" style={{ marginBottom: 8 }} />
+          <Skeleton className="h-2.5 w-36 rounded-md" />
+          <div style={{ marginTop: 12, height: 2, background: "#27272a", borderRadius: 1 }}>
+            <div style={{ height: 2, width: "40%", background: "#3f3f46", borderRadius: 1 }} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

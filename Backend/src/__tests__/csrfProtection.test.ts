@@ -49,19 +49,6 @@ describe("csrfProtection", () => {
     expect(res.statusCode).toBe(null);
   });
 
-  it("exempts the refresh route", () => {
-    const req = createReq({ method: "POST", path: "/api/refresh" }) as any;
-    const res = createRes() as any;
-    let nextCalled = false;
-
-    csrfProtection(req, res, () => {
-      nextCalled = true;
-    });
-
-    expect(nextCalled).toBe(true);
-    expect(res.statusCode).toBe(null);
-  });
-
   it("blocks unsafe requests with missing or mismatched tokens", () => {
     const req = createReq({
       method: "POST",

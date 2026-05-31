@@ -286,6 +286,13 @@ const jobStatusParamSchema = z.object({
 const createResumeSchema = resumeSchema;
 const updateResumeSchema = resumeSchema.partial().strict();
 
+const resumeListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  sort: z.enum(["createdAt", "updatedAt", "title"]).optional(),
+  order: z.enum(["asc", "desc"]).optional(),
+}).strict();
+
 // Compliance and audit route validation schemas
 const auditLogsQuerySchema = z.object({
   userId: z.string().optional().nullable(),
@@ -315,6 +322,21 @@ const alertTestBodySchema = z.object({
   channel: z.enum(["slack", "email", "pagerduty"]).default("slack"),
 }).strict();
 
+const mfaSetupSchema = z.object({}).strict();
+
+const mfaVerifySchema = z.object({
+  token: z.string().min(1).max(20),
+}).strict();
+
+const mfaDisableSchema = z.object({
+  confirm: z.literal(true).optional(),
+}).strict();
+
+const previewHtmlSchema = z.object({
+  resume: z.record(z.string(), z.unknown()).optional(),
+  preset: z.string().max(80).optional(),
+}).strict();
+
 export {
   analyticsQuerySchema,
   alertTestBodySchema,
@@ -337,11 +359,16 @@ export {
   exportPresetSchema,
   googleLoginSchema,
   jobStatusParamSchema,
+  mfaDisableSchema,
+  mfaSetupSchema,
+  mfaVerifySchema,
   oauthLinkSchema,
   oauthUnlinkSchema,
   objectIdParamSchema,
+  previewHtmlSchema,
   publicTemplateListQuerySchema,
   reorderTemplatesSchema,
+  resumeListQuerySchema,
   resumeSchema,
   setTemplateStatusSchema,
   templateListQuerySchema,

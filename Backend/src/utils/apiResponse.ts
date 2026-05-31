@@ -45,10 +45,13 @@ export const sendSuccess = <T = unknown>(
   const payload: Record<string, unknown> = { ok: true, data };
 
   if (data && typeof data === "object" && !Array.isArray(data)) {
-    try {
-      Object.assign(payload, data as Record<string, unknown>);
-    } catch {
-      // ignore on failures and fall back to envelope only
+    // Only copy whitelisted fields to the top-level envelope to prevent
+    // payload fields like `ok` or `data` from overwriting the envelope.
+    const allowedFields = new Set(["user", "resume", "message", "export", "analysis"]);
+    for (const key of allowedFields) {
+      if (key in (data as Record<string, unknown>)) {
+        payload[key] = (data as Record<string, unknown>)[key];
+      }
     }
   }
 

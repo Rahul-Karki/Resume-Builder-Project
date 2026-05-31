@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AdminTemplate, TemplateStatus } from "../../types/admin.types";
+import { AdminTemplate, TemplateStatus } from "@/types/admin.types";
 
 interface Props {
   template:      AdminTemplate;

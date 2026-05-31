@@ -283,6 +283,7 @@ export const consumeRateLimit = async (
 
     // Fall back to in-memory if Redis is down
     if (!result) {
+      logger.warn("Redis unavailable for rate limiting — falling back to per-process in-memory limiter. In multi-instance deployments, effective rate limit will be N× the configured value.");
       return memoryRateLimiter.consume(key, windowSeconds * 1000);
     }
 

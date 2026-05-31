@@ -47,6 +47,10 @@ jobs:
         cache: 'npm'
         cache-dependency-path: './Backend/package-lock.json'
     - run: npm ci
+    - name: npm audit (fail on moderate+)
+      run: npm audit --audit-level=moderate
+    - name: Lint (ESLint)
+      run: npx eslint . --ext .ts --no-error-on-unmatched-pattern
     - name: Type Check
       run: npx tsc --noEmit
     - name: Run Build
@@ -84,6 +88,8 @@ jobs:
         cache: 'npm'
         cache-dependency-path: './frontend/package-lock.json'
     - run: npm ci
+    - name: npm audit (fail on moderate+)
+      run: npm audit --audit-level=moderate
     - name: Lint
       run: npm run lint
     - name: Type Check
@@ -93,9 +99,52 @@ jobs:
     - name: Run Unit Tests
       run: npm run test
 
+  test-e2e:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+    - run: npm ci
+    - name: Build backend for E2E
+      working-directory: ./Backend
+      run: npm run build
+    - name: Start backend server
+      working-directory: ./Backend
+      env:
+        NODE_ENV: test
+        PORT: 5000
+        MONGO_URI: mongodb://localhost:27017/e2e-db
+        REDIS_URL: redis://localhost:6379
+        JWT_ACCESS_SECRET: e2e-access-secret
+        JWT_REFRESH_SECRET: e2e-refresh-secret
+        FRONTEND_URL: http://localhost:5173
+      run: node dist/Backend/src/server.js &
+    - name: Run Playwright E2E tests
+      env:
+        CI: true
+      run: npx playwright install --with-deps && npx playwright test
+
   docker-build:
     if: github.ref == 'refs/heads/main'
-    needs: [secrets-scan, test-backend, test-frontend]
+    needs: [secrets-scan, test-backend, test-frontend, test-e2e]
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
@@ -135,6 +184,22 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Run Trivy vulnerability scan on backend image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ steps.meta-backend.outputs.tags }}
+        format: sarif
+        output: trivy-backend.sarif
+        severity: HIGH,CRITICAL
+        exit-code: 1
+      continue-on-error: true
+
+    - name: Upload Trivy backend results to GitHub
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: trivy-backend.sarif
+
     - name: Extract metadata for frontend
       id: meta-frontend
       uses: docker/metadata-action@v5
@@ -158,4 +223,21 @@ jobs:
         build-args: |
           VITE_API_BASE_URL=/api
           VITE_BASE_URL=
+          # Set via GitHub Actions secrets: secrets.GOOGLE_CLIENT_ID
           VITE_GOOGLE_CLIENT_ID=
+
+    - name: Run Trivy vulnerability scan on frontend image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ steps.meta-frontend.outputs.tags }}
+        format: sarif
+        output: trivy-frontend.sarif
+        severity: HIGH,CRITICAL
+        exit-code: 1
+      continue-on-error: true
+
+    - name: Upload Trivy frontend results to GitHub
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: trivy-frontend.sarif

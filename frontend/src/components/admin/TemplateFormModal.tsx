@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   AdminTemplate, TemplateFormData, DEFAULT_FORM, DEFAULT_CSS_VARS,
   CATEGORY_OPTIONS, AUDIENCE_OPTIONS, FONT_OPTIONS, REGISTERED_LAYOUT_IDS, CssVars, Slots,
-} from "../../types/admin.types";
+} from "@/types/admin.types";
 
 interface Props {
   mode:     "create" | "edit";

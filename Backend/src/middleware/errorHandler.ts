@@ -3,6 +3,7 @@ import { logger } from "../observability";
 import { buildErrorResponse, toAppError } from "../utils/errorResponse";
 import { redactRequestData } from "../utils/redactSensitive";
 import { recordError } from "../observability/complianceMetrics";
+import { env } from "../config/env";
 
 export const notFoundHandler = (req: Request, _res: Response, next: NextFunction) => {
   next(toAppError(new Error(`Route not found: ${req.method} ${req.originalUrl}`), {
@@ -44,7 +45,7 @@ export const errorHandler = (error: unknown, req: Request, res: Response, next: 
       code: appError.code,
       statusCode: appError.statusCode,
       details: appError.details,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: env.NODE_ENV !== "production" && error instanceof Error ? error.stack : undefined,
     },
   };
 

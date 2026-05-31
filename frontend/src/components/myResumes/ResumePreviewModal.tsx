@@ -4,10 +4,11 @@ import { TEMPLATES } from "@/utils/templateMapping";
 import { relativeTime } from "@/utils/relativeTime";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
 import { calculateCompletionScore } from "@/hooks/useMyResume";
+import { useViewport } from "@/hooks/useViewport";
 
 export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;onClose:()=>void;onEdit:(id:string)=>void}) {
   const [zoom, setZoom] = useState(0.85);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useViewport(900);
   const [fitScale, setFitScale] = useState(1);
   const previewHostRef = useRef<HTMLDivElement | null>(null);
   const tpl=TEMPLATES.find(t=>t.id===resume.templateId);
@@ -32,13 +33,6 @@ export function PreviewModal({ resume,onClose,onEdit }: {resume:ResumeDocument;o
     const h=(e:KeyboardEvent)=>{ if(e.key==="Escape") onClose(); };
     window.addEventListener("keydown",h); return ()=>window.removeEventListener("keydown",h);
   },[onClose]);
-
-  useEffect(() => {
-    const updateViewport = () => setIsMobile(window.innerWidth < 900);
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
 
   useEffect(() => {
     const el = previewHostRef.current;

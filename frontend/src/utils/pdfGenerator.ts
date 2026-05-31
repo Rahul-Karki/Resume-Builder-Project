@@ -185,9 +185,6 @@ export const waitForFonts = async (): Promise<void> => {
       console.warn('Font loading completed with errors:', error);
     }
   }
-  
-  // Additional wait for Google Fonts
-  await new Promise(resolve => setTimeout(resolve, 1000));
 };
 
 /**

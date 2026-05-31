@@ -50,18 +50,22 @@ const MAX_TRANSIENT_RETRIES = 3;
 
 // ⚠️ SECURITY: CSRF token is stored in an HttpOnly cookie set by the backend.
 // The token is returned in response bodies for the frontend to read.
-// It is stored ONLY in this module-level variable — NEVER read from document.cookie
+// It is stored in sessionStorage with a module-level variable cache
 // (the cookie is HttpOnly, making it inaccessible to JavaScript).
 // withCredentials: true ensures the browser sends the cookie automatically.
+// sessionStorage preserves the token across full page reloads within the tab.
 
-let _csrfToken: string | null = null;
+const CSRF_STORAGE_KEY = "x-csrf-token";
+
+let _csrfToken: string | null = sessionStorage.getItem(CSRF_STORAGE_KEY);
 
 const setCsrfToken = (token: string) => {
   _csrfToken = token;
+  try { sessionStorage.setItem(CSRF_STORAGE_KEY, token); } catch { /* quota exceeded — module variable is still available */ }
 };
 
 const getCsrfToken = (): string => {
-  return _csrfToken ?? "";
+  return _csrfToken ?? sessionStorage.getItem(CSRF_STORAGE_KEY) ?? "";
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -404,32 +408,21 @@ api.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
-  },
-);
-
-// ⚠️ ERROR TRACKING: Capture all API errors (failed responses and network errors)
-// This provides observability into production issues without breaking the app
-api.interceptors.response.use(
-  undefined,
-  (error) => {
-    const status = error?.response?.status;
-    const url = error?.config?.url;
-    const method = error?.config?.method?.toUpperCase() ?? "UNKNOWN";
-    
-    // Track non-auth errors to error tracking service
-    if (status !== 401) {
-      const message = `API ${method} ${url} failed`;
-      errorTracker.trackError(message, error, {
-        status,
+    // Track non-auth API errors for observability
+    const errStatus = error?.response?.status;
+    if (errStatus !== 401) {
+      const url = error?.config?.url;
+      const errMethod = error?.config?.method?.toUpperCase() ?? "UNKNOWN";
+      errorTracker.trackError(`API ${errMethod} ${url} failed`, error, {
+        status: errStatus,
         statusText: error?.response?.statusText,
-        method,
+        method: errMethod,
         url,
         type: 'api_error',
         isNetworkError: !error?.response,
       });
     }
-    
+
     return Promise.reject(error);
   },
 );

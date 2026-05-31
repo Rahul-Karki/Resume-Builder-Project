@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/services/api";
-import { Logo } from "../Logo";
+import { Logo } from "@/components/Logo";
 
 // ─── Navbar.tsx ───────────────────────────────────────────────────────────────
 // Sticky nav: transparent → solid on scroll

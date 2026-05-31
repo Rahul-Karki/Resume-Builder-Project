@@ -21,10 +21,13 @@ const startServer = async () => {
     await createAllIndexes();
   }
 
-  // Run pending database migrations
-  await runMigrations().catch((error) => {
-    logger.error({ error }, "Migration run failed — continuing startup");
-  });
+  // Run pending database migrations — blocking with hard fail on critical failures
+  try {
+    await runMigrations();
+  } catch (error) {
+    logger.fatal({ error }, "Migration run failed — aborting startup");
+    process.exit(1);
+  }
 
   // Initialize data integrity checker for compliance monitoring
   dataIntegrityChecker.startPeriodicChecks(env.INTEGRITY_CHECK_INTERVAL_MS || 3600000);
@@ -49,7 +52,7 @@ const startServer = async () => {
 
   // Pre-warm Puppeteer browser pool for PDF generation
   void browserPool.start().catch((error) => {
-    logger.error({ error }, "Puppeteer browser pool warmup failed");
+    logger.error({ error }, "Puppeteer browser pool warmup failed — PDF downloads will start the browser on first request");
   });
 
   const server = app.listen(PORT, () => {
@@ -97,22 +100,19 @@ const startServer = async () => {
     stopAtsQueue();
     stopResumeQueue();
 
-    // Force shutdown after timeout (default 30s)
-    let shutdownComplete = false;
-    const shutdownTimeout = setTimeout(() => {
-      if (!shutdownComplete) {
-        logger.error("Graceful shutdown timeout, forcing exit");
-        process.exit(1);
-      }
-    }, 30000);
+    // Give in-flight requests time to finish, then force-close remaining connections
+    server.closeIdleConnections();
 
-    // Stop accepting new connections; exit only after cleanup completes
+    const shutdownTimer = setTimeout(() => {
+      logger.error("Graceful shutdown timeout reached — closing remaining connections");
+      server.closeAllConnections();
+    }, 25000);
+
     server.close(async () => {
+      clearTimeout(shutdownTimer);
       try {
         await closeRedisClient();
         await browserPool.shutdown();
-        shutdownComplete = true;
-        clearTimeout(shutdownTimeout);
         logger.info("Shutdown completed successfully");
         process.exit(0);
       } catch (error) {
@@ -132,11 +132,13 @@ const startServer = async () => {
 };
 
 process.on("unhandledRejection", (reason) => {
-  logger.error({ reason }, "Unhandled promise rejection");
+  logger.fatal({ reason }, "Unhandled promise rejection — terminating");
+  process.exit(1);
 });
 
 process.on("uncaughtException", (error) => {
-  logger.error({ error }, "Uncaught exception");
+  logger.fatal({ error }, "Uncaught exception — terminating");
+  process.exit(1);
 });
 
 void startServer().catch((error) => {

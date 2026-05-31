@@ -1,7 +1,8 @@
 import { ResumeDocument } from "@/types/resume-types";
 import { api } from "@/services/api";
 import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
-import { resolveTemplateConfig, resolveTemplateCategory, mergeTemplateVisibilityForExistingResume, getTemplateBaseStyle } from "../templateConfig";
+import { normalizeResumeFromApi, normalizeResumeFromPreloaded } from "@/utils/normalizeResume";
+import { resolveTemplateConfig, mergeTemplateVisibilityForExistingResume } from "@/store/templateConfig";
 import { initialResume } from "./documentSlice";
 
 const toResumePayload = (resume: ResumeDocument) => ({
@@ -72,46 +73,6 @@ export interface PersistenceSlice {
   applyTemplateUpgrade: (templateId: string) => Promise<void>;
 }
 
-const normalizePreloadedResume = (preloadedResume: ResumeDocument, id: string) => {
-  const sections = preloadedResume.sections ?? {};
-  return {
-    ...initialResume,
-    ...preloadedResume,
-    templateId: normalizeResumeTemplateId(preloadedResume.templateId),
-    templateCategory: resolveTemplateCategory(
-      normalizeResumeTemplateId(preloadedResume.templateId),
-      preloadedResume.templateCategory,
-    ),
-    personalInfo: { ...(initialResume.personalInfo), ...(preloadedResume.personalInfo ?? {}) },
-    sections: {
-      ...(initialResume.sections),
-      ...sections,
-      experience: (sections.experience ?? []).map((entry: any) => ({
-        ...entry, contentMode: entry.contentMode ?? "bullets",
-        description: entry.description ?? "", bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-      })),
-      projects: (sections.projects ?? []).map((entry: any) => ({
-        ...entry, contentMode: entry.contentMode ?? "paragraph",
-        description: entry.description ?? "", bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-      })),
-    },
-    style: { ...(initialResume.style), ...(preloadedResume.style ?? {}) },
-    sectionOrder: Array.isArray(preloadedResume.sectionOrder)
-      ? [...preloadedResume.sectionOrder]
-      : [...(initialResume.sectionOrder)],
-    sectionVisibility: {
-      ...(initialResume.sectionVisibility),
-      ...(preloadedResume.sectionVisibility ?? {}),
-    },
-    id: (preloadedResume as any)._id ?? preloadedResume.id ?? id,
-  };
-};
-
-const EMPTY_STATE_CHECK = {
-  personalInfo: { name: "", title: "", email: "", phone: "", location: "", linkedin: "", github: "", portfolio: "", summary: "" },
-  sections: { experience: [], education: [], skills: [], projects: [], certifications: [], languages: [] },
-};
-
 export function createPersistenceSlice(set: any, get: any): PersistenceSlice {
   return {
     saveResume: async () => {
@@ -147,7 +108,7 @@ export function createPersistenceSlice(set: any, get: any): PersistenceSlice {
     loadResume: async (id, preloadedResume) => {
       if (preloadedResume) {
         set((s: any) => ({
-          resume: normalizePreloadedResume(preloadedResume, id),
+          resume: normalizeResumeFromPreloaded(preloadedResume, id),
           ui: { ...s.ui, isSaved: true, isDirty: false, saveError: null },
         }));
         return;
@@ -162,37 +123,8 @@ export function createPersistenceSlice(set: any, get: any): PersistenceSlice {
           return;
         }
 
-        const sections = loadedResume.sections ?? {};
-
         set((s: any) => ({
-          resume: {
-            ...initialResume,
-            ...loadedResume,
-            templateId: normalizeResumeTemplateId(loadedResume?.templateId),
-            templateCategory: resolveTemplateCategory(normalizeResumeTemplateId(loadedResume?.templateId), loadedResume?.templateCategory),
-            personalInfo: { ...EMPTY_STATE_CHECK.personalInfo, ...(loadedResume?.personalInfo ?? {}) },
-            sections: {
-              ...EMPTY_STATE_CHECK.sections,
-              ...sections,
-              experience: (sections.experience ?? []).map((entry: any) => ({
-                ...entry, contentMode: entry.contentMode ?? "bullets",
-                description: entry.description ?? "", bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-              })),
-              projects: (sections.projects ?? []).map((entry: any) => ({
-                ...entry, contentMode: entry.contentMode ?? "paragraph",
-                description: entry.description ?? "", bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-              })),
-            },
-            style: { ...(initialResume.style), ...(loadedResume?.style ?? {}) },
-            sectionOrder: Array.isArray(loadedResume?.sectionOrder)
-              ? [...loadedResume.sectionOrder]
-              : [...(initialResume.sectionOrder)],
-            sectionVisibility: {
-              ...(initialResume.sectionVisibility),
-              ...(loadedResume?.sectionVisibility ?? {}),
-            },
-            id: loadedResume?._id ?? loadedResume?.id ?? id,
-          },
+          resume: normalizeResumeFromApi(loadedResume, id),
           ui: { ...s.ui, isSaved: true, isDirty: false, saveError: null },
         }));
       } catch (error) {

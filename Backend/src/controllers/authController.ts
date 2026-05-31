@@ -9,6 +9,7 @@ import { sendEmail } from "../utils/sendEmail";
 import { sendVerificationEmail } from "../utils/sendEmail";
 import { verifyGoogleToken } from "../utils/google";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import { UserRole } from "../enums/userRole";
 import { clearAuthCookies, setAuthCookies } from "../utils/authCookies";
 import { env } from "../config/env";
@@ -36,8 +37,6 @@ import {
   MAX_RESET_PER_DAY,
   MAX_LOGIN_ATTEMPTS,
   LOGIN_LOCKOUT_DURATION_MS,
-  PASSWORD_MIN_LENGTH,
-  PASSWORD_REGEX,
   MAX_OTP_ATTEMPTS,
   OTP_EXPIRY_MS,
   OTP_RESEND_BASE_COOLDOWN_MS,
@@ -51,16 +50,6 @@ const getAuthProviders = (user: { authProvider?: string[] }) =>
 
 const hasLinkedProvider = (user: { authProvider?: string[] }, provider: "local" | "google") =>
   getAuthProviders(user).includes(provider);
-
-const validatePasswordStrength = (password: string): string | null => {
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    return `Password must be at least ${PASSWORD_MIN_LENGTH} characters`;
-  }
-  if (!PASSWORD_REGEX.test(password)) {
-    return "Password must contain uppercase, lowercase, and a number";
-  }
-  return null;
-};
 
 const logout = wrapController(async (req, res) => {
   const cookies = parseCookies(req.headers.cookie);
@@ -80,17 +69,14 @@ const logout = wrapController(async (req, res) => {
   return sendSuccess(res, { message: "Logged out successfully" });
 }, "auth.logout");
 
+const generateOtp = () => String(crypto.randomInt(100000, 999999));
+
 const registerUser = wrapController(async (req, res) => {
   const { name, email, password } = req.body;
 
   if (!name || !password || !email) {
     logger.warn({ route: req.originalUrl }, "Register validation failed");
     return sendErrorResponse(res, new ValidationError("All mandatory fields are required"));
-  }
-
-  const passwordError = validatePasswordStrength(password);
-  if (passwordError) {
-    return sendErrorResponse(res, new ValidationError(passwordError));
   }
 
   const check = await User.findOne({ email });
@@ -127,8 +113,6 @@ const registerUser = wrapController(async (req, res) => {
 
   return sendCreated(res, { message: "Verification code sent to your email" });
 }, "auth.registerUser");
-
-const generateOtp = () => String(crypto.randomInt(100000, 999999));
 
 const verifyEmail = wrapController(async (req, res) => {
   const { email, otp } = req.body;
@@ -168,7 +152,9 @@ const verifyEmail = wrapController(async (req, res) => {
     return sendErrorResponse(res, new ValidationError("Invalid or expired verification code"));
   }
 
-  if (pending.emailVerificationOtp !== otp) {
+  const otpBuffer = Buffer.from(pending.emailVerificationOtp ?? "");
+  const inputBuffer = Buffer.from(otp);
+  if (otpBuffer.length !== inputBuffer.length || !crypto.timingSafeEqual(otpBuffer, inputBuffer)) {
     pending.emailVerificationAttempts += 1;
     await pending.save({ validateModifiedOnly: true });
     const remaining = MAX_OTP_ATTEMPTS - pending.emailVerificationAttempts;
@@ -197,8 +183,8 @@ const verifyEmail = wrapController(async (req, res) => {
 
   recordUserSignup({ email: user.email, provider: "local" });
 
-  const accessToken = generateAccessToken(user._id.toString());
-  const refreshToken = generateRefreshToken(user._id.toString());
+  const accessToken = generateAccessToken(user._id.toString(), user.tokenVersion);
+  const refreshToken = generateRefreshToken(user._id.toString(), user.tokenVersion);
   const csrfTokenValue = setAuthCookies(req, res, accessToken, refreshToken);
 
   logger.info({ userId: user._id.toString(), email: user.email }, "User registered and email verified");
@@ -374,8 +360,8 @@ const login = wrapController(async (req, res) => {
   user.lockUntil = null;
   await user.save({ validateModifiedOnly: true });
 
-  const accessToken = generateAccessToken(user._id.toString());
-  const refreshToken = generateRefreshToken(user._id.toString());
+  const accessToken = generateAccessToken(user._id.toString(), user.tokenVersion);
+  const refreshToken = generateRefreshToken(user._id.toString(), user.tokenVersion);
 
   const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 
@@ -414,14 +400,16 @@ const forgotPassword = wrapController(async (req, res) => {
 
   // Always execute the same structural code path to avoid timing side channels.
   // Whether the email exists, is Google-only, or unknown — we always simulate
-  // the same work so response timing is uniform.
+  // the same work so response timing is uniform. The minimum wall-clock
+  // duration is ~200ms to prevent enumeration via response timing.
+  const startMs = Date.now();
+
   if (user && !isGoogleOnlyUser) {
     if (user.passwordResetAt &&
       Date.now() - new Date(user.passwordResetAt).getTime() < COOLDOWN_AFTER_RESET
     ) {
-      // Simulate delay to maintain constant-time feel
-      await new Promise((r) => setTimeout(r, 100));
       sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
+      await new Promise((r) => setTimeout(r, Math.max(0, 200 - (Date.now() - startMs))));
       return;
     }
 
@@ -431,9 +419,8 @@ const forgotPassword = wrapController(async (req, res) => {
       existingToken &&
       Date.now() - existingToken.lastSeenAt.getTime() < RESEND_COOLDOWN_MS
     ) {
-      // Simulate delay
-      await new Promise((r) => setTimeout(r, 100));
       sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
+      await new Promise((r) => setTimeout(r, Math.max(0, 200 - (Date.now() - startMs))));
       return;
     }
 
@@ -443,8 +430,8 @@ const forgotPassword = wrapController(async (req, res) => {
     });
 
     if (recentResets >= MAX_RESET_PER_DAY) {
-      await new Promise((r) => setTimeout(r, 100));
       sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
+      await new Promise((r) => setTimeout(r, Math.max(0, 200 - (Date.now() - startMs))));
       return;
     }
 
@@ -477,10 +464,10 @@ const forgotPassword = wrapController(async (req, res) => {
   } else {
     // Simulate work for non-existent or Google-only accounts to match timing
     await Promise.resolve();
-    await new Promise((r) => setTimeout(r, 50));
   }
 
   // Constant-timing response — identical for all cases (exists, not found, google-only)
+  await new Promise((r) => setTimeout(r, Math.max(0, 200 - (Date.now() - startMs))));
   sendSuccess(res, { message: PASSWORD_RESET_GENERIC_MESSAGE });
   logger.info({ email: rawEmail, sent: !!user && !isGoogleOnlyUser }, "Password reset flow completed");
 }, "auth.forgotPassword");
@@ -496,11 +483,6 @@ const resetPassword = wrapController(async (req, res) => {
   if (password !== confirmPassword) {
     logger.warn({ route: req.originalUrl }, "Reset password mismatch");
     return sendErrorResponse(res, new ValidationError("Passwords do not match"));
-  }
-
-  const passwordError = validatePasswordStrength(password);
-  if (passwordError) {
-    return sendErrorResponse(res, new ValidationError(passwordError));
   }
 
   const hashed = hashToken(token);
@@ -522,8 +504,17 @@ const resetPassword = wrapController(async (req, res) => {
     return sendErrorResponse(res, new ValidationError("Invalid or expired reset token"));
   }
 
+  if (user.passwordResetAt) {
+    const tokenCreatedAt = (record._id as mongoose.Types.ObjectId).getTimestamp();
+    if (tokenCreatedAt < user.passwordResetAt) {
+      logger.warn({ userId: user._id.toString() }, "Reset token issued before last password reset — rejecting");
+      return sendErrorResponse(res, new ValidationError("Invalid or expired reset token"));
+    }
+  }
+
   user.password = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
   user.passwordResetAt = new Date();
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save({ validateModifiedOnly: true });
 
   await ResetToken.deleteMany({ userId: user._id });
@@ -643,8 +634,8 @@ const googleLogin = wrapController(async (req, res) => {
     await user.save({ validateModifiedOnly: true });
   }
 
-  const accessToken = generateAccessToken(user._id.toString());
-  const refreshToken = generateRefreshToken(user._id.toString());
+  const accessToken = generateAccessToken(user._id.toString(), user.tokenVersion);
+  const refreshToken = generateRefreshToken(user._id.toString(), user.tokenVersion);
 
   const csrfToken = setAuthCookies(req, res, accessToken, refreshToken);
 

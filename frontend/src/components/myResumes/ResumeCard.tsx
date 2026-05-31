@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Thumb } from "./ResumeThumbnail";
 import { SavedResume } from "@/types/resume-types";
 import { TEMPLATES } from "@/utils/templateMapping";
 import { Ring } from "./CompletionRing";
 import { relativeTime } from "@/utils/relativeTime";
 import { FileSearch } from "lucide-react";
+import { useViewport } from "@/hooks/useViewport";
 
 function AtsScoreBadge({ atsScore }: { atsScore: number | null }) {
   if (atsScore === null || atsScore === undefined) {
@@ -61,8 +62,7 @@ export function Card({ resume,onEdit,onPreview,onDuplicate,onDelete,delay=0 }: {
   onDuplicate:(id:string)=>void; onDelete:(id:string)=>void; delay?:number;
 }) {
   const [hov,setHov]=useState(false);
-  const [isMobile,setIsMobile]=useState(false);
-  useEffect(()=>{const u=()=>setIsMobile(window.innerWidth<640);u();window.addEventListener("resize",u);return ()=>window.removeEventListener("resize",u);},[]);
+  const isMobile = useViewport(640);
   const tpl=TEMPLATES.find(t=>t.id===resume.templateId);
   const thumbTpl=tpl??TEMPLATES[0];
   const templateName = tpl?.name ?? resume.templateId

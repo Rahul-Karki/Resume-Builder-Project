@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
-import { AdminSidebar } from "../components/admin/AdminSidebar";
-import { AdminPage } from "../types/admin.types";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminPage } from "@/types/admin.types";
 import { api } from "@/services/api";
+import { useViewport } from "@/hooks/useViewport";
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 function TopBar({ page, onLogout, isMobile }: { page: AdminPage; onLogout: () => Promise<void>; isMobile: boolean }) {
@@ -58,23 +58,15 @@ function TopBar({ page, onLogout, isMobile }: { page: AdminPage; onLogout: () =>
 
 interface Props {
   adminName?: string;
-  // In production: pass from auth context
 }
 
 export default function AdminLayout({ adminName = "Admin User" }: Props) {
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useViewport(1024);
   const location = useLocation();
   const navigate = useNavigate();
 
   const page: AdminPage = location.pathname.includes("/admin/templates") ? "templates" : "dashboard";
   const resolvedPage: AdminPage = page;
-
-  useEffect(() => {
-    const updateViewport = () => setIsMobile(window.innerWidth < 1024);
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
 
   const handleLogout = async () => {
     try {
@@ -110,24 +102,3 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
   );
 }
 
-/*
-  Mount in your React Router:
-
-    import AdminLayout from "./pages/AdminLayout";
-    import { RequireRole } from "./components/auth/RequireRole";
-
-    <Route path="/admin" element={
-      <RequireRole role="admin">
-        <AdminLayout adminName={currentUser.name} />
-      </RequireRole>
-    } />
-
-  RequireRole example:
-    export function RequireRole({ role, children }) {
-      const { user } = useAuth();
-      if (!user || !["admin","superadmin"].includes(user.role)) {
-        return <Navigate to="/login" replace />;
-      }
-      return children;
-    }
-*/

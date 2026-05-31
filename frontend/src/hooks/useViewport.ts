@@ -9,7 +9,7 @@ export function useViewport(breakpoint = 768) {
       cancelAnimationFrame(frameId);
       frameId = requestAnimationFrame(() => setIsMobile(window.innerWidth < breakpoint));
     };
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
     return () => {
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(frameId);

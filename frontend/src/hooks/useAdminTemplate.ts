@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { AdminTemplate, TemplateFormData, TemplateStatus } from "../types/admin.types";
+import { AdminTemplate, TemplateFormData, TemplateStatus } from "@/types/admin.types";
 import { api } from "@/services/api";
 import type { AxiosError } from "axios";
 

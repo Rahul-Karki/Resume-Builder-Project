@@ -275,7 +275,7 @@ Three global Mongoose plugins apply to all models: `auditTrail` (logs creates/up
 
 - **Frontend PDF export uses a client-side fallback path.** The primary Puppeteer-based server-side path is correct, but the client-side fallback (`html2canvas` + `jsPDF`) has known rendering inconsistencies with multi-page layouts and custom fonts. The fallback should be used only as a last resort.
 
-- **MFA backup codes are stored in plaintext in the database.** The `mfaBackupCodes` field on the User model stores codes without hashing. These should be hashed before storage.
+- **MFA backup codes are hashed with scrypt + random salt before storage.** The `mfaController.ts` generates codes via `crypto.scryptSync(code, salt, 64)` with a random 16-byte salt. The `mfaBackupCodes` field defaults to `select: false` to prevent accidental exposure.
 
 - **Rate-limit headers may leak internal configuration.** The Redis rate-limit middleware returns `Retry-After` headers with absolute timestamps that could hint at the rate-limit window configuration to attackers.
 
@@ -285,4 +285,4 @@ Three global Mongoose plugins apply to all models: `auditTrail` (logs creates/up
 
 - **No database migration history.** The `migrations/` directory contains migration scripts but the project does not maintain a migration ledger or automated rollback path. Schema changes are applied manually or through Mongoose schema changes that may not be backward-compatible.
 
-- **Refresh token rotation is not implemented.** The current refresh token flow issues a new access token without rotating the refresh token. A compromised refresh token remains valid until it expires.
+- **Refresh token rotation is implemented.** The `refreshController.ts` generates a new refresh token and blacklists the old one on each refresh. Note: there is no token-family replay detection — if an attacker and legitimate user both present the same token within a short window, both may succeed. This is a known limitation.

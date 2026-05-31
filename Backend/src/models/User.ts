@@ -28,6 +28,7 @@ export interface IUser extends Document {
   emailVerificationOtp?: string | null;
   emailVerificationOtpExpires?: Date | null;
   emailVerificationAttempts: number;
+  tokenVersion: number;
 }
 
 const getNextCreditsResetAt = () => {
@@ -128,6 +129,7 @@ const UserSchema: Schema = new Schema<IUser>(
     mfaBackupCodes: {
       type: [String],
       default: [],
+      select: false,
     },
     mfaVerifiedAt: {
       type: Date,
@@ -158,6 +160,10 @@ const UserSchema: Schema = new Schema<IUser>(
       type: Number,
       default: 0,
       min: 0,
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }

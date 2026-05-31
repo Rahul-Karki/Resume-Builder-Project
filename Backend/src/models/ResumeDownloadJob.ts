@@ -36,7 +36,7 @@ const ResumeDownloadJobSchema = new Schema<IResumeDownloadJob>(
     preset: { type: String, enum: ["web", "standard", "print"], required: true, default: "standard" },
     status: { type: String, enum: ["pending", "completed", "failed"], required: true, default: "pending" },
     fileName: { type: String, default: "" },
-    fileData: { type: Buffer, default: undefined },
+    fileData: { type: Buffer, default: undefined, select: false },
     resultUrl: { type: String, default: "" },
     resultPath: { type: String, default: "" },
     attemptsMade: { type: Number, default: 0 },

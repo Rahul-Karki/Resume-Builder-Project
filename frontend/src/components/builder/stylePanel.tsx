@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
+import React, { useState } from "react";
+import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { fontOptions, ResumeStyle } from "@/types/resume-types";
+import { useViewport } from "@/hooks/useViewport";
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 const Label = ({ children }: { children: React.ReactNode }) => (
@@ -91,8 +92,7 @@ export function StylePanel() {
   const { resume, updateStyle, resetStyle } = useResumeBuilderStore();
   const { style } = resume;
   const [activeSection, setActiveSection] = useState("Color Theme");
-  const [isCompact, setIsCompact] = useState(false);
-  useEffect(() => { const u = () => setIsCompact(window.innerWidth < 480); u(); window.addEventListener("resize", u); return () => window.removeEventListener("resize", u); }, []);
+  const isCompact = useViewport(480);
 
   const applyPreset = (preset: typeof COLOR_PRESETS[0]) => {
     updateStyle("accentColor", preset.accent);

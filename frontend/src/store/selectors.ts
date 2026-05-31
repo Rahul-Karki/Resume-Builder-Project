@@ -1,3 +1,4 @@
+import { useShallow } from "zustand/react/shallow";
 import { useResumeBuilderStore } from "./useResumeBuilderStore";
 import type { ResumeDocument, BuilderUIState, PersonalInfo, ResumeStyle, SectionVisibility, ActiveSection, EditorTab } from "@/types/resume-types";
 
@@ -74,7 +75,7 @@ export function useFocusedField() {
 }
 
 export function useResumeActions() {
-  return useResumeBuilderStore((s) => ({
+  return useResumeBuilderStore(useShallow((s) => ({
     updatePersonalInfo: s.updatePersonalInfo,
     updateStyle: s.updateStyle,
     resetStyle: s.resetStyle,
@@ -116,5 +117,5 @@ export function useResumeActions() {
     initFromTemplate: s.initFromTemplate,
     applyTemplateUpgrade: s.applyTemplateUpgrade,
     markDirty: s.markDirty,
-  }));
+  })));
 }

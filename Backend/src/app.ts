@@ -6,6 +6,7 @@ import compression from "compression";
 import { env } from "./config/env";
 import apiVersionMiddleware from "./middleware/apiVersion";
 import { csrfProtection } from "./middleware/csrfProtection";
+import { createRedisRateLimitMiddleware } from "./middleware/redisRateLimit";
 import { correlationIdMiddleware } from "./middleware/correlationId";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { requestTimeoutMiddleware } from "./middleware/requestTimeout";
@@ -180,9 +181,13 @@ export const createApp = () => {
     app.get(env.METRICS_PATH, metricsHandler);
   }
 
+  let cachedDocs: string | null = null;
   app.get("/api/docs", (_req, res) => {
     res.setHeader("Content-Type", "application/json");
-    res.json(openAPISpec);
+    if (!cachedDocs) {
+      cachedDocs = JSON.stringify(openAPISpec);
+    }
+    res.send(cachedDocs);
   });
 
   // API routes — single mount point under /api
@@ -206,7 +211,15 @@ export const createApp = () => {
   app.use("/api/templates", templateRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);
-  app.post("/api/client-error", clientErrorHandler);
+
+  const clientErrorLimiter = createRedisRateLimitMiddleware({
+    scope: "client-error",
+    windowMs: 60_000,
+    max: 20,
+    keyBuilder: (req) => `ip:${req.ip}`,
+    message: "Too many error reports.",
+  });
+  app.post("/api/client-error", clientErrorLimiter, clientErrorHandler);
   app.use(notFoundHandler);
   app.use(errorHandler);
 

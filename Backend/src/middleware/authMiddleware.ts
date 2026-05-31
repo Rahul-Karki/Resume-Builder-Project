@@ -14,22 +14,22 @@ import { verifyTokenWithRotation } from "../utils/secretsRotation";
 const AUTH_QUERY_TIMEOUT_MS = 5000;
 const AUTH_USER_CACHE_TTL_S = 60;
 
-function verifyAccessToken(token: string): { userId: string } | null {
+function verifyAccessToken(token: string): { userId: string; tokenVersion?: number } | null {
   const hasHmac = env.JWT_ACCESS_SECRET?.trim().length > 0;
   const hasRsa = env.JWT_ACCESS_PUBLIC_KEY?.trim().length > 0;
 
   if (hasHmac) {
-    return verifyTokenWithRotation(token) as { userId: string } | null;
+    return verifyTokenWithRotation(token) as { userId: string; tokenVersion?: number } | null;
   }
 
   if (hasRsa) {
     try {
-      return jwt.verify(token, env.JWT_ACCESS_PUBLIC_KEY, { algorithms: ["RS256"] }) as { userId: string };
+      return jwt.verify(token, env.JWT_ACCESS_PUBLIC_KEY, { algorithms: ["RS256"] }) as { userId: string; tokenVersion?: number };
     } catch {
       const oldKey = env.JWT_ACCESS_PUBLIC_KEY_OLD?.trim();
       if (oldKey) {
         try {
-          return jwt.verify(token, oldKey, { algorithms: ["RS256"] }) as { userId: string };
+          return jwt.verify(token, oldKey, { algorithms: ["RS256"] }) as { userId: string; tokenVersion?: number };
         } catch {
           return null;
         }
@@ -55,9 +55,9 @@ export async function authenticateUser(
   return await fetchUserById(String(decodedPayload.userId), token);
 }
 
-async function queryUserFromDb(userId: string): Promise<{ id: string; role: string; name: string; email?: string } | null> {
+async function queryUserFromDb(userId: string): Promise<{ id: string; role: string; name: string; email?: string; tokenVersion: number } | null> {
   const query = User.findById(userId)
-    .select("name role email")
+    .select("name role email tokenVersion")
     .lean();
 
   const queryPromise = typeof (query as { exec?: () => Promise<unknown> }).exec === "function"
@@ -73,12 +73,13 @@ async function queryUserFromDb(userId: string): Promise<{ id: string; role: stri
 
   if (!user) return null;
 
-  const u = user as { _id: unknown; role: unknown; name: unknown; email?: unknown };
+  const u = user as { _id: unknown; role: unknown; name: unknown; email?: unknown; tokenVersion?: unknown };
   return {
     id: String(u._id),
     role: String(u.role),
     name: String(u.name),
     email: u.email ? String(u.email) : undefined,
+    tokenVersion: u.tokenVersion != null ? Number(u.tokenVersion) : 0,
   };
 }
 
@@ -91,7 +92,7 @@ async function fetchUserById(userId: string, token: string | undefined) {
   const cached = useCache ? memoryCache.get(cacheKey) : null;
   if (cached) {
     try {
-      const cachedUser = JSON.parse(cached) as { id: string; role: string; name: string; email?: string };
+      const cachedUser = JSON.parse(cached) as { id: string; role: string; name: string; email?: string; tokenVersion: number };
       const auditCtx = getAuditContext();
       if (auditCtx) {
         auditCtx.userId = cachedUser.id;
@@ -145,6 +146,11 @@ export const authMiddleware = async (
       sendErrorResponse(res, new AuthError("Unauthorized: User not found", { code: "AUTH_REQUIRED" }));
       return;
     }
+    if (user.tokenVersion !== (decodedPayload as { userId: string; tokenVersion?: number }).tokenVersion) {
+      logAuthFailure(req, "Token version mismatch — session invalidated");
+      sendErrorResponse(res, new AuthError("Session expired — please login again", { code: "AUTH_REQUIRED" }));
+      return;
+    }
     req.user = user;
     next();
   } catch (error) {
@@ -155,5 +161,6 @@ export const authMiddleware = async (
     }
     logAuthFailure(req, "Invalid token");
     sendErrorResponse(res, new AuthError("Unauthorized: Invalid token", { code: "AUTH_REQUIRED" }));
+    return;
   }
 };

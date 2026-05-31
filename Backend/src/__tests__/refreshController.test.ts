@@ -31,6 +31,16 @@ vi.mock("../utils/tokenBlacklist", () => ({
   blacklistRefreshToken: vi.fn().mockResolvedValue(undefined),
   blacklistAccessToken: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("../models/User", () => ({
+  default: {
+    findById: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        lean: vi.fn().mockResolvedValue({ tokenVersion: 0 }),
+      }),
+    }),
+  },
+}));
+
 vi.mock("../utils/errorResponse", () => ({
   sendErrorResponse: (_res: any, _error: any, fallback: any = {}) => {
     const message = fallback.message ?? (_error instanceof Error ? _error.message : "Server error");

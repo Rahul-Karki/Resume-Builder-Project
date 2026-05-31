@@ -34,6 +34,8 @@ import {
   createResumeSchema,
   jobStatusParamSchema,
   objectIdParamSchema,
+  previewHtmlSchema,
+  resumeListQuerySchema,
   updateResumeSchema,
 } from "../validation/schemas";
 import { previewHtml } from "../controllers/resumePreviewController";
@@ -74,7 +76,7 @@ const previewHtmlLimiter = createRedisRateLimitMiddleware({
   message: "Too many preview requests. Please try again later.",
 });
 
-router.post("/preview-html", previewHtmlLimiter, previewHtml);
+router.post("/preview-html", previewHtmlLimiter, validateRequest({ body: previewHtmlSchema }), previewHtml);
 
 router.use(authMiddleware);
 
@@ -82,6 +84,7 @@ router.use(authMiddleware);
 
 router.get(
   "/",
+  validateRequest({ query: resumeListQuerySchema }),
   resumeCacheMiddleware,
   baseGetAllResumes,
 );

@@ -3,8 +3,18 @@ import mongoose from "mongoose";
 import { checkRedisHealth, getCacheProvider } from "../utils/redis";
 import { logger } from "../observability";
 import { Counter, Gauge, collectDefaultMetrics, Registry } from "prom-client";
+import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
+import { env } from "../config/env";
 
 const router = express.Router();
+
+const healthLimiter = createRedisRateLimitMiddleware({
+  scope: "health",
+  windowMs: 60_000,
+  max: env.REDIS_RATE_LIMIT_MAX,
+  keyBuilder: (req) => `ip:${req.ip}`,
+  message: "Too many health check requests.",
+});
 
 // ─── Uptime Monitoring ─────────────────────────────────────────────────────────
 const startTime = Date.now();
@@ -91,12 +101,12 @@ const sendHealthResponse = async (_req: express.Request, res: express.Response) 
   });
 };
 
-router.get("/", sendHealthResponse);
+router.get("/", healthLimiter, sendHealthResponse);
 
-router.get("/deep", sendHealthResponse);
+router.get("/deep", healthLimiter, sendHealthResponse);
 
 // ─── Uptime & SLA endpoint ─────────────────────────────────────────────────────
-router.get("/uptime", (_req: express.Request, res: express.Response) => {
+router.get("/uptime", healthLimiter, (_req: express.Request, res: express.Response) => {
   healthCheckTotalCounter.labels("uptime_check").inc();
   res.json({
     status: "ok",
@@ -107,7 +117,7 @@ router.get("/uptime", (_req: express.Request, res: express.Response) => {
 });
 
 // ─── Prometheus metrics endpoint ───────────────────────────────────────────────
-router.get("/metrics", async (_req: express.Request, res: express.Response) => {
+router.get("/metrics", healthLimiter, async (_req: express.Request, res: express.Response) => {
   try {
     res.set("Content-Type", uptimeRegistry.contentType);
     const metrics = await uptimeRegistry.metrics();

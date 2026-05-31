@@ -5,13 +5,13 @@ import { logCsrfFailure } from "../utils/securityLogger";
 import { sendErrorResponse } from "../utils/errorResponse";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const MAX_CSRF_LENGTH = 256;
 
 // CSRF-exempt paths are defined here. When adding new auth-related routes,
 // add the path to this set to avoid CSRF validation on non-state-changing
 // auth endpoints (e.g. signup, login use their own token-based validation).
 // The set is exported so that routers can assert expected exemptions.
 export const CSRF_EXEMPT_PATHS = new Set([
-  "/api/refresh",
   "/api/csrf",
   "/api/auth/signup",
   "/api/auth/login",
@@ -24,6 +24,7 @@ export const CSRF_EXEMPT_PATHS = new Set([
 ]);
 
 const secureCompare = (a: string, b: string) => {
+  if (a.length > MAX_CSRF_LENGTH || b.length > MAX_CSRF_LENGTH) return false;
   const first = Buffer.from(a);
   const second = Buffer.from(b);
 

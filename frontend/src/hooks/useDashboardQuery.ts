@@ -1,29 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
-import { AdminTemplate, DashboardStats, TemplateAnalytics } from "@/types/admin.types";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
+import { AdminTemplate, DashboardStats, TemplateAnalytics } from "@/types/admin.types";
 
-type ApiEnvelope<T> = {
-  ok: boolean;
-  data: T;
-  error?: string;
-};
+type ApiEnvelope<T> = { ok: boolean; data: T; error?: string };
 
 const getErrorMessage = (error: unknown) => {
   const e = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-  return e.response?.data?.error ?? e.response?.data?.message ?? e.message ?? "Failed to load analytics";
+  return e.response?.data?.error ?? e.response?.data?.message ?? e.message ?? "Failed to load data";
 };
 
-// ─── Hook ──────────────────────────────────────────────────────────────────────
-
-export function useAnalytics(period: 7 | 30 = 30) {
-  const [stats,     setStats]     = useState<DashboardStats | null>(null);
-  const [analytics, setAnalytics] = useState<TemplateAnalytics[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
-
-  const fetch = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
+export function useDashboardStats(period: 7 | 30) {
+  return useQuery({
+    queryKey: ["admin", "dashboard-stats", period],
+    queryFn: async (): Promise<{ stats: DashboardStats; analytics: TemplateAnalytics[] }> => {
       const [templatesRes, analyticsRes] = await Promise.all([
         api.get<ApiEnvelope<AdminTemplate[]>>("/admin/templates"),
         api.get<ApiEnvelope<TemplateAnalytics[]>>(`/admin/analytics/templates?days=${period}`),
@@ -44,16 +33,24 @@ export function useAnalytics(period: 7 | 30 = 30) {
         leastUsed: publishedAnalytics.length > 0 ? publishedAnalytics[publishedAnalytics.length - 1] : null,
       };
 
-      setStats(computedStats);
-      setAnalytics(analyticsData);
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [period]);
-
-  useEffect(() => { fetch(); }, [fetch]);
-
-  return { stats, analytics, loading, error, refetch: fetch };
+      return { stats: computedStats, analytics: analyticsData };
+    },
+    staleTime: 60 * 1000,
+    refetchInterval: 120 * 1000,
+    retry: 2,
+  });
 }
+
+export function useAdminTemplatesQuery() {
+  return useQuery({
+    queryKey: ["admin", "templates"],
+    queryFn: async (): Promise<AdminTemplate[]> => {
+      const res = await api.get<ApiEnvelope<AdminTemplate[]>>("/admin/templates");
+      return res.data.data ?? [];
+    },
+    staleTime: 120 * 1000,
+    retry: 2,
+  });
+}
+
+

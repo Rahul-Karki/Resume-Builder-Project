@@ -27,7 +27,7 @@ function createRes() {
 
 beforeEach(() => {
   vi.mocked(parseCookies).mockReset().mockReturnValue({ accessToken: "access-token" });
-  vi.mocked(jwt.verify).mockReset().mockReturnValue({ userId: "user-123" } as any);
+  vi.mocked(jwt.verify).mockReset().mockReturnValue({ userId: "user-123", tokenVersion: 0 } as any);
   vi.mocked(User.findById).mockReset().mockReturnValue({
     select() {
       return {
@@ -36,6 +36,7 @@ beforeEach(() => {
             _id: "user-123",
             role: "admin",
             name: "Rahul",
+            tokenVersion: 0,
           });
         },
       };
@@ -84,6 +85,7 @@ describe("authMiddleware", () => {
       role: "admin",
       name: "Rahul",
       email: undefined,
+      tokenVersion: 0,
     });
   });
 

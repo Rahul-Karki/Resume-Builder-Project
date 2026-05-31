@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TemplateAnalytics, DailyUsage } from "../../types/admin.types";
+import { TemplateAnalytics, DailyUsage } from "@/types/admin.types";
 
 interface BarChartProps {
   data:    DailyUsage[];
@@ -31,10 +31,22 @@ export function Sparkline({ data, color, width = 80, height = 28 }: { data: numb
 // ─── Full Bar Chart ────────────────────────────────────────────────────────────
 export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
   const [hovered, setHovered] = useState<number | null>(null);
-  if (!data.length) return <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center", color: "#71717a", fontSize: 12 }}>No data</div>;
+
+  if (!data.length) {
+    return (
+      <div style={{ position: "relative" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 12, fontFamily: "'Outfit', sans-serif" }}>
+          {label}
+        </div>
+        <div style={{ height, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#71717a", fontSize: 12, gap: 8 }}>
+          <div style={{ fontSize: 28, opacity: 0.2 }}>◈</div>
+          <span>No usage data yet</span>
+        </div>
+      </div>
+    );
+  }
 
   const max = Math.max(...data.map(d => d.count), 1);
-  const barW = Math.max(4, Math.floor((600 / data.length) - 3));
 
   return (
     <div style={{ position: "relative" }}>
@@ -45,7 +57,7 @@ export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
       {/* Tooltip */}
       {hovered !== null && (
         <div style={{
-          position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
+          position: "absolute", top: -8, left: "50%", transform: "translateX(-50%)",
           background: "#27272a", border: "1px solid #3f3f46", borderRadius: 8,
           padding: "6px 12px", fontSize: 11, fontFamily: "'Outfit', sans-serif",
           color: "#d4d4d8", zIndex: 10, whiteSpace: "nowrap", pointerEvents: "none",
@@ -73,7 +85,7 @@ export function BarChart({ data, color, label, height = 180 }: BarChartProps) {
                 background: isHov ? color : color + "55",
                 borderRadius: "3px 3px 0 0",
                 cursor: "default",
-                transition: "background 0.1s, height 0.2s",
+                transition: "background 0.12s, height 0.25s, opacity 0.12s",
                 position: "relative",
               }}
             />

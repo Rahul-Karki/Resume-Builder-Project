@@ -1,6 +1,5 @@
 import { Request, Response, RequestHandler } from "express";
 import Resume from "../models/Resume";
-import AtsAnalysis from "../models/AtsAnalysis";
 import Template from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
 import { createResumeVersion } from "../services/resumeVersionService";
@@ -11,7 +10,6 @@ import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
 import { recordResumeCreated, recordResumeDeleted } from "../utils/businessMetrics";
 import { AuthError, NotFoundError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
-import mongoose from "mongoose";
 
 const recordTemplateUsage = async (layoutId: string, type: "create" | "edit") => {
     if (!layoutId) return;
@@ -57,30 +55,19 @@ const getAllResumes = wrapController(async (req, res) => {
     const total = await Resume.countDocuments({ userId });
 
     const resumes = await Resume.find({ userId })
+        .select("-latestAtsAnalysis")
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean();
 
-    const atsScores = await AtsAnalysis.aggregate([
-        { $match: { userId: new mongoose.Types.ObjectId(userId), status: "completed" } },
-        { $sort: { analyzedAt: -1 } },
-        { $group: { _id: "$resumeId", overallScore: { $first: "$overallScore" }, status: { $first: "$status" }, analyzedAt: { $first: "$analyzedAt" } } },
-        { $project: { _id: 1, overallScore: 1, status: 1, analyzedAt: 1 } },
-    ]);
-
-    const atsScoreMap = new Map<string, { overallScore: number | null; status: string | null; analyzedAt: Date | null }>();
-    for (const a of atsScores) {
-        atsScoreMap.set(String(a._id), { overallScore: a.overallScore ?? null, status: a.status ?? null, analyzedAt: a.analyzedAt ?? null });
-    }
-
     const normalizedResumes = resumes.map((resume) => {
-        const atsData = atsScoreMap.get(String(resume._id));
+        const r = resume as any;
         return {
-            ...normalizeResumeResponse(resume as any),
-            atsScore: atsData?.overallScore ?? null,
-            atsStatus: atsData?.status ?? null,
-            atsAnalyzedAt: atsData?.analyzedAt ?? null
+            ...normalizeResumeResponse(r),
+            atsScore: r.atsScore ?? null,
+            atsStatus: r.atsStatus ?? null,
+            atsAnalyzedAt: r.atsAnalyzedAt ?? null,
         };
     });
 

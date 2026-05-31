@@ -41,6 +41,7 @@ const collectIssues = (schemas: ValidationSchemas, req: Request) => {
     if (!parsedParams.success) {
       issues.push(...parsedParams.error.issues);
     } else {
+      Object.assign(req.params, parsedParams.data);
       validated.params = parsedParams.data;
     }
   }
@@ -50,6 +51,7 @@ const collectIssues = (schemas: ValidationSchemas, req: Request) => {
     if (!parsedQuery.success) {
       issues.push(...parsedQuery.error.issues);
     } else {
+      Object.assign(req.query, parsedQuery.data);
       validated.query = parsedQuery.data;
     }
   }

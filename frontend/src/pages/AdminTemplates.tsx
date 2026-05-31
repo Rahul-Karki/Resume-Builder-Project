@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
-import { useAdminTemplates } from "../hooks/useAdminTemplate";
-import { TemplateCard } from "../components/admin/TemplateCard";
-import { TemplateFormModal } from "../components/admin/TemplateFormModal";
-import { AdminTemplate, TemplateStatus, TemplateCategory } from "../types/admin.types";
+import { useEffect, useState, useMemo } from "react";
+import { useAdminTemplates } from "@/hooks/useAdminTemplate";
+import { TemplateCard } from "@/components/admin/TemplateCard";
+import { TemplateFormModal } from "@/components/admin/TemplateFormModal";
+import { AdminTemplate, TemplateStatus, TemplateCategory } from "@/types/admin.types";
 import { SkeletonTemplateGrid } from "@/components/Skeleton";
-import { ResumeRenderer } from "../templates/ResumeRenderer";
-import { sampleData } from "../data/sampleData";
-import { ResumeDocument, ResumeStyle, SectionVisibility } from "../types/resume-types";
+import { ResumeRenderer } from "@/templates/ResumeRenderer";
+import { sampleData } from "@/data/sampleData";
+import { ResumeDocument, ResumeStyle, SectionVisibility } from "@/types/resume-types";
+import { useViewport } from "@/hooks/useViewport";
 
 type FilterStatus = "all" | TemplateStatus;
 type FilterCategory = "all" | TemplateCategory;
@@ -23,46 +24,35 @@ export function AdminTemplates() {
   const [modalMode,      setModalMode]      = useState<"create" | "edit" | null>(null);
   const [editTarget,     setEditTarget]     = useState<AdminTemplate | null>(null);
   const [previewTarget,   setPreviewTarget]  = useState<AdminTemplate | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useViewport(1024);
   const [previewScale, setPreviewScale] = useState(1);
 
   const PREVIEW_PAGE_WIDTH = 794;
   const PREVIEW_PAGE_HEIGHT = 1123;
 
   useEffect(() => {
-    const updateViewport = () => {
-      const mobile = window.innerWidth < 1024;
-      setIsMobile(mobile);
-
-      if (mobile) {
-        // Mobile: full width - padding
+    const updateScale = () => {
+      if (isMobile) {
         const availableWidth = window.innerWidth - 32;
         const availableHeight = window.innerHeight - 40;
         const widthScale = availableWidth / PREVIEW_PAGE_WIDTH;
         const heightScale = availableHeight / PREVIEW_PAGE_HEIGHT;
         setPreviewScale(Math.min(0.92, Math.max(0.6, Math.min(widthScale, heightScale))));
       } else {
-        // Desktop: modal is max 1440px, minus sidebar (320px), minus padding (48px)
         const modalMaxWidth = 1440;
         const sidebarWidth = 320;
-        const modalPaddingX = 48; // 24px on each side
-        const previewPaddingX = 48; // 24px on each side
-        const overlayPaddingX = 48; // 24px on each side from the overlay
-        
-        // Actual available width for preview
-        const maxAvailableWidth = Math.min(modalMaxWidth, window.innerWidth - overlayPaddingX) - sidebarWidth - previewPaddingX;
-        const availableHeight = window.innerHeight - 260; // header + padding
-        
+        const overlayPaddingX = 48;
+        const maxAvailableWidth = Math.min(modalMaxWidth, window.innerWidth - overlayPaddingX) - sidebarWidth - 48;
+        const availableHeight = window.innerHeight - 260;
         const widthScale = maxAvailableWidth / PREVIEW_PAGE_WIDTH;
         const heightScale = availableHeight / PREVIEW_PAGE_HEIGHT;
-        
         setPreviewScale(Math.min(1, Math.max(0.6, Math.min(widthScale, heightScale))));
       }
     };
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, [isMobile]);
 
   const openCreate = () => { setEditTarget(null);   setModalMode("create"); };
   const openEdit   = (t: AdminTemplate) => { setEditTarget(t); setModalMode("edit"); };

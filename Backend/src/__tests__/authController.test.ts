@@ -22,6 +22,18 @@ vi.mock("../models/User", () => {
     }),
   };
 });
+vi.mock("../models/PendingUser", () => {
+  const mockPending = function (this: any, data: any) {
+    if (data) Object.assign(this, data);
+    this.save = vi.fn().mockResolvedValue(true);
+  };
+  return {
+    default: Object.assign(mockPending, {
+      findOne: vi.fn(),
+      deleteOne: vi.fn(),
+    }),
+  };
+});
 vi.mock("../models/ResetToken", () => ({
   default: Object.assign(vi.fn(), { findOne: vi.fn(), deleteMany: vi.fn(), create: vi.fn(), countDocuments: vi.fn() }),
 }));
@@ -115,15 +127,15 @@ describe("authController", () => {
       expect(res.status).toHaveBeenCalledWith(201);
     });
 
-    it("should return 400 when email already exists", async () => {
+    it("should return 409 when email already exists", async () => {
       vi.mocked(User.findOne).mockResolvedValue(buildUser() as any);
 
-      const req = { body: { name: "Test", email: "test@test.com", password: "pass123" }, originalUrl: "/api/register", headers: {} } as any;
+      const req = { body: { name: "Test", email: "test@test.com", password: "Pass1234!" }, originalUrl: "/api/register", headers: {} } as any;
       const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
 
       await registerUser(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.status).toHaveBeenCalledWith(409);
     });
 
     it("should return 400 when required fields are missing", async () => {

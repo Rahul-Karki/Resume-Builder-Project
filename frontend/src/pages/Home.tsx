@@ -5,13 +5,13 @@
 // Section order:
 //   Navbar → Hero → Features → Templates → HowItWorks → CTA → Footer
 
-import { Navbar }           from "../components/landing/Navbar";
-import { HeroSection }      from "../components/landing/Hero";
-import { FeaturesSection }  from "../components/landing/Features";
-import { TemplatesPreview } from "../components/landing/TemplatePreview";
-import { HowItWorks }       from "../components/landing/HowItWorks";
-import { CTASection }       from "../components/landing/CTA";
-import { Footer }           from "../components/landing/Footer";
+import { Navbar }           from "@/components/landing/Navbar";
+import { HeroSection }      from "@/components/landing/Hero";
+import { FeaturesSection }  from "@/components/landing/Features";
+import { TemplatesPreview } from "@/components/landing/TemplatePreview";
+import { HowItWorks }       from "@/components/landing/HowItWorks";
+import { CTASection }       from "@/components/landing/CTA";
+import { Footer }           from "@/components/landing/Footer";
 
 // ─── Landing page layout ───────────────────────────────────────────────────────
 export default function LandingPage() {

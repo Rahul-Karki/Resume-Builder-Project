@@ -4,6 +4,8 @@ import { dataIntegrityChecker } from "../services/dataIntegrityService";
 import { alertingService } from "../observability/alerting";
 import { logger } from "../observability";
 import { validateRequest } from "../middleware/validateRequest";
+import { createRedisRateLimitMiddleware } from "../middleware/redisRateLimit";
+import { env } from "../config/env";
 import {
   auditLogsQuerySchema,
   auditExportQuerySchema,
@@ -15,7 +17,15 @@ import {
 
 const router = express.Router();
 
-router.get("/audit-logs", validateRequest({ query: auditLogsQuerySchema }), async (req: Request, res: Response) => {
+const complianceLimiter = createRedisRateLimitMiddleware({
+  scope: "compliance",
+  windowMs: 60000,
+  max: 30,
+  keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+  message: "Too many compliance requests. Please try again later.",
+});
+
+router.get("/audit-logs", complianceLimiter, validateRequest({ query: auditLogsQuerySchema }), async (req: Request, res: Response) => {
   try {
     const {
       userId,
@@ -56,7 +66,7 @@ router.get("/audit-logs", validateRequest({ query: auditLogsQuerySchema }), asyn
   }
 });
 
-router.get("/audit-logs/:documentId", validateRequest({ params: objectIdParamSchema }), async (req: Request, res: Response) => {
+router.get("/audit-logs/:documentId", complianceLimiter, validateRequest({ params: objectIdParamSchema }), async (req: Request, res: Response) => {
   try {
     const { documentId } = req.params;
 
@@ -82,7 +92,7 @@ router.get("/audit-logs/:documentId", validateRequest({ params: objectIdParamSch
   }
 });
 
-router.get("/audit-export", validateRequest({ query: auditExportQuerySchema }), async (req: Request, res: Response) => {
+router.get("/audit-export", complianceLimiter, validateRequest({ query: auditExportQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { startDate, endDate, collection } = req.query as any;
 
@@ -117,7 +127,7 @@ router.get("/audit-export", validateRequest({ query: auditExportQuerySchema }), 
   }
 });
 
-router.get("/integrity-status", async (req: Request, res: Response) => {
+router.get("/integrity-status", complianceLimiter, async (req: Request, res: Response) => {
   try {
     const status = await dataIntegrityChecker.getIntegrityStatus();
 
@@ -132,7 +142,7 @@ router.get("/integrity-status", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/integrity-check", async (req: Request, res: Response) => {
+router.post("/integrity-check", complianceLimiter, async (req: Request, res: Response) => {
   try {
     const results = await dataIntegrityChecker.runFullIntegrityCheck();
 
@@ -146,7 +156,7 @@ router.post("/integrity-check", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/compliance-report", validateRequest({ query: complianceReportQuerySchema }), async (req: Request, res: Response) => {
+router.get("/compliance-report", complianceLimiter, validateRequest({ query: complianceReportQuerySchema }), async (req: Request, res: Response) => {
   try {
     const { days = 30 } = req.query as any;
     const daysNum = days as number;
@@ -224,6 +234,7 @@ router.get("/compliance-report", validateRequest({ query: complianceReportQueryS
 
 router.get(
   "/compliance-violations",
+  complianceLimiter,
   validateRequest({ query: complianceViolationsQuerySchema }),
   async (req: Request, res: Response) => {
     try {
@@ -260,7 +271,7 @@ router.get(
   }
 );
 
-router.post("/alert-test", validateRequest({ body: alertTestBodySchema }), async (req: Request, res: Response) => {
+router.post("/alert-test", complianceLimiter, validateRequest({ body: alertTestBodySchema }), async (req: Request, res: Response) => {
   try {
     const { channel = "slack" } = req.body as any;
 
@@ -284,7 +295,7 @@ router.post("/alert-test", validateRequest({ body: alertTestBodySchema }), async
   }
 });
 
-router.get("/metrics/compliance", async (req: Request, res: Response) => {
+router.get("/metrics/compliance", complianceLimiter, async (req: Request, res: Response) => {
   try {
     const lastHour = new Date(Date.now() - 3600000);
     const lastDay = new Date(Date.now() - 86400000);

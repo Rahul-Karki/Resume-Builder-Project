@@ -1,5 +1,4 @@
 import "express";
-import "passport";
 
 declare global {
   namespace Express {

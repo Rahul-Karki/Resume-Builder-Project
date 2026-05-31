@@ -1,5 +1,5 @@
 import React, { useState, ReactNode } from "react";
-import { useResumeBuilderStore } from "../../store/useResumeBuilderStore";
+import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { WorkEntry, LanguageEntry } from "@/types/resume-types";
 import styles from "./editorPanel.module.css";
 
@@ -118,52 +118,6 @@ function AddBtn({ label: l, onClick }: { label: string; onClick: () => void }) {
   );
 }
 
-// ─── Inline AI Enhance Button ──────────────────────────────────────────────────
-
-const ACTION_VERBS = [
-  "Led", "Built", "Designed", "Implemented", "Optimized", "Improved", "Launched",
-  "Created", "Managed", "Delivered", "Automated", "Developed", "Scaled", "Reduced",
-  "Increased", "Collaborated", "Architected", "Streamlined", "Spearheaded", "Engineered",
-];
-
-function getEnhancementTip(text: string): string | null {
-  if (!text.trim()) return null;
-
-  const firstWord = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
-  const isActionVerb = ACTION_VERBS.some((v) => v.toLowerCase() === firstWord);
-  const hasMetric = /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b/i.test(text);
-
-  if (!isActionVerb && !hasMetric) return "Tip: Start with an action verb (Led, Built, Optimized…) and add a measurable result (e.g., 'reduced latency by 40%').";
-  if (!isActionVerb) return `Tip: Start with a strong action verb instead of '${text.trim().split(/\s+/)[0]}'. Try: ${ACTION_VERBS[Math.floor(Math.random() * 6)]}, ${ACTION_VERBS[Math.floor(Math.random() * 6) + 6]}…`;
-  if (!hasMetric) return "Tip: Quantify the impact — add numbers, percentages, or dollar amounts (e.g., '20% improvement', '$50K savings').";
-  return null;
-}
-
-function InlineEnhanceTip({ text }: { text: string }) {
-  const [visible, setVisible] = useState(false);
-  const tip = getEnhancementTip(text);
-
-  if (!tip) return null;
-
-  return (
-    <div className={styles.enhanceTipContainer}>
-      <button
-        type="button"
-        onClick={() => setVisible(!visible)}
-        title="AI writing tip"
-        className={`${styles.enhanceBtn} ${visible ? styles.enhanceBtnVisible : styles.enhanceBtnHidden}`}
-      >
-        ✦ Enhance
-      </button>
-      {visible && (
-        <div className={styles.enhanceTooltip}>
-          {tip}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Inp({ label: l, value, onChange, placeholder, type = "text" }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
@@ -251,9 +205,6 @@ function PersonalSection() {
 function ExperienceSection() {
   const { resume, addExperience, updateExperience, removeExperience, addBullet, updateBullet, removeBullet, setFocusedField, reorderExperience } = useResumeBuilderStore();
   const experience = resume.sections.experience;
-  const [enhancingId, setEnhancingId] = useState<string | null>(null);
-  const [optimizationModal, setOptimizationModal] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   
@@ -315,46 +266,6 @@ function ExperienceSection() {
         Add Work Experience
       </button>
 
-      {optimizationModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Optimization Suggestion</h3>
-              <button onClick={() => setOptimizationModal(null)} className={styles.modalClose}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <pre className={styles.modalPre}>
-                {optimizationModal}
-              </pre>
-            </div>
-            <button
-              onClick={() => setOptimizationModal(null)}
-              className={styles.modalGotIt}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
-
-      {apiError && (
-        <div className={styles.errorToast}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <span style={{ fontSize: 13 }}>{apiError}</span>
-          <button onClick={() => setApiError(null)} style={{ cursor: "pointer", color: "rgba(255,255,255,0.7)", marginLeft: 8 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-      )}
     </div>
   );
 }

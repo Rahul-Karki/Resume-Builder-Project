@@ -41,6 +41,7 @@ const queueJobSchema = new Schema<IQueueJob>(
 
 queueJobSchema.index({ status: 1, scheduledAt: 1 });
 queueJobSchema.index({ status: 1, priority: -1, scheduledAt: 1 });
+queueJobSchema.index({ completedAt: 1 }, { expireAfterSeconds: 604800 }); // auto-remove failed jobs after 7 days
 
 const getModel = (): Model<IQueueJob> => {
   try {
@@ -63,6 +64,8 @@ export class BaseQueue<T = Record<string, unknown>> {
   private polling = false;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private recoveryDone = false;
+  private consecutiveIdlePolls = 0;
+  private currentPollIntervalMs = 1000;
 
   constructor(
     type: string,
@@ -101,22 +104,29 @@ export class BaseQueue<T = Record<string, unknown>> {
     this.recoveryDone = true;
 
     const Model = getModel();
-    const result = await Model.updateMany(
-      {
-        type: this.type,
-        status: { $in: ["pending", "processing"] },
-      },
+
+    // Reset never-started pending jobs completely
+    const pendingResult = await Model.updateMany(
+      { type: this.type, status: "pending" },
       { $set: { status: "pending", startedAt: null, attemptsMade: 0 } },
     );
 
-    if (result.modifiedCount > 0) {
+    // Recover crashed processing jobs but preserve their attempt count
+    const processingResult = await Model.updateMany(
+      { type: this.type, status: "processing" },
+      { $set: { status: "pending", startedAt: null } },
+    );
+
+    const total = pendingResult.modifiedCount + processingResult.modifiedCount;
+
+    if (total > 0) {
       logger.info(
-        { type: this.type, count: result.modifiedCount },
-        "Recovered pending queue jobs after restart",
+        { type: this.type, pendingReset: pendingResult.modifiedCount, processingRecovered: processingResult.modifiedCount },
+        "Recovered queue jobs after restart",
       );
     }
 
-    return result.modifiedCount;
+    return total;
   }
 
   start(): void {
@@ -127,17 +137,24 @@ export class BaseQueue<T = Record<string, unknown>> {
       logger.warn({ error, type: this.type }, "Queue recovery failed");
     });
 
-    this.pollTimer = setInterval(() => {
+    this.scheduleNextPoll();
+  }
+
+  private scheduleNextPoll(): void {
+    if (!this.polling) return;
+    this.pollTimer = setTimeout(() => {
       this.poll().catch((error) => {
         logger.warn({ error, type: this.type }, "Queue poll failed");
+      }).finally(() => {
+        this.scheduleNextPoll();
       });
-    }, 1000);
+    }, this.currentPollIntervalMs);
   }
 
   stop(): void {
     this.polling = false;
     if (this.pollTimer) {
-      clearInterval(this.pollTimer);
+      clearTimeout(this.pollTimer);
       this.pollTimer = null;
     }
   }
@@ -165,7 +182,18 @@ export class BaseQueue<T = Record<string, unknown>> {
       },
     );
 
-    if (!job) return;
+    if (!job) {
+      // Adaptive backoff: increase poll interval when idle, reset when busy
+      this.consecutiveIdlePolls++;
+      if (this.consecutiveIdlePolls >= 5) {
+        this.currentPollIntervalMs = Math.min(this.currentPollIntervalMs * 2, 30000);
+      }
+      return;
+    }
+
+    // Reset to fast polling when work is found
+    this.consecutiveIdlePolls = 0;
+    this.currentPollIntervalMs = 1000;
 
     this.activeCount++;
 
@@ -186,18 +214,11 @@ export class BaseQueue<T = Record<string, unknown>> {
         attemptsMade: job.attemptsMade,
       });
 
-      await getModel().updateOne(
-        { jobId: job.jobId },
-        {
-          $set: {
-            status: "completed",
-            completedAt: new Date(),
-            lastError: "",
-          },
-        },
-      );
+      // Delete completed jobs immediately to keep the collection lean.
+      // Failed jobs are retained with a TTL index on completedAt (7 days).
+      await getModel().deleteOne({ jobId: job.jobId });
 
-      logger.debug({ jobId: job.jobId, type: this.type }, "Queue job completed");
+      logger.debug({ jobId: job.jobId, type: this.type }, "Queue job completed and removed");
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
 

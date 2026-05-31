@@ -5,9 +5,18 @@ import {
   defaultSectionVisibility, defaultSectionOrder,
 } from "@/types/resume-types";
 import { normalizeResumeTemplateId } from "@/utils/resumeTemplate";
-import { getTemplateBaseStyle } from "../templateConfig";
+import { getTemplateBaseStyle } from "@/store/templateConfig";
 
 const uid = () => window.crypto.randomUUID().slice(0, 8);
+
+interface DocumentSliceState {
+  resume: ResumeDocument;
+  ui: {
+    isDirty: boolean;
+    isSaved: boolean;
+    activeSection?: string;
+  };
+}
 
 export const initialResume: ResumeDocument = {
   title: "Untitled Resume",
@@ -59,27 +68,27 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
   return {
     resume: { ...initialResume, personalInfo: { ...defaultPersonalInfo }, sections: { ...defaultResumeSections }, style: { ...defaultStyle }, sectionOrder: [...defaultSectionOrder], sectionVisibility: { ...defaultSectionVisibility } },
 
-    markDirty: () => set((state: any) => { state.ui.isDirty = true; state.ui.isSaved = false; }),
+    markDirty: () => set((state: DocumentSliceState) => { state.ui.isDirty = true; state.ui.isSaved = false; }),
 
-    updatePersonalInfo: (field, value) => set((state: any) => {
+    updatePersonalInfo: (field, value) => set((state: DocumentSliceState) => {
       state.resume.personalInfo[field] = value;
       state.ui.isDirty = true;
       state.ui.isSaved = false;
     }),
 
-    updateStyle: (field, value) => set((state: any) => {
+    updateStyle: (field, value) => set((state: DocumentSliceState) => {
       (state.resume.style as Record<string, string | boolean>)[field] = value;
       state.ui.isDirty = true;
       state.ui.isSaved = false;
     }),
 
-    resetStyle: () => set((state: any) => {
+    resetStyle: () => set((state: DocumentSliceState) => {
       state.resume.style = { ...getTemplateBaseStyle(normalizeResumeTemplateId(state.resume.templateId)) };
       state.ui.isDirty = true;
       state.ui.isSaved = false;
     }),
 
-    addExperience: () => set((state: any) => {
+    addExperience: () => set((state: DocumentSliceState) => {
       const newEntry: WorkEntry = {
         id: uid(), company: "", role: "", start: "", end: "",
         location: "", current: false, contentMode: "bullets", description: "", bullets: [""],
@@ -90,167 +99,167 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
       state.ui.activeSection = "experience";
     }),
 
-    updateExperience: (id, field, value) => set((state: any) => {
+    updateExperience: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.experience.find((e: any) => e.id === id);
       if (entry) (entry as Record<string, unknown>)[field] = value;
       state.ui.isDirty = true;
       state.ui.isSaved = false;
     }),
 
-    removeExperience: (id) => set((state: any) => {
+    removeExperience: (id) => set((state: DocumentSliceState) => {
       state.resume.sections.experience = state.resume.sections.experience.filter((e: any) => e.id !== id);
       if (state.resume.sections.experience.length === 0) state.resume.sectionVisibility.experience = false;
       state.ui.isDirty = true;
     }),
 
-    addBullet: (expId) => set((state: any) => {
+    addBullet: (expId) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.experience.find((e: any) => e.id === expId);
       if (entry) entry.bullets.push("");
       state.ui.isDirty = true;
     }),
 
-    updateBullet: (expId, index, value) => set((state: any) => {
+    updateBullet: (expId, index, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.experience.find((e: any) => e.id === expId);
       if (entry && index >= 0 && index < entry.bullets.length) entry.bullets[index] = value;
       state.ui.isDirty = true;
     }),
 
-    removeBullet: (expId, index) => set((state: any) => {
+    removeBullet: (expId, index) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.experience.find((e: any) => e.id === expId);
       if (entry) entry.bullets = entry.bullets.filter((_: any, i: number) => i !== index);
       state.ui.isDirty = true;
     }),
 
-    reorderExperience: (fromIdx, toIdx) => set((state: any) => {
+    reorderExperience: (fromIdx, toIdx) => set((state: DocumentSliceState) => {
       const arr = state.resume.sections.experience;
       if (fromIdx < 0 || fromIdx >= arr.length || toIdx < 0 || toIdx >= arr.length) return;
       const [item] = arr.splice(fromIdx, 1);
       arr.splice(toIdx, 0, item);
     }),
 
-    addEducation: () => set((state: any) => {
+    addEducation: () => set((state: DocumentSliceState) => {
       state.resume.sections.education.push({ id: uid(), institution: "", degree: "", field: "", year: "", cgpa: "" });
       state.resume.sectionVisibility.education = true;
       state.ui.isDirty = true;
       state.ui.activeSection = "education";
     }),
 
-    updateEducation: (id, field, value) => set((state: any) => {
+    updateEducation: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.education.find((e: any) => e.id === id);
       if (entry) (entry as Record<string, unknown>)[field] = value;
       state.ui.isDirty = true;
     }),
 
-    removeEducation: (id) => set((state: any) => {
+    removeEducation: (id) => set((state: DocumentSliceState) => {
       state.resume.sections.education = state.resume.sections.education.filter((e: any) => e.id !== id);
       if (state.resume.sections.education.length === 0) state.resume.sectionVisibility.education = false;
       state.ui.isDirty = true;
     }),
 
-    addSkillGroup: () => set((state: any) => {
+    addSkillGroup: () => set((state: DocumentSliceState) => {
       state.resume.sections.skills.push({ id: uid(), category: "Skills", items: [] });
       state.resume.sectionVisibility.skills = true;
       state.ui.isDirty = true;
       state.ui.activeSection = "skills";
     }),
 
-    updateSkillGroup: (id, field, value) => set((state: any) => {
+    updateSkillGroup: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.skills.find((sk: any) => sk.id === id);
       if (entry) (entry as Record<string, unknown>)[field] = value;
       state.ui.isDirty = true;
     }),
 
-    removeSkillGroup: (id) => set((state: any) => {
+    removeSkillGroup: (id) => set((state: DocumentSliceState) => {
       state.resume.sections.skills = state.resume.sections.skills.filter((sk: any) => sk.id !== id);
       if (state.resume.sections.skills.length === 0) state.resume.sectionVisibility.skills = false;
       state.ui.isDirty = true;
     }),
 
-    addProject: () => set((state: any) => {
+    addProject: () => set((state: DocumentSliceState) => {
       state.resume.sections.projects.push({ id: uid(), name: "", contentMode: "paragraph", description: "", bullets: [""], tech: "", link: "" });
       state.resume.sectionVisibility.projects = true;
       state.ui.isDirty = true;
       state.ui.activeSection = "projects";
     }),
 
-    updateProject: (id, field, value) => set((state: any) => {
+    updateProject: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.projects.find((p: any) => p.id === id);
       if (entry) (entry as Record<string, unknown>)[field] = value;
       state.ui.isDirty = true;
     }),
 
-    addProjectBullet: (projectId) => set((state: any) => {
+    addProjectBullet: (projectId) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.projects.find((p: any) => p.id === projectId);
       if (entry) entry.bullets.push("");
       state.ui.isDirty = true;
     }),
 
-    updateProjectBullet: (projectId, index, value) => set((state: any) => {
+    updateProjectBullet: (projectId, index, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.projects.find((p: any) => p.id === projectId);
       if (entry && index >= 0 && index < entry.bullets.length) entry.bullets[index] = value;
       state.ui.isDirty = true;
     }),
 
-    removeProjectBullet: (projectId, index) => set((state: any) => {
+    removeProjectBullet: (projectId, index) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.projects.find((p: any) => p.id === projectId);
       if (entry) entry.bullets = entry.bullets.filter((_: any, i: number) => i !== index);
       state.ui.isDirty = true;
     }),
 
-    removeProject: (id) => set((state: any) => {
+    removeProject: (id) => set((state: DocumentSliceState) => {
       state.resume.sections.projects = state.resume.sections.projects.filter((p: any) => p.id !== id);
       if (state.resume.sections.projects.length === 0) state.resume.sectionVisibility.projects = false;
       state.ui.isDirty = true;
     }),
 
-    addCertification: () => set((state: any) => {
+    addCertification: () => set((state: DocumentSliceState) => {
       state.resume.sections.certifications.push({ id: uid(), name: "", issuer: "", year: "", url: "" });
       state.resume.sectionVisibility.certifications = true;
       state.ui.isDirty = true;
     }),
 
-    updateCertification: (id, field, value) => set((state: any) => {
+    updateCertification: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.certifications.find((c: any) => c.id === id);
       if (entry) (entry as Record<string, unknown>)[field] = value;
       state.ui.isDirty = true;
     }),
 
-    removeCertification: (id) => set((state: any) => {
+    removeCertification: (id) => set((state: DocumentSliceState) => {
       state.resume.sections.certifications = state.resume.sections.certifications.filter((c: any) => c.id !== id);
       if (state.resume.sections.certifications.length === 0) state.resume.sectionVisibility.certifications = false;
       state.ui.isDirty = true;
     }),
 
-    addLanguage: () => set((state: any) => {
+    addLanguage: () => set((state: DocumentSliceState) => {
       state.resume.sections.languages.push({ id: uid(), language: "", proficiency: "Fluent" });
       state.resume.sectionVisibility.languages = true;
       state.ui.isDirty = true;
     }),
 
-    updateLanguage: (id, field, value) => set((state: any) => {
+    updateLanguage: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.languages.find((l: any) => l.id === id);
       if (entry) (entry as Record<string, unknown>)[field] = value;
       state.ui.isDirty = true;
     }),
 
-    removeLanguage: (id) => set((state: any) => {
+    removeLanguage: (id) => set((state: DocumentSliceState) => {
       state.resume.sections.languages = state.resume.sections.languages.filter((l: any) => l.id !== id);
       if (state.resume.sections.languages.length === 0) state.resume.sectionVisibility.languages = false;
       state.ui.isDirty = true;
     }),
 
-    toggleSectionVisibility: (section) => set((state: any) => {
+    toggleSectionVisibility: (section) => set((state: DocumentSliceState) => {
       state.resume.sectionVisibility[section] = !state.resume.sectionVisibility[section];
       state.ui.isDirty = true;
     }),
 
-    reorderSections: (fromIdx, toIdx) => set((state: any) => {
+    reorderSections: (fromIdx, toIdx) => set((state: DocumentSliceState) => {
       const arr = state.resume.sectionOrder;
       if (fromIdx < 0 || fromIdx >= arr.length || toIdx < 0 || toIdx >= arr.length) return;
       const [item] = arr.splice(fromIdx, 1);
       arr.splice(toIdx, 0, item);
     }),
 
-    setTitle: (title) => set((state: any) => { state.resume.title = title; state.ui.isDirty = true; }),
+    setTitle: (title) => set((state: DocumentSliceState) => { state.resume.title = title; state.ui.isDirty = true; }),
   };
 }

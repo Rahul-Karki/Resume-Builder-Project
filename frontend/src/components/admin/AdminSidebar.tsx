@@ -1,5 +1,5 @@
-import { AdminPage, NAV_ITEMS } from "../../types/admin.types";
-import { Logo } from "../Logo";
+import { AdminPage, NAV_ITEMS } from "@/types/admin.types";
+import { Logo } from "@/components/Logo";
 
 interface Props {
   activePage: AdminPage;
