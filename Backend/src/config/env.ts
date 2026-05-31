@@ -24,6 +24,9 @@ const baseEnvSchema = z.object({
   FRONTEND_URL: z.string().url("FRONTEND_URL must be a valid URL"),
   FRONTEND_URLS: z.string().optional().default(""),
   BACKEND_URL: z.string().url().optional().default(""),
+  BOOTSTRAP_ADMIN_EMAIL: z.string().optional().default(""),
+  BOOTSTRAP_ADMIN_PASSWORD: z.string().optional().default(""),
+  BOOTSTRAP_ADMIN_NAME: z.string().optional().default(""),
   JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
   JWT_ACCESS_SECRET_NEW: z.string().optional().default(""),
   JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
@@ -148,6 +151,9 @@ const envSchema = baseEnvSchema
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
+    BOOTSTRAP_ADMIN_EMAIL: value.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase(),
+    BOOTSTRAP_ADMIN_PASSWORD: value.BOOTSTRAP_ADMIN_PASSWORD,
+    BOOTSTRAP_ADMIN_NAME: value.BOOTSTRAP_ADMIN_NAME.trim(),
     OTEL_INSTANCE_ID: value.OTEL_INSTANCE_ID.trim(),
     GRAFANA_LOKI_URL: value.GRAFANA_LOKI_URL.trim(),
     LOKI_INSTANCE_ID: value.LOKI_INSTANCE_ID.trim(),

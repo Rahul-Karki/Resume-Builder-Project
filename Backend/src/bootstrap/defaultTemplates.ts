@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
 import Template, { ITemplate } from "../models/Template";
 import User from "../models/User";
 import { UserRole } from "../enums/userRole";
@@ -18,6 +19,9 @@ type DefaultTemplateDefinition = {
   cssVars: Partial<ITemplate["cssVars"]>;
   slots: Partial<ITemplate["slots"]>;
 };
+
+const BOOTSTRAP_ADMIN_EMAIL = "admin@local.seed";
+const BOOTSTRAP_ADMIN_NAME = "Bootstrap Admin";
 
 const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
   {
@@ -428,8 +432,30 @@ export async function ensureDefaultTemplatesInBackend(): Promise<void> {
       adminId = String(anyUser._id);
       logger.info("No admin user found — seeding templates with first available user as creator");
     } else {
-      adminId = new mongoose.Types.ObjectId().toString();
-      logger.warn("No users exist — seeding templates with generated placeholder createdBy");
+      const bootstrapAdminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase() || BOOTSTRAP_ADMIN_EMAIL;
+      const bootstrapAdminName = process.env.BOOTSTRAP_ADMIN_NAME?.trim() || BOOTSTRAP_ADMIN_NAME;
+      const bootstrapAdminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD?.trim() || "";
+
+      const bootstrapAdmin = bootstrapAdminPassword
+        ? await User.create({
+            name: bootstrapAdminName,
+            email: bootstrapAdminEmail,
+            password: await bcrypt.hash(bootstrapAdminPassword, 10),
+            role: UserRole.ADMIN,
+            authProvider: ["local"],
+            emailVerified: true,
+          })
+        : await User.create({
+            name: bootstrapAdminName,
+            email: bootstrapAdminEmail,
+            role: UserRole.ADMIN,
+            authProvider: ["google"],
+            emailVerified: true,
+            googleId: `bootstrap-admin-${new mongoose.Types.ObjectId().toString()}`,
+          });
+
+      adminId = String(bootstrapAdmin._id);
+          logger.info({ userId: adminId, hasLocalPassword: Boolean(bootstrapAdminPassword) }, "No users exist — seeded bootstrap admin account for dashboard bootstrap");
     }
   }
   let insertedCount = 0;

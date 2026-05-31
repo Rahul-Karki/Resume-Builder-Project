@@ -23,7 +23,7 @@ describe("useDashboardStats", () => {
       createElement(QueryClientProvider, { client: queryClient }, children);
   };
 
-  it("falls back to demo data when the backend returns an empty dashboard", async () => {
+  it("returns live empty data when the backend has no analytics", async () => {
     mockApi.get
       .mockResolvedValueOnce({ data: { ok: true, data: { totalUsers: 0, totalTemplates: 0, publishedTemplates: 0, draftTemplates: 0, premiumTemplates: 0, totalUsesThisWeek: 0, totalUsesThisMonth: 0, mostUsed: null, leastUsed: null } } })
       .mockResolvedValueOnce({ data: { ok: true, data: [] } });
@@ -33,8 +33,8 @@ describe("useDashboardStats", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data?.isDemoData).toBe(true);
-    expect(result.current.data?.stats.totalUsers).toBe(248);
-    expect(result.current.data?.analytics.length).toBeGreaterThan(0);
+    expect(result.current.data?.stats.totalUsers).toBe(0);
+    expect(result.current.data?.stats.totalTemplates).toBe(0);
+    expect(result.current.data?.analytics).toEqual([]);
   });
 });
