@@ -65,11 +65,14 @@ const startServer = async () => {
     );
 
     // Initialize keep-alive service after server is running
+    // Only enabled when ENABLE_KEEP_ALIVE=true is explicitly set
+    if (process.env.ENABLE_KEEP_ALIVE === "true") {
       keepAliveService.initialize({
         url: env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || process.env.RENDER_SERVICE_URL || undefined,
-      port: PORT,
-      enabled: env.NODE_ENV === "production" || process.env.ENABLE_KEEP_ALIVE === "true",
-    });
+        port: PORT,
+        enabled: true,
+      });
+    }
   });
 
   let isShuttingDown = false;
