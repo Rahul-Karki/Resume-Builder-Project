@@ -6,7 +6,6 @@ import {
   A4_HEIGHT_PX,
   A4_WIDTH_PX,
   buildPageOffsetsFromElement,
-  getEffectivePageHeight,
   parsePageMarginTop,
 } from "@/utils/resumePagination";
 import { ResumePage } from "@/components/builder/ResumePage";
@@ -37,11 +36,6 @@ export function PaginatedResumePreview({
   const pageMarginTop = useMemo(
     () => parsePageMarginTop(marginMap[resume.style.pageMargin]),
     [resume.style.pageMargin],
-  );
-
-  const effectivePageHeight = useMemo(
-    () => getEffectivePageHeight(pageMarginTop),
-    [pageMarginTop],
   );
 
   useEffect(() => {
@@ -162,24 +156,12 @@ export function PaginatedResumePreview({
                 position: "relative",
               }}
             >
-              {!isFirstPage && (
-                <div
-                  style={{
-                    width: A4_WIDTH_PX,
-                    height: pageMarginTop,
-                    background: resume.style.backgroundColor,
-                  }}
-                />
-              )}
               <div
                 data-page-slice="true"
                 data-page-index={index}
                 style={{
                   width: A4_WIDTH_PX,
-                  height: Math.min(
-                    isFirstPage ? A4_HEIGHT_PX : effectivePageHeight,
-                    sliceHeight,
-                  ),
+                  height: Math.min(A4_HEIGHT_PX, sliceHeight),
                   overflow: "hidden",
                 }}
               >
@@ -193,15 +175,6 @@ export function PaginatedResumePreview({
                   <ResumeRenderer resume={resume} />
                 </div>
               </div>
-              {!isLastPage && pageMarginTop > 0 && (
-                <div
-                  style={{
-                    width: A4_WIDTH_PX,
-                    height: pageMarginTop,
-                    background: resume.style.backgroundColor,
-                  }}
-                />
-              )}
             </div>
           </ResumePage>
         );
