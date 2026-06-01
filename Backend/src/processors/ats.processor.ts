@@ -790,9 +790,11 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
   const userPrompt = [buildEnhancedAtsUserPrompt(resumeSnippet, jobDescription), `TARGET ROLE: ${targetRole}`, `EXISTING KEYWORDS: ${job.data.keywords.join(", ")}`, `PREVIOUS SCORE: ${job.data.previousOverallScore ?? "none"}`].join("\n\n");
   const providers = getProviderOrder();
   if (providers.length === 0) return { report: base, aiUsed: false };
-  const timeoutMs = 15000;
+  const baseTimeout = env.AI_REQUEST_TIMEOUT_MS;
+  const openrouterTimeout = Math.max(baseTimeout, 30000);
   let lastError: unknown;
   for (const provider of providers) {
+    const timeoutMs = provider === "openrouter" ? openrouterTimeout : baseTimeout;
     try {
       const raw = await withTimeout(timeoutMs, async (signal) => {
         if (provider === "openai") return await callOpenAIJson(systemPrompt, userPrompt, signal);
