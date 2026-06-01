@@ -38,11 +38,19 @@ function collectBreakCandidates(root: HTMLElement): number[] {
   };
 
   const selectors = [
+    /* Entry wrappers */
     "[class*='job']", "[class*='entry']", "[class*='item']",
     "[class*='project']", "[data-pagination-entry]",
+    /* Section wrappers and headings */
     "[class*='section']", "[class*='sec-']", "section",
     "h1", "h2", "h3", "h4", "h5", "h6",
-    "[class*='section-title']", "[class*='heading']",
+    "[class*='section-title']", "[class*='heading']", "[class*='label']",
+    /* Fine-grained content blocks inside entries */
+    "li", "p",
+    "[class*='bullet']", "[class*='desc']", "[class*='body']",
+    "[class*='head']", "[class*='sub']",
+    "[class*='company']", "[class*='role']", "[class*='date']",
+    "[class*='location']", "[class*='school']", "[class*='degree']",
   ].join(",");
 
   root.querySelectorAll(selectors).forEach((node) => {
