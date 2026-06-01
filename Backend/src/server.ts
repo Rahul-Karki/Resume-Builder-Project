@@ -5,6 +5,7 @@ import { env } from "./config/env";
 import { logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { closeRedisClient, getCacheProvider, warmupCacheBackend } from "./utils/redis";
 import { ensureDefaultTemplatesInBackend } from "./bootstrap/defaultTemplates";
+import { invalidateRedisCache, redisCacheScopes } from "./middleware/redisCache";
 import { createAllIndexes } from "./config/indexes";
 import { runMigrations } from "./migrations/runner";
 import app from "./app";
@@ -33,6 +34,13 @@ const startServer = async () => {
   dataIntegrityChecker.startPeriodicChecks(env.INTEGRITY_CHECK_INTERVAL_MS || 3600000);
   
   await ensureDefaultTemplatesInBackend();
+
+  // Invalidate admin dashboard/analytics caches on every restart so stale
+  // zero responses from a previous empty-database session aren't served.
+  await invalidateRedisCache([
+    redisCacheScopes.adminDashboard,
+    redisCacheScopes.adminAnalytics,
+  ]);
 
   // Start persistent job queues and recover any pending jobs from before restart
   const atsRecovered = await recoverAtsJobs();
