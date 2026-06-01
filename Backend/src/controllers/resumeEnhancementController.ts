@@ -61,8 +61,9 @@ export const analyzeAts = wrapController(async (req, res) => {
     return;
   }
 
-  // Enforce AI credits before processing
-  if (env.AI_CREDITS_ENFORCED) {
+  // Enforce AI credits before processing (only if AI will actually be used)
+  const aiConfigured = Boolean(env.OPENAI_API_KEY || env.GEMINI_API_KEY || env.OPENROUTER_API_KEY);
+  if (env.AI_CREDITS_ENFORCED && aiConfigured) {
     const estimatedCredits = req.creditContext?.estimatedCredits ?? 0;
     await assertAiCreditsAvailable(userId, estimatedCredits);
   }
@@ -114,14 +115,15 @@ export const analyzeAts = wrapController(async (req, res) => {
 
   const analysisResult = await processAtsAnalysisJob(job as any);
 
-  // Deduct credits after successful analysis
+  // Deduct credits only when AI was actually used
   let deducted = 0;
   let creditUser = null;
-  if (env.AI_CREDITS_ENFORCED) {
+  const aiWasUsed = (analysisResult as any)?.aiUsed === true;
+  if (env.AI_CREDITS_ENFORCED && aiWasUsed) {
     const estimatedCredits = req.creditContext?.estimatedCredits ?? 0;
     creditUser = await deductAiCredits(userId, estimatedCredits);
     deducted = estimatedCredits;
-  } else {
+  } else if (aiWasUsed) {
     creditUser = await refreshAiCreditsIfNeeded(userId);
   }
 

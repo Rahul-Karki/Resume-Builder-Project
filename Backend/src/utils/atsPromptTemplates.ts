@@ -14,7 +14,6 @@ const readPromptFile = (fileName: string) => {
       return readFileSync(candidate, "utf8");
     }
   }
-
   return null;
 };
 
@@ -411,10 +410,6 @@ const DEFAULT_ENHANCED_ATS_RESCORE_PROMPT = [
 
 const enhancedPromptSource = readPromptFile("enhanced_ats_prompt.py");
 
-if (!enhancedPromptSource) {
-  console.warn("[backend] ATS prompt template file not found: enhanced_ats_prompt.py. Using built-in fallback prompts.");
-}
-
 export const ENHANCED_ATS_SYSTEM_PROMPT = enhancedPromptSource
   ? (extractPromptConstant(enhancedPromptSource, "ENHANCED_ATS_SYSTEM_PROMPT") ?? DEFAULT_ENHANCED_ATS_SYSTEM_PROMPT)
   : DEFAULT_ENHANCED_ATS_SYSTEM_PROMPT;
@@ -426,6 +421,9 @@ export const ENHANCED_ATS_SCORING_PROMPT = enhancedPromptSource
 export const ENHANCED_ATS_RESCORE_PROMPT = enhancedPromptSource
   ? (extractPromptConstant(enhancedPromptSource, "ENHANCED_ATS_RESCORE_PROMPT") ?? DEFAULT_ENHANCED_ATS_RESCORE_PROMPT)
   : DEFAULT_ENHANCED_ATS_RESCORE_PROMPT;
+
+/** Whether the optimized prompt file (enhanced_ats_prompt.py) was found and loaded. */
+export const isOptimizedPromptAvailable = Boolean(enhancedPromptSource);
 
 export const buildEnhancedAtsUserPrompt = (resumeText: string, jobDescription: string, roleTitle: string = "") =>
   ENHANCED_ATS_SCORING_PROMPT

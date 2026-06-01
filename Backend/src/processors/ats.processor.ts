@@ -6,7 +6,7 @@ import Resume from "../models/Resume";
 import { analyzeGrammarIssues } from "./grammarAnalysis.processor";
 import { analyzeKeywordMatch } from "./jdMatch.processor";
 import { env } from "../config/env";
-import { buildEnhancedAtsUserPrompt, ENHANCED_ATS_SYSTEM_PROMPT } from "../utils/atsPromptTemplates";
+import { buildEnhancedAtsUserPrompt, ENHANCED_ATS_SYSTEM_PROMPT, isOptimizedPromptAvailable } from "../utils/atsPromptTemplates";
 
 const ACTION_VERBS = new Set([
   "built", "designed", "led", "implemented", "optimized", "improved", "launched", "created", "managed", "delivered",
@@ -831,7 +831,7 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
       const prevScore = job.data.previousOverallScore;
       const report: AtsAnalysisReport = {
         ...base, ...(prevScore != null ? { previousOverallScore: Number(prevScore) } : {}),
-        grade: enhancement.grade, targetKeywords: mergedKeywords, matchScore: keywordResult.matchScore,
+        isOptimizedPrompt: isOptimizedPromptAvailable, aiUsed: true, grade: enhancement.grade, targetKeywords: mergedKeywords, matchScore: keywordResult.matchScore,
         keywordAnalysis: keywordResult.analysis, sectionScores: mergedSectionScores, overallScore,
         rewriteSuggestions, perSectionSuggestions, sectionAudit: enhancement.sectionAudit,
         actionPlan: enhancement.actionPlan, quickWins: enhancement.quickWins,
@@ -1389,6 +1389,7 @@ const buildAtsReport = (job: { id: string; data: AtsAnalysisJobData }): AtsAnaly
     targetKeywords: keywords, overallScore: sectionScores.overall, matchScore: keywordResult.matchScore,
     sectionScores, keywordAnalysis: keywordResult.analysis, grammarIssues, formattingChecks,
     rewriteSuggestions, keywordGaps, recruiterImpression, strengths, weaknesses, priorityFixes,
+    isOptimizedPrompt: isOptimizedPromptAvailable, aiUsed: false,
     verdict: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
     summary: buildReportSummary(job.data.jobTitle, sectionScores.overall, keywordResult.matchScore, keywordResult.analysis.missingKeywords),
     analyzedAt: new Date().toISOString(),

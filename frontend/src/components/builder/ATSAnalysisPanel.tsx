@@ -405,6 +405,33 @@ export function ATSAnalysisPanel() {
               </div>
             </div>
 
+            {/* AI Source Indicator */}
+            <div style={{ padding: "0 18px 10px" }}>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: report.aiUsed
+                  ? (report.isOptimizedPrompt ? "rgba(34,197,94,0.1)" : "rgba(234,179,8,0.1)")
+                  : "rgba(113,113,122,0.1)",
+                border: `1px solid ${report.aiUsed ? (report.isOptimizedPrompt ? "rgba(34,197,94,0.2)" : "rgba(234,179,8,0.2)") : "rgba(113,113,122,0.2)"}`,
+                color: report.aiUsed ? (report.isOptimizedPrompt ? "#86efac" : "#fde047") : "#a1a1aa",
+              }}>
+                {report.aiUsed ? (
+                  report.isOptimizedPrompt ? (
+                    <>AI-powered with optimized prompt · Best results</>
+                  ) : (
+                    <>AI-powered with generic prompt · Install optimized prompt file for better accuracy</>
+                  )
+                ) : (
+                  report.isOptimizedPrompt ? (
+                    <>Optimized prompt available but AI unavailable · Check API key configuration</>
+                  ) : (
+                    <>Rule-based analysis · No AI configured</>
+                  )
+                )}
+              </div>
+            </div>
+
             {/* Category Scores (v2 format) */}
             {report.categoryScores && (
               <div style={{ padding: "0 18px 10px", display: "flex", gap: 8, flexWrap: "wrap" }}>

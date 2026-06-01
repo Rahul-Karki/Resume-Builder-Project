@@ -357,6 +357,8 @@ export type AtsAnalysisReport = {
   weaknesses?: string[];
   priorityFixes?: string[] | AtsPriorityFix[];
   formattingFixes?: AtsFormattingFix[];
+  isOptimizedPrompt?: boolean;
+  aiUsed?: boolean;
   categoryScores?: AtsCategoryScores;
   formatIssues?: AtsFormatIssue[];
   contentImprovements?: AtsContentImprovement[];
