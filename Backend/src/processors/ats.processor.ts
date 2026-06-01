@@ -292,7 +292,7 @@ const callOpenAIJson = async (systemPrompt: string, userPrompt: string, signal: 
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
     },
     signal,
     body: JSON.stringify({
@@ -322,7 +322,7 @@ const callOpenRouterJson = async (systemPrompt: string, userPrompt: string, sign
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
           "HTTP-Referer": "https://resume-builder-project-3h9o.vercel.app",
           "X-Title": "Resume Builder",
         },
