@@ -287,7 +287,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       const host = previewHostRef.current;
       if (!host) return;
 
-      const maxW = host.clientWidth - 12;
+      const maxW = host.clientWidth - (isMobile ? 48 : 12);
       if (maxW <= 0) return;
 
       const fitScale = Math.min(maxW / A4_WIDTH_PX, 1.15);
