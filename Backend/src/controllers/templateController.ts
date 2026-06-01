@@ -238,8 +238,17 @@ export const reorderTemplates = wrapController(async (req, res) => {
 }, "template.reorderTemplates");
 
 export const getDashboardStats = wrapController(async (req, res) => {
-  const stats = await TemplateService.getDashboardStats();
-  logger.info({ userId: req.user?.id }, "Dashboard stats fetched");
+  let stats = await TemplateService.getDashboardStats();
+
+  // Auto-seed default templates if the catalog is empty
+  if (stats.totalTemplates === 0) {
+    logger.info("Dashboard: template catalog empty — triggering default template bootstrap");
+    await ensureDefaultTemplatesInBackend();
+    await invalidateTemplateAnalyticsCaches();
+    stats = await TemplateService.getDashboardStats();
+  }
+
+  logger.info({ userId: req.user?.id, totalTemplates: stats.totalTemplates, totalUsers: stats.totalUsers }, "Dashboard stats fetched");
   return sendSuccess(res, stats);
 }, "template.getDashboardStats");
 
