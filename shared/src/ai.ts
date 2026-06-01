@@ -19,7 +19,6 @@ export type AiSuggestion = {
   path?: string;
   priority?: AiSuggestionPriority;
   atsImpact?: string;
-  autoApply?: AutoApplyPayload;
   scoreDelta?: number;
   appliedStatus?: "pending" | "applied" | "rolled_back";
   clickToApply?: ClickToApply;
@@ -167,14 +166,163 @@ export type RecruiterImpression = {
   interviewProbability: number;
 };
 
-export type AutoApplyPayload = {
-  section: AtsSectionKey;
-  type: "bullet_improvement" | "summary_rewrite" | "skill_add" | "section_reorder" | "grammar_fix" | "keyword_insertion" | "quantify" | "formatting_fix" | "action_verb_improvement" | "achievement_rewrite";
-  field?: string;
-  index?: number;
-  replaceWith: string;
-  oldText: string;
+// ── Enhanced ATS Types ─────────────────────────────────────────
+
+export type SectionScoreDetail = {
+  atsScore: number;
+  qualityScore: number;
+  completenessScore: number;
+  keywordRelevanceScore: number;
+  recruiterEffectivenessScore: number;
 };
+
+export type ExpandendSectionKey = AtsSectionKey | "header" | "contact_info" | "achievements" | "interests" | "links" | "portfolio" | "publications" | "volunteer";
+
+export type SectionWiseAnalysis = {
+  section: ExpandendSectionKey;
+  label: string;
+  scores: SectionScoreDetail;
+  isPresent: boolean;
+  isEmpty: boolean;
+  isPlaceholder: boolean;
+  wordCount: number;
+  bulletCount?: number;
+  strengths: string[];
+  weaknesses: string[];
+  suggestions: string[];
+  missingElements: string[];
+};
+
+export type BulletAnalysis = {
+  text: string;
+  hasStrongVerb: boolean;
+  hasMetric: boolean;
+  hasLeadershipIndicator: boolean;
+  hasBusinessImpact: boolean;
+  isGeneric: boolean;
+  isPassive: boolean;
+  suggestedImprovement: string;
+};
+
+export type ExperienceAnalysis = {
+  entryCount: number;
+  totalBullets: number;
+  strongVerbRatio: number;
+  quantifiedRatio: number;
+  leadershipRatio: number;
+  genericBulletCount: number;
+  passiveVoiceCount: number;
+  averageBulletLength: number;
+  bulletAnalyses: BulletAnalysis[];
+  topActionVerbs: string[];
+  weakVerbsDetected: string[];
+  missingElements: string[];
+  suggestions: string[];
+};
+
+export type ProjectAnalysis = {
+  entryCount: number;
+  hasLinks: boolean;
+  hasDeploymentLinks: boolean;
+  hasGithubLinks: boolean;
+  technicalDepthScore: number;
+  hasMeasurableImpact: boolean;
+  isTutorialLevel: boolean;
+  technologiesUsed: string[];
+  missingElements: string[];
+  suggestions: string[];
+};
+
+export type SkillCategorization = {
+  category: string;
+  skills: string[];
+  relevance: "high" | "medium" | "low";
+  isOutdated: boolean;
+  suggestions: string[];
+};
+
+export type SkillsAnalysis = {
+  totalSkills: number;
+  categorized: SkillCategorization[];
+  redundantSkills: string[];
+  outdatedTechnologies: string[];
+  modernAlternatives: Array<{ old: string; modern: string }>;
+  missingCriticalSkills: string[];
+  categorizationScore: number;
+  suggestions: string[];
+};
+
+export type RoleMatchAnalysis = {
+  roleTitle: string;
+  matchPercentage: number;
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  weakKeywords: string[];
+  experienceLevelMatch: "junior" | "mid" | "senior" | "lead" | "executive";
+  suggestedRoles: string[];
+  industryFit: string;
+  suggestions: string[];
+};
+
+export type KeywordDensity = {
+  keyword: string;
+  count: number;
+  density: number;
+  suggestedMinCount: number;
+  status: "good" | "low" | "overused";
+};
+
+export type ContentQualityAnalysis = {
+  overallQuality: "excellent" | "good" | "average" | "poor";
+  clarityScore: number;
+  concisenessScore: number;
+  impactScore: number;
+  professionalismScore: number;
+  grammarQuality: number;
+  issues: string[];
+  suggestions: string[];
+};
+
+export type RecruiterFeedback = {
+  firstImpression: string;
+  shortlistingProbability: number;
+  technicalCredibility: "low" | "medium" | "high";
+  leadershipImpression: "low" | "medium" | "high";
+  resumeProfessionalism: "low" | "medium" | "high";
+  clarityScore: number;
+  detailFeedback: string;
+  strengths: string[];
+  concerns: string[];
+};
+
+export type IndustryCheck = {
+  industry: string;
+  checks: Array<{
+    name: string;
+    passed: boolean;
+    importance: "critical" | "important" | "nice-to-have";
+    details: string;
+  }>;
+};
+
+export type AtsWarning = {
+  type: "missing_section" | "empty_section" | "weak_content" | "missing_field" | "formatting" | "keyword" | "experience" | "education";
+  severity: "critical" | "warning" | "info";
+  section: ExpandendSectionKey;
+  message: string;
+  suggestion: string;
+};
+
+export type AtsRecommendation = {
+  priority: "P0" | "P1" | "P2";
+  category: "content" | "formatting" | "keywords" | "sections" | "experience" | "skills" | "education" | "projects";
+  title: string;
+  description: string;
+  expectedImpact: string;
+  effort: "low" | "medium" | "high";
+};
+
+// ── Enhanced AtsAnalysisReport ─────────────────────────────────
 
 export type AtsAnalysisReport = {
   jobId?: string;
@@ -208,13 +356,24 @@ export type AtsAnalysisReport = {
   strengths?: string[];
   weaknesses?: string[];
   priorityFixes?: string[] | AtsPriorityFix[];
-  autoApplyActions?: AutoApplyPayload[];
   formattingFixes?: AtsFormattingFix[];
-  /** New v2 format fields */
   categoryScores?: AtsCategoryScores;
   formatIssues?: AtsFormatIssue[];
   contentImprovements?: AtsContentImprovement[];
   sectionAnalysis?: AtsSectionAnalysis[];
+
+  // ── Enhanced fields ──
+  sectionWiseAnalysis?: SectionWiseAnalysis[];
+  experienceAnalysis?: ExperienceAnalysis;
+  projectsAnalysis?: ProjectAnalysis;
+  skillsAnalysis?: SkillsAnalysis;
+  roleMatchAnalysis?: RoleMatchAnalysis;
+  keywordDensity?: KeywordDensity[];
+  contentQualityAnalysis?: ContentQualityAnalysis;
+  recruiterFeedback?: RecruiterFeedback;
+  industryChecks?: IndustryCheck[];
+  warnings?: AtsWarning[];
+  recommendations?: AtsRecommendation[];
 };
 
 export const AI_TONE_OPTIONS: AiTone[] = ["professional", "concise", "technical", "leadership-focused"];

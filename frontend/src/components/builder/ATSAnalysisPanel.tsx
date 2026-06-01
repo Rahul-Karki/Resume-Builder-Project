@@ -1,9 +1,8 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
-import { queueAtsAnalysis, getLatestAtsAnalysis, applyAtsSuggestion, applyKeywordPlacement, createMissingSection } from "@/services/api";
-import type { AtsAnalysisReport, AtsSectionKey, AtsSectionSuggestions, AiSuggestion, AtsFormatIssue, AtsPriorityFix } from "../../../../shared/src/ai";
-import type { ResumeDocument } from "@/types/resume-types";
-import { AlertCircle, BarChart3, CheckCircle2, ChevronDown, FileSearch, Lightbulb, Loader2, RefreshCw, RotateCcw, Target, Wand2, Bug } from "lucide-react";
+import { queueAtsAnalysis, getLatestAtsAnalysis } from "@/services/api";
+import type { AtsAnalysisReport, AtsSectionKey, AtsSectionSuggestions } from "../../../../shared/src/ai";
+import { AlertCircle, BarChart3, ChevronDown, FileSearch, Lightbulb, Loader2, RefreshCw, Target, Bug, Activity, Award, BookOpen, Code2, Flag, Hash, MessageSquare, Shield, Sparkles, Star, TrendingUp, ListChecks, ThumbsUp } from "lucide-react";
 
 /* ─── Styles ─────────────────────────────────────────────────────────────────── */
 const css = `
@@ -105,6 +104,7 @@ const css = `
   .ats-tag-good { background: rgba(34, 197, 94, 0.1); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.15); }
   .ats-tag-warn { background: rgba(234, 179, 8, 0.1); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.15); }
   .ats-tag-bad { background: rgba(239, 68, 68, 0.1); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.15); }
+  .ats-tag-info { background: rgba(59, 130, 246, 0.1); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.15); }
 
   .ats-empty {
     padding: 40px 18px; text-align: center; color: #a1a1aa;
@@ -139,22 +139,6 @@ const css = `
   .ats-btn-secondary:hover:not(:disabled) { border-color: #71717a; color: #d4d4d8; }
   .ats-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .ats-btn-apply {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 6px;
-    font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s ease;
-    border: none;
-  }
-  .ats-btn-apply-ready { background: #22c55e; color: #fff; }
-  .ats-btn-apply-ready:hover { background: #16a34a; transform: translateY(-1px); }
-  .ats-btn-apply-ready:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .ats-btn-apply-applied { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.3); cursor: default; }
-  .ats-btn-apply-rollback {
-    background: transparent; border: 1px solid #3f3f46; color: #a1a1aa;
-  }
-  .ats-btn-apply-rollback:hover { border-color: #ef4444; color: #fca5a5; }
-
   .ats-loader-block { background: rgba(255, 255, 255, 0.05); border-radius: 6px; height: 14px; margin: 10px 0; position: relative; overflow: hidden; }
   .ats-loader-block::after {
     content: ""; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
@@ -165,7 +149,10 @@ const css = `
   .ats-progress-bar { height: 8px; border-radius: 4px; background: #27272a; overflow: hidden; margin: 10px 0; }
   .ats-progress-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
 
-  .ats-score-delta { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .ats-mini-progress { height: 4px; border-radius: 2px; background: #27272a; overflow: hidden; margin: 4px 0; }
+  .ats-mini-progress-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+  .ats-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 `;
 
 /* ─── Helpers ────────────────────────────────────────────────────────────────── */
@@ -224,33 +211,23 @@ const getSectionSuggestions = (report: AtsAnalysisReport | null): AtsSectionSugg
   return grouped;
 };
 
+/* ─── Severity/effort helpers ─────────────────────────────────────────────────── */
+const severityColor = (sev: string) =>
+  sev === "critical" ? "#ef4444" : sev === "warning" ? "#eab308" : "#3b82f6";
+const severityTagClass = (sev: string) =>
+  sev === "critical" ? "ats-tag-bad" : sev === "warning" ? "ats-tag-warn" : "ats-tag-info";
+const effortTagClass = (effort: string) =>
+  effort === "low" ? "ats-tag-good" : effort === "medium" ? "ats-tag-warn" : "ats-tag-bad";
+
 /* ─── Component ──────────────────────────────────────────────────────────────── */
 export function ATSAnalysisPanel() {
   const { resume } = useResumeBuilderStore();
   const [report, setReport] = useState<AtsAnalysisReport | null>(null);
-  const [analysisDocId, setAnalysisDocId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [applyingIds, setApplyingIds] = useState<Set<string>>(new Set());
-  const [applyingKeywords, setApplyingKeywords] = useState<Set<string>>(new Set());
-  const [applyingToAllKey, setApplyingToAllKey] = useState<string | null>(null);
-  const [creatingSections, setCreatingSections] = useState<Set<string>>(new Set());
-  const [applyingFormatFixes, setApplyingFormatFixes] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [suggestionStatus, setSuggestionStatus] = useState<Record<string, "pending" | "applied">>({});
 
   const sectionSuggestions = getSectionSuggestions(report);
-  const allSuggestions = useMemo(() => Object.values(sectionSuggestions).flat(), [sectionSuggestions]);
-  const appliedCount = Object.values(suggestionStatus).filter((s) => s === "applied").length;
-  const totalScoreDelta = useMemo(() =>
-    allSuggestions
-      .filter((s) => suggestionStatus[s.id] === "applied")
-      .reduce((sum, s) => sum + (s.scoreDelta ?? 0), 0),
-    [allSuggestions, suggestionStatus]
-  );
-  const adjustedScore = report ? Math.min(100, report.overallScore + totalScoreDelta) : 0;
-  const pendingSuggestions = allSuggestions.filter((s) => suggestionStatus[s.id] !== "applied");
-
   const keywordGaps = (report?.keywordGaps ?? report?.keywordAnalysis?.missingKeywords?.map((k: any) => typeof k === "string" ? k : k.keyword) ?? []).slice(0, 3);
   const quickWins = report?.quickWins ?? [];
   const actionPlan = report?.actionPlan ?? [];
@@ -269,8 +246,6 @@ export function ATSAnalysisPanel() {
       const analysis = (result as any)?.analysis ?? null;
       if (analysis && analysis.overallScore != null) {
         setReport(analysis);
-        setAnalysisDocId(analysis._id ?? analysis.id ?? null);
-        setSuggestionStatus({});
         setLoading(false);
         return;
       }
@@ -283,8 +258,6 @@ export function ATSAnalysisPanel() {
           const a = data?.analysis as any;
           if (a && a.overallScore != null && a.rewriteSuggestions?.length > 0) {
             setReport(a);
-            setAnalysisDocId(a._id ?? a.id ?? null);
-            setSuggestionStatus({});
             setLoading(false);
             return;
           }
@@ -297,100 +270,6 @@ export function ATSAnalysisPanel() {
       setLoading(false);
     }
   }, [resume._id, resume.personalInfo.title, resume.title]);
-
-  const handleApplySuggestion = useCallback(async (suggestion: AiSuggestion) => {
-    if (!resume._id || !suggestion.id) return;
-    setApplyingIds((prev) => new Set(prev).add(suggestion.id));
-    try {
-      const result = await applyAtsSuggestion(resume._id, analysisDocId ?? "", suggestion.id);
-      if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
-      setSuggestionStatus((prev) => ({ ...prev, [suggestion.id]: "applied" }));
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
-        if (!report) { setError("No analysis available. Run ATS check first."); return; }
-        const allSugs = Object.values(getSectionSuggestions(report)).flat();
-        const match = allSugs.find((s) => s.id === suggestion.id);
-        if (!match || !match.suggestionText || !match.path) {
-          setError("Suggestion data incomplete. Please re-run analysis.");
-          return;
-        }
-        try {
-          const section = match.path.startsWith("personalInfo") ? "summary" : "experience";
-          const payload = { section, copyPasteTemplate: match.suggestionText, suggestionId: match.id };
-          const result = await createMissingSection(resume._id, section, match.suggestionText);
-          if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
-          setSuggestionStatus((prev) => ({ ...prev, [suggestion.id]: "applied" }));
-        } catch (fallbackErr: any) {
-          setError(fallbackErr?.response?.data?.message || "Failed to apply suggestion. Try re-running analysis.");
-        }
-      } else {
-        setError(err instanceof Error ? err.message : "Failed to apply suggestion");
-      }
-    } finally {
-      setApplyingIds((prev) => { const next = new Set(prev); next.delete(suggestion.id); return next; });
-    }
-  }, [resume._id, analysisDocId, report]);
-
-  const handleApplyAll = useCallback(async () => {
-    for (const s of pendingSuggestions) {
-      if (suggestionStatus[s.id] === "applied") continue;
-      await handleApplySuggestion(s);
-    }
-  }, [pendingSuggestions, suggestionStatus, handleApplySuggestion]);
-
-  const handleAddKeyword = useCallback(async (keyword: string, section: string) => {
-    if (!resume._id) return;
-    setApplyingKeywords((prev) => new Set(prev).add(keyword));
-    try {
-      const result = await applyKeywordPlacement(resume._id, keyword, section);
-      if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add keyword");
-    } finally {
-      setApplyingKeywords((prev) => { const next = new Set(prev); next.delete(keyword); return next; });
-    }
-  }, [resume._id]);
-
-  const handleAddKeywordToAll = useCallback(async (keyword: string, sections: string[]) => {
-    if (!resume._id || sections.length === 0) return;
-    setApplyingToAllKey(keyword);
-    try {
-      for (const section of sections) {
-        const result = await applyKeywordPlacement(resume._id, keyword, section);
-        if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add keyword");
-    } finally {
-      setApplyingToAllKey(null);
-    }
-  }, [resume._id]);
-
-  const handleCreateSection = useCallback(async (section: string, copyPasteTemplate?: string) => {
-    if (!resume._id) return;
-    setCreatingSections((prev) => new Set(prev).add(section));
-    try {
-      const result = await createMissingSection(resume._id, section, copyPasteTemplate);
-      if (result?.resume) useResumeBuilderStore.setState({ resume: result.resume as ResumeDocument });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create section");
-    } finally {
-      setCreatingSections((prev) => { const next = new Set(prev); next.delete(section); return next; });
-    }
-  }, [resume._id]);
-
-  const handleApplyFormatFix = useCallback(async (fix: AtsFormatIssue) => {
-    if (!resume._id || !fix.clickToApply) return;
-    setApplyingFormatFixes((prev) => new Set(prev).add(fix.id));
-    try {
-      // Apply via the rewrite suggestions endpoint — treat as a text replacement
-      await applyAtsSuggestion(resume._id, analysisDocId ?? "", fix.id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to apply format fix");
-    } finally {
-      setApplyingFormatFixes((prev) => { const next = new Set(prev); next.delete(fix.id); return next; });
-    }
-  }, [resume._id, analysisDocId]);
 
   const savedAtsScore = report?.overallScore ?? resume.atsScore ?? null;
 
@@ -415,6 +294,8 @@ export function ATSAnalysisPanel() {
     );
   }
 
+  const os = report?.overallScore ?? 0;
+
   return (
     <div className="ats-container">
       <style>{css}</style>
@@ -436,12 +317,6 @@ export function ATSAnalysisPanel() {
             {loading ? "Analyzing..." : "Run ATS Check"}
           </button>
           {report && <button className="ats-btn-secondary" onClick={handleAnalyze} disabled={loading}><RefreshCw size={14} /> Re-analyze</button>}
-          {pendingSuggestions.length > 0 && (
-            <button className="ats-btn-secondary" onClick={handleApplyAll} disabled={applyingIds.size > 0}
-              style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)", color: "#86efac" }}>
-              <Wand2 size={14} /> Apply All ({pendingSuggestions.length})
-            </button>
-          )}
         </div>
 
         {/* Loading skeleton — realistic preview of results */}
@@ -493,17 +368,12 @@ export function ATSAnalysisPanel() {
             {/* Score + Stats */}
             <div style={{ display: "flex", gap: 16, padding: "14px 18px", alignItems: "center" }}>
               <div style={{ position: "relative" }}>
-                <div className="ats-score-ring" style={{ background: `conic-gradient(${scoreColor(adjustedScore)} 0% ${adjustedScore}%, rgba(255,255,255,0.05) ${adjustedScore}% 100%)` }}>
+                <div className="ats-score-ring" style={{ background: `conic-gradient(${scoreColor(os)} 0% ${os}%, rgba(255,255,255,0.05) ${os}% 100%)` }}>
                   <div className="ats-score-ring-inner">
-                    <span className="ats-score-value" style={{ color: scoreColor(adjustedScore) }}>{adjustedScore}</span>
-                    <span className="ats-score-label" style={{ color: scoreColor(adjustedScore) }}>{scoreLabel(adjustedScore)}</span>
+                    <span className="ats-score-value" style={{ color: scoreColor(os) }}>{os}</span>
+                    <span className="ats-score-label" style={{ color: scoreColor(os) }}>{scoreLabel(os)}</span>
                   </div>
                 </div>
-                {totalScoreDelta > 0 && (
-                  <div style={{ position: "absolute", top: -6, right: -6, background: "#22c55e", color: "#fff", borderRadius: 10, padding: "2px 6px", fontSize: 10, fontWeight: 700, lineHeight: 1.2 }}>
-                    +{totalScoreDelta}
-                  </div>
-                )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {typeof report.previousOverallScore === 'number' && (
@@ -514,9 +384,6 @@ export function ATSAnalysisPanel() {
                 <div style={{ color: report.overallScore >= (report.previousOverallScore ?? 0) ? '#86efac' : '#fca5a5', fontSize: 11 }}>
                   {report.previousOverallScore !== undefined ? `${report.overallScore - report.previousOverallScore >= 0 ? '+' : ''}${report.overallScore - report.previousOverallScore}` : ''} from base
                 </div>
-                {appliedCount > 0 && (
-                  <div style={{ color: "#86efac", fontSize: 11, fontWeight: 600 }}>{appliedCount} suggestions applied</div>
-                )}
               </div>
               <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div className="ats-stat-box">
@@ -524,7 +391,7 @@ export function ATSAnalysisPanel() {
                   <div className="ats-stat-label">Missing Keywords</div>
                 </div>
                 <div className="ats-stat-box">
-                  <div className="ats-stat-value">{allSuggestions.length}</div>
+                  <div className="ats-stat-value">{Object.values(sectionSuggestions).flat().length}</div>
                   <div className="ats-stat-label">Suggestions</div>
                 </div>
                 <div className="ats-stat-box">
@@ -625,79 +492,41 @@ export function ATSAnalysisPanel() {
               </>
             )}
 
-            {/* Suggestions with Apply buttons */}
+            {/* Suggestions (read-only) */}
             {Object.entries(sectionSuggestions).filter(([, s]) => s?.length > 0).map(([section, suggestions]) => (
               <div key={section}>
-                <div className="ats-section-label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span>{SECTION_LABELS[section as AtsSectionKey] ?? section}</span>
-                  <span style={{ fontSize: 10, color: "#71717a", fontWeight: 400 }}>
-                    {suggestions.filter((s) => suggestionStatus[s.id] === "applied").length}/{suggestions.length} applied
-                  </span>
+                <div className="ats-section-label">
+                  <span>{SECTION_LABELS[section as AtsSectionKey] ?? section} ({suggestions.length})</span>
                 </div>
-                {suggestions.map((s) => {
-                  const status = suggestionStatus[s.id] ?? "pending";
-                  const isApplying = applyingIds.has(s.id);
-                  const scoreDelta = s.scoreDelta ?? (
-                    s.atsImpact ? parseInt(s.atsImpact) || 0 : s.impact === "high" ? 8 : s.impact === "medium" ? 4 : 2
-                  );
-                  return (
-                    <div key={s.id} className="ats-card" style={{
-                      margin: "0 18px 10px",
-                      borderColor: status === "applied" ? "rgba(34,197,94,0.3)" : "#3f3f46",
-                      opacity: isApplying ? 0.6 : 1,
-                    }}>
-                      <div className="ats-card-header">
-                        <div className="ats-card-title" style={{ flex: 1 }}>
-                          <Lightbulb size={14} style={{ color: status === "applied" ? "#22c55e" : "#eab308" }} />
-                          <span style={{ fontSize: 12, fontWeight: 500, color: status === "applied" ? "#86efac" : "#d4d4d8" }}>
-                            {s.reason || "Improvement suggestion"}
-                          </span>
+                {suggestions.map((s) => (
+                  <div key={s.id} className="ats-card" style={{ margin: "0 18px 10px" }}>
+                    <div className="ats-card-header">
+                      <div className="ats-card-title" style={{ flex: 1 }}>
+                        <Lightbulb size={14} style={{ color: "#eab308" }} />
+                        <span style={{ fontSize: 12, fontWeight: 500 }}>{s.reason || "Improvement suggestion"}</span>
+                      </div>
+                    </div>
+                    {s.originalText && s.suggestionText && (
+                      <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Before</div>
+                          <div className="ats-card-detail" style={{ fontSize: 11, background: "rgba(239,68,68,0.04)", padding: 8, borderRadius: 6, border: "1px solid rgba(239,68,68,0.1)" }}>
+                            {s.originalText}
+                          </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span className="ats-score-delta" style={{
-                            background: status === "applied" ? "rgba(34,197,94,0.15)" : "rgba(34,197,94,0.08)",
-                            color: status === "applied" ? "#86efac" : "#4ade80",
-                          }}>
-                            +{scoreDelta} pts
-                          </span>
-                          {status === "applied" ? (
-                            <button className="ats-btn-apply ats-btn-apply-applied" disabled>
-                              <CheckCircle2 size={12} /> Applied
-                            </button>
-                          ) : (
-                            <button
-                              className="ats-btn-apply ats-btn-apply-ready"
-                              onClick={() => handleApplySuggestion(s)}
-                              disabled={isApplying}
-                            >
-                              {isApplying ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
-                              Apply
-                            </button>
-                          )}
+                        <div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>After</div>
+                          <div className="ats-card-detail" style={{ fontSize: 11, color: "#fafafa", background: "rgba(34,197,94,0.04)", padding: 8, borderRadius: 6, border: "1px solid rgba(34,197,94,0.1)" }}>
+                            {s.suggestionText}
+                          </div>
                         </div>
                       </div>
-                      {s.originalText && (
-                        <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", marginTop: 8 }}>
-                          <div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>Before</div>
-                            <div className="ats-card-detail" style={{ fontSize: 11, background: "rgba(239,68,68,0.04)", padding: 8, borderRadius: 6, border: "1px solid rgba(239,68,68,0.1)" }}>
-                              {s.originalText}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 4 }}>After</div>
-                            <div className="ats-card-detail" style={{ fontSize: 11, color: "#fafafa", background: "rgba(34,197,94,0.04)", padding: 8, borderRadius: 6, border: "1px solid rgba(34,197,94,0.1)" }}>
-                              {s.suggestionText}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      {!s.originalText && s.suggestionText && (
-                        <div className="ats-card-detail" style={{ marginTop: 8 }}>{s.suggestionText}</div>
-                      )}
-                    </div>
-                  );
-                })}
+                    )}
+                    {!s.originalText && s.suggestionText && (
+                      <div className="ats-card-detail" style={{ marginTop: 8 }}>{s.suggestionText}</div>
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
 
@@ -750,7 +579,7 @@ export function ATSAnalysisPanel() {
             {/* Progress bar */}
             <div style={{ padding: "0 18px" }}>
               <div className="ats-progress-bar">
-                <div className="ats-progress-fill" style={{ width: `${adjustedScore}%`, background: scoreColor(adjustedScore) }} />
+                <div className="ats-progress-fill" style={{ width: `${os}%`, background: scoreColor(os) }} />
               </div>
             </div>
 
@@ -760,27 +589,26 @@ export function ATSAnalysisPanel() {
               <div className="ats-card-detail" style={{ color: "#fafafa" }}>{report.verdict || report.summary}</div>
             </div>
 
-            {/* Missing Keywords with Placement */}
+            {/* Missing Keywords (read-only) */}
             {report.keywordAnalysis?.missingKeywords && report.keywordAnalysis.missingKeywords.length > 0 && (
               <>
                 <div className="ats-section-label"><AlertCircle size={13} style={{ marginRight: 6 }} /> Missing Keywords</div>
-                <div style={{ fontSize: 11, color: "#a1a1aa", padding: "0 18px 8px" }}>
-                  Click a section button to add the keyword there, or use <strong>Apply to all</strong> to add it to every suggested section. The italic text shows how to naturally include the keyword.
-                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "0 18px 10px" }}>
                   {report.keywordAnalysis.missingKeywords.slice(0, 8).map((kw, i) => {
                     const keyword = typeof kw === "string" ? kw : kw.keyword;
+                    const importance = typeof kw === "string" ? undefined : kw.importance;
                     const reason = typeof kw === "string" ? "" : kw.reason;
                     const placement = report.keywordPlacement?.find((kp) => kp.keyword.toLowerCase() === keyword.toLowerCase());
-                    const isApplyingAll = applyingToAllKey === keyword;
                     return (
                       <div key={i} className="ats-card" style={{ margin: 0, borderLeft: "3px solid #ef4444" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                           <span className="ats-card-title" style={{ fontSize: 13 }}>
                             <span className="ats-tag ats-tag-bad" style={{ fontSize: 12 }}>{keyword}</span>
                           </span>
-                          {typeof kw !== "string" && kw.importance === "critical" && (
-                            <span className="ats-tag ats-tag-bad" style={{ fontSize: 10 }}>Critical</span>
+                          {importance && (
+                            <span className={`ats-tag ${importance === "critical" ? "ats-tag-bad" : importance === "important" ? "ats-tag-warn" : "ats-tag-info"}`} style={{ fontSize: 10 }}>
+                              {importance}
+                            </span>
                           )}
                         </div>
                         {reason && <div className="ats-card-detail" style={{ marginBottom: 6, color: "#a1a1aa" }}>{reason}</div>}
@@ -789,7 +617,7 @@ export function ATSAnalysisPanel() {
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
                               {placement.placeIn.map((section) => (
                                 <span key={section} className="ats-tag" style={{ background: "rgba(59,130,246,0.1)", color: "#93c5fd", border: "1px solid rgba(59,130,246,0.15)", fontSize: 10 }}>
-                                  + {section}
+                                  {section}
                                 </span>
                               ))}
                             </div>
@@ -798,35 +626,11 @@ export function ATSAnalysisPanel() {
                                 "{placement.exampleUsage}"
                               </div>
                             )}
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-                              {placement.placeIn.map((section) => (
-                                <button
-                                  key={section}
-                                  className="ats-btn-apply ats-btn-apply-ready"
-                                  onClick={() => handleAddKeyword(keyword, section)}
-                                  disabled={applyingKeywords.has(keyword) || isApplyingAll}
-                                >
-                                  {applyingKeywords.has(keyword) && !isApplyingAll ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
-                                  + {section}
-                                </button>
-                              ))}
-                              {placement.placeIn.length > 1 && (
-                                <button
-                                  className="ats-btn-apply"
-                                  style={{ background: "#6366f1", color: "#fff" }}
-                                  onClick={() => handleAddKeywordToAll(keyword, placement.placeIn)}
-                                  disabled={applyingKeywords.has(keyword) || isApplyingAll}
-                                >
-                                  {isApplyingAll ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
-                                  Apply to all
-                                </button>
-                              )}
-                            </div>
                           </>
                         )}
                         {!placement && (
                           <div className="ats-card-detail" style={{ color: "#71717a", fontSize: 11 }}>
-                            Add to skills or experience section
+                            Consider adding to skills or experience section
                           </div>
                         )}
                       </div>
@@ -878,7 +682,7 @@ export function ATSAnalysisPanel() {
               </>
             )}
 
-            {/* Format Issues (v2) */}
+            {/* Format Issues (read-only) */}
             {report.formatIssues && report.formatIssues.length > 0 && (
               <>
                 <div className="ats-section-label"><Bug size={13} style={{ marginRight: 6 }} /> Format Issues</div>
@@ -890,24 +694,14 @@ export function ATSAnalysisPanel() {
                         <span className={`ats-tag ${fix.severity === "high" ? "ats-tag-bad" : fix.severity === "medium" ? "ats-tag-warn" : "ats-tag-good"}`} style={{ fontSize: 10 }}>{fix.severity}</span>
                       </div>
                       <div className="ats-card-detail" style={{ color: "#a1a1aa", marginBottom: 6 }}>{fix.reason}</div>
-                      <div className="ats-card-detail" style={{ color: "#fafafa", fontSize: 12, marginBottom: fix.clickToApply ? 8 : 0 }}>{fix.fixSuggestion}</div>
-                      {fix.clickToApply && (
-                        <button
-                          className="ats-btn-apply ats-btn-apply-ready"
-                          onClick={() => handleApplyFormatFix(fix)}
-                          disabled={applyingFormatFixes.has(fix.id)}
-                        >
-                          {applyingFormatFixes.has(fix.id) ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
-                          Apply Fix
-                        </button>
-                      )}
+                      <div className="ats-card-detail" style={{ color: "#fafafa", fontSize: 12 }}>{fix.fixSuggestion}</div>
                     </div>
                   ))}
                 </div>
               </>
             )}
 
-            {/* Section Audit */}
+            {/* Section Audit (read-only) */}
             {report.sectionAudit && report.sectionAudit.filter((a) => a.status !== "present").length > 0 && (
               <>
                 <div className="ats-section-label"><Target size={13} style={{ marginRight: 6 }} /> Section Fixes</div>
@@ -948,15 +742,554 @@ export function ATSAnalysisPanel() {
                           {audit.fix.example}
                         </div>
                       )}
-                      <button
-                        className="ats-btn-apply ats-btn-apply-ready"
-                        onClick={() => handleCreateSection(audit.section, audit.fix.copyPasteTemplate)}
-                        disabled={creatingSections.has(audit.section)}
-                        style={{ marginTop: 10 }}
-                      >
-                        {creatingSections.has(audit.section) ? <Loader2 size={12} className="ai-spin" /> : <Wand2 size={12} />}
-                        Create {audit.section.replace("_", " ")} Section
-                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Section Wise Analysis ──────────────────────────────────────── */}
+            {report.sectionWiseAnalysis && report.sectionWiseAnalysis.length > 0 && (
+              <>
+                <div className="ats-section-label"><BarChart3 size={13} style={{ marginRight: 6 }} /> Section Wise Analysis</div>
+                <div style={{ padding: "0 18px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {report.sectionWiseAnalysis.map((sw, i) => (
+                    <div key={i} className="ats-card" style={{ margin: 0 }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12, textTransform: "capitalize" }}>{sw.label}</div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(sw.scores.atsScore) }}>{sw.scores.atsScore}/100</span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", margin: "6px 0" }}>
+                        {([
+                          ["ATS Score", sw.scores.atsScore],
+                          ["Quality", sw.scores.qualityScore],
+                          ["Completeness", sw.scores.completenessScore],
+                          ["Keyword Relevance", sw.scores.keywordRelevanceScore],
+                          ["Recruiter Effect.", sw.scores.recruiterEffectivenessScore],
+                        ] as const).map(([label, val]) => (
+                          <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 10, color: "#a1a1aa", width: 90 }}>{label}</span>
+                            <div className="ats-mini-progress" style={{ flex: 1 }}>
+                              <div className="ats-mini-progress-fill" style={{ width: `${val}%`, background: scoreColor(val) }} />
+                            </div>
+                            <span style={{ fontSize: 10, color: "#d4d4d8", width: 28, textAlign: "right" }}>{val}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {sw.wordCount > 0 && <div style={{ fontSize: 10, color: "#71717a", marginBottom: 4 }}>{sw.wordCount} words{sw.bulletCount ? ` · ${sw.bulletCount} bullets` : ""}</div>}
+                      {sw.strengths.length > 0 && (
+                        <div style={{ marginTop: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: "#86efac", marginBottom: 2 }}>Strengths</div>
+                          <ul style={{ margin: 0, paddingLeft: 14, color: "#86efac", fontSize: 11, lineHeight: 1.5 }}>
+                            {sw.strengths.slice(0, 2).map((st, si) => <li key={si}>{st}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {sw.weaknesses.length > 0 && (
+                        <div style={{ marginTop: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 2 }}>Weaknesses</div>
+                          <ul style={{ margin: 0, paddingLeft: 14, color: "#fca5a5", fontSize: 11, lineHeight: 1.5 }}>
+                            {sw.weaknesses.slice(0, 2).map((w, wi) => <li key={wi}>{w}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {sw.suggestions.length > 0 && (
+                        <div style={{ marginTop: 4 }}>
+                          <div style={{ fontSize: 10, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>Suggestions</div>
+                          <ul style={{ margin: 0, paddingLeft: 14, color: "#93c5fd", fontSize: 11, lineHeight: 1.5 }}>
+                            {sw.suggestions.slice(0, 2).map((sg, si) => <li key={si}>{sg}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Experience Analysis ────────────────────────────────────────── */}
+            {report.experienceAnalysis && (
+              <>
+                <div className="ats-section-label"><Activity size={13} style={{ marginRight: 6 }} /> Experience Analysis</div>
+                <div className="ats-card" style={{ margin: "0 18px 10px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 10 }}>
+                    {[
+                      { label: "Entries", value: report.experienceAnalysis.entryCount },
+                      { label: "Total Bullets", value: report.experienceAnalysis.totalBullets },
+                      { label: "Strong Verbs", value: `${Math.round(report.experienceAnalysis.strongVerbRatio * 100)}%` },
+                      { label: "Quantified", value: `${Math.round(report.experienceAnalysis.quantifiedRatio * 100)}%` },
+                      { label: "Leadership", value: `${Math.round(report.experienceAnalysis.leadershipRatio * 100)}%` },
+                      { label: "Generic", value: report.experienceAnalysis.genericBulletCount, bad: true },
+                      { label: "Passive Voice", value: report.experienceAnalysis.passiveVoiceCount, bad: true },
+                      { label: "Avg Length", value: `${Math.round(report.experienceAnalysis.averageBulletLength)} chars` },
+                    ].map((stat) => (
+                      <div key={stat.label} className="ats-stat-box" style={{ padding: "8px 6px" }}>
+                        <div className="ats-stat-value" style={{ fontSize: 16, color: stat.bad && (stat.value as number) > 0 ? "#fca5a5" : "#fafafa" }}>{stat.value}</div>
+                        <div className="ats-stat-label" style={{ fontSize: 9 }}>{stat.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {report.experienceAnalysis.topActionVerbs.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#86efac", marginBottom: 4 }}>Top Action Verbs</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.experienceAnalysis.topActionVerbs.map((v) => (
+                          <span key={v} className="ats-tag ats-tag-good" style={{ fontSize: 10 }}>{v}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {report.experienceAnalysis.weakVerbsDetected.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 4 }}>Weak Verbs Detected</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.experienceAnalysis.weakVerbsDetected.map((v) => (
+                          <span key={v} className="ats-tag ats-tag-bad" style={{ fontSize: 10 }}>{v}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {report.experienceAnalysis.bulletAnalyses && report.experienceAnalysis.bulletAnalyses.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#a1a1aa", marginBottom: 4 }}>Bullet Analysis</div>
+                      {report.experienceAnalysis.bulletAnalyses.slice(0, 5).map((ba, bi) => (
+                        <div key={bi} style={{ display: "flex", alignItems: "flex-start", gap: 6, padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                          <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 2 }}>
+                            <span className="ats-status-dot" style={{ background: ba.isGeneric ? "#ef4444" : ba.isPassive ? "#eab308" : "#22c55e" }} />
+                            {ba.hasStrongVerb && <span className="ats-status-dot" style={{ background: "#22c55e" }} title="strong verb" />}
+                            {ba.hasMetric && <span className="ats-status-dot" style={{ background: "#22c55e" }} title="has metric" />}
+                          </div>
+                          <span style={{ fontSize: 11, color: "#d4d4d8", flex: 1 }}>{ba.text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {report.experienceAnalysis.missingElements.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 2 }}>Missing Elements</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#fca5a5", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.experienceAnalysis.missingElements.map((m, mi) => <li key={mi}>{m}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {report.experienceAnalysis.suggestions.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>Suggestions</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#93c5fd", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.experienceAnalysis.suggestions.map((s, si) => <li key={si}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Projects Analysis ──────────────────────────────────────────── */}
+            {report.projectsAnalysis && (
+              <>
+                <div className="ats-section-label"><Code2 size={13} style={{ marginRight: 6 }} /> Projects Analysis</div>
+                <div className="ats-card" style={{ margin: "0 18px 10px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 10 }}>
+                    <div className="ats-stat-box" style={{ padding: "8px 6px" }}>
+                      <div className="ats-stat-value" style={{ fontSize: 16 }}>{report.projectsAnalysis.entryCount}</div>
+                      <div className="ats-stat-label" style={{ fontSize: 9 }}>Projects</div>
+                    </div>
+                    <div className="ats-stat-box" style={{ padding: "8px 6px" }}>
+                      <div className="ats-stat-value" style={{ fontSize: 16, color: scoreColor(report.projectsAnalysis.technicalDepthScore) }}>{report.projectsAnalysis.technicalDepthScore}</div>
+                      <div className="ats-stat-label" style={{ fontSize: 9 }}>Tech Depth</div>
+                    </div>
+                    <div className="ats-stat-box" style={{ padding: "8px 6px" }}>
+                      <div className="ats-stat-value" style={{ fontSize: 14, color: report.projectsAnalysis.hasLinks ? "#86efac" : "#fca5a5" }}>{report.projectsAnalysis.hasLinks ? "Yes" : "No"}</div>
+                      <div className="ats-stat-label" style={{ fontSize: 9 }}>Has Links</div>
+                    </div>
+                    <div className="ats-stat-box" style={{ padding: "8px 6px" }}>
+                      <div className="ats-stat-value" style={{ fontSize: 14, color: report.projectsAnalysis.hasDeploymentLinks ? "#86efac" : "#fca5a5" }}>{report.projectsAnalysis.hasDeploymentLinks ? "Yes" : "No"}</div>
+                      <div className="ats-stat-label" style={{ fontSize: 9 }}>Deployed</div>
+                    </div>
+                  </div>
+                  {report.projectsAnalysis.hasGithubLinks && <span className="ats-tag ats-tag-good" style={{ fontSize: 10, marginBottom: 6 }}>GitHub links present</span>}
+                  {report.projectsAnalysis.isTutorialLevel && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span className="ats-tag ats-tag-bad" style={{ fontSize: 10 }}>Tutorial-level projects detected</span>
+                    </div>
+                  )}
+                  {report.projectsAnalysis.technologiesUsed.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#a1a1aa", marginBottom: 4 }}>Technologies Used</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.projectsAnalysis.technologiesUsed.map((t) => (
+                          <span key={t} className="ats-tag" style={{ background: "rgba(99,102,241,0.1)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.15)", fontSize: 10 }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {report.projectsAnalysis.hasMeasurableImpact && <span className="ats-tag ats-tag-good" style={{ fontSize: 10, marginBottom: 6 }}>Measurable impact present</span>}
+                  {report.projectsAnalysis.missingElements.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 2 }}>Missing Elements</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#fca5a5", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.projectsAnalysis.missingElements.map((m, mi) => <li key={mi}>{m}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {report.projectsAnalysis.suggestions.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>Suggestions</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#93c5fd", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.projectsAnalysis.suggestions.map((s, si) => <li key={si}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Skills Analysis ────────────────────────────────────────────── */}
+            {report.skillsAnalysis && (
+              <>
+                <div className="ats-section-label"><Star size={13} style={{ marginRight: 6 }} /> Skills Analysis</div>
+                <div className="ats-card" style={{ margin: "0 18px 10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, color: "#a1a1aa" }}>Total: <strong style={{ color: "#fafafa" }}>{report.skillsAnalysis.totalSkills}</strong></span>
+                    <span style={{ fontSize: 12, color: "#a1a1aa" }}>Categorization Score: <strong style={{ color: scoreColor(report.skillsAnalysis.categorizationScore) }}>{report.skillsAnalysis.categorizationScore}</strong></span>
+                  </div>
+                  {report.skillsAnalysis.categorized.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      {report.skillsAnalysis.categorized.map((cat, ci) => (
+                        <div key={ci} style={{ marginBottom: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 600, color: "#d4d4d8" }}>{cat.category}</span>
+                            <span className={`ats-tag ${cat.relevance === "high" ? "ats-tag-good" : cat.relevance === "medium" ? "ats-tag-warn" : "ats-tag-bad"}`} style={{ fontSize: 9 }}>{cat.relevance}</span>
+                            {cat.isOutdated && <span className="ats-tag ats-tag-bad" style={{ fontSize: 9 }}>Outdated</span>}
+                          </div>
+                          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                            {cat.skills.map((sk) => (
+                              <span key={sk} className="ats-tag" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #3f3f46", fontSize: 10 }}>{sk}</span>
+                            ))}
+                          </div>
+                          {cat.suggestions.length > 0 && (
+                            <ul style={{ margin: "4px 0 0", paddingLeft: 14, color: "#93c5fd", fontSize: 11, lineHeight: 1.5 }}>
+                              {cat.suggestions.map((sg, si) => <li key={si}>{sg}</li>)}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {report.skillsAnalysis.redundantSkills.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 4 }}>Redundant Skills</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.skillsAnalysis.redundantSkills.map((sk) => (
+                          <span key={sk} className="ats-tag ats-tag-bad" style={{ fontSize: 10 }}>{sk}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {report.skillsAnalysis.outdatedTechnologies.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fde047", marginBottom: 4 }}>Outdated Technologies</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.skillsAnalysis.outdatedTechnologies.map((sk) => (
+                          <span key={sk} className="ats-tag ats-tag-warn" style={{ fontSize: 10 }}>{sk}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {report.skillsAnalysis.modernAlternatives.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#86efac", marginBottom: 4 }}>Modern Alternatives</div>
+                      {report.skillsAnalysis.modernAlternatives.map((alt, ai) => (
+                        <div key={ai} style={{ fontSize: 11, color: "#d4d4d8", marginBottom: 2 }}>
+                          <span className="ats-tag ats-tag-bad" style={{ fontSize: 10 }}>{alt.old}</span>
+                          <span style={{ margin: "0 6px", color: "#71717a" }}>→</span>
+                          <span className="ats-tag ats-tag-good" style={{ fontSize: 10 }}>{alt.modern}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {report.skillsAnalysis.missingCriticalSkills.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 4 }}>Missing Critical Skills</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.skillsAnalysis.missingCriticalSkills.map((sk) => (
+                          <span key={sk} className="ats-tag ats-tag-bad" style={{ fontSize: 10 }}>{sk}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {report.skillsAnalysis.suggestions.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>Suggestions</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#93c5fd", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.skillsAnalysis.suggestions.map((s, si) => <li key={si}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Role Match Analysis ────────────────────────────────────────── */}
+            {report.roleMatchAnalysis && (
+              <>
+                <div className="ats-section-label"><Award size={13} style={{ marginRight: 6 }} /> Role Match Analysis</div>
+                <div className="ats-card" style={{ margin: "0 18px 10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                    <div className="ats-score-ring" style={{ width: 56, height: 56, background: `conic-gradient(${scoreColor(report.roleMatchAnalysis.matchPercentage)} 0% ${report.roleMatchAnalysis.matchPercentage}%, rgba(255,255,255,0.05) ${report.roleMatchAnalysis.matchPercentage}% 100%)` }}>
+                      <div className="ats-score-ring-inner" style={{ width: 44, height: 44 }}>
+                        <span className="ats-score-value" style={{ fontSize: 16, color: scoreColor(report.roleMatchAnalysis.matchPercentage) }}>{report.roleMatchAnalysis.matchPercentage}%</span>
+                      </div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#fafafa" }}>{report.roleMatchAnalysis.roleTitle}</div>
+                      <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                        <span className="ats-tag ats-tag-good" style={{ fontSize: 10 }}>{report.roleMatchAnalysis.experienceLevelMatch}</span>
+                        <span className="ats-tag" style={{ background: "rgba(99,102,241,0.1)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.15)", fontSize: 10 }}>{report.roleMatchAnalysis.industryFit}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {report.roleMatchAnalysis.suggestedRoles.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#a1a1aa", marginBottom: 4 }}>Suggested Roles</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.roleMatchAnalysis.suggestedRoles.map((r) => (
+                          <span key={r} className="ats-tag" style={{ background: "rgba(168,85,247,0.1)", color: "#d8b4fe", border: "1px solid rgba(168,85,247,0.15)", fontSize: 10 }}>{r}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#86efac", marginBottom: 4 }}>Matched ({report.roleMatchAnalysis.matchedKeywords.length})</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.roleMatchAnalysis.matchedKeywords.slice(0, 6).map((k) => (
+                          <span key={k} className="ats-tag ats-tag-good" style={{ fontSize: 9 }}>{k}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 4 }}>Missing ({report.roleMatchAnalysis.missingKeywords.length})</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.roleMatchAnalysis.missingKeywords.slice(0, 6).map((k) => (
+                          <span key={k} className="ats-tag ats-tag-bad" style={{ fontSize: 9 }}>{k}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fde047", marginBottom: 4 }}>Weak ({report.roleMatchAnalysis.weakKeywords.length})</div>
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                        {report.roleMatchAnalysis.weakKeywords.slice(0, 6).map((k) => (
+                          <span key={k} className="ats-tag ats-tag-warn" style={{ fontSize: 9 }}>{k}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {report.roleMatchAnalysis.suggestions.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>Suggestions</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#93c5fd", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.roleMatchAnalysis.suggestions.map((s, si) => <li key={si}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Keyword Density ────────────────────────────────────────────── */}
+            {report.keywordDensity && report.keywordDensity.length > 0 && (
+              <>
+                <div className="ats-section-label"><Hash size={13} style={{ marginRight: 6 }} /> Keyword Density</div>
+                <div style={{ padding: "0 18px 10px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: "4px 8px", fontSize: 10, color: "#71717a", fontWeight: 600, textTransform: "uppercase", padding: "0 4px 6px" }}>
+                    <span>Keyword</span>
+                    <span style={{ textAlign: "right" }}>Count</span>
+                    <span style={{ textAlign: "right" }}>Density</span>
+                    <span style={{ textAlign: "right" }}>Min</span>
+                    <span>Status</span>
+                  </div>
+                  {report.keywordDensity.map((kd, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto auto", gap: "4px 8px", alignItems: "center", padding: "6px 4px", borderBottom: i < report.keywordDensity!.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#d4d4d8" }}>{kd.keyword}</span>
+                      <span style={{ fontSize: 11, color: "#fafafa", textAlign: "right" }}>{kd.count}</span>
+                      <span style={{ fontSize: 11, color: "#a1a1aa", textAlign: "right" }}>{(kd.density * 100).toFixed(1)}%</span>
+                      <span style={{ fontSize: 11, color: "#71717a", textAlign: "right" }}>{kd.suggestedMinCount}</span>
+                      <span className={`ats-tag ${kd.status === "good" ? "ats-tag-good" : kd.status === "low" ? "ats-tag-bad" : "ats-tag-warn"}`} style={{ fontSize: 9, justifySelf: "start" }}>{kd.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Content Quality Analysis ───────────────────────────────────── */}
+            {report.contentQualityAnalysis && (
+              <>
+                <div className="ats-section-label"><Sparkles size={13} style={{ marginRight: 6 }} /> Content Quality</div>
+                <div className="ats-card" style={{ margin: "0 18px 10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span className={`ats-tag ${report.contentQualityAnalysis.overallQuality === "excellent" || report.contentQualityAnalysis.overallQuality === "good" ? "ats-tag-good" : report.contentQualityAnalysis.overallQuality === "average" ? "ats-tag-warn" : "ats-tag-bad"}`}>
+                      {report.contentQualityAnalysis.overallQuality}
+                    </span>
+                    <span style={{ fontSize: 11, color: "#a1a1aa" }}>Overall Quality</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", marginBottom: 8 }}>
+                    {([
+                      { label: "Clarity", value: report.contentQualityAnalysis.clarityScore },
+                      { label: "Conciseness", value: report.contentQualityAnalysis.concisenessScore },
+                      { label: "Impact", value: report.contentQualityAnalysis.impactScore },
+                      { label: "Professionalism", value: report.contentQualityAnalysis.professionalismScore },
+                      { label: "Grammar", value: report.contentQualityAnalysis.grammarQuality },
+                    ] as const).map(({ label, value }) => (
+                      <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 10, color: "#a1a1aa", width: 80 }}>{label}</span>
+                        <div className="ats-mini-progress" style={{ flex: 1 }}>
+                          <div className="ats-mini-progress-fill" style={{ width: `${value}%`, background: scoreColor(value) }} />
+                        </div>
+                        <span style={{ fontSize: 10, color: "#d4d4d8", width: 28, textAlign: "right" }}>{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {report.contentQualityAnalysis.issues.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 4 }}>Issues</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#fca5a5", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.contentQualityAnalysis.issues.map((iss, ii) => <li key={ii}>{iss}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {report.contentQualityAnalysis.suggestions.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#93c5fd", marginBottom: 2 }}>Suggestions</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#93c5fd", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.contentQualityAnalysis.suggestions.map((s, si) => <li key={si}>{s}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Recruiter Feedback ─────────────────────────────────────────── */}
+            {report.recruiterFeedback && (
+              <>
+                <div className="ats-section-label"><ThumbsUp size={13} style={{ marginRight: 6 }} /> Recruiter Feedback</div>
+                <div className="ats-card" style={{ margin: "0 18px 10px" }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: "#d4d4d8", fontStyle: "italic", marginBottom: 6 }}>"{report.recruiterFeedback.firstImpression}"</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 11, color: "#a1a1aa" }}>Shortlisting Probability:</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(report.recruiterFeedback.shortlistingProbability) }}>{report.recruiterFeedback.shortlistingProbability}%</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                    <span className={`ats-tag ${report.recruiterFeedback.technicalCredibility === "high" ? "ats-tag-good" : report.recruiterFeedback.technicalCredibility === "medium" ? "ats-tag-warn" : "ats-tag-bad"}`} style={{ fontSize: 10 }}>
+                      Tech: {report.recruiterFeedback.technicalCredibility}
+                    </span>
+                    <span className={`ats-tag ${report.recruiterFeedback.leadershipImpression === "high" ? "ats-tag-good" : report.recruiterFeedback.leadershipImpression === "medium" ? "ats-tag-warn" : "ats-tag-bad"}`} style={{ fontSize: 10 }}>
+                      Leadership: {report.recruiterFeedback.leadershipImpression}
+                    </span>
+                    <span className={`ats-tag ${report.recruiterFeedback.resumeProfessionalism === "high" ? "ats-tag-good" : report.recruiterFeedback.resumeProfessionalism === "medium" ? "ats-tag-warn" : "ats-tag-bad"}`} style={{ fontSize: 10 }}>
+                      Professionalism: {report.recruiterFeedback.resumeProfessionalism}
+                    </span>
+                    <span className="ats-tag" style={{ background: "rgba(99,102,241,0.1)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.15)", fontSize: 10 }}>
+                      Clarity: {report.recruiterFeedback.clarityScore}/100
+                    </span>
+                  </div>
+                  <div className="ats-card-detail" style={{ color: "#d4d4d8", marginBottom: 8 }}>{report.recruiterFeedback.detailFeedback}</div>
+                  {report.recruiterFeedback.strengths.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#86efac", marginBottom: 4 }}>Strengths</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#86efac", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.recruiterFeedback.strengths.map((st, si) => <li key={si}>{st}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {report.recruiterFeedback.concerns.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#fca5a5", marginBottom: 4 }}>Concerns</div>
+                      <ul style={{ margin: 0, paddingLeft: 14, color: "#fca5a5", fontSize: 11, lineHeight: 1.5 }}>
+                        {report.recruiterFeedback.concerns.map((c, ci) => <li key={ci}>{c}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ── Industry Checks ────────────────────────────────────────────── */}
+            {report.industryChecks && report.industryChecks.length > 0 && (
+              <>
+                <div className="ats-section-label"><Flag size={13} style={{ marginRight: 6 }} /> Industry Checks</div>
+                <div style={{ padding: "0 18px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {report.industryChecks.map((ic, ii) => (
+                    <div key={ii} className="ats-card" style={{ margin: 0 }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12 }}>{ic.industry}</div>
+                      </div>
+                      {ic.checks.map((ch, ci) => (
+                        <div key={ci} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 0", borderBottom: ci < ic.checks.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
+                          <span className="ats-status-dot" style={{ background: ch.passed ? "#22c55e" : "#ef4444", marginTop: 4 }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: "#d4d4d8" }}>{ch.name}</span>
+                              <span className={`ats-tag ${ch.importance === "critical" ? "ats-tag-bad" : ch.importance === "important" ? "ats-tag-warn" : "ats-tag-info"}`} style={{ fontSize: 9 }}>{ch.importance}</span>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: ch.passed ? "#86efac" : "#fca5a5" }}>{ch.passed ? "Passed" : "Failed"}</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 2 }}>{ch.details}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Warnings ───────────────────────────────────────────────────── */}
+            {report.warnings && report.warnings.length > 0 && (
+              <>
+                <div className="ats-section-label"><AlertCircle size={13} style={{ marginRight: 6 }} /> Warnings</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
+                  {report.warnings.map((w, i) => (
+                    <div key={i} className="ats-card" style={{ margin: 0, borderLeft: `3px solid ${severityColor(w.severity)}` }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12 }}>
+                          <span className={`ats-tag ${severityTagClass(w.severity)}`} style={{ fontSize: 10 }}>{w.severity}</span>
+                          <span style={{ textTransform: "capitalize" }}>{w.section.replace("_", " ")}</span>
+                        </div>
+                      </div>
+                      <div className="ats-card-detail" style={{ color: "#fafafa", marginBottom: 4 }}>{w.message}</div>
+                      {w.suggestion && <div className="ats-card-detail" style={{ color: "#93c5fd" }}>{w.suggestion}</div>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Recommendations ────────────────────────────────────────────── */}
+            {report.recommendations && report.recommendations.length > 0 && (
+              <>
+                <div className="ats-section-label"><Lightbulb size={13} style={{ marginRight: 6 }} /> Recommendations</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "0 18px 10px" }}>
+                  {report.recommendations.map((rec, i) => (
+                    <div key={i} className="ats-card" style={{ margin: 0, borderLeft: `3px solid ${rec.priority === "P0" ? "#ef4444" : rec.priority === "P1" ? "#eab308" : "#22c55e"}` }}>
+                      <div className="ats-card-header">
+                        <div className="ats-card-title" style={{ fontSize: 12 }}>
+                          <span className={`ats-tag ${rec.priority === "P0" ? "ats-tag-bad" : rec.priority === "P1" ? "ats-tag-warn" : "ats-tag-good"}`} style={{ fontSize: 10 }}>{rec.priority}</span>
+                          {rec.title}
+                        </div>
+                        <span className={`ats-tag ${effortTagClass(rec.effort)}`} style={{ fontSize: 10 }}>{rec.effort}</span>
+                      </div>
+                      <div style={{ marginBottom: 6 }}>
+                        <span className="ats-tag" style={{ background: "rgba(99,102,241,0.1)", color: "#a5b4fc", border: "1px solid rgba(99,102,241,0.15)", fontSize: 10 }}>{rec.category}</span>
+                      </div>
+                      <div className="ats-card-detail" style={{ color: "#d4d4d8", marginBottom: 4 }}>{rec.description}</div>
+                      {rec.expectedImpact && (
+                        <div className="ats-card-detail" style={{ color: "#86efac", fontSize: 11 }}>
+                          Expected impact: {rec.expectedImpact}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

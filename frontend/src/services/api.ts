@@ -310,21 +310,6 @@ export const getLatestAtsAnalysis = async (resumeId: string) => {
   return response.data as AtsAnalysisResponse;
 };
 
-export const applyAtsSuggestion = async (resumeId: string, analysisId: string, suggestionId: string) => {
-  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/apply-suggestion`, { analysisId, suggestionId });
-  return response.data as { message: string; resume: ResumeDocument };
-};
-
-export const applyKeywordPlacement = async (resumeId: string, keyword: string, section: string) => {
-  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/apply-keyword`, { keyword, section });
-  return response.data as { message: string; resume: ResumeDocument };
-};
-
-export const createMissingSection = async (resumeId: string, section: string, copyPasteTemplate?: string) => {
-  const response = await api.post(`/resumes/${encodeURIComponent(resumeId)}/create-section`, { section, copyPasteTemplate });
-  return response.data as { message: string; resume: ResumeDocument };
-};
-
 export async function bootstrapAuthSession() {
   // Get a CSRF token with retry so the first mutation request (save, improve-text,
   // analyze-ats) has it ready. The /csrf endpoint is CSRF-exempt and stateless,

@@ -25,7 +25,7 @@ vi.mock("../errors/AppError", () => ({
 }));
 vi.mock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
-import { analyzeAts, getLatestAtsAnalysis, applyAtsSuggestion, restoreResumeVersion } from "../controllers/resumeEnhancementController";
+import { analyzeAts, getLatestAtsAnalysis, restoreResumeVersion } from "../controllers/resumeEnhancementController";
 import Resume from "../models/Resume";
 import AtsAnalysis from "../models/AtsAnalysis";
 import ResumeVersion from "../models/ResumeVersion";
@@ -96,42 +96,6 @@ describe("resumeEnhancementController", () => {
       const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
 
       await getLatestAtsAnalysis(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-    });
-  });
-
-  describe("applyAtsSuggestion", () => {
-    it("should update the resume section with the suggested text", async () => {
-      const analysis = {
-        _id: "analysis1",
-        rewriteSuggestions: [{ id: "sug1", path: "sections.experience[0].bullets[0]", original: "old bullet", suggestionText: "new bullet" }],
-      };
-      vi.mocked(AtsAnalysis.findOne).mockResolvedValue(analysis as any);
-      vi.mocked(Resume.findOne).mockResolvedValue(makeResume() as any);
-      vi.mocked(Resume.findOneAndUpdate).mockResolvedValue(makeResume({ name: "Updated Resume" }) as any);
-      vi.mocked(Template.findOne).mockReturnValue({ select: vi.fn().mockReturnThis(), lean: vi.fn().mockResolvedValue(null) } as any);
-
-      const req = { user: { id: "user1" }, params: { id: "res1" }, body: { analysisId: "analysis1", suggestionId: "sug1" } } as any;
-      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
-
-      await applyAtsSuggestion(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it("should return 404 when the suggestion ID does not match the analysis", async () => {
-      const analysis = {
-        _id: "analysis1",
-        rewriteSuggestions: [{ id: "other-sug", path: "personalInfo.summary", original: "old", suggestionText: "new" }],
-      };
-      vi.mocked(AtsAnalysis.findOne).mockResolvedValue(analysis as any);
-      vi.mocked(Resume.findOne).mockResolvedValue(makeResume() as any);
-
-      const req = { user: { id: "user1" }, params: { id: "res1" }, body: { analysisId: "analysis1", suggestionId: "missing-sug" } } as any;
-      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
-
-      await applyAtsSuggestion(req, res);
 
       expect(res.status).toHaveBeenCalledWith(404);
     });
