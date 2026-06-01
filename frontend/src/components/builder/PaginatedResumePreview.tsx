@@ -172,6 +172,7 @@ export function PaginatedResumePreview({
                     position: "relative",
                     top: -offset,
                     height: "100%",
+                    overflow: "hidden",
                   }}
                 >
                   <ResumeRenderer resume={resume} />
