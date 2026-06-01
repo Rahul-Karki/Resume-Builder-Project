@@ -103,13 +103,11 @@ export function PaginatedResumePreview({
       className="resume-pages-root"
       style={{
         width: `${scaledWidth}px`,
-        maxWidth: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         gap: `${PAGE_GAP_PX * scale}px`,
         position: "relative",
-        margin: "0 auto",
       }}
     >
       <div
@@ -150,7 +148,6 @@ export function PaginatedResumePreview({
             backgroundColor={resume.style.backgroundColor}
             style={{
               width: `${scaledWidth}px`,
-              maxWidth: '100%',
               minHeight: `${scaledPageHeight}px`,
             }}
           >

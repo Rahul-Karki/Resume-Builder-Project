@@ -547,20 +547,14 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       ref={previewHostRef}
       style={{
         height: '100%', width: '100%',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         overflow: 'auto',
       }}
-      className="resume-preview-host themed-scrollbar"
+      className="themed-scrollbar"
     >
       <div
         id="resume-preview-root"
-        style={{
-          width: `${A4_WIDTH_PX * scale}px`,
-          minWidth: 0,
-          maxWidth: '100%',
-          margin: '0 auto',
-          flexShrink: 0,
-        }}
+        style={{ width: `${A4_WIDTH_PX * scale}px` }}
       >
         <PaginatedResumePreview resume={resume} scale={scale} />
       </div>
@@ -608,29 +602,6 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         .panel-slide-enter { animation: panelSlideIn 0.25s cubic-bezier(.16,1,.3,1); }
         @keyframes panelSlideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ── Responsive Preview ── */
-        .resume-preview-host {
-          scrollbar-gutter: stable;
-        }
-        .resume-preview-host > #resume-preview-root {
-          flex-shrink: 0;
-        }
-        @media (max-width: 768px) {
-          .resume-preview-host {
-            align-items: flex-start !important;
-            padding: 8px 0;
-          }
-        }
-        @media (max-width: 480px) {
-          .resume-preview-host {
-            padding: 4px 0;
-          }
-        }
-        @media (min-width: 769px) {
-          .resume-preview-host {
-            align-items: center !important;
-          }
-        }
       `}</style>
 
       {/* ── Header ── */}

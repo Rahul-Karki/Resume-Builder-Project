@@ -49,42 +49,39 @@ describe("resumePagination", () => {
     expect(computePageOffsets(-1, CONTENT_HEIGHT_PX, [])).toEqual([0]);
   });
 
-  it("prefers entry breaks in the bottom 25% of the page", () => {
+  it("prefers entry breaks over section breaks", () => {
     const candidates: Array<{ offset: number; kind: "entry" | "section" }> = [
       { offset: 950, kind: "section" },
-      { offset: 960, kind: "entry" },   // first job entry
-      { offset: 1100, kind: "entry" },  // second job entry (waste=23px=2% ≤ 25%)
+      { offset: 960, kind: "entry" },
+      { offset: 1100, kind: "entry" },
       { offset: 1300, kind: "section" },
     ];
     const offsets = computePageOffsets(2000, CONTENT_HEIGHT_PX, candidates);
-    /* Second job entry (1100) should be preferred */
+    /* Last entry break (1100) should be preferred over section (1300) */
     expect(offsets[1]).toBe(1100);
   });
 
-  it("uses ideal break when entry break is too far from ideal", () => {
-    /* Entry at 800 wastes 323px (29%) > 25% threshold → skip */
+  it("accepts any entry break in the page window (≥60%)", () => {
+    /* Entry at 800 is ≥ 674 (60% of 1123) → accepted — no wasteRatio gate */
     const candidates: Array<{ offset: number; kind: "entry" | "section" }> = [
       { offset: 800, kind: "entry" },
     ];
     const offsets = computePageOffsets(2000, CONTENT_HEIGHT_PX, candidates);
-    /* No good entry break, no section break → ideal */
-    expect(offsets[1]).toBe(1123);
+    expect(offsets[1]).toBe(800);
   });
 
-  it("accepts entry break even when followed by section break", () => {
-    /* Entry at 1050 wastes 73px (6.5%) ≤ 25% → accepted as entry break */
+  it("uses entry break over a later section break", () => {
     const candidates: Array<{ offset: number; kind: "entry" | "section" }> = [
       { offset: 1050, kind: "entry" },
       { offset: 1110, kind: "section" },
     ];
     const offsets = computePageOffsets(2000, CONTENT_HEIGHT_PX, candidates);
+    /* Entry at 1050 (≥562) preferred over section at 1110 */
     expect(offsets[1]).toBe(1050);
   });
 
-  it("falls to ideal break when section boundary would waste space", () => {
-    /* Only section candidates in window, entry at 200 is too early (< minBreak).
-       Section at 1100 wastes 23px (2%) ≤ 5% but gap from 0 to 1100 = 1100 > 30 → rejected.
-       Falls to ideal. */
+  it("falls to ideal break when section gap is too large", () => {
+    /* Entry at 200 is < 562, section at 1100 ≥ 674 but gap=900 > 30 → reject */
     const candidates: Array<{ offset: number; kind: "entry" | "section" }> = [
       { offset: 200, kind: "entry" },
       { offset: 1100, kind: "section" },
@@ -93,8 +90,7 @@ describe("resumePagination", () => {
     expect(offsets[1]).toBe(1123);
   });
 
-  it("accepts entry break in bottom quarter even with section later", () => {
-    /* Entry at 1000 wastes 123px (11%) ≤ 25% → use it */
+  it("accepts entry break that fits within the page window", () => {
     const candidates: Array<{ offset: number; kind: "entry" | "section" }> = [
       { offset: 1000, kind: "entry" },
       { offset: 1200, kind: "section" },

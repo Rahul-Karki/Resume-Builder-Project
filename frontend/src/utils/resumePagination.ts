@@ -125,20 +125,35 @@ function collectBreakCandidates(root: HTMLElement): CandidateInfo[] {
     return a.kind === "entry" ? -1 : 1;
   });
 
-  return result;
+  /* --- Deduplicate: when multiple candidates are within 20px of each
+   * other, keep only the earliest one (the outermost wrapper). This prevents
+   * sub-elements of entries (e.g. `.mod-job-head` inside `.mod-job`) from
+   * creating break points that would split an entry's content. --- */
+  const MIN_CANDIDATE_SPACING = 20;
+  const deduped: CandidateInfo[] = [];
+  for (const c of result) {
+    const last = deduped[deduped.length - 1];
+    if (!last || c.offset - last.offset >= MIN_CANDIDATE_SPACING) {
+      deduped.push(c);
+    }
+  }
+
+  return deduped;
 }
 
 /**
- * Smart break-finder that avoids wasteful gaps.
+ * Smart break-finder that keeps content flowing across pages.
+ *
+ * Key insight: breaking at ANY entry boundary is better than breaking at
+ * the natural page boundary, because the latter splits content mid-entry.
  *
  * Strategy:
- *  1. Scan candidates that fall inside the page window.
- *  2. Prefer ENTRY breaks near the bottom of the page (≤25% waste).
- *     Entry breaks within a section mean content flows naturally across
- *     pages instead of whole sections being pushed down.
- *  3. If no good entry break, try SECTION breaks very close to ideal
- *     (≤5% waste) that don't create large gaps from preceding content.
- *  4. Fall back to the natural page boundary (idealBreak).
+ *  1. Prefer the last ENTRY break in the page window (≥50% down the page).
+ *     Entry breaks keep content flowing naturally across pages.
+ *  2. If no entry break, try the last SECTION break (≥60% down) with a
+ *     small gap check to avoid large empty spaces.
+ *  3. Fall back to the natural page boundary (idealBreak) — this should
+ *     be rare when entry candidates are well-collected.
  */
 function findBestBreak(
   candidates: CandidateInfo[],
@@ -146,36 +161,32 @@ function findBestBreak(
   pageHeight: number,
 ): number {
   const idealBreak = pageStart + pageHeight;
-  const minBreak = pageStart + Math.round(pageHeight * 0.5);
   const windowEnd = idealBreak;
 
-  const inWindow = candidates.filter(
-    (c) => c.offset >= minBreak && c.offset <= windowEnd,
+  /* --- 1. Prefer the last entry break in the page --- */
+  const entryMin = pageStart + Math.round(pageHeight * 0.6);
+  const entryWindow = candidates.filter(
+    (c) => c.kind === "entry" && c.offset >= entryMin && c.offset <= windowEnd,
   );
-
-  /* --- Entry breaks near the bottom of the page --- */
-  for (let i = inWindow.length - 1; i >= 0; i--) {
-    const c = inWindow[i];
-    if (c.kind !== "entry") continue;
-    const wasteRatio = (idealBreak - c.offset) / pageHeight;
-    if (wasteRatio <= 0.25) return c.offset;
+  if (entryWindow.length > 0) {
+    return entryWindow[entryWindow.length - 1].offset;
   }
 
-  /* --- Section breaks very close to ideal --- */
-  for (let i = inWindow.length - 1; i >= 0; i--) {
-    const c = inWindow[i];
-    if (c.kind !== "section") continue;
-    const wasteRatio = (idealBreak - c.offset) / pageHeight;
-    if (wasteRatio <= 0.05) {
-      /* Check gap from preceding content */
-      const prevIdx = candidates.indexOf(c) - 1;
-      const prevEnd = prevIdx >= 0 ? candidates[prevIdx].offset : pageStart;
-      const gap = c.offset - prevEnd;
-      if (gap <= MAX_ACCEPTABLE_GAP_PX) return c.offset;
-    }
+  /* --- 2. Use a section break if it's reasonably close to the bottom --- */
+  const sectionMin = pageStart + Math.round(pageHeight * 0.6);
+  const sectionWindow = candidates.filter(
+    (c) => c.kind === "section" && c.offset >= sectionMin && c.offset <= windowEnd,
+  );
+  if (sectionWindow.length > 0) {
+    const best = sectionWindow[sectionWindow.length - 1];
+    /* Check gap from preceding content to avoid large empty space */
+    const prevIdx = candidates.indexOf(best) - 1;
+    const prevEnd = prevIdx >= 0 ? candidates[prevIdx].offset : pageStart;
+    const gap = best.offset - prevEnd;
+    if (gap <= MAX_ACCEPTABLE_GAP_PX) return best.offset;
   }
 
-  /* --- Fall back to the natural page boundary --- */
+  /* --- 3. Fall back to the natural page boundary --- */
   return idealBreak;
 }
 
