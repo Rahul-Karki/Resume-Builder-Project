@@ -75,6 +75,25 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const hasAuthSessionMarker = () => Boolean(localStorage.getItem("accessToken"));
 
+// Mutex to deduplicate concurrent /refresh calls — without this, multiple 401s
+// fire simultaneous POST /refresh requests; the first succeeds and blacklists
+// the old token via rotation, causing all later attempts to fail with 403.
+let _refreshPromise: Promise<void> | null = null;
+
+async function refreshAuthToken(): Promise<void> {
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = api.post("/refresh", {}, { timeout: 5000 })
+    .then(() => {
+      localStorage.setItem("accessToken", "session");
+    })
+    .finally(() => {
+      _refreshPromise = null;
+    });
+
+  return _refreshPromise;
+}
+
 const isTransientFailure = (error: any) => {
   const status = error?.response?.status;
   const code = String(error?.code ?? "");
@@ -414,8 +433,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        await api.post("/refresh", {}, { timeout: 5000 });
-        localStorage.setItem("accessToken", "session");
+        await refreshAuthToken();
         return api(originalRequest);
       } catch {
         // Token refresh failed

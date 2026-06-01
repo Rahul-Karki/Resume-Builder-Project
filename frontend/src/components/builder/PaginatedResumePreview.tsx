@@ -10,6 +10,9 @@ import { ResumePage } from "@/components/builder/ResumePage";
 
 const PAGE_GAP_PX = 24;
 const PAGE_TOP_PADDING_PX = 16;
+const PAGE_BOTTOM_PADDING_PX = 16;
+const TOTAL_VERTICAL_PADDING_PX = PAGE_TOP_PADDING_PX + PAGE_BOTTOM_PADDING_PX;
+const EFFECTIVE_PAGE_HEIGHT = A4_HEIGHT_PX - TOTAL_VERTICAL_PADDING_PX;
 const RECALC_DEBOUNCE_MS = 200;
 
 function offsetsEqual(a: number[], b: number[]): boolean {
@@ -40,7 +43,7 @@ export function PaginatedResumePreview({
       const measureEl = measureRef.current;
       if (!measureEl) return;
 
-      const nextOffsets = buildPageOffsetsFromElement(measureEl, A4_HEIGHT_PX);
+      const nextOffsets = buildPageOffsetsFromElement(measureEl, EFFECTIVE_PAGE_HEIGHT);
       setPageOffsets((prev) => (offsetsEqual(prev, nextOffsets) ? prev : nextOffsets));
     };
 
@@ -84,7 +87,6 @@ export function PaginatedResumePreview({
   }, [resume]);
 
   const scaledWidth = useMemo(() => A4_WIDTH_PX * scale, [scale]);
-  const scaledPageHeight = useMemo(() => A4_HEIGHT_PX * scale, [scale]);
 
   return (
     <div
@@ -124,15 +126,12 @@ export function PaginatedResumePreview({
       {pageOffsets.map((offset, index) => {
         const isLastPage = index === pageOffsets.length - 1;
         const nextOffset = isLastPage
-          ? offset + A4_HEIGHT_PX
+          ? offset + EFFECTIVE_PAGE_HEIGHT
           : pageOffsets[index + 1];
         const sliceHeight = nextOffset - offset;
-        const pageContentHeight = Math.min(A4_HEIGHT_PX, sliceHeight);
-        const withTopPadding = index > 0;
-        const adjustedHeight = withTopPadding
-          ? pageContentHeight + PAGE_TOP_PADDING_PX
-          : pageContentHeight;
-        const scaledContentHeight = adjustedHeight * scale;
+        const pageContentHeight = Math.min(EFFECTIVE_PAGE_HEIGHT, sliceHeight);
+        const totalPageHeight = pageContentHeight + TOTAL_VERTICAL_PADDING_PX;
+        const scaledContentHeight = totalPageHeight * scale;
 
         return (
           <ResumePage
@@ -142,13 +141,15 @@ export function PaginatedResumePreview({
             style={{
               width: `${scaledWidth}px`,
               height: `${scaledContentHeight}px`,
+              paddingTop: `${PAGE_TOP_PADDING_PX * scale}px`,
+              paddingBottom: `${PAGE_BOTTOM_PADDING_PX * scale}px`,
             }}
           >
             <div
               data-preview-scale="true"
               style={{
                 width: A4_WIDTH_PX,
-                height: adjustedHeight,
+                height: pageContentHeight,
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
                 overflow: "hidden",
@@ -160,19 +161,15 @@ export function PaginatedResumePreview({
                 data-page-index={index}
                 style={{
                   width: A4_WIDTH_PX,
-                  height: adjustedHeight,
+                  height: pageContentHeight,
                   overflow: "hidden",
                 }}
               >
-                {withTopPadding && (
-                  <div style={{ height: PAGE_TOP_PADDING_PX }} />
-                )}
                 <div
                   style={{
                     position: "relative",
                     top: -offset,
                     height: "100%",
-                    overflow: "hidden",
                   }}
                 >
                   <ResumeRenderer resume={resume} />

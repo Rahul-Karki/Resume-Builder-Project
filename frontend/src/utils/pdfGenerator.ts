@@ -239,7 +239,6 @@ export async function downloadPdfFromPreview(selector: string): Promise<void> {
   if (!pageWrappers.length) throw new Error("No resume pages found");
 
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const mmPerPx = 297 / A4_HEIGHT_PX;
 
   for (let i = 0; i < pageWrappers.length; i++) {
     const wrapper = pageWrappers[i];
@@ -248,27 +247,55 @@ export async function downloadPdfFromPreview(selector: string): Promise<void> {
     const sliceEl = wrapper.querySelector<HTMLElement>("[data-page-slice]");
     if (!sliceEl) continue;
 
-    const canvas = await html2canvas(sliceEl, {
+    // Clone the slice into an off-screen full-size container so html2canvas
+    // captures at full resolution — unaffected by ancestor CSS scale transforms
+    // or overflow clips (which would otherwise produce a tiny, collapsed image
+    // on mobile where scale ≈ 0.45).
+    const clone = sliceEl.cloneNode(true) as HTMLElement;
+
+    const tempBox = document.createElement('div');
+    tempBox.style.position = 'fixed';
+    tempBox.style.left = '-9999px';
+    tempBox.style.top = '-9999px';
+    tempBox.style.width = `${A4_WIDTH_PX}px`;
+    tempBox.style.height = `${A4_HEIGHT_PX}px`;
+    tempBox.style.overflow = 'hidden';
+    tempBox.style.background = '#ffffff';
+    tempBox.style.zIndex = '-1';
+    tempBox.appendChild(clone);
+    document.body.appendChild(tempBox);
+
+    // Wait a frame so the browser lays out the clone
+    await new Promise((r) => requestAnimationFrame(r));
+
+    const actualHeight = Math.min(clone.scrollHeight, A4_HEIGHT_PX);
+
+    const canvas = await html2canvas(clone, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       width: A4_WIDTH_PX,
-      height: A4_HEIGHT_PX,
+      height: actualHeight,
       windowWidth: A4_WIDTH_PX,
-      windowHeight: A4_HEIGHT_PX,
+      windowHeight: actualHeight,
       logging: false,
     });
 
+    document.body.removeChild(tempBox);
+
     if (i > 0) pdf.addPage();
+
+    const imgWidthMm = 210;
+    const imgHeightMm = 210 * canvas.height / canvas.width;
 
     pdf.addImage(
       canvas.toDataURL('image/jpeg', 0.95),
       'JPEG',
       0,
       0,
-      210,
-      210 * canvas.height / canvas.width,
+      imgWidthMm,
+      imgHeightMm,
     );
   }
 

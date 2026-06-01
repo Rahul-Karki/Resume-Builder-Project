@@ -759,7 +759,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 background: '#0A0A0D', zIndex: 2, overflow: 'hidden',
               }}
             >
-              {renderPreview(previewScale * mobilePreviewZoom)}
+              {renderPreview(isMobile ? mobilePreviewZoom : previewScale * mobilePreviewZoom)}
               {renderMobilePreviewZoomControls()}
             </div>
 
