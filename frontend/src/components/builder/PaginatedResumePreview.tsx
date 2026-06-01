@@ -12,7 +12,6 @@ import {
 import { ResumePage } from "@/components/builder/ResumePage";
 
 const PAGE_GAP_PX = 24;
-const BREAK_GUTTER_PX = 3;
 const RECALC_DEBOUNCE_MS = 200;
 
 function offsetsEqual(a: number[], b: number[]): boolean {
@@ -139,7 +138,7 @@ export function PaginatedResumePreview({
         const nextOffset = isLastPage
           ? offset + A4_HEIGHT_PX
           : pageOffsets[index + 1];
-        const sliceHeight = nextOffset - offset - (isLastPage ? 0 : BREAK_GUTTER_PX);
+        const sliceHeight = nextOffset - offset;
         const isFirstPage = index === 0;
 
         return (
@@ -194,6 +193,15 @@ export function PaginatedResumePreview({
                   <ResumeRenderer resume={resume} />
                 </div>
               </div>
+              {!isLastPage && pageMarginTop > 0 && (
+                <div
+                  style={{
+                    width: A4_WIDTH_PX,
+                    height: pageMarginTop,
+                    background: resume.style.backgroundColor,
+                  }}
+                />
+              )}
             </div>
           </ResumePage>
         );
