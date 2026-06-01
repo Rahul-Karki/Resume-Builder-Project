@@ -759,8 +759,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
                 background: '#0A0A0D', zIndex: 2, overflow: 'hidden',
               }}
             >
-              {renderPreview(isMobile ? mobilePreviewZoom : previewScale * mobilePreviewZoom)}
-              {renderMobilePreviewZoomControls()}
+              {renderPreview(isMobile ? previewScale : previewScale * mobilePreviewZoom)}
             </div>
 
             {/* AI Panel (mobile fullscreen) */}
