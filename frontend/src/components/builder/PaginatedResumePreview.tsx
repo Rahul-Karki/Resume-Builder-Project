@@ -102,7 +102,6 @@ export function PaginatedResumePreview({
         alignItems: "center",
         gap: `${PAGE_GAP_PX * scale}px`,
         position: "relative",
-        background: resume.style.backgroundColor,
       }}
     >
       <div
@@ -144,7 +143,6 @@ export function PaginatedResumePreview({
             style={{
               width: `${scaledWidth}px`,
               minHeight: `${scaledPageHeight}px`,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
             }}
           >
             <div
