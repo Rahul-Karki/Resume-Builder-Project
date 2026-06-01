@@ -40,7 +40,7 @@ const ResearchTemplate = memo(function ResearchTemplate({ data }: { data: Resume
     .res-section:last-child { margin-bottom:0 !important; }
     .res-title { font-size:12.5pt; font-weight:400; text-transform:uppercase; letter-spacing:0.6px; margin:0 0 4px; color:#181818; }
     .res-rule { border:none; border-top:1px solid #8d8d8d; margin:0 0 8px; }
-    .res-entry { margin-bottom:8px; page-break-inside:avoid; }
+    .res-entry { margin-bottom:8px; }
     .res-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
     .res-left { min-width:0; }
     .res-right { text-align:right; white-space:nowrap; color:#3d3d3d; }
@@ -49,7 +49,7 @@ const ResearchTemplate = memo(function ResearchTemplate({ data }: { data: Resume
     .res-bullets { margin:3px 0 0 0; padding:0; list-style:none; }
     .res-bullets li { margin-bottom:2px; display:flex; align-items:flex-start; gap:8px; }
     .res-bullets li::before { content:'${style.bulletStyle}'; color:${style.accentColor}; font-weight:700; line-height:inherit; flex-shrink:0; }
-    .res-project { margin-bottom:8px; page-break-inside:avoid; }
+    .res-project { margin-bottom:8px; }
     .res-project-name { font-weight:700; }
     .res-cert { margin-bottom:2px; }
     .res-major-bullet { font-size:10pt; margin-right:6px; }

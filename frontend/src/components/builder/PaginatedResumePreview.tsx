@@ -103,11 +103,13 @@ export function PaginatedResumePreview({
       className="resume-pages-root"
       style={{
         width: `${scaledWidth}px`,
+        maxWidth: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         gap: `${PAGE_GAP_PX * scale}px`,
         position: "relative",
+        margin: "0 auto",
       }}
     >
       <div
@@ -148,6 +150,7 @@ export function PaginatedResumePreview({
             backgroundColor={resume.style.backgroundColor}
             style={{
               width: `${scaledWidth}px`,
+              maxWidth: '100%',
               minHeight: `${scaledPageHeight}px`,
             }}
           >
@@ -218,7 +221,9 @@ export function PaginatedResumePreview({
             page-break-after: auto !important;
             break-after: auto !important;
           }
-          section, article, li, p, [class*='job'], [class*='entry'], [class*='item'], [class*='project'], [class*='skill'], [data-pagination-block] {
+          /* Allow page breaks between repeatable entries but NOT inside
+             indivisible units like list-items, paragraphs, or sections. */
+          li, p, section, article, [data-pagination-block] {
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }

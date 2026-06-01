@@ -71,15 +71,9 @@ const ResumeExportPage = () => {
             print-color-adjust: exact;
             color-adjust: exact;
           }
-          #resume-export-root .section {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          #resume-export-root .item {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-          #resume-export-root li {
+          #resume-export-root li,
+          #resume-export-root p,
+          #resume-export-root section {
             break-inside: avoid;
             page-break-inside: avoid;
           }

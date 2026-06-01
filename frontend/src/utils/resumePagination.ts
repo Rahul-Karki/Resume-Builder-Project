@@ -2,6 +2,11 @@ export const A4_WIDTH_PX = 794;
 export const A4_HEIGHT_PX = 1123;
 export const CONTENT_HEIGHT_PX = A4_HEIGHT_PX;
 
+/** Minimum gap threshold in px — if a break candidate would leave more
+ *  empty space than this (because it's a section boundary far from the
+ *  preceding content), we fall back to the page boundary to avoid waste. */
+const MAX_ACCEPTABLE_GAP_PX = 30;
+
 export function parsePageMarginTop(marginValue: string | undefined): number {
   if (!marginValue) return 0;
   const match = marginValue.match(/^(\d+)px/);
@@ -32,15 +37,31 @@ function isVisible(el: HTMLElement): boolean {
   );
 }
 
-function collectSectionCandidates(root: HTMLElement): Set<number> {
-  const candidates = new Set<number>();
-  const totalHeight = root.scrollHeight;
+interface CandidateInfo {
+  offset: number;
+  /** 'entry' – individual repeatable item (job, project, edu, cert);
+   *  'section' – section wrapper or heading boundary */
+  kind: "entry" | "section";
+}
 
-  const addIfValid = (offset: number) => {
+/** Collect structural break candidates from the rendered DOM.
+ *
+ *  Returns them sorted with metadata so the break-finder can prefer
+ *  finer-grained (entry) breaks over coarse (section) breaks. */
+function collectBreakCandidates(root: HTMLElement): CandidateInfo[] {
+  const result: CandidateInfo[] = [];
+  const totalHeight = root.scrollHeight;
+  const seen = new Set<number>();
+
+  const add = (offset: number, kind: "entry" | "section") => {
     const r = roundPx(offset);
-    if (r > 0 && r < totalHeight - 32) candidates.add(r);
+    if (r > 0 && r < totalHeight - 32 && !seen.has(r)) {
+      seen.add(r);
+      result.push({ offset: r, kind });
+    }
   };
 
+  /* --- section-level boundaries --- */
   const sectionSelectors = [
     "section",
     "article",
@@ -64,10 +85,16 @@ function collectSectionCandidates(root: HTMLElement): Set<number> {
       const parentSections = node.parentElement.closest(sectionSelectors);
       if (parentSections && parentSections !== root) return;
     }
-    addIfValid(getTopOffset(root, node));
+    add(getTopOffset(root, node), "section");
   });
 
-  const headingSelectors = ["h1", "h2", "h3", "h4", "h5", "h6", "[class*='section-title']", "[class*='sectionTitle']", "[class*='heading']", "[class*='label']"].join(",");
+  /* --- section heading boundaries --- */
+  const headingSelectors = [
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "[class*='section-title']", "[class*='sectionTitle']",
+    "[class*='heading']", "[class*='label']",
+  ].join(",");
+
   root.querySelectorAll(headingSelectors).forEach((node) => {
     if (!(node instanceof HTMLElement) || !isVisible(node)) return;
     const parent = node.parentElement;
@@ -75,54 +102,114 @@ function collectSectionCandidates(root: HTMLElement): Set<number> {
       const parentSection = parent.closest(sectionSelectors);
       if (parentSection && parentSection !== root) return;
     }
-    addIfValid(getTopOffset(root, node));
+    add(getTopOffset(root, node), "section");
   });
 
-  root.querySelectorAll("[class*='job'], [class*='entry'], [class*='item'], [class*='project'], [data-pagination-entry]").forEach((node) => {
+  /* --- individual, repeatable entry boundaries (jobs, projects, edu, certs) --- */
+  const entrySelectors = [
+    "[class*='job']",
+    "[class*='entry']",
+    "[class*='item']",
+    "[class*='project']",
+    "[data-pagination-entry]",
+  ].join(",");
+
+  root.querySelectorAll(entrySelectors).forEach((node) => {
     if (!(node instanceof HTMLElement) || !isVisible(node) || node.offsetHeight < 20) return;
-    addIfValid(getTopOffset(root, node));
+    add(getTopOffset(root, node), "entry");
   });
 
-  return candidates;
+  /* --- stable sort: offset asc, entries before sections at same offset --- */
+  result.sort((a, b) => {
+    if (a.offset !== b.offset) return a.offset - b.offset;
+    return a.kind === "entry" ? -1 : 1;
+  });
+
+  return result;
 }
 
+/**
+ * Smart break-finder that avoids wasteful gaps.
+ *
+ * Strategy:
+ *  1. Scan candidates that fall inside the page window.
+ *  2. Prefer ENTRY breaks near the bottom of the page (≤25% waste).
+ *     Entry breaks within a section mean content flows naturally across
+ *     pages instead of whole sections being pushed down.
+ *  3. If no good entry break, try SECTION breaks very close to ideal
+ *     (≤5% waste) that don't create large gaps from preceding content.
+ *  4. Fall back to the natural page boundary (idealBreak).
+ */
 function findBestBreak(
-  candidates: number[],
+  candidates: CandidateInfo[],
   pageStart: number,
   pageHeight: number,
 ): number {
   const idealBreak = pageStart + pageHeight;
-  const minBreak = pageStart + Math.round(pageHeight * 0.6);
+  const minBreak = pageStart + Math.round(pageHeight * 0.5);
+  const windowEnd = idealBreak;
 
-  const before = candidates.filter((p) => p >= minBreak && p <= idealBreak);
-  if (before.length > 0) return before[before.length - 1];
+  const inWindow = candidates.filter(
+    (c) => c.offset >= minBreak && c.offset <= windowEnd,
+  );
 
+  /* --- Entry breaks near the bottom of the page --- */
+  for (let i = inWindow.length - 1; i >= 0; i--) {
+    const c = inWindow[i];
+    if (c.kind !== "entry") continue;
+    const wasteRatio = (idealBreak - c.offset) / pageHeight;
+    if (wasteRatio <= 0.25) return c.offset;
+  }
+
+  /* --- Section breaks very close to ideal --- */
+  for (let i = inWindow.length - 1; i >= 0; i--) {
+    const c = inWindow[i];
+    if (c.kind !== "section") continue;
+    const wasteRatio = (idealBreak - c.offset) / pageHeight;
+    if (wasteRatio <= 0.05) {
+      /* Check gap from preceding content */
+      const prevIdx = candidates.indexOf(c) - 1;
+      const prevEnd = prevIdx >= 0 ? candidates[prevIdx].offset : pageStart;
+      const gap = c.offset - prevEnd;
+      if (gap <= MAX_ACCEPTABLE_GAP_PX) return c.offset;
+    }
+  }
+
+  /* --- Fall back to the natural page boundary --- */
   return idealBreak;
 }
 
 export function computePageOffsets(
   totalHeight: number,
   pageHeight: number,
-  candidates: number[],
+  candidates: CandidateInfo[],
   pageMarginTop: number = 0,
 ): number[] {
   if (!Number.isFinite(totalHeight) || totalHeight <= 0) return [0];
   if (totalHeight <= pageHeight) return [0];
 
-  const sortedCandidates = [...new Set(candidates)]
-    .filter((p) => p > 0 && p < totalHeight)
-    .sort((a, b) => a - b);
+  const sortedCandidates = candidates.filter(
+    (c) => c.offset > 0 && c.offset < totalHeight,
+  );
 
   const offsets: number[] = [0];
   let cursor = 0;
   const maxPages = Math.ceil(totalHeight / (pageHeight * 0.5)) + 4;
 
   for (let i = 0; i < maxPages; i++) {
-    const effectivePageHeight = i === 0 ? pageHeight : pageHeight - pageMarginTop;
+    const effectivePageHeight =
+      i === 0 ? pageHeight : pageHeight - pageMarginTop;
     if (cursor + effectivePageHeight >= totalHeight) break;
 
-    const breakPoint = findBestBreak(sortedCandidates, cursor, effectivePageHeight);
-    const clampedBreak = Math.min(Math.max(breakPoint, cursor + 32), totalHeight);
+    const breakPoint = findBestBreak(
+      sortedCandidates,
+      cursor,
+      effectivePageHeight,
+    );
+    const clampedBreak = Math.min(
+      Math.max(breakPoint, cursor + 32),
+      totalHeight,
+    );
 
     offsets.push(roundPx(clampedBreak));
     cursor = clampedBreak;
@@ -142,7 +229,11 @@ export function buildPageOffsetsFromElement(
     return [0];
   }
 
-  const candidateSet = collectSectionCandidates(root);
-  const candidates = Array.from(candidateSet).sort((a, b) => a - b);
-  return computePageOffsets(totalHeight, pageHeight, candidates, pageMarginTop);
+  const candidates = collectBreakCandidates(root);
+  return computePageOffsets(
+    totalHeight,
+    pageHeight,
+    candidates,
+    pageMarginTop,
+  );
 }

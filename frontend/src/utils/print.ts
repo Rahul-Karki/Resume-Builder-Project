@@ -199,11 +199,12 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
         break-after: auto !important;
       }
 
-      /* Never break inside section containers, articles, list items, or paragraphs */
-      .__print-clone section,
-      .__print-clone article,
+      /* Allow page breaks between repeatable entries but NOT inside
+         indivisible units like list-items, paragraphs, or sections. */
       .__print-clone li,
       .__print-clone p,
+      .__print-clone section,
+      .__print-clone article,
       .__print-clone [data-pagination-block] {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
