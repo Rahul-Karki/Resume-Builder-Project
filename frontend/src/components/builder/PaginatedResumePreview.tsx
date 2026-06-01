@@ -126,6 +126,8 @@ export function PaginatedResumePreview({
           ? offset + A4_HEIGHT_PX
           : pageOffsets[index + 1];
         const sliceHeight = nextOffset - offset;
+        const pageContentHeight = Math.min(A4_HEIGHT_PX, sliceHeight);
+        const scaledContentHeight = pageContentHeight * scale;
 
         return (
           <ResumePage
@@ -134,14 +136,14 @@ export function PaginatedResumePreview({
             backgroundColor={resume.style.backgroundColor}
             style={{
               width: `${scaledWidth}px`,
-              minHeight: `${scaledPageHeight}px`,
+              height: `${scaledContentHeight}px`,
             }}
           >
             <div
               data-preview-scale="true"
               style={{
                 width: A4_WIDTH_PX,
-                height: A4_HEIGHT_PX,
+                height: pageContentHeight,
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
                 overflow: "hidden",
@@ -153,7 +155,7 @@ export function PaginatedResumePreview({
                 data-page-index={index}
                 style={{
                   width: A4_WIDTH_PX,
-                  height: Math.min(A4_HEIGHT_PX, sliceHeight),
+                  height: pageContentHeight,
                   overflow: "hidden",
                 }}
               >

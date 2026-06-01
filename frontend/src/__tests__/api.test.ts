@@ -59,7 +59,7 @@ describe("api service", () => {
     const result = await bootstrapAuthSession();
 
     expect(result).toBe(true);
-    expect(post).toHaveBeenCalledWith("/refresh", {}, { timeout: 3000 });
+    expect(post).toHaveBeenCalledWith("/refresh", {}, { timeout: 6000 });
   });
 
   it("should include CSRF token in mutating request headers", async () => {

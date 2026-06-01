@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { A4_WIDTH_PX, A4_HEIGHT_PX } from './resumePagination';
 
 export interface PDFOptions {
   filename: string;
@@ -222,4 +223,64 @@ export const generateAndDownloadPDF = async (
       throw error;
     }
   }
+}
+
+/**
+ * Multi-page PDF download from the rendered resume preview.
+ * Captures each page individually so the output matches the on-screen pagination.
+ * Works on mobile where window.print() often shows a blank screen.
+ */
+export async function downloadPdfFromPreview(selector: string): Promise<void> {
+  const root = document.querySelector<HTMLElement>(selector);
+  if (!root) throw new Error("Resume element not found");
+
+  // Find all rendered page wrappers
+  const pageWrappers = root.querySelectorAll<HTMLElement>("[data-resume-page]");
+  if (!pageWrappers.length) throw new Error("No resume pages found");
+
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const mmPerPx = 297 / A4_HEIGHT_PX;
+
+  for (let i = 0; i < pageWrappers.length; i++) {
+    const wrapper = pageWrappers[i];
+
+    // Find the inner content slice within this page
+    const sliceEl = wrapper.querySelector<HTMLElement>("[data-page-slice]");
+    if (!sliceEl) continue;
+
+    const canvas = await html2canvas(sliceEl, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: A4_WIDTH_PX,
+      height: A4_HEIGHT_PX,
+      windowWidth: A4_WIDTH_PX,
+      windowHeight: A4_HEIGHT_PX,
+      logging: false,
+    });
+
+    if (i > 0) pdf.addPage();
+
+    pdf.addImage(
+      canvas.toDataURL('image/jpeg', 0.95),
+      'JPEG',
+      0,
+      0,
+      210,
+      210 * canvas.height / canvas.width,
+    );
+  }
+
+  const filename = `resume-${Date.now()}.pdf`;
+  const blob = pdf.output('blob');
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };

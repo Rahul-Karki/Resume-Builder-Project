@@ -8,6 +8,7 @@ import { templates as localTemplateCatalog } from '@/data/templateMeta';
 import { normalizeResumeTemplateId } from '@/utils/resumeTemplate';
 import { useViewport } from '@/hooks/useViewport';
 import printResume from '@/utils/print';
+import { downloadPdfFromPreview } from '@/utils/pdfGenerator';
 import { EditorPanel } from '@/components/builder/editorPanel';
 import { StylePanel } from '@/components/builder/stylePanel';
 import { AIAssistantPanel } from '@/components/builder/AIAssistantPanel';
@@ -451,18 +452,38 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const handleDownload = async () => {
     setApiError(null);
     setIsExporting(true);
-    setStatusMessage('Opening print preview...');
 
-    try {
-      await printResume('#resume-preview-root');
-      setStatusMessage('Print dialog opened. Select "Save as PDF" to download with custom filename and location.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to open print preview.';
-      setStatusMessage(message);
-      setApiError(message);
-    } finally {
-      setIsExporting(false);
+    if (isMobile) {
+      setStatusMessage('Generating PDF for download...');
+      try {
+        await downloadPdfFromPreview('#resume-preview-root');
+        setStatusMessage('PDF downloaded successfully.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to generate PDF.';
+        setStatusMessage(message);
+        setApiError(message);
+        // Fall back to print dialog
+        try {
+          setStatusMessage('Trying print preview as fallback...');
+          await printResume('#resume-preview-root');
+          setStatusMessage('Print dialog opened.');
+        } catch {
+          // give up
+        }
+      }
+    } else {
+      setStatusMessage('Opening print preview...');
+      try {
+        await printResume('#resume-preview-root');
+        setStatusMessage('Print dialog opened. Select "Save as PDF" to download with custom filename and location.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to open print preview.';
+        setStatusMessage(message);
+        setApiError(message);
+      }
     }
+
+    setIsExporting(false);
   };
 
   const handleTemplateChange = async (value: string) => {
@@ -474,6 +495,8 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const handleMobileViewChange = useCallback((view: MobileView) => {
     if (view === 'ai') {
       setAssistantOpen(true);
+    } else {
+      setAssistantOpen(false);
     }
     setMobileView(view);
   }, []);
@@ -554,7 +577,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
     >
       <div
         id="resume-preview-root"
-        style={{ width: `${A4_WIDTH_PX * scale}px` }}
+        style={{ width: `${A4_WIDTH_PX * scale}px`, margin: '0 auto' }}
       >
         <PaginatedResumePreview resume={resume} scale={scale} />
       </div>

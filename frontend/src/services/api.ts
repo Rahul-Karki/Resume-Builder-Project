@@ -316,18 +316,32 @@ export async function bootstrapAuthSession() {
     return false;
   }
 
-  try {
-    await api.post("/refresh", {}, { timeout: 3000 });
-    localStorage.setItem("accessToken", "session");
-    return true;
-  } catch {
+  // Retry with backoff so a cold-start backend (Render free tier) has
+  // time to wake up before the auth marker is cleared.
+  const timeouts = [6000, 10000];
+
+  for (let attempt = 0; attempt < timeouts.length; attempt++) {
     try {
-      await fetchRotatedCsrfToken();
+      await api.post("/refresh", {}, { timeout: timeouts[attempt] });
+      localStorage.setItem("accessToken", "session");
+      return true;
     } catch {
-      // If token rotation fails, the next auth response will set it
+      if (attempt < timeouts.length - 1) {
+        await wait(2000);
+      }
     }
-    return false;
   }
+
+  // All retries failed — clear stale marker so the UI shows logged-out state
+  // instead of showing a logout button with unusable API calls.
+  localStorage.removeItem("accessToken");
+
+  try {
+    await fetchRotatedCsrfToken();
+  } catch {
+    // If token rotation fails, the next auth response will set it
+  }
+  return false;
 }
 
 api.interceptors.request.use((config) => {
