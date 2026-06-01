@@ -198,14 +198,6 @@ export const validateAiResponse = (
     );
   }
 
-  // Check for AiGrammarResult shape
-  if ("issues" in obj && "correctedText" in obj) {
-    return (
-      Array.isArray(obj.issues) &&
-      typeof obj.correctedText === "string"
-    );
-  }
-
   return false;
 };
 

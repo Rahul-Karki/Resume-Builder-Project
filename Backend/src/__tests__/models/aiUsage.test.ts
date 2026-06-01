@@ -21,7 +21,6 @@ describe("AiUsage model", () => {
     expect(providerPath.options.enum).toContain("fallback");
 
     const featurePath = AiUsage.schema.path("feature") as any;
-    expect(featurePath.options.enum).toContain("grammar");
     expect(featurePath.options.enum).toContain("rewrite");
     expect(featurePath.options.enum).toContain("ats-analysis");
     expect(featurePath.options.enum).toContain("ats-jd-match");

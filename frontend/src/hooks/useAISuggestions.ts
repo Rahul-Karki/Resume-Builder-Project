@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AiGrammarResult, AiRewriteResult, AiTone } from "@/types/resume-types";
+import type { AiRewriteResult, AiTone } from "@/types/resume-types";
 import { useRequestManager } from "./useRequestManager";
 
 /**
@@ -40,7 +40,7 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef<Map<string, number>>(new Map());
 
-  const [suggestions, setSuggestions] = useState<AiRewriteResult | AiGrammarResult | null>(null);
+  const [suggestions, setSuggestions] = useState<AiRewriteResult | null>(null);
   const [state, setState] = useState<SuggestionState>({
     loading: false,
     error: null,
@@ -79,7 +79,7 @@ export const useAISuggestions = (config: DebounceConfig = {}) => {
           timeoutMs: finalConfig.timeoutMs,
           requestId,
         });
-        setSuggestions(data as AiRewriteResult | AiGrammarResult);
+        setSuggestions(data as AiRewriteResult);
         setState({ loading: false, error: null, requestId });
         requestManager.completeRequest(requestKey);
         return { success: true, data };

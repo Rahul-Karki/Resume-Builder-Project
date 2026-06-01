@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
-import { checkGrammar, enhanceBullet, improveText } from "../services/aiService";
+import { enhanceBullet, improveText } from "../services/aiService";
 import { logger } from "../observability";
 import { sendErrorResponse } from "../utils/errorResponse";
 import { AuthError } from "../errors/AppError";
@@ -190,7 +190,6 @@ const createAiHandler = (aiType: string, cacheKeyPrefix: string, handlerFn: AiHa
   });
 
 export const improveTextHandler = createAiHandler("improve-text", "improve", improveText);
-export const checkGrammarHandler = createAiHandler("check-grammar", "grammar", checkGrammar);
 export const enhanceBulletHandler = createAiHandler("enhance-bullet", "bullet", enhanceBullet);
 
 export { enforceCreditsIfNeeded, maybeDeductCredits, setAiResponseHeaders };

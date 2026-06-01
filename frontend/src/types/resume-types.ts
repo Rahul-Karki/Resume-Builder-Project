@@ -317,8 +317,6 @@ export interface TemplateMeta {
 }
 
 export type {
-  AiGrammarIssue,
-  AiGrammarResult,
   AiRewriteResult,
   AiSuggestion,
   AiTone,

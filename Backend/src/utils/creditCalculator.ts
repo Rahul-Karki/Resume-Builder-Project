@@ -1,6 +1,6 @@
 import { logger } from "../observability";
 
-export type AiOperation = 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
+export type AiOperation = 'improve-text' | 'enhance-bullet' | 'ats-analysis';
 
 export interface CreditCalculationResult {
   baseCredits: number;
@@ -53,7 +53,6 @@ export const calculateEstimatedCredits = (
 const getBaseCredits = (operation: AiOperation): number => {
   const baseCredits: Record<AiOperation, number> = {
     'improve-text': 2,
-    'check-grammar': 1,
     'enhance-bullet': 2,
     'ats-analysis': 5,
   };
@@ -69,7 +68,6 @@ const calculateLengthBonus = (textLength: number, operation: AiOperation): numbe
   // Define optimal text lengths for each operation
   const optimalLengths: Record<AiOperation, number> = {
     'improve-text': 1000,
-    'check-grammar': 800,
     'enhance-bullet': 600,
     'ats-analysis': 2000,
   };
@@ -100,7 +98,6 @@ const calculateLengthBonus = (textLength: number, operation: AiOperation): numbe
 const getMaxBonusCredits = (operation: AiOperation): number => {
   const maxBonuses: Record<AiOperation, number> = {
     'improve-text': 3,  // Max 5 total credits (2 + 3)
-    'check-grammar': 2,  // Max 3 total credits (1 + 2)
     'enhance-bullet': 3,  // Max 5 total credits (2 + 3)
     'ats-analysis': 5,   // Max 10 total credits (5 + 5)
   };
@@ -114,7 +111,6 @@ const getMaxBonusCredits = (operation: AiOperation): number => {
 const getCappedCredits = (operation: AiOperation): number => {
   const cappedCredits: Record<AiOperation, number> = {
     'improve-text': 5,
-    'check-grammar': 3,
     'enhance-bullet': 5,
     'ats-analysis': 10,
   };
@@ -163,7 +159,6 @@ export const estimateBatchCredits = (
 } => {
   const breakdown: Record<AiOperation, number> = {
     'improve-text': 0,
-    'check-grammar': 0,
     'enhance-bullet': 0,
     'ats-analysis': 0,
   };

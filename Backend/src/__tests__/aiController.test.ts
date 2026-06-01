@@ -21,8 +21,8 @@ vi.mock("../observability/aiMetrics", () => ({ trackAiRequest: vi.fn(), trackVal
 vi.mock("../errors/AppError", () => ({ AuthError: class extends Error { statusCode = 401; code = "AUTH_REQUIRED"; constructor(m: string) { super(m); } } }));
 vi.mock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
-import { improveTextHandler, checkGrammarHandler, enhanceBulletHandler } from "../controllers/aiController";
-import { improveText, checkGrammar, enhanceBullet } from "../services/aiService";
+import { improveTextHandler, enhanceBulletHandler } from "../controllers/aiController";
+import { improveText, enhanceBullet } from "../services/aiService";
 import { assertAiCreditsAvailable, deductAiCredits, refreshAiCreditsIfNeeded } from "../utils/aiCredits";
 
 const mockAiResult = (overrides = {}) => ({
@@ -56,22 +56,6 @@ describe("aiController", () => {
     });
 
 
-  });
-
-  describe("checkGrammarHandler", () => {
-    it("should check grammar and return corrections", async () => {
-      vi.mocked(assertAiCreditsAvailable).mockResolvedValue(true);
-      vi.mocked(refreshAiCreditsIfNeeded).mockResolvedValue(undefined);
-      vi.mocked(checkGrammar).mockResolvedValue(mockAiResult({ result: [{ original: "was", corrected: "were", offset: 0, explanation: "Subject-verb agreement" }] }) as any);
-      vi.mocked(deductAiCredits).mockResolvedValue(true);
-
-      const req = { user: { id: "user1" }, body: { text: "He was going there" }, headers: {}, creditContext: {} } as any;
-      const res = { status: vi.fn().mockReturnThis(), json: vi.fn(), setHeader: vi.fn() } as any;
-
-      await checkGrammarHandler(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(200);
-    });
   });
 
   describe("enhanceBulletHandler", () => {

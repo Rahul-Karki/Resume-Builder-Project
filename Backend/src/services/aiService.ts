@@ -8,7 +8,6 @@ import {
   createSuggestionId,
   normalizeTone,
   sliceText,
-  type AiGrammarResult,
   type AiRewriteResult,
   type AiTone,
   type AtsAnalysisReport,
@@ -100,52 +99,6 @@ const actionVerbScore = (text: string) => {
 };
 
 const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|latency|revenue|conversion|sla|throughput|users|requests)\b/i.test(text);
-
-const buildGrammarFallback = (text: string): AiGrammarResult => {
-  const issues: AiGrammarResult["issues"] = [];
-  const originalText = compactText(text);
-
-  if (!originalText) {
-    return { issues, correctedText: "" };
-  }
-
-  const typoMap: Array<[RegExp, string, string]> = [
-    [/\bexperiance\b/i, "Experience", "Corrected a common spelling error."],
-    [/\bmanagment\b/i, "management", "Corrected a common spelling error."],
-    [/\bteh\b/i, "the", "Corrected a typo."],
-  ];
-
-  let correctedText = originalText;
-
-  typoMap.forEach(([pattern, replacement, reason], index) => {
-    if (pattern.test(correctedText)) {
-      correctedText = correctedText.replace(pattern, replacement);
-      issues.push({
-        id: createSuggestionId("grammar", index),
-        originalText,
-        suggestionText: correctedText,
-        reason,
-        severity: "medium",
-      });
-    }
-  });
-
-  if (correctedText && correctedText === originalText) {
-    const capitalized = correctedText.charAt(0).toUpperCase() + correctedText.slice(1);
-    if (capitalized !== correctedText) {
-      correctedText = capitalized;
-      issues.push({
-        id: createSuggestionId("grammar", issues.length),
-        originalText,
-        suggestionText: correctedText,
-        reason: "Improved sentence capitalization.",
-        severity: "low",
-      });
-    }
-  }
-
-  return { issues, correctedText };
-};
 
 const buildRewriteFallback = (context: AiPromptContext): AiRewriteResult => {
   const text = compactText(context.text);
@@ -450,7 +403,7 @@ const calculateCost = (provider: "openai" | "gemini" | "openrouter", model: stri
 const logAiUsage = async (
   provider: "openai" | "gemini" | "openrouter" | "fallback",
   model: string,
-  feature: "grammar" | "rewrite" | "ats-analysis" | "ats-jd-match",
+  feature: "rewrite" | "ats-analysis" | "ats-jd-match",
   inputTokens: number,
   outputTokens: number,
   userId?: string,
@@ -497,7 +450,7 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
   userPrompt: string,
   fallback: T,
   provider?: AiProviderName,
-  featureName?: "grammar" | "rewrite" | "ats-analysis" | "ats-jd-match",
+  featureName?: "rewrite" | "ats-analysis" | "ats-jd-match",
   userId?: string
 ): Promise<StructuredAiResult<T>> => {
   const providerOrder = getProviderOrder(provider);
@@ -652,55 +605,6 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
     fallback,
     undefined,
     "rewrite",
-    context.userId,
-  );
-};
-
-export const checkGrammar = async (context: AiPromptContext): Promise<StructuredAiResult<AiGrammarResult>> => {
-  const fallback = buildGrammarFallback(context.text);
-  const userPrompt = JSON.stringify({
-    task: "Check grammar and spelling in this resume text. Return JSON only. Do not rewrite content beyond grammar/spelling fixes.",
-    section: context.section,
-    text: sliceText(context.text, 2500),
-    context: sliceText(context.context, 1000),
-    variationSeed: sliceText(context.variationSeed, 60),
-    outputShape: {
-      issues: [
-        {
-          id: "string",
-          originalText: "exact problem text",
-          suggestionText: "corrected text only",
-          reason: "brief grammar/spelling reason",
-          severity: "low|medium|high",
-        },
-      ],
-      correctedText: "fully corrected text using only grammar/spelling fixes",
-    },
-    guidance: [
-      "Keep the tone and meaning intact.",
-      "If the input is just a short label, single word, email, or URL, return no issues and keep correctedText identical.",
-      "Do not over-correct domain terms, company names, acronyms, or code names.",
-    ],
-  });
-
-  return runStructuredAi<AiGrammarResult>(
-    [
-      "You are a strict grammar and spelling checker for resumes.",
-      "Return JSON only with keys: issues (array), correctedText (string).",
-      "Each issues[i] MUST be an object: {id, originalText, suggestionText, reason, severity}.",
-      "Hard rules:",
-      "- Only fix grammar, spelling, punctuation, and casing. Do NOT change meaning.",
-      "- Preserve proper nouns, company names, tech terms, acronyms, and formatting such as bullet-like fragments.",
-      "- NEVER change emails, phone numbers, URLs, or usernames/handles. Keep them exactly as-is.",
-      "- If the text is just a single word/phrase (e.g., a language name like 'English') or is an email/URL, return issues: [] and correctedText identical.",
-      "- Do not add or remove metrics, dates, or claims.",
-      "- If nothing is wrong, return issues: [] and correctedText equal to the original text.",
-      "- Do not output markdown or non-JSON content.",
-    ].join("\n"),
-    userPrompt,
-    fallback,
-    undefined,
-    "grammar",
     context.userId,
   );
 };

@@ -18,16 +18,6 @@ describe("AI features integration", () => {
     expect(res.body).toHaveProperty("code", "AUTH_REQUIRED");
   });
 
-  it("should check grammar and return corrections", async () => {
-    const res = await request(app)
-      .post("/api/ai/check-grammar")
-      .set("Cookie", csrfCookie)
-      .set("x-csrf-token", csrfToken)
-      .send({ text: "She go to school" });
-    expect(res.status).toBe(401);
-    expect(res.body).toHaveProperty("code", "AUTH_REQUIRED");
-  });
-
   it("should analyze ATS and return a score", async () => {
     const res = await request(app)
       .post("/api/resumes/000000000000000000000000/analyze-ats")

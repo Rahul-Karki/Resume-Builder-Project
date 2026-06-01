@@ -149,14 +149,6 @@ const aiTextSchema = z.object({
   variationSeed: plainText(60).optional(),
 }).strict();
 
-const aiGrammarSchema = z.object({
-  text: plainText(4000).pipe(z.string().min(1).max(4000)),
-  section: z.enum(["summary", "experience", "education", "skills", "projects", "certifications", "languages"]),
-  context: plainText(1200).optional(),
-  forceRefresh: z.boolean().optional(),
-  variationSeed: plainText(60).optional(),
-}).strict();
-
 const atsAnalysisRequestSchema = z.object({
   jobTitle: plainText(160).optional(),
   jobDescription: plainText(6000).optional(),
@@ -348,7 +340,6 @@ export {
   authLoginSchema,
   authResetPasswordSchema,
   authSignupSchema,
-  aiGrammarSchema,
   aiTextSchema,
   complianceReportQuerySchema,
   complianceViolationsQuerySchema,

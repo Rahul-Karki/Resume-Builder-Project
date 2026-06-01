@@ -102,7 +102,6 @@ export const deduplicationMiddleware = (options: DeduplicationOptions = {}) => {
 const isAiRequest = (req: Request): boolean => {
   const aiPaths = [
     '/api/ai/improve-text',
-    '/api/ai/check-grammar', 
     '/api/ai/enhance-bullet',
     '/api/ai/ats-analysis'
   ];

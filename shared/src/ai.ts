@@ -109,20 +109,6 @@ export type AiRewriteResult = {
   summary: string;
 };
 
-export type AiGrammarIssue = {
-  id: string;
-  originalText: string;
-  suggestionText: string;
-  reason: string;
-  severity: AiSuggestionImpact;
-  path?: string;
-};
-
-export type AiGrammarResult = {
-  issues: AiGrammarIssue[];
-  correctedText: string;
-};
-
 export type AtsScoreBreakdown = {
   summary: number;
   experience: number;

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
-import { improveResumeText, checkResumeGrammar, enhanceResumeBullet } from "@/services/api";
-import type { AiRewriteResult, AiGrammarResult, AiTone, FocusedEditorField } from "@/types/resume-types";
-import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, PenTool, ChevronDown, Wand2, Lightbulb } from "lucide-react";
+import { improveResumeText, enhanceResumeBullet } from "@/services/api";
+import type { AiRewriteResult, AiTone, FocusedEditorField } from "@/types/resume-types";
+import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, ChevronDown, Wand2, Lightbulb } from "lucide-react";
 import { useAISuggestions } from "@/hooks/useAISuggestions";
 
 const TONES: { id: AiTone; label: string; icon: React.ReactNode; description: string }[] = [
@@ -415,7 +415,6 @@ export function AIAssistantPanel() {
   const { resume, ui } = store;
   const [tone, setTone] = useState<AiTone>("professional");
   const [rewrite, setRewrite] = useState<AiRewriteResult | null>(null);
-  const [grammar, setGrammar] = useState<AiGrammarResult | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -427,15 +426,8 @@ export function AIAssistantPanel() {
     cancelSuggestions: cancelImproveSuggestions,
   } = useAISuggestions();
 
-  const {
-    suggestions: grammarSuggestions,
-    state: grammarState,
-    requestSuggestions: requestGrammarSuggestions,
-    cancelSuggestions: cancelGrammarSuggestions,
-  } = useAISuggestions();
-
-  const loading = improveState.loading || grammarState.loading;
-  const error = improveState.error || grammarState.error;
+  const loading = improveState.loading;
+  const error = improveState.error;
 
   const target = useMemo(() => getFocusTarget(resume, ui.focusedField, ui.activeSection, store), [resume, ui.focusedField, ui.activeSection, store]);
   const blockedReason = useMemo(() => {
@@ -447,22 +439,14 @@ export function AIAssistantPanel() {
 
   useEffect(() => {
     setRewrite(null);
-    setGrammar(null);
     cancelImproveSuggestions("target-change");
-    cancelGrammarSuggestions("target-change");
-  }, [target?.text, cancelImproveSuggestions, cancelGrammarSuggestions]);
+  }, [target?.text, cancelImproveSuggestions]);
 
   useEffect(() => {
     if (!improveSuggestions) return;
     setRewrite(improveSuggestions as AiRewriteResult);
     setLastUpdatedAt(new Date().toISOString());
   }, [improveSuggestions]);
-
-  useEffect(() => {
-    if (!grammarSuggestions) return;
-    setGrammar(grammarSuggestions as AiGrammarResult);
-    setLastUpdatedAt(new Date().toISOString());
-  }, [grammarSuggestions]);
 
   // Auto-expand when there's a target with content
   useEffect(() => {
@@ -502,23 +486,6 @@ export function AIAssistantPanel() {
       requestType
     );
   }, [target, blockedReason, tone, resume.personalInfo.title, resume.title, rewrite, requestImproveSuggestions]);
-
-  const handleGrammar = useCallback(() => {
-    if (!target || blockedReason) return;
-    const fieldId = target.label || target.section;
-    requestGrammarSuggestions(
-      (body, options) => checkResumeGrammar(body as any, options),
-      {
-        text: target.text,
-        section: target.section,
-        context: target.context,
-        forceRefresh: Boolean(grammar),
-        variationSeed: grammar ? String(Date.now()) : undefined,
-      },
-      fieldId,
-      "check-grammar"
-    );
-  }, [target, blockedReason, grammar, requestGrammarSuggestions]);
 
   // Collapsed state - just show the header
   if (!isExpanded) {
@@ -597,16 +564,13 @@ export function AIAssistantPanel() {
                 {loading ? <Loader2 size={12} className="ai-spin" /> : <RefreshCw size={12} />} 
                 Improve
               </button>
-              <button className="ai-btn-secondary" onClick={handleGrammar} disabled={loading || Boolean(blockedReason)}>
-                <PenTool size={12} /> Grammar
-              </button>
               <span className="ai-status">
                 {loading ? "Working..." : lastUpdatedAt ? "Updated" : "Ready"}
               </span>
             </div>
 
             {/* Loading skeleton */}
-            {loading && !rewrite && !grammar && (
+            {loading && !rewrite && (
               <div style={{ padding: "0 16px 12px" }}>
                 <div className="ai-loader-block" style={{ width: "80%" }} />
                 <div className="ai-loader-block" style={{ width: "60%" }} />
@@ -644,26 +608,6 @@ export function AIAssistantPanel() {
                       </button>
                       <button className="ai-btn-apply" onClick={() => handleCopy(suggestion.suggestionText, suggestion.id)}>
                         <Copy size={10} /> {copiedId === suggestion.id ? "Copied" : "Copy"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {/* Grammar issues */}
-            {grammar && grammar.issues.length > 0 && (
-              <>
-                <div className="ai-section-label">Grammar ({grammar.issues.length})</div>
-                {grammar.issues.slice(0, 2).map((issue) => (
-                  <div key={issue.id} className="ai-card">
-                    <div className="ai-card-header">
-                      <div className="ai-card-reason">{issue.reason}</div>
-                    </div>
-                    <div className="ai-card-text">{issue.suggestionText}</div>
-                    <div className="ai-card-actions">
-                      <button className="ai-btn-apply" onClick={() => applySuggestion(issue.suggestionText)}>
-                        <Check size={10} /> Fix
                       </button>
                     </div>
                   </div>

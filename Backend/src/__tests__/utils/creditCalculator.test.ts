@@ -21,7 +21,7 @@ describe("creditCalculator", () => {
   });
 
   it("should floor at minimum credit cost for very short inputs", () => {
-    const cost = calculateEstimatedCredits("check-grammar", 0);
-    expect(cost).toBe(1);
+    const cost = calculateEstimatedCredits("improve-text", 0);
+    expect(cost).toBe(2);
   });
 });

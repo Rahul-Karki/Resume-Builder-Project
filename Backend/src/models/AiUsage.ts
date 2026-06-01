@@ -4,7 +4,7 @@ export interface IAiUsage extends Document {
   userId: string;
   provider: "openai" | "gemini" | "fallback";
   modelName: string;
-  feature: "grammar" | "rewrite" | "ats-analysis" | "ats-jd-match" | "unknown";
+  feature: "rewrite" | "ats-analysis" | "ats-jd-match" | "unknown";
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
@@ -19,7 +19,7 @@ const AiUsageSchema = new Schema<IAiUsage>(
     userId: { type: String, required: true, index: true },
     provider: { type: String, enum: ["openai", "gemini", "fallback"], required: true, index: true },
     modelName: { type: String, required: true },
-    feature: { type: String, enum: ["grammar", "rewrite", "ats-analysis", "ats-jd-match", "unknown"], required: true },
+    feature: { type: String, enum: ["rewrite", "ats-analysis", "ats-jd-match", "unknown"], required: true },
     inputTokens: { type: Number, default: 0 },
     outputTokens: { type: Number, default: 0 },
     totalTokens: { type: Number, default: 0 },

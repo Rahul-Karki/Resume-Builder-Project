@@ -1,7 +1,6 @@
 import axios from "axios";
 import { ExportPreset, ResumeDocument } from "@/types/resume-types";
 import type {
-  AiGrammarResult,
   AiRewriteResult,
   AiTone,
   AtsAnalysisReport,
@@ -12,7 +11,7 @@ import { errorTracker } from "@/utils/errorTracking";
 import { aiCreditsManager } from "@/utils/aiCredits";
 import { isBackendWakingUpError } from "@/utils/backendStatus";
 
-type AiOperation = 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
+type AiOperation = 'improve-text' | 'enhance-bullet' | 'ats-analysis';
 
 type RetriableConfig = {
   _retry?: boolean;
@@ -259,10 +258,6 @@ const performAiRequest = async <T>(
 
 export const improveResumeText = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
   return performAiRequest<AiRewriteResult>('improve-text', '/ai/improve-text', payload, options);
-};
-
-export const checkResumeGrammar = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {
-  return performAiRequest<AiGrammarResult>('check-grammar', '/ai/check-grammar', payload, options);
 };
 
 export const enhanceResumeBullet = async (payload: AiSectionRequest, options: AiRequestOptions = {}) => {

@@ -5,7 +5,7 @@ import { errorTracker } from './errorTracking';
 export interface CreditUsage {
   id: string;
   timestamp: string;
-  operation: 'improve-text' | 'check-grammar' | 'enhance-bullet' | 'ats-analysis';
+  operation: 'improve-text' | 'enhance-bullet' | 'ats-analysis';
   creditsUsed: number;
   creditsRemaining: number;
   status: 'success' | 'failed';
@@ -100,7 +100,7 @@ class AICreditsManager {
         remainingCredits: FREE_PLAN_CREDITS,
         resetDate: getNextResetDate(),
         planType: 'free',
-        features: ['improve-text', 'check-grammar', 'enhance-bullet', 'ats-analysis'],
+        features: ['improve-text', 'enhance-bullet', 'ats-analysis'],
       };
       this.saveData();
       logger.info('AI Credits Free Plan Initialized', { totalCredits: FREE_PLAN_CREDITS });
@@ -286,7 +286,7 @@ class AICreditsManager {
       remainingCredits: remaining,
       resetDate: credits.resetAt ?? getNextResetDate(),
       planType,
-      features: ['improve-text', 'check-grammar', 'enhance-bullet', 'ats-analysis'],
+      features: ['improve-text', 'enhance-bullet', 'ats-analysis'],
     };
     this.saveData();
     this.listeners.forEach(listener => listener(remaining));
@@ -391,7 +391,7 @@ class AICreditsManager {
   estimateCredits(operation: CreditUsage['operation'], textLength?: number): number {
     const baseCosts = {
       'improve-text': 2,
-      'check-grammar': 1,
+
       'enhance-bullet': 2,
       'ats-analysis': 5,
     };
