@@ -287,7 +287,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       const host = previewHostRef.current;
       if (!host) return;
 
-      const maxW = host.clientWidth - 12;
+      const maxW = host.clientWidth;
       if (maxW <= 0) return;
 
       const fitScale = Math.min(maxW / A4_WIDTH_PX, 1.15);
@@ -810,7 +810,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         {/* ── AI Assistant Panel (Tablet / Desktop) ── */}
         {!isMobile && assistantOpen && (
           <aside
-            className={`${isTablet ? 'fixed inset-x-0 bottom-0 z-50 h-[60vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)]' : 'absolute right-0 top-0 bottom-0 z-50 w-90 border-l border-zinc-700/80 bg-[#0C0D11]'} flex flex-col`}
+            className={`${isTablet ? 'fixed inset-x-0 bottom-0 z-50 h-[60vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)]' : 'w-90 border-l border-zinc-700/80 bg-[#0C0D11]'} flex flex-col`}
           >
             {isTablet ? (
               <>
