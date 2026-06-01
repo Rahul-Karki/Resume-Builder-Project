@@ -152,7 +152,6 @@ export function PaginatedResumePreview({
                 height: pageContentHeight,
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",
-                overflow: "hidden",
                 position: "relative",
               }}
             >

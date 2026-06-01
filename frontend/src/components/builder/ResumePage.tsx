@@ -13,7 +13,7 @@ const basePageStyle: CSSProperties = {
   width: A4_WIDTH_PX,
   height: A4_HEIGHT_PX,
   boxSizing: "border-box",
-  overflow: "hidden",
+  overflow: "visible",
   position: "relative",
   display: "flex",
   padding: 0,
