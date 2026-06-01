@@ -68,11 +68,7 @@ const setCsrfToken = (token: string) => {
 };
 
 const getCsrfToken = (): string => {
-  const token = _csrfToken ?? sessionStorage.getItem(CSRF_STORAGE_KEY) ?? "";
-  if (token) return token;
-  // Fallback: read the non-httpOnly cookie directly (set by /csrf, login, refresh)
-  const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : "";
+  return _csrfToken ?? sessionStorage.getItem(CSRF_STORAGE_KEY) ?? "";
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -335,14 +331,19 @@ export const createMissingSection = async (resumeId: string, section: string, co
 };
 
 export async function bootstrapAuthSession() {
-  // Always try to obtain a CSRF token upfront so the first mutation request
-  // (save, analyze-ats, etc.) has the token ready. This covers the case where
-  // the user has a valid session cookie but no localStorage auth marker.
-  try {
-    await fetchRotatedCsrfToken();
-  } catch {
-    // User is likely logged out — that's fine, the next auth response will
-    // set the CSRF token.
+  // Get a CSRF token with retry so the first mutation request (save, improve-text,
+  // analyze-ats) has it ready. The /csrf endpoint is CSRF-exempt and stateless,
+  // so it's the best candidate for cold-start probing.
+  const csrfTimeouts = [5000, 10000, 15000];
+  for (let attempt = 0; attempt < csrfTimeouts.length; attempt++) {
+    try {
+      await fetchRotatedCsrfToken();
+      break;
+    } catch {
+      if (attempt < csrfTimeouts.length - 1) {
+        await wait(2000);
+      }
+    }
   }
 
   if (!hasAuthSessionMarker()) {
@@ -371,10 +372,26 @@ export async function bootstrapAuthSession() {
   return false;
 }
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   const method = (config.method ?? "GET").toUpperCase();
   if (!SAFE_METHODS.has(method)) {
-    const csrfToken = getCsrfToken();
+    let csrfToken = getCsrfToken();
+
+    // No token available (cold start, stale session) — fetch one with retry
+    // before the mutation request goes out. The /csrf endpoint is CSRF-exempt
+    // and stateless, so it should work once the backend is warm.
+    if (!csrfToken) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await fetchRotatedCsrfToken();
+          csrfToken = getCsrfToken();
+          if (csrfToken) break;
+        } catch {
+          if (attempt < 2) await wait(2000);
+        }
+      }
+    }
+
     config.headers = config.headers ?? {};
     if (csrfToken) {
       config.headers["X-CSRF-Token"] = csrfToken;
