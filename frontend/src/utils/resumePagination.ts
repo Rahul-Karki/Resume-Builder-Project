@@ -111,6 +111,7 @@ function collectBreakCandidates(root: HTMLElement): CandidateInfo[] {
     "[class*='entry']",
     "[class*='item']",
     "[class*='project']",
+    "[class*='proj']",
     "[data-pagination-entry]",
   ].join(",");
 
@@ -194,7 +195,7 @@ export function computePageOffsets(
   totalHeight: number,
   pageHeight: number,
   candidates: CandidateInfo[],
-  pageMarginTop: number = 0,
+  pageBreakPadding: number = 0,
 ): number[] {
   if (!Number.isFinite(totalHeight) || totalHeight <= 0) return [0];
   if (totalHeight <= pageHeight) return [0];
@@ -208,8 +209,12 @@ export function computePageOffsets(
   const maxPages = Math.ceil(totalHeight / (pageHeight * 0.5)) + 4;
 
   for (let i = 0; i < maxPages; i++) {
-    const effectivePageHeight =
-      i === 0 ? pageHeight : pageHeight - pageMarginTop;
+    const topPad = i === 0 ? 0 : pageBreakPadding;
+    const bottomPad = pageBreakPadding;
+    const effectivePageHeight = Math.max(
+      pageHeight - topPad - bottomPad,
+      Math.round(pageHeight * 0.5),
+    );
     if (cursor + effectivePageHeight >= totalHeight) break;
 
     const breakPoint = findBestBreak(
@@ -232,7 +237,7 @@ export function computePageOffsets(
 export function buildPageOffsetsFromElement(
   root: HTMLElement,
   pageHeight: number = CONTENT_HEIGHT_PX,
-  pageMarginTop: number = 0,
+  pageBreakPadding: number = 0,
 ): number[] {
   const totalHeight = root.scrollHeight;
 
@@ -245,6 +250,6 @@ export function buildPageOffsetsFromElement(
     totalHeight,
     pageHeight,
     candidates,
-    pageMarginTop,
+    pageBreakPadding,
   );
 }

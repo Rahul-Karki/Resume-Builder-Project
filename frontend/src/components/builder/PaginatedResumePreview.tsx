@@ -37,6 +37,7 @@ export function PaginatedResumePreview({
     () => parsePageMarginTop(marginMap[resume.style.pageMargin]),
     [resume.style.pageMargin],
   );
+  const pageBreakPadding = pageMarginTop;
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -46,7 +47,7 @@ export function PaginatedResumePreview({
       const measureEl = measureRef.current;
       if (!measureEl) return;
 
-      const nextOffsets = buildPageOffsetsFromElement(measureEl, A4_HEIGHT_PX, pageMarginTop);
+      const nextOffsets = buildPageOffsetsFromElement(measureEl, A4_HEIGHT_PX, pageBreakPadding);
       setPageOffsets((prev) => (offsetsEqual(prev, nextOffsets) ? prev : nextOffsets));
     };
 
@@ -87,7 +88,7 @@ export function PaginatedResumePreview({
       if (mutationObserver) mutationObserver.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [resume, pageMarginTop]);
+  }, [resume, pageBreakPadding]);
 
   const scaledWidth = useMemo(() => A4_WIDTH_PX * scale, [scale]);
   const scaledPageHeight = useMemo(() => A4_HEIGHT_PX * scale, [scale]);
@@ -132,8 +133,11 @@ export function PaginatedResumePreview({
         const nextOffset = isLastPage
           ? offset + A4_HEIGHT_PX
           : pageOffsets[index + 1];
-        const sliceHeight = nextOffset - offset;
         const isFirstPage = index === 0;
+        const pageTopPad = isFirstPage ? 0 : pageBreakPadding;
+        const pageBottomPad = isLastPage ? 0 : pageBreakPadding;
+        const maxSliceHeight = Math.max(0, A4_HEIGHT_PX - pageTopPad - pageBottomPad);
+        const sliceHeight = Math.min(maxSliceHeight, nextOffset - offset);
 
         return (
           <ResumePage
@@ -156,12 +160,15 @@ export function PaginatedResumePreview({
                 position: "relative",
               }}
             >
+              {pageTopPad > 0 && (
+                <div aria-hidden style={{ height: pageTopPad }} />
+              )}
               <div
                 data-page-slice="true"
                 data-page-index={index}
                 style={{
                   width: A4_WIDTH_PX,
-                  height: Math.min(A4_HEIGHT_PX, sliceHeight),
+                  height: sliceHeight,
                   overflow: "hidden",
                 }}
               >
@@ -175,6 +182,9 @@ export function PaginatedResumePreview({
                   <ResumeRenderer resume={resume} />
                 </div>
               </div>
+              {pageBottomPad > 0 && (
+                <div aria-hidden style={{ height: pageBottomPad }} />
+              )}
             </div>
           </ResumePage>
         );
