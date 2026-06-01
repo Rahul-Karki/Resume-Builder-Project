@@ -185,6 +185,19 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
   const isMobile = useViewport(768);
   const isTablet = useViewport(1024);
 
+  // On mobile, auto-calculate initial preview scale to fill viewport width
+  const fillScale = useMemo(() => {
+    const viewportWidth = window.innerWidth;
+    const sidePadding = 16;
+    return Math.max(0.35, Math.min(1, (viewportWidth - sidePadding) / A4_WIDTH_PX));
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && fillScale < 1) {
+      setMobilePreviewZoom(fillScale);
+    }
+  }, [isMobile, fillScale]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const resumeId = params.get('resume');
