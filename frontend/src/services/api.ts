@@ -68,7 +68,11 @@ const setCsrfToken = (token: string) => {
 };
 
 const getCsrfToken = (): string => {
-  return _csrfToken ?? sessionStorage.getItem(CSRF_STORAGE_KEY) ?? "";
+  const token = _csrfToken ?? sessionStorage.getItem(CSRF_STORAGE_KEY) ?? "";
+  if (token) return token;
+  // Fallback: read the non-httpOnly cookie directly (set by /csrf, login, refresh)
+  const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : "";
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -331,6 +335,16 @@ export const createMissingSection = async (resumeId: string, section: string, co
 };
 
 export async function bootstrapAuthSession() {
+  // Always try to obtain a CSRF token upfront so the first mutation request
+  // (save, analyze-ats, etc.) has the token ready. This covers the case where
+  // the user has a valid session cookie but no localStorage auth marker.
+  try {
+    await fetchRotatedCsrfToken();
+  } catch {
+    // User is likely logged out — that's fine, the next auth response will
+    // set the CSRF token.
+  }
+
   if (!hasAuthSessionMarker()) {
     return false;
   }
@@ -354,12 +368,6 @@ export async function bootstrapAuthSession() {
   // All retries failed — clear stale marker so the UI shows logged-out state
   // instead of showing a logout button with unusable API calls.
   localStorage.removeItem("accessToken");
-
-  try {
-    await fetchRotatedCsrfToken();
-  } catch {
-    // If token rotation fails, the next auth response will set it
-  }
   return false;
 }
 
@@ -448,14 +456,18 @@ api.interceptors.response.use(
     ) {
       originalRequest._csrfRetried = true;
 
-      // Small backoff to allow bootstrap or concurrent CSRF rotation to complete
-      await wait(500);
-
-      try {
-        await fetchRotatedCsrfToken();
-        return api(originalRequest);
-      } catch {
-        // CSRF rotation failed
+      // Retry CSRF fetch with backoff for cold-start backends (Render free tier).
+      // The /csrf endpoint is CSRF-exempt, so it should always succeed once the
+      // backend is warm.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          await fetchRotatedCsrfToken();
+          return api(originalRequest);
+        } catch {
+          if (attempt < 2) {
+            await wait(2000 * (attempt + 1)); // 2s, 4s
+          }
+        }
       }
     }
 
