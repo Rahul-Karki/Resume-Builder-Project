@@ -47,8 +47,8 @@ describe("authCookies", () => {
       expect(res.cookies[0].options.httpOnly).toBe(true);
       expect(res.cookies[0].options.path).toBe("/");
       expect(res.cookies[0].options.maxAge).toBe(15 * 60 * 1000);
-      expect(res.cookies[0].options.sameSite).toBe("lax");
-      expect(res.cookies[0].options.secure).toBe(false);
+      expect(res.cookies[0].options.sameSite).toBe("none");
+      expect(res.cookies[0].options.secure).toBe(true);
     });
 
     it("should use SameSite=None for secure auth cookies", () => {
@@ -64,7 +64,7 @@ describe("authCookies", () => {
   });
 
   describe("setCsrfCookie", () => {
-    it("should return token and set HttpOnly cookie", () => {
+    it("should return token and set non-HttpOnly cookie (JS-readable for double-submit)", () => {
       const req = createReq();
       const res = createRes();
 
@@ -74,7 +74,7 @@ describe("authCookies", () => {
       expect(res.cookies.length).toBe(1);
       expect(res.cookies[0].name).toBe("csrfToken");
       expect(res.cookies[0].value).toBe(csrfToken);
-      expect(res.cookies[0].options.httpOnly).toBe(true);
+      expect(res.cookies[0].options.httpOnly).toBe(false);
     });
   });
 

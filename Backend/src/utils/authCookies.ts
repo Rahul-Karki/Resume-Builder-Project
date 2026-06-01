@@ -13,7 +13,10 @@ const isHttpsRequest = (req: Request) => {
 };
 
 const getBaseCookieOptions = (req: Request, sameSite: "lax" | "none") => {
-  const secure = isHttpsRequest(req);
+  // SameSite=None requires Secure per browser spec (Chrome rejects None cookies without Secure).
+  // When sameSite is "none", always set secure=true so the cookie is accepted even on HTTP
+  // (localhost is treated as a secure context by Chrome). Uses partitioned for CHIPS support.
+  const secure = sameSite === "none" ? true : isHttpsRequest(req);
   return {
     secure,
     sameSite,
@@ -23,12 +26,12 @@ const getBaseCookieOptions = (req: Request, sameSite: "lax" | "none") => {
 };
 
 const getAuthCookieOptions = (req: Request) => ({
-  ...getBaseCookieOptions(req, isHttpsRequest(req) ? "none" : "lax"),
+  ...getBaseCookieOptions(req, "none"),
   httpOnly: true,
 });
 
 const getCsrfCookieOptions = (req: Request) => ({
-  ...getBaseCookieOptions(req, "lax"),
+  ...getBaseCookieOptions(req, "none"),
   httpOnly: false, // Must be readable by JS for double-submit cookie pattern (X-CSRF-Token header)
 });
 

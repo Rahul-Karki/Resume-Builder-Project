@@ -306,7 +306,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       if (observer) observer.disconnect();
       window.removeEventListener('resize', computeScale);
     };
-  }, [assistantOpen, isMobile]);
+  }, [isMobile]);
 
   useEffect(() => {
     let cancelled = false;
@@ -693,7 +693,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
       </div>
 
       {/* ── Main Content ── */}
-      <div className="flex h-[calc(100vh-76px)] overflow-hidden builder-layout">
+      <div className="flex h-[calc(100vh-76px)] overflow-hidden builder-layout relative">
 
         {/* ── Desktop / Tablet: Sidebar Editor ── */}
         {!isMobile && (
@@ -706,7 +706,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
 
         {/* ── Desktop / Tablet: Preview ── */}
         {!isMobile && (
-          <main className={`flex-1 min-w-0 bg-[#0A0A0D] overflow-hidden ${assistantOpen && !isTablet ? 'mr-90' : ''}`}>
+          <main className="flex-1 min-w-0 bg-[#0A0A0D] overflow-hidden">
             <div className="flex items-center justify-end gap-2 px-3 py-1.5 bg-[#0A0A0D] border-b border-[#1A1A1D]" />
             {renderPreview(previewScale)}
           </main>
@@ -810,7 +810,7 @@ const ResumeStudioWorkExperienceEditor: React.FC = () => {
         {/* ── AI Assistant Panel (Tablet / Desktop) ── */}
         {!isMobile && assistantOpen && (
           <aside
-            className={`${isTablet ? 'fixed inset-x-0 bottom-0 z-50 h-[60vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)]' : 'w-90 border-l border-zinc-700/80 bg-[#0C0D11]'} flex flex-col`}
+            className={`${isTablet ? 'fixed inset-x-0 bottom-0 z-50 h-[60vh] bg-[#0C0D11] border-t border-zinc-700 rounded-t-2xl shadow-[0_-20px_60px_rgba(0,0,0,0.5)]' : 'absolute right-0 top-0 bottom-0 z-50 w-90 border-l border-zinc-700/80 bg-[#0C0D11]'} flex flex-col`}
           >
             {isTablet ? (
               <>
