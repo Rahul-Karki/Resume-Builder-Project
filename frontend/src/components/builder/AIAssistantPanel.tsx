@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useResumeBuilderStore } from "@/store/useResumeBuilderStore";
 import { improveResumeText, enhanceResumeBullet } from "@/services/api";
 import type { AiRewriteResult, AiTone, FocusedEditorField } from "@/types/resume-types";
-import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, ChevronDown, Wand2, Lightbulb } from "lucide-react";
+import { Briefcase, Scissors, Settings, Target, Sparkles, Check, Copy, AlertCircle, RefreshCw, Loader2, ChevronDown, Wand2, Lightbulb, TrendingUp, AlertTriangle, Hash, UserCheck, Zap } from "lucide-react";
 import { useAISuggestions } from "@/hooks/useAISuggestions";
 
 const TONES: { id: AiTone; label: string; icon: React.ReactNode; description: string }[] = [
@@ -407,9 +407,6 @@ const css = `
   }
 `;
 
-const impactClass = (impact?: string) =>
-  impact === "high" ? "ai-impact-high" : impact === "medium" ? "ai-impact-medium" : "ai-impact-low";
-
 export function AIAssistantPanel() {
   const store = useResumeBuilderStore();
   const { resume, ui } = store;
@@ -418,6 +415,7 @@ export function AIAssistantPanel() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [source, setSource] = useState<"ai" | "fallback" | null>(null);
 
   const {
     suggestions: improveSuggestions,
@@ -445,6 +443,7 @@ export function AIAssistantPanel() {
   useEffect(() => {
     if (!improveSuggestions) return;
     setRewrite(improveSuggestions as AiRewriteResult);
+    setSource((improveSuggestions as any)._fallback === false ? "ai" : "fallback");
     setLastUpdatedAt(new Date().toISOString());
   }, [improveSuggestions]);
 
@@ -506,6 +505,16 @@ export function AIAssistantPanel() {
             </div>
           </div>
           <div className="ai-header-right">
+            {source && (
+              <span style={{
+                fontSize: "10px", fontWeight: 600, padding: "2px 6px", borderRadius: "4px",
+                background: source === "ai" ? "rgba(34, 197, 94, 0.15)" : "rgba(234, 179, 8, 0.15)",
+                color: source === "ai" ? "#86efac" : "#fcd34d",
+                border: source === "ai" ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid rgba(234, 179, 8, 0.3)",
+              }}>
+                {source === "ai" ? "⚡ AI" : "⚙️ Fallback"}
+              </span>
+            )}
             <ChevronDown size={16} className="ai-chevron" />
           </div>
         </div>
@@ -524,6 +533,17 @@ export function AIAssistantPanel() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {target?.label && <span className="ai-context-badge">{target.label}</span>}
+            {source && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: "3px",
+                padding: "2px 6px", borderRadius: "4px", fontSize: "10px", fontWeight: 600,
+                background: source === "ai" ? "rgba(34, 197, 94, 0.15)" : "rgba(234, 179, 8, 0.15)",
+                color: source === "ai" ? "#86efac" : "#fcd34d",
+                border: source === "ai" ? "1px solid rgba(34, 197, 94, 0.3)" : "1px solid rgba(234, 179, 8, 0.3)",
+              }}>
+                {source === "ai" ? "⚡ AI" : "⚙️ Fallback"}
+              </span>
+            )}
             <div className="ai-close-btn" onClick={() => setIsExpanded(false)} title="Collapse">
               <ChevronDown size={16} className="ai-chevron open" />
             </div>
@@ -589,45 +609,109 @@ export function AIAssistantPanel() {
               </div>
             )}
 
-            {/* Rewrite suggestions */}
-            {rewrite && rewrite.suggestions.length > 0 && (
+            {/* Rewrite result */}
+            {rewrite && (
               <>
-                <div className="ai-section-label">Suggestions</div>
-                {rewrite.suggestions.slice(0, 2).map((suggestion) => (
-                  <div key={suggestion.id} className="ai-card">
-                    <div className="ai-card-header">
-                      <div className="ai-card-reason">
-                        {suggestion.reason}
-                      </div>
-                      {suggestion.impact && <span className={`ai-impact ${impactClass(suggestion.impact)}`}>{suggestion.impact}</span>}
+                {/* Main improved text */}
+                <div className="ai-section-label" style={{ marginTop: "12px" }}>Improved Text</div>
+                <div className="ai-card">
+                  <div className="ai-card-header">
+                    <div className="ai-card-reason">
+                      <Zap size={12} /> {rewrite.impactLevel === "high" ? "High Impact" : rewrite.impactLevel === "medium" ? "Medium Impact" : "Low Impact"}
                     </div>
-                    <div className="ai-card-text">{suggestion.suggestionText}</div>
-                    <div className="ai-card-actions">
-                      <button className="ai-btn-apply" onClick={() => applySuggestion(suggestion.suggestionText)}>
-                        <Check size={10} /> Apply
-                      </button>
-                      <button className="ai-btn-apply" onClick={() => handleCopy(suggestion.suggestionText, suggestion.id)}>
-                        <Copy size={10} /> {copiedId === suggestion.id ? "Copied" : "Copy"}
-                      </button>
+                    {rewrite.atsScoreImpact && (
+                      <span className="ai-impact ai-impact-high">{rewrite.atsScoreImpact.estimatedImprovement}</span>
+                    )}
+                  </div>
+                  <div className="ai-card-text">{rewrite.improvedText}</div>
+                  <div className="ai-card-actions">
+                    <button className="ai-btn-apply" onClick={() => applySuggestion(rewrite.improvedText)}>
+                      <Check size={10} /> Apply
+                    </button>
+                    <button className="ai-btn-apply" onClick={() => handleCopy(rewrite.improvedText, "main")}>
+                      <Copy size={10} /> {copiedId === "main" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* ATS Score Impact */}
+                {rewrite.atsScoreImpact && (
+                  <div className="ai-card" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <TrendingUp size={14} style={{ color: "#86efac", flexShrink: 0 }} />
+                    <div style={{ fontSize: "11px", color: "#a1a1aa", lineHeight: "1.4" }}>
+                      {rewrite.atsScoreImpact.reason}
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Detected Weaknesses */}
+                {rewrite.detectedWeaknesses?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">Weaknesses Found</div>
+                    {rewrite.detectedWeaknesses.map((w, i) => (
+                      <div key={i} style={{ display: "flex", gap: "8px", padding: "4px 16px", fontSize: "11px", color: "#fca5a5", alignItems: "flex-start" }}>
+                        <AlertTriangle size={10} style={{ marginTop: "2px", flexShrink: 0 }} />
+                        <span>{w}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Added Keywords */}
+                {rewrite.addedKeywords?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">ATS Keywords Added</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: "0 16px 8px" }}>
+                      {rewrite.addedKeywords.map((kw, i) => (
+                        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "3px", padding: "2px 6px", background: "rgba(255,255,255,0.04)", border: "1px solid #3f3f46", borderRadius: "3px", fontSize: "10px", color: "#d4d4d8" }}>
+                          <Hash size={8} /> {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Recruiter Signals */}
+                {rewrite.recruiterSignalsAdded?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">Recruiter Signals</div>
+                    {rewrite.recruiterSignalsAdded.map((s, i) => (
+                      <div key={i} style={{ display: "flex", gap: "8px", padding: "4px 16px", fontSize: "11px", color: "#86efac", alignItems: "flex-start" }}>
+                        <UserCheck size={10} style={{ marginTop: "2px", flexShrink: 0 }} />
+                        <span>{s}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Smart Suggestions */}
+                {rewrite.smartSuggestions?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">Recommendations</div>
+                    {rewrite.smartSuggestions.map((s, i) => (
+                      <div key={i} style={{ display: "flex", gap: "8px", padding: "4px 16px 4px 16px", fontSize: "11px", color: "#fcd34d", alignItems: "flex-start" }}>
+                        <Lightbulb size={10} style={{ marginTop: "2px", flexShrink: 0 }} />
+                        <span>{s}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Variations */}
+                {rewrite.variations?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">Alternatives</div>
+                    <div style={{ padding: "0 0 12px" }}>
+                      {rewrite.variations.slice(0, 3).map((variation, index) => (
+                        <button key={`${variation}-${index}`} className="ai-variation" onClick={() => applySuggestion(variation)}>
+                          {variation}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </>
             )}
-
-            {/* Rewrite variations */}
-            {rewrite?.variations?.length ? (
-              <>
-                <div className="ai-section-label">Alternatives</div>
-                <div style={{ padding: "0 0 12px" }}>
-                  {rewrite.variations.slice(0, 3).map((variation, index) => (
-                    <button key={`${variation}-${index}`} className="ai-variation" onClick={() => applySuggestion(variation)}>
-                      {variation}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : null}
           </>
         )}
       </div>

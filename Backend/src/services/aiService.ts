@@ -103,7 +103,6 @@ const hasMetric = (text: string) => /\b\d+(?:\.\d+)?%?\b|\$\d+|\d+x\b|\b(kpi|lat
 const buildRewriteFallback = (context: AiPromptContext): AiRewriteResult => {
   const text = compactText(context.text);
   const tone = normalizeTone(context.tone);
-  const lower = text.toLowerCase();
   const targetRole = compactText(context.targetRole);
 
   const baseVerb = actionVerbScore(text) ? compactText(text).split(/\s+/)[0] : "Developed";
@@ -120,34 +119,34 @@ const buildRewriteFallback = (context: AiPromptContext): AiRewriteResult => {
   const primaryRewrite = `${baseVerb} ${cleanRemainder || "work"} to ${tonePhrases[tone]}${focusTail}.`.replace(/\s+/g, " ").trim();
   const improvedRewrite = primaryRewrite.replace(/^worked on/i, "Developed");
 
-  const suggestions: AiRewriteResult["suggestions"] = [
-    {
-      id: createSuggestionId("rewrite", 0),
-      originalText: text,
-      suggestionText: improvedRewrite,
-      reason: "Rewritten with stronger action framing and ATS-friendly wording.",
-      impact: "high" as const,
-    },
-  ];
-
-  if (/worked on|helped with|responsible for/i.test(lower)) {
-    suggestions.push({
-      id: createSuggestionId("rewrite", 1),
-      originalText: text,
-      suggestionText: `${tone === "concise" ? "Built" : "Designed"} ${cleanRemainder || "a concrete outcome"} with measurable impact.`,
-      reason: "Removes weak phrasing and shifts to an action-first style.",
-      impact: "medium",
-    });
-  }
-
   return {
-    suggestions,
+    improvedText: improvedRewrite,
+    impactLevel: "high",
+    atsScoreImpact: {
+      estimatedImprovement: "10-20%",
+      reason: "Strengthened action verbs and improved ATS keyword density.",
+    },
+    detectedWeaknesses: [
+      /worked on|helped with|responsible for/i.test(text)
+        ? "Uses weak phrasing that reduces recruiter impact"
+        : "Could benefit from stronger technical positioning",
+      "Missing measurable outcome language",
+    ],
+    addedKeywords: targetRole ? targetRole.toLowerCase().split(/\s+/) : ["action", "impact"],
+    recruiterSignalsAdded: [
+      "Strong action verb",
+      "ATS-optimized phrasing",
+      `${tonePhrases[tone]}`,
+    ],
+    smartSuggestions: [
+      "Add a specific metric or outcome to strengthen impact visibility.",
+      targetRole ? `Include ${targetRole}-specific keywords naturally for better ATS matching.` : "Add role-specific terminology to improve ATS scoring.",
+    ],
     variations: [
       improvedRewrite,
       `${tone === "technical" ? "Engineered" : "Improved"} ${cleanRemainder || "the workflow"} with measurable outcomes.`,
       `${tone === "leadership-focused" ? "Led" : "Delivered"} ${cleanRemainder || "the work"} with clearer scope and business impact.`,
     ],
-    summary: "Suggestion generated from the edited section only.",
   };
 };
 
@@ -158,23 +157,35 @@ const buildBulletFallback = (context: AiPromptContext): AiRewriteResult => {
   const tone = normalizeTone(context.tone);
   const quantifier = hasMetric(text) ? "" : tone === "concise" ? " while reducing ambiguity" : " resulting in measurable impact";
 
-  const suggestions: AiRewriteResult["suggestions"] = [
-    {
-      id: createSuggestionId("bullet", 0),
-      originalText: text,
-      suggestionText: `${verb} ${remainder || "a stronger result"}${quantifier}.`.replace(/\s+/g, " ").trim(),
-      reason: "Strengthens the bullet with an action verb and ATS-friendly impact language.",
-      impact: "high",
-    },
-  ];
+  const improved = `${verb} ${remainder || "a stronger result"}${quantifier}.`.replace(/\s+/g, " ").trim();
 
   return {
-    suggestions,
+    improvedText: improved,
+    impactLevel: "high",
+    atsScoreImpact: {
+      estimatedImprovement: "10-20%",
+      reason: "Strengthened bullet with action verb and ATS-friendly impact language.",
+    },
+    detectedWeaknesses: [
+      /worked on|helped with|responsible for/i.test(text)
+        ? "Uses weak phrasing that reduces recruiter impact"
+        : "Could benefit from stronger action framing",
+      !hasMetric(text) ? "No measurable outcome visible" : "Metric present but could be more prominent",
+    ],
+    addedKeywords: ["action verb", "impact-driven"],
+    recruiterSignalsAdded: [
+      "Action-first framing",
+      "ATS-optimized phrasing",
+    ],
+    smartSuggestions: [
+      "Add a specific metric or outcome if available to increase recruiter impact.",
+      "Consider including the technology or tool used for better ATS keyword matching.",
+    ],
     variations: [
+      improved,
       `${verb} ${remainder || "the deliverable"} and improved team outcomes.`,
       `${tone === "technical" ? "Architected" : "Built"} ${remainder || "the solution"} with scalable execution.`,
     ],
-    summary: "Bullet enhanced for stronger ATS readability.",
   };
 };
 
@@ -555,7 +566,7 @@ const runStructuredAi = async <T extends Record<string, unknown>>(
 export const improveText = async (context: AiPromptContext): Promise<StructuredAiResult<AiRewriteResult>> => {
   const fallback = buildRewriteFallback(context);
   const userPrompt = JSON.stringify({
-    task: "Improve a resume section to be clearer, more ATS-friendly, and professionally written WITHOUT adding new facts.",
+    task: "Strategically transform resume content into ATS-optimized, impact-driven, technically strong language. Not paraphrasing — strategic resume intelligence.",
     tone: normalizeTone(context.tone),
     section: context.section,
     text: sliceText(context.text, 2500),
@@ -563,43 +574,49 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
     targetRole: sliceText(context.targetRole, 160),
     variationSeed: sliceText(context.variationSeed, 60),
     outputShape: {
-      suggestions: [
-        {
-          id: "string",
-          originalText: "original text exactly as provided",
-          suggestionText: "copy-paste-ready rewrite",
-          reason: "short explanation of why this is better",
-          impact: "low|medium|high",
-        },
-      ],
+      improvedText: "the strategically rewritten text",
+      impactLevel: "low|medium|high",
+      atsScoreImpact: {
+        estimatedImprovement: "estimated % improvement range",
+        reason: "why this improves ATS score",
+      },
+      detectedWeaknesses: ["array of weaknesses found in original"],
+      addedKeywords: ["keywords added for ATS alignment"],
+      recruiterSignalsAdded: ["recruiter-value signals embedded"],
+      smartSuggestions: ["actionable next-step recommendations"],
       variations: ["2-4 alternate rewrites"],
-      summary: "one sentence describing the improvement",
     },
     guidance: [
-      "If the text is too generic, make it specific using the role/title/context already present in the input.",
-      "If the section is a summary, add role, years of experience if mentioned, 2-4 core skills, and one outcome if present.",
-      "If the section is experience or projects, keep the same facts but rewrite with stronger verbs and measurable outcomes.",
-      "If the section looks empty or placeholder-like, return a short fill-in template plus a realistic example based on the resume text.",
+      "Analyze weaknesses: weak phrasing, low recruiter impact, missing measurable outcomes, lack of technical depth, ATS keyword gaps.",
+      "FAANG/MANGA emphasis: scale, performance, distributed systems, optimization, engineering excellence, reliability, architecture, ownership.",
+      "Startup emphasis: speed, ownership, shipping velocity, product thinking, end-to-end execution.",
+      "SUMMARY: concise, high-authority, role-targeted, ATS-rich. Avoid generic buzzwords.",
+      "EXPERIENCE: impact-first, metrics-focused, strong verbs, ownership language, business + technical impact.",
+      "PROJECTS: architecture, scalability, deployment, APIs, authentication, optimization, performance, production readiness, AI integration, cloud, real-world utility.",
+      "SKILLS: organize by categories, prioritize relevant tools, remove outdated items.",
+      "If input is empty/placeholder, provide a realistic template based on the target role and surrounding context.",
     ],
   });
 
   return runStructuredAi<AiRewriteResult>(
     [
-      "You are a senior resume writing assistant.",
-      "Return JSON only with keys: suggestions (array), variations (array), summary (string).",
-      "Each suggestions[i] MUST be an object: {id, originalText, suggestionText, reason, impact}.",
-      "Hard rules:",
-      "- Do NOT invent experience, tools, employers, degrees, achievements, or numbers.",
-      "- Preserve all numbers, dates, company names, job titles, proper nouns, and acronyms unless the user text is clearly wrong (then only fix obvious spelling).",
-      "- NEVER modify or rewrite personal identifiers: name, email, phone, location, URLs/links (LinkedIn/GitHub/portfolio), or usernames/handles.",
-      "- If the input contains an email/URL/phone, keep it exactly unchanged in suggestionText.",
-      "- Keep meaning the same; improve clarity, grammar, and ATS keyword alignment where appropriate.",
-      "- Prefer active voice, strong verbs, and concise phrasing.",
-      "- If the input is a summary, return the strongest version as suggestionText and make the variations meaningfully different (not just synonym swaps).",
-      "- If the input is a weak bullet, include impact, scope, or outcome only when it already exists or can be rephrased from the text.",
-      "- Do not include markdown, backticks, or commentary outside JSON.",
-      "Quality bar:",
-      "- suggestions: 1-3 high-quality alternatives; variations: 2-4 short variants; summary: one sentence describing what improved.",
+      "You are an Elite Resume Intelligence Engine trained on FAANG/MANGA recruiter standards, Big 4 hiring frameworks, YC/startup hiring patterns, ATS parsing systems, technical recruiter screening, and executive resume writing. Your job is NOT to paraphrase text. Your job is to strategically transform resume content into ATS-optimized, impact-driven, achievement-oriented, technically strong, concise, high-authority resume language.",
+      "Return STRICT JSON ONLY with keys: improvedText, impactLevel, atsScoreImpact (object with estimatedImprovement and reason), detectedWeaknesses (array), addedKeywords (array), recruiterSignalsAdded (array), smartSuggestions (array), variations (array).",
+      "CRITICAL RULES:",
+      "- NEVER invent achievements, metrics, technologies, dates, company names, or responsibilities.",
+      "- Preserve all numbers, dates, company names, job titles, proper nouns, acronyms, and URLs/emails exactly.",
+      "- Do NOT keyword stuff unnaturally. Do NOT produce robotic AI phrasing or generic fluff.",
+      "- Improve clarity, impact, technical positioning, ownership language, readability, ATS keyword relevance, and recruiter perception.",
+      "- Replace weak phrasing (worked on / helped with / responsible for / involved in / participated in / handled) with strong action verbs: engineered, optimized, architected, implemented, automated, developed, designed, scaled, deployed, integrated, enhanced, reduced, accelerated, improved.",
+      "ACHIEVEMENT FRAMEWORK: Prefer [ACTION] + what you built/did + technologies + impact + metrics (if available).",
+      "TONE STRATEGY:",
+      "- Professional: balanced recruiter-friendly language.",
+      "- Concise: shorter, sharper, high-density impact.",
+      "- Technical: deeper engineering terminology, architecture/performance emphasis.",
+      "- Leadership: ownership, mentoring, initiative, decision-making, cross-functional impact.",
+      "RECRUITER PSYCHOLOGY: Recruiters scan resumes in 6-10 seconds. Strongest impact must appear immediately. Weak filler words must be removed. Achievements must feel concrete. Technical depth must feel credible. Wording must sound senior and polished.",
+      "ANTI-AI DETECTION: Avoid repetitive sentence patterns, overuse of buzzwords, unnatural keyword stuffing, exaggerated corporate language, robotic phrasing. Outputs must feel human-written, premium, concise, believable, recruiter-grade.",
+      "SMART SUGGESTIONS: Each suggestion must explain WHY the improvement matters, mention ATS impact, mention recruiter impact, mention missing technical depth, mention missing metrics if applicable.",
     ].join("\n"),
     userPrompt,
     fallback,
@@ -612,47 +629,50 @@ export const improveText = async (context: AiPromptContext): Promise<StructuredA
 export const enhanceBullet = async (context: AiPromptContext): Promise<StructuredAiResult<AiRewriteResult>> => {
   const fallback = buildBulletFallback(context);
   const userPrompt = JSON.stringify({
-    task: "Rewrite a single resume bullet to be stronger, concise, and ATS-friendly WITHOUT adding new facts.",
+    task: "Rewrite a single resume bullet to be stronger, concise, and ATS-friendly using strategic resume intelligence. NOT paraphrasing — strategic transformation.",
     tone: normalizeTone(context.tone),
     section: context.section,
     text: sliceText(context.text, 2000),
     context: sliceText(context.context, 1000),
     variationSeed: sliceText(context.variationSeed, 60),
     outputShape: {
-      suggestions: [
-        {
-          id: "string",
-          originalText: "exact original bullet",
-          suggestionText: "single bullet rewrite",
-          reason: "what changed and why it is stronger",
-          impact: "low|medium|high",
-        },
-      ],
+      improvedText: "single bullet rewrite",
+      impactLevel: "low|medium|high",
+      atsScoreImpact: {
+        estimatedImprovement: "estimated % improvement range",
+        reason: "why this improves ATS score",
+      },
+      detectedWeaknesses: ["array of weaknesses found in original"],
+      addedKeywords: ["keywords added for ATS alignment"],
+      recruiterSignalsAdded: ["recruiter-value signals embedded"],
+      smartSuggestions: ["actionable next-step recommendations"],
       variations: ["2-4 alternate bullets with different emphasis"],
-      summary: "one sentence describing the improvement",
     },
     guidance: [
-      "Use a strong action verb at the start.",
-      "If the original bullet has metrics, preserve them exactly.",
-      "If the original bullet lacks metrics, do not invent them; instead strengthen the scope, tools, or outcome already implied.",
-      "Prefer one sentence per suggestion and keep it resume-ready.",
+      "Use strong action verb at the start. Prefer: Action verb + what + how + measurable impact (only if impact exists in input).",
+      "If the original has metrics, preserve them exactly. If it lacks metrics, do not invent them; instead strengthen scope, tools, or outcome already implied.",
+      "Remove weak phrasing (worked on / helped with / responsible for) when possible without changing meaning.",
+      "One sentence per suggestion — keep it resume-ready. No multiple bullets, no paragraphs.",
+      "FAANG emphasis: use scale, performance, architecture, ownership language where appropriate.",
+      "Startup emphasis: use speed, ownership, end-to-end execution, shipping velocity where appropriate.",
     ],
   });
 
   return runStructuredAi<AiRewriteResult>(
     [
-      "You are a senior resume writer.",
-      "Return JSON only with keys: suggestions (array), variations (array), summary (string).",
-      "Each suggestions[i] MUST be an object: {id, originalText, suggestionText, reason, impact}.",
-      "Hard rules:",
-      "- Keep it one bullet (no multiple bullets, no paragraphs).",
+      "You are an Elite Resume Intelligence Engine trained on FAANG/MANGA recruiter standards, Big 4 hiring frameworks, and YC/startup hiring patterns. Your job is to strategically transform a single resume bullet into an ATS-optimized, impact-driven, technically strong achievement statement.",
+      "Return STRICT JSON ONLY with keys: improvedText, impactLevel, atsScoreImpact (object), detectedWeaknesses (array), addedKeywords (array), recruiterSignalsAdded (array), smartSuggestions (array), variations (array).",
+      "CRITICAL RULES:",
+      "- Keep it ONE bullet. No multiple bullets. No paragraphs.",
       "- Do NOT add new tools, metrics, dates, certifications, or achievements not present in the input.",
       "- Preserve all numbers and units exactly (%, $, time, counts).",
-      "- Remove weak phrasing (worked on/helped/responsible for) when possible without changing meaning.",
+      "- Replace weak phrasing (worked on / helped with / responsible for) with strong verbs.",
       "- Prefer: Action verb + what + how + measurable impact (only if impact exists in input).",
       "- If the bullet is already strong, make only small improvements for clarity and ATS keywords.",
-      "- Do not mention personal contact info; keep any URLs/emails unchanged if present.",
-      "- Do not output markdown or non-JSON.",
+      "- Do not mention personal contact info. Keep any URLs/emails unchanged if present.",
+      "- Do NOT keyword stuff. Output must feel human-written, premium, concise, recruiter-grade.",
+      "- Recruiters scan in 6-10 seconds. Strongest impact must appear immediately.",
+      "- No markdown, backticks, or commentary outside JSON.",
     ].join("\n"),
     userPrompt,
     fallback,

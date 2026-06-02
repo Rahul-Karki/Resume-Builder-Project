@@ -103,9 +103,17 @@ export type AtsPriorityFix = {
 };
 
 export type AiRewriteResult = {
-  suggestions: AiSuggestion[];
+  improvedText: string;
+  impactLevel: "low" | "medium" | "high";
+  atsScoreImpact: {
+    estimatedImprovement: string;
+    reason: string;
+  };
+  detectedWeaknesses: string[];
+  addedKeywords: string[];
+  recruiterSignalsAdded: string[];
+  smartSuggestions: string[];
   variations: string[];
-  summary: string;
 };
 
 export type AtsScoreBreakdown = {
