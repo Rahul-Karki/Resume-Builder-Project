@@ -2,7 +2,7 @@ import { Schema, model, type Document } from "mongoose";
 
 export interface IAiUsage extends Document {
   userId: string;
-  provider: "openai" | "gemini" | "fallback";
+  provider: "openai" | "gemini" | "openrouter" | "fallback";
   modelName: string;
   feature: "rewrite" | "ats-analysis" | "ats-jd-match" | "unknown";
   inputTokens: number;
@@ -17,7 +17,7 @@ export interface IAiUsage extends Document {
 const AiUsageSchema = new Schema<IAiUsage>(
   {
     userId: { type: String, required: true, index: true },
-    provider: { type: String, enum: ["openai", "gemini", "fallback"], required: true, index: true },
+    provider: { type: String, enum: ["openai", "gemini", "openrouter", "fallback"], required: true, index: true },
     modelName: { type: String, required: true },
     feature: { type: String, enum: ["rewrite", "ats-analysis", "ats-jd-match", "unknown"], required: true },
     inputTokens: { type: Number, default: 0 },
