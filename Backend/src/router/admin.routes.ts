@@ -15,6 +15,12 @@ import {
   getAnalytics,
   recordUsage,
 } from "../controllers/templateController";
+import {
+  getMetricsOverview,
+  getSystemHealth,
+  getAIMetrics,
+  getErrorMetrics,
+} from "../controllers/observabilityController";
 import { validateRequest } from "../middleware/validateRequest";
 import {
   analyticsQuerySchema,
@@ -66,6 +72,7 @@ const adminTemplateMutationLimiter = createRedisRateLimitMiddleware({
 
 router.use("/analytics", ...adminGuard, adminAuditMiddleware("analytics"));
 router.use("/templates", ...adminGuard, adminAuditMiddleware("templates"));
+router.use("/observability", ...adminGuard, adminAuditMiddleware("observability"));
 
 // Dashboard analytics
 router.get("/analytics/dashboard", adminCache("admin-dashboard"), getDashboardStats);
@@ -81,6 +88,12 @@ router.put("/templates/:id", validateRequest({ params: objectIdParamSchema, body
 router.patch("/templates/:id/status", validateRequest({ params: objectIdParamSchema, body: setTemplateStatusSchema }), adminTemplateMutationLimiter, setTemplateStatus);
 router.patch("/templates/:id/premium", validateRequest({ params: objectIdParamSchema }), adminTemplateMutationLimiter, togglePremium);
 router.delete("/templates/:id", validateRequest({ params: objectIdParamSchema }), adminTemplateMutationLimiter, deleteTemplate);
+
+// ─── Observability routes (metrics, health, AI analytics) ─────────────────────
+router.get("/observability/overview", adminCache("admin-dashboard"), getMetricsOverview);
+router.get("/observability/system", getSystemHealth);
+router.get("/observability/ai", getAIMetrics);
+router.get("/observability/errors", getErrorMetrics);
 
 // ─── Public route: record template usage (called from resume builder) ─────────
 // Uses authenticate (not adminGuard) — any logged-in user can record usage

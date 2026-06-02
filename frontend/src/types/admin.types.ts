@@ -1,5 +1,3 @@
-// ─── admin.types.ts ───────────────────────────────────────────────────────────
-
 export type TemplateStatus   = "draft" | "published" | "archived";
 export type TemplateCategory = "tech" | "non-tech";
 export type TemplateAudience = "tech" | "non-tech";
@@ -55,7 +53,7 @@ export interface AdminTemplate {
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export interface DailyUsage {
-  date:           string;   // YYYY-MM-DD
+  date:           string;
   count:          number;
   resumesCreated: number;
   resumesEdited:  number;
@@ -86,6 +84,123 @@ export interface DashboardStats {
   mostUsed:           TemplateAnalytics | null;
   leastUsed:          TemplateAnalytics | null;
 }
+
+// ─── Observability Types ──────────────────────────────────────────────────────
+
+export interface MetricsSnapshot {
+  requestsPerMinute: number;
+  avgLatencyMs: number;
+  p95LatencyMs: number;
+  p99LatencyMs: number;
+  errorRate: number;
+  activeConnections: number;
+  memoryUsageMb: number;
+  cpuUsagePercent: number;
+  cacheHitRatio: number;
+  dbQueryTimeMs: number;
+  totalUsers: number;
+  totalResumes: number;
+  activeSessions: number;
+}
+
+export interface AIMetricsSnapshot {
+  totalRequests: number;
+  successRate: number;
+  averageLatencyMs: number;
+  totalTokens: number;
+  estimatedCost: number;
+  fallbackRate: number;
+  providerLatency: Record<string, number>;
+  failuresByType: Record<string, number>;
+  recentErrors: { provider: string; errorCategory: string; count: number }[];
+}
+
+export interface HealthStatus {
+  status: "healthy" | "degraded" | "down";
+  latency: number;
+  lastChecked: string;
+  message?: string;
+}
+
+export interface SystemHealth {
+  redis: HealthStatus;
+  mongodb: HealthStatus;
+  api: HealthStatus;
+  queue: HealthStatus;
+}
+
+export interface ErrorMetrics {
+  totalErrors: number;
+  errorsByType: Record<string, number>;
+  authFailures: number;
+  rateLimitHits: number;
+  recentErrors: { timestamp: string; type: string; route: string; count: number }[];
+}
+
+export interface ObservabilityOverview {
+  metrics: MetricsSnapshot;
+  aiMetrics: AIMetricsSnapshot;
+  systemHealth: SystemHealth;
+  errorMetrics: ErrorMetrics;
+}
+
+// ─── Sidebar nav ──────────────────────────────────────────────────────────────
+
+export type AdminPage = "dashboard" | "templates" | "analytics" | "system" | "security" | "activity";
+
+export interface NavItem {
+  id:    AdminPage;
+  label: string;
+  icon:  string;
+}
+
+export interface NavSection {
+  title?: string;
+  items:  NavItem[];
+}
+
+export const NAV_SECTIONS: NavSection[] = [
+  {
+    items: [
+      { id: "dashboard",  label: "Dashboard",  icon: "◈" },
+      { id: "templates",  label: "Templates",  icon: "◇" },
+    ],
+  },
+  {
+    title: "OBSERVABILITY",
+    items: [
+      { id: "analytics",  label: "Analytics",  icon: "▤" },
+      { id: "system",     label: "System",     icon: "⚙" },
+    ],
+  },
+  {
+    title: "OPERATIONS",
+    items: [
+      { id: "security",   label: "Security",   icon: "⚔" },
+      { id: "activity",   label: "Activity",   icon: "≡" },
+    ],
+  },
+];
+
+export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap(s => s.items);
+
+export const PAGE_LABELS: Record<AdminPage, string> = {
+  dashboard: "Dashboard",
+  templates: "Templates",
+  analytics: "Analytics",
+  system:    "System",
+  security:  "Security",
+  activity:  "Activity",
+};
+
+export const PAGE_SUBTITLES: Record<AdminPage, string> = {
+  dashboard: "Usage analytics and performance overview",
+  templates: "Create, publish, and configure resume templates",
+  analytics: "Real-time metrics and observability data",
+  system:    "System health and infrastructure monitoring",
+  security:  "Security events and access monitoring",
+  activity:  "Audit log and admin activity timeline",
+};
 
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
@@ -173,19 +288,4 @@ export const REGISTERED_LAYOUT_IDS = [
   "chronological", "functional", "combination",
   "traditional-assistant", "community-impact",
   "minimal", "timeline", "creative-v2",
-];
-
-// ─── Sidebar nav ──────────────────────────────────────────────────────────────
-
-export type AdminPage = "dashboard" | "templates";
-
-export interface NavItem {
-  id:    AdminPage;
-  label: string;
-  icon:  string;
-}
-
-export const NAV_ITEMS: NavItem[] = [
-  { id: "dashboard",  label: "Dashboard",  icon: "◈" },
-  { id: "templates",  label: "Templates",  icon: "◉" },
 ];

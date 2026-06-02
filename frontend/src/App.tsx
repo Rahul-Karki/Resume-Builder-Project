@@ -51,6 +51,10 @@ function App() {
             >
               <Route index element={<AdminDashboard />} />
               <Route path="templates" element={<AdminTemplates />} />
+              <Route path="analytics" element={<AdminDashboard />} />
+              <Route path="system" element={<AdminDashboard />} />
+              <Route path="security" element={<AdminDashboard />} />
+              <Route path="activity" element={<AdminDashboard />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

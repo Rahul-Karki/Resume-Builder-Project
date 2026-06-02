@@ -1,9 +1,16 @@
 import { useState, useMemo, useCallback } from "react";
 import { useDashboardStats } from "@/hooks/useDashboardQuery";
-import { StatsBar, StatsBarSkeleton } from "@/components/admin/StatusBar";
+import { useObservabilityOverview } from "@/hooks/useObservability";
+import { SystemOverviewCards } from "@/components/admin/dashboard/SystemOverviewCards";
+import { RealTimeMetricsPanel } from "@/components/admin/dashboard/RealTimeMetricsPanel";
+import { AIAnalyticsPanel } from "@/components/admin/dashboard/AIAnalyticsPanel";
+import { SystemHealthGrid } from "@/components/admin/dashboard/SystemHealthGrid";
+import { SecurityInsights } from "@/components/admin/dashboard/SecurityInsights";
+import { UsageHighlights } from "@/components/admin/dashboard/UsageHighlights";
+import { ActivityTimeline } from "@/components/admin/dashboard/ActivityTimeline";
 import { BarChart, AnalyticsRow } from "@/components/admin/AnalyticsChart";
 import { useViewport } from "@/hooks/useViewport";
-import { Skeleton, SkeletonChart } from "@/components/Skeleton";
+import { Skeleton } from "@/components/Skeleton";
 import { BACKEND_WAKING_UP_MESSAGE, isBackendWakingUpError } from "@/utils/backendStatus";
 
 function PeriodBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
@@ -48,9 +55,15 @@ export function AdminDashboard() {
   const [selected, setSelected] = useState<string | null>(null);
   const isMobile = useViewport(1024);
 
-  const { data, isLoading, isError, error, refetch } = useDashboardStats(period);
-  const stats = data?.stats ?? null;
-  const analytics = data?.analytics ?? [];
+  const { data: dashboardData, isLoading: dbLoading, isError: dbError, error, refetch } = useDashboardStats(period);
+  const { data: obsData, isLoading: obsLoading, isError: obsError, refetch: obsRefetch } = useObservabilityOverview();
+
+  const stats = dashboardData?.stats ?? null;
+  const analytics = dashboardData?.analytics ?? [];
+  const metrics = obsData?.metrics ?? null;
+  const aiMetrics = obsData?.aiMetrics ?? null;
+  const systemHealth = obsData?.systemHealth ?? null;
+  const errorMetrics = obsData?.errorMetrics ?? null;
 
   const publishedAnalytics = useMemo(
     () => analytics.filter((item) => item.status === "published"),
@@ -79,64 +92,64 @@ export function AdminDashboard() {
       .slice(-period);
   }, [analytics, period]);
 
-  const handleRetry = useCallback(() => { refetch(); }, [refetch]);
+  const handleRetry = useCallback(() => { refetch(); obsRefetch(); }, [refetch, obsRefetch]);
 
-  const PADDING = isMobile ? "20px 12px" : "28px 32px";
+  const PADDING = isMobile ? "16px 10px" : "24px 28px";
 
   return (
-    <div style={{ padding: PADDING, fontFamily: "'Outfit', sans-serif", maxWidth: 1400, margin: "0 auto" }}>
-
+    <div style={{ padding: PADDING, fontFamily: "'Outfit', sans-serif", maxWidth: 1440, margin: "0 auto" }}>
       {/* Page header */}
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "flex-end",
-        marginBottom: 24, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 10 : 0,
+        marginBottom: 22, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 10 : 0,
       }}>
         <div>
           <h1 style={{
             fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 300,
             color: "#F0EFE8", letterSpacing: "-0.5px", margin: 0, marginBottom: 4,
           }}>
-            Dashboard
+            Operations Center
           </h1>
           <p style={{ fontSize: 12, color: "#a1a1aa", margin: 0 }}>
-            Template usage analytics and performance
+            System observability, analytics, and infrastructure monitoring
           </p>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <PeriodBtn label="Last 7 days"  active={period === 7}  onClick={() => setPeriod(7)}  />
-          <PeriodBtn label="Last 30 days" active={period === 30} onClick={() => setPeriod(30)} />
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <PeriodBtn label="7 days"  active={period === 7}  onClick={() => setPeriod(7)}  />
+          <PeriodBtn label="30 days" active={period === 30} onClick={() => setPeriod(30)} />
         </div>
       </div>
 
-      {/* Error banner - shown on top while keeping data visible if cached */}
-      {isError && (
+      {/* Error banner */}
+      {(dbError || obsError) && (
         <ErrorBanner
-          message={error && isBackendWakingUpError(error) ? BACKEND_WAKING_UP_MESSAGE : error instanceof Error ? error.message : "Failed to load analytics"}
+          message={error && isBackendWakingUpError(error) ? BACKEND_WAKING_UP_MESSAGE : "Some data failed to load"}
           onRetry={handleRetry}
         />
       )}
 
-      {/* Stats row */}
-      {isLoading ? (
-        <div style={{ marginBottom: 28 }}>
-          <StatsBarSkeleton />
+      {/* Section 1: System Overview */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 3, height: 14, background: "#C8F55A", borderRadius: 2 }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px" }}>System Overview</span>
         </div>
-      ) : stats ? (
-        <div style={{ marginBottom: 28, animation: "fadeSlideUp 0.3s ease" }}>
-          <StatsBar stats={stats} />
-        </div>
-      ) : null}
+        <SystemOverviewCards stats={stats} metrics={metrics} isLoading={dbLoading} />
+      </div>
 
-      {/* Charts section */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
-
-        {/* Left: Total usage bar chart */}
-        <div style={{
-          background: "#111", border: "1px solid #1A1A1A", borderRadius: 14,
-          padding: "20px 20px 16px", animation: "fadeSlideUp 0.35s ease",
-        }}>
-          {isLoading ? (
-            <SkeletonChart />
+      {/* Section 2: Charts row */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        {/* Total usage bar chart */}
+        <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "18px 20px 14px" }}>
+          {dbLoading ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Skeleton className="h-3 w-36 rounded-md" />
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 180, paddingTop: 30 }}>
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <Skeleton key={i} className="flex-1 rounded-t-md" style={{ height: `${20 + Math.random() * 60}%` }} />
+                ))}
+              </div>
+            </div>
           ) : (
             <BarChart
               data={totalUsageSeries}
@@ -147,13 +160,22 @@ export function AdminDashboard() {
           )}
         </div>
 
-        {/* Right: Selected template chart */}
-        <div style={{
-          background: "#111", border: "1px solid #1A1A1A", borderRadius: 14,
-          padding: "20px 20px 16px", animation: "fadeSlideUp 0.4s ease",
-        }}>
-          {isLoading ? (
-            <SkeletonChart />
+        {/* Selected template chart */}
+        <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "18px 20px 14px" }}>
+          {dbLoading ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Skeleton className="h-3 w-36 rounded-md" />
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-6 w-16 rounded-full" />
+                ))}
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 148 }}>
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <Skeleton key={i} className="flex-1 rounded-t-md" style={{ height: `${20 + Math.random() * 60}%` }} />
+                ))}
+              </div>
+            </div>
           ) : (
             <>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
@@ -193,57 +215,62 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Most / Least used highlight cards */}
-      {isLoading ? (
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
-          {[1, 2].map(i => (
-            <div key={i} style={{
-              background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "18px 20px",
-            }}>
-              <Skeleton className="h-3 w-32 rounded-md" style={{ marginBottom: 12 }} />
-              <Skeleton className="h-5 w-40 rounded-md" style={{ marginBottom: 8 }} />
-              <Skeleton className="h-3 w-52 rounded-md" />
-            </div>
-          ))}
-        </div>
-      ) : stats?.mostUsed || stats?.leastUsed ? (
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
-          {[
-            { label: "Most Used This Week",  data: stats.mostUsed,  accent: "#4ADE80" },
-            { label: "Least Used This Week", data: stats.leastUsed, accent: "#F87171" },
-          ].filter(item => item.data).map(({ label, data, accent }) => data && (
-            <div key={label} style={{
-              background: "#111", border: "1px solid #1A1A1A", borderRadius: 14,
-              padding: "18px 20px", display: "flex", gap: 16, alignItems: "center",
-              animation: "fadeSlideUp 0.35s ease",
-            }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#fafafa", marginBottom: 4 }}>{data.name}</div>
-                <div style={{ fontSize: 12, color: "#a1a1aa" }}>
-                  <span style={{ color: accent, fontWeight: 700 }}>{data.weeklyUses.toLocaleString()}</span> uses this week ·{" "}
-                  <span style={{ color: data.trend === "up" ? "#4ADE80" : data.trend === "down" ? "#F87171" : "#555" }}>
-                    {data.trend === "up" ? "↑" : data.trend === "down" ? "↓" : "→"} {data.trend}
-                  </span>
-                </div>
-              </div>
-              <div style={{ flexShrink: 0 }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: accent, fontFamily: "'Fraunces', serif" }}>
-                  {data.weeklyUses.toLocaleString()}
-                </div>
-                <div style={{ fontSize: 10, color: "#71717a", textAlign: "right" }}>uses / week</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {/* Section 3: Observability & AI metrics */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <RealTimeMetricsPanel
+          metrics={metrics}
+          isLoading={obsLoading}
+          isError={obsError}
+          onRetry={obsRefetch}
+        />
+        <AIAnalyticsPanel
+          aiMetrics={aiMetrics}
+          isLoading={obsLoading}
+          isError={obsError}
+          onRetry={obsRefetch}
+        />
+      </div>
 
-      {/* Full analytics table */}
+      {/* Section 4: Usage highlights */}
+      <div style={{ marginBottom: 20 }}>
+        <UsageHighlights stats={stats} isLoading={dbLoading} />
+      </div>
+
+      {/* Section 5: System health & security */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <SystemHealthGrid
+          health={systemHealth}
+          isLoading={obsLoading}
+          isError={obsError}
+          onRetry={obsRefetch}
+        />
+        <SecurityInsights
+          errorMetrics={errorMetrics}
+          isLoading={obsLoading}
+          isError={obsError}
+          onRetry={obsRefetch}
+        />
+      </div>
+
+      {/* Section 6: Activity */}
+      <div style={{ marginBottom: 20 }}>
+        <ActivityTimeline />
+      </div>
+
+      {/* Section 7: Analytics Table */}
       <div style={{
         background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, overflow: "hidden",
-        animation: "fadeSlideUp 0.45s ease",
       }}>
-        {isLoading ? (
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "14px 18px 10px", borderBottom: "1px solid #1A1A1A",
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", fontFamily: "'Fraunces', serif" }}>Template Analytics</div>
+            <div style={{ fontSize: 10.5, color: "#71717a", marginTop: 2 }}>Per-template usage and performance</div>
+          </div>
+        </div>
+        {dbLoading ? (
           <div style={{ padding: "6px 16px" }}>
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} style={{
@@ -261,7 +288,7 @@ export function AdminDashboard() {
           </div>
         ) : analytics.length === 0 ? (
           <div style={{ padding: "40px", textAlign: "center" }}>
-            <div style={{ fontSize: 36, opacity: 0.15, marginBottom: 12 }}>◈</div>
+            <div style={{ fontSize: 36, opacity: 0.15, marginBottom: 12, color: "#a1a1aa" }}>◈</div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#a1a1aa", marginBottom: 4 }}>No analytics data yet</div>
             <div style={{ fontSize: 12, color: "#71717a" }}>
               Data will appear once templates start being used
@@ -269,7 +296,6 @@ export function AdminDashboard() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            {/* Sticky header */}
             <div style={{
               display: "grid",
               gridTemplateColumns: isMobile ? "32px 1fr 84px 80px 68px" : "32px 1fr 80px 80px 80px 80px",
@@ -290,7 +316,6 @@ export function AdminDashboard() {
                 </div>
               ))}
             </div>
-
             <div style={{ minWidth: isMobile ? "auto" : 560 }}>
               {analytics.map((a, i) => (
                 <AnalyticsRow key={a.templateId} analytics={a} rank={i + 1} compact={isMobile} />
