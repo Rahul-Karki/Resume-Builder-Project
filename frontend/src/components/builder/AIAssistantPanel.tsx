@@ -420,6 +420,7 @@ export function AIAssistantPanel() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [source, setSource] = useState<"ai" | "fallback" | null>(null);
+  const [lastImprovedKey, setLastImprovedKey] = useState<string>("");
 
   const {
     suggestions: improveSuggestions,
@@ -444,6 +445,7 @@ export function AIAssistantPanel() {
 
   useEffect(() => {
     setRewrite(null);
+    setLastImprovedKey("");
     cancelImproveSuggestions("target-change");
   }, [target?.text, cancelImproveSuggestions]);
 
@@ -454,21 +456,17 @@ export function AIAssistantPanel() {
     setLastUpdatedAt(new Date().toISOString());
   }, [improveSuggestions]);
 
-  // Auto-expand when there's a target with content
-  useEffect(() => {
-    if (target?.text && target.text.length > 10) {
-      setIsExpanded(true);
-    }
-  }, [target?.text]);
-
   const applySuggestion = useCallback((suggestion: string) => { if (target) target.applySuggestion(suggestion); }, [target]);
 
   const handleCopy = useCallback((text: string, id: string) => {
     navigator.clipboard?.writeText(text).then(() => { setCopiedId(id); setTimeout(() => setCopiedId(null), 1500); }).catch(() => undefined);
   }, []);
 
-  const handleImprove = useCallback(() => {
+  const handleImprove = useCallback((force = false) => {
     if (!target || blockedReason) return;
+    const improveKey = `${target.text}|${tone}`;
+    if (!force && improveKey === lastImprovedKey && rewrite) return;
+
     const fieldId = target.label || target.section;
     const payload = {
       text: target.text,
@@ -485,13 +483,14 @@ export function AIAssistantPanel() {
     const requestType = target.section === "experience" || target.section === "projects"
       ? "enhance-bullet"
       : "improve-text";
+    setLastImprovedKey(improveKey);
     requestImproveSuggestions(
       (body, options) => requestFn(body as any, options),
       payload,
       fieldId,
       requestType
     );
-  }, [target, blockedReason, tone, resume.personalInfo.title, resume.title, rewrite, requestImproveSuggestions]);
+  }, [target, blockedReason, tone, resume.personalInfo.title, resume.title, rewrite, requestImproveSuggestions, lastImprovedKey]);
 
   // Collapsed state - just show the header
   if (!isExpanded) {
@@ -507,7 +506,7 @@ export function AIAssistantPanel() {
             <div className="ai-header-text">
               <span className="ai-header-title">AI Writing Assistant</span>
               <span className="ai-header-subtitle">
-                {hasContent ? `Ready to improve "${target.label || target.section}"` : EDITABLE_FIELD_MESSAGE}
+                {hasContent && ui.focusedField ? `Ready to improve "${target.label || target.section}"` : EDITABLE_FIELD_MESSAGE}
               </span>
             </div>
           </div>
@@ -587,13 +586,29 @@ export function AIAssistantPanel() {
 
             {/* Action buttons */}
             <div className="ai-actions">
-              <button className="ai-btn-primary" onClick={handleImprove} disabled={loading || !target || Boolean(blockedReason)}>
-                {loading ? <Loader2 size={12} className="ai-spin" /> : <RefreshCw size={12} />} 
-                Improve
-              </button>
-              <span className="ai-status">
-                {loading ? "Working..." : lastUpdatedAt ? "Updated" : "Ready"}
-              </span>
+              {(() => {
+                const improveKey = target ? `${target.text}|${tone}` : "";
+                const isDuplicate = improveKey === lastImprovedKey && rewrite !== null;
+                return (
+                  <>
+                    <button className="ai-btn-primary" onClick={() => handleImprove()}
+                      disabled={loading || !target || Boolean(blockedReason) || isDuplicate}
+                      title={isDuplicate ? "Text and tone unchanged. Edit text or change tone to improve again." : ""}>
+                      {loading ? <Loader2 size={12} className="ai-spin" /> : <RefreshCw size={12} />}
+                      {loading ? "Working..." : isDuplicate ? "Already improved" : "Improve"}
+                    </button>
+                    {isDuplicate && (
+                      <button className="ai-btn-secondary" onClick={() => handleImprove(true)}
+                        style={{ fontSize: "11px", padding: "8px 10px" }}>
+                        <RefreshCw size={11} /> Retry
+                      </button>
+                    )}
+                    <span className="ai-status">
+                      {loading ? "Working..." : lastUpdatedAt ? "Updated" : "Ready"}
+                    </span>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Loading skeleton */}
