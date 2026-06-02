@@ -32,9 +32,13 @@ const BLOCKED_PERSONAL_FIELDS = new Set([
   "portfolio",
 ]);
 
-const BLOCKED_PERSONAL_MESSAGE = "Name, email, phone, location, LinkedIn, GitHub, and portfolio are locked fields. Select summary, experience, skills, projects, certifications, or languages for suggestions.";
+const BLOCKED_SECTION_KINDS = new Set(["certification", "language"]);
 
-const EDITABLE_FIELD_MESSAGE = "Click an editable field to get field-specific AI suggestions. Summary, experience bullets, skills, projects, certifications, and languages each get different guidance.";
+const BLOCKED_PERSONAL_MESSAGE = "Name, email, phone, location, LinkedIn, GitHub, and portfolio are locked fields. Select summary, experience, skills, or projects for suggestions.";
+
+const BLOCKED_SECTION_MESSAGE = "Certifications and languages sections are locked for AI suggestions. Select summary, experience, skills, or projects for suggestions.";
+
+const EDITABLE_FIELD_MESSAGE = "Click an editable field to get field-specific AI suggestions. Summary, experience bullets, skills, and projects each get different guidance.";
 
 const getPersonalFieldText = (resume: ReturnType<typeof useResumeBuilderStore.getState>["resume"], field?: string) => {
   const personal = resume.personalInfo;
@@ -432,6 +436,9 @@ export function AIAssistantPanel() {
     if (ui.focusedField?.kind === "personal" && ui.focusedField.field && BLOCKED_PERSONAL_FIELDS.has(ui.focusedField.field)) {
       return BLOCKED_PERSONAL_MESSAGE;
     }
+    if (ui.focusedField?.kind && BLOCKED_SECTION_KINDS.has(ui.focusedField.kind)) {
+      return BLOCKED_SECTION_MESSAGE;
+    }
     return null;
   }, [ui.focusedField]);
 
@@ -443,7 +450,7 @@ export function AIAssistantPanel() {
   useEffect(() => {
     if (!improveSuggestions) return;
     setRewrite(improveSuggestions as AiRewriteResult);
-    setSource((improveSuggestions as any)._fallback === false ? "ai" : "fallback");
+    setSource((improveSuggestions as any)._fallback === true ? "fallback" : "ai");
     setLastUpdatedAt(new Date().toISOString());
   }, [improveSuggestions]);
 
@@ -580,7 +587,7 @@ export function AIAssistantPanel() {
 
             {/* Action buttons */}
             <div className="ai-actions">
-              <button className="ai-btn-primary" onClick={handleImprove} disabled={loading || Boolean(blockedReason)}>
+              <button className="ai-btn-primary" onClick={handleImprove} disabled={loading || !target || Boolean(blockedReason)}>
                 {loading ? <Loader2 size={12} className="ai-spin" /> : <RefreshCw size={12} />} 
                 Improve
               </button>
