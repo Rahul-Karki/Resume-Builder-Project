@@ -63,6 +63,7 @@ const getFocusTarget = (
   section: string,
   store: ReturnType<typeof useResumeBuilderStore.getState>,
 ) => {
+  if (!focusedField) return null;
   const toneContext = resume.personalInfo.title || resume.title;
 
   if (focusedField?.kind === "personal") {
