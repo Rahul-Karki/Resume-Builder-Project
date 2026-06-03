@@ -4,7 +4,7 @@ import { AdminPage, PAGE_LABELS, PAGE_SUBTITLES } from "@/types/admin.types";
 import { api } from "@/services/api";
 import { useViewport } from "@/hooks/useViewport";
 
-const ALL_PAGES: AdminPage[] = ["dashboard", "templates", "analytics", "system", "security", "activity"];
+const ALL_PAGES: AdminPage[] = ["dashboard", "templates"];
 
 function getPageFromPath(pathname: string): AdminPage {
   if (pathname.includes("/admin/templates")) return "templates";
@@ -80,10 +80,6 @@ export default function AdminLayout({ adminName = "Admin User" }: Props) {
     const routes: Record<string, string> = {
       dashboard: "/admin",
       templates: "/admin/templates",
-      analytics: "/admin",
-      system:    "/admin",
-      security:  "/admin",
-      activity:  "/admin",
     };
     navigate(routes[nextPage]);
   };

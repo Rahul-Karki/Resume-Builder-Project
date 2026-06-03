@@ -1,13 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useDashboardStats } from "@/hooks/useDashboardQuery";
-import { useObservabilityOverview } from "@/hooks/useObservability";
 import { SystemOverviewCards } from "@/components/admin/dashboard/SystemOverviewCards";
-import { RealTimeMetricsPanel } from "@/components/admin/dashboard/RealTimeMetricsPanel";
-import { AIAnalyticsPanel } from "@/components/admin/dashboard/AIAnalyticsPanel";
-import { SystemHealthGrid } from "@/components/admin/dashboard/SystemHealthGrid";
-import { SecurityInsights } from "@/components/admin/dashboard/SecurityInsights";
 import { UsageHighlights } from "@/components/admin/dashboard/UsageHighlights";
-import { ActivityTimeline } from "@/components/admin/dashboard/ActivityTimeline";
 import { BarChart, AnalyticsRow } from "@/components/admin/AnalyticsChart";
 import { useViewport } from "@/hooks/useViewport";
 import { Skeleton } from "@/components/Skeleton";
@@ -56,14 +50,9 @@ export function AdminDashboard() {
   const isMobile = useViewport(1024);
 
   const { data: dashboardData, isLoading: dbLoading, isError: dbError, error, refetch } = useDashboardStats(period);
-  const { data: obsData, isLoading: obsLoading, isError: obsError, refetch: obsRefetch } = useObservabilityOverview();
 
   const stats = dashboardData?.stats ?? null;
   const analytics = dashboardData?.analytics ?? [];
-  const metrics = obsData?.metrics ?? null;
-  const aiMetrics = obsData?.aiMetrics ?? null;
-  const systemHealth = obsData?.systemHealth ?? null;
-  const errorMetrics = obsData?.errorMetrics ?? null;
 
   const publishedAnalytics = useMemo(
     () => analytics.filter((item) => item.status === "published"),
@@ -92,7 +81,7 @@ export function AdminDashboard() {
       .slice(-period);
   }, [analytics, period]);
 
-  const handleRetry = useCallback(() => { refetch(); obsRefetch(); }, [refetch, obsRefetch]);
+  const handleRetry = useCallback(() => { refetch(); }, [refetch]);
 
   const PADDING = isMobile ? "16px 10px" : "24px 28px";
 
@@ -108,10 +97,10 @@ export function AdminDashboard() {
             fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 300,
             color: "#F0EFE8", letterSpacing: "-0.5px", margin: 0, marginBottom: 4,
           }}>
-            Operations Center
+            Dashboard
           </h1>
           <p style={{ fontSize: 12, color: "#a1a1aa", margin: 0 }}>
-            System observability, analytics, and infrastructure monitoring
+            Template usage analytics and performance
           </p>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -121,9 +110,9 @@ export function AdminDashboard() {
       </div>
 
       {/* Error banner */}
-      {(dbError || obsError) && (
+      {dbError && (
         <ErrorBanner
-          message={error && isBackendWakingUpError(error) ? BACKEND_WAKING_UP_MESSAGE : "Some data failed to load"}
+          message={error && isBackendWakingUpError(error) ? BACKEND_WAKING_UP_MESSAGE : error instanceof Error ? error.message : "Failed to load analytics"}
           onRetry={handleRetry}
         />
       )}
@@ -134,7 +123,7 @@ export function AdminDashboard() {
           <div style={{ width: 3, height: 14, background: "#C8F55A", borderRadius: 2 }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px" }}>System Overview</span>
         </div>
-        <SystemOverviewCards stats={stats} metrics={metrics} isLoading={dbLoading} />
+        <SystemOverviewCards stats={stats} metrics={null} isLoading={dbLoading} />
       </div>
 
       {/* Section 2: Charts row */}
@@ -215,46 +204,9 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Section 3: Observability & AI metrics */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
-        <RealTimeMetricsPanel
-          metrics={metrics}
-          isLoading={obsLoading}
-          isError={obsError}
-          onRetry={obsRefetch}
-        />
-        <AIAnalyticsPanel
-          aiMetrics={aiMetrics}
-          isLoading={obsLoading}
-          isError={obsError}
-          onRetry={obsRefetch}
-        />
-      </div>
-
       {/* Section 4: Usage highlights */}
       <div style={{ marginBottom: 20 }}>
         <UsageHighlights stats={stats} isLoading={dbLoading} />
-      </div>
-
-      {/* Section 5: System health & security */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
-        <SystemHealthGrid
-          health={systemHealth}
-          isLoading={obsLoading}
-          isError={obsError}
-          onRetry={obsRefetch}
-        />
-        <SecurityInsights
-          errorMetrics={errorMetrics}
-          isLoading={obsLoading}
-          isError={obsError}
-          onRetry={obsRefetch}
-        />
-      </div>
-
-      {/* Section 6: Activity */}
-      <div style={{ marginBottom: 20 }}>
-        <ActivityTimeline />
       </div>
 
       {/* Section 7: Analytics Table */}
