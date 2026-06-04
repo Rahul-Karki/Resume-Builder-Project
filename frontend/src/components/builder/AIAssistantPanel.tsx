@@ -657,6 +657,46 @@ export function AIAssistantPanel() {
                   </div>
                 </div>
 
+                {/* Detected Weaknesses */}
+                {rewrite.detectedWeaknesses?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">Weaknesses Found</div>
+                    {rewrite.detectedWeaknesses.map((w, i) => (
+                      <div key={i} style={{ display: "flex", gap: "8px", padding: "4px 16px", fontSize: "11px", color: "#fca5a5", alignItems: "flex-start" }}>
+                        <AlertTriangle size={10} style={{ marginTop: "2px", flexShrink: 0 }} />
+                        <span>{w}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Added Keywords */}
+                {rewrite.addedKeywords?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">ATS Keywords Added</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: "0 16px 8px" }}>
+                      {rewrite.addedKeywords.map((kw, i) => (
+                        <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "3px", padding: "2px 6px", background: "rgba(255,255,255,0.04)", border: "1px solid #3f3f46", borderRadius: "3px", fontSize: "10px", color: "#d4d4d8" }}>
+                          <Hash size={8} /> {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Recruiter Signals */}
+                {rewrite.recruiterSignalsAdded?.length > 0 && (
+                  <>
+                    <div className="ai-section-label">Recruiter Signals</div>
+                    {rewrite.recruiterSignalsAdded.map((s, i) => (
+                      <div key={i} style={{ display: "flex", gap: "8px", padding: "4px 16px", fontSize: "11px", color: "#86efac", alignItems: "flex-start" }}>
+                        <UserCheck size={10} style={{ marginTop: "2px", flexShrink: 0 }} />
+                        <span>{s}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
                 {/* Variations */}
                 {rewrite.variations?.length > 0 && (
                   <>
