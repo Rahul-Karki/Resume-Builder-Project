@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import type { AtsAnalysisJobData } from "../../../shared/src/jobs";
 import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement, type RecruiterImpression, type AtsKeywordAnalysis, type AtsCategoryScores, type AtsFormatIssue, type AtsContentImprovement, type AtsSectionAnalysis, type ClickToApply, type SectionWiseAnalysis, type SectionScoreDetail, type ExpandendSectionKey, type ExperienceAnalysis, type BulletAnalysis, type ProjectAnalysis, type SkillsAnalysis, type SkillCategorization, type RoleMatchAnalysis, type KeywordDensity, type ContentQualityAnalysis, type RecruiterFeedback, type IndustryCheck, type AtsWarning, type AtsRecommendation } from "../../../shared/src/ai";
 import { logger } from "../observability";
@@ -1407,6 +1408,21 @@ const buildAtsReport = (job: { id: string; data: AtsAnalysisJobData }): AtsAnaly
 export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysisJobData }) => {
   try {
     const baseReport = buildAtsReport(job);
+
+    // Content-based cache: skip AI if identical content was already analyzed recently
+    const contentHash = crypto.createHash("sha256").update(
+      JSON.stringify({ resume: job.data.resume, jd: job.data.jobDescription, role: job.data.jobTitle })
+    ).digest("hex");
+    const existing = await AtsAnalysis.findOne({
+      resumeId: job.data.resumeId, userId: job.data.userId,
+      contentHash, aiUsed: true, status: "completed",
+      createdAt: { $gte: new Date(Date.now() - 3600_000) },
+    }).lean();
+    if (existing) {
+      logger.info({ jobId: job.id, resumeId: job.data.resumeId }, "ATS analysis skipped — identical content already analyzed with AI");
+      return { ...existing, isCached: true };
+    }
+
     const { report } = await enhanceWithAi(job, baseReport);
 
     if (report.keywordAnalysis?.missingKeywords) {
@@ -1418,7 +1434,7 @@ export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysis
     const saved = await AtsAnalysis.findOneAndUpdate(
       { jobId: job.id, userId: job.data.userId },
       {
-        jobId: job.id, resumeId: job.data.resumeId, userId: job.data.userId, aiUsed: report.aiUsed ?? false, status: "completed",
+        jobId: job.id, resumeId: job.data.resumeId, userId: job.data.userId, contentHash, aiUsed: report.aiUsed ?? false, status: "completed",
         reportType: report.reportType, jobTitle: report.jobTitle ?? "", jobDescription: report.jobDescription ?? "",
         targetKeywords: report.targetKeywords, previousOverallScore: job.data.previousOverallScore ?? undefined,
         overallScore: report.overallScore, matchScore: report.matchScore, sectionScores: report.sectionScores,

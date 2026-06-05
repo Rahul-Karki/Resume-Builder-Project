@@ -401,6 +401,6 @@ export const normalizeTone = (tone?: string): AiTone => {
   return "professional";
 };
 
-export const compactText = (value: unknown) => String(value ?? "").replace(/\s+/g, " ").trim();
+export const compactText = (value: unknown) => (typeof value === "string" || typeof value === "number" || typeof value === "boolean" ? String(value) : "").replace(/\s+/g, " ").trim();
 
 export const sliceText = (value: unknown, maxLength: number) => compactText(value).slice(0, maxLength);

@@ -20,6 +20,7 @@ export interface IAtsAnalysis extends Document {
   userId: mongoose.Types.ObjectId;
   previousOverallScore?: number | null;
   aiUsed?: boolean;
+  contentHash?: string;
   status: AtsAnalysisStatus;
   reportType: AtsAnalysisReportType;
   grade?: string;
@@ -141,6 +142,7 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
     targetKeywords: { type: [String], default: [] },
     previousOverallScore: { type: Number, default: undefined },
     aiUsed: { type: Boolean, default: false },
+    contentHash: { type: String, default: undefined },
     overallScore: { type: Number, required: true, min: 0, max: 100, default: 0 },
     matchScore: { type: Number, required: true, min: 0, max: 100, default: 0 },
     sectionScores: {
