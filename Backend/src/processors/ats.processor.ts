@@ -279,12 +279,16 @@ const withTimeout = async <T>(timeoutMs: number, operation: (signal: AbortSignal
 };
 
 const parseJsonFromModel = (raw: string) => {
-  const cleaned = String(raw ?? "")
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  return JSON.parse(cleaned || "{}") as Record<string, unknown>;
+  const s = String(raw ?? "").trim();
+  // Try direct parse first (response_format: json_object should give clean JSON)
+  try {
+    return JSON.parse(s) as Record<string, unknown>;
+  } catch {
+    // Fallback: extract from markdown code block anywhere in the string
+    const jsonBlock = s.replace(/```json\s*/gi, "```").match(/```([\s\S]*?)```/);
+    const cleaned = jsonBlock ? jsonBlock[1].trim() : s;
+    return JSON.parse(cleaned || "{}") as Record<string, unknown>;
+  }
 };
 
 const callOpenAIJson = async (systemPrompt: string, userPrompt: string, signal: AbortSignal) => {
