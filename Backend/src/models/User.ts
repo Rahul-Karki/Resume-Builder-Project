@@ -14,6 +14,11 @@ export interface IUser extends Document {
   aiCreditsRemaining: number;
   aiCreditsResetAt: Date;
   aiCreditsPlan: "free" | "basic" | "premium" | "enterprise";
+  dailyUsage: {
+    date: string;
+    aiAssistant: number;
+    atsScore: number;
+  };
   // MFA fields
   mfaEnabled: boolean;
   mfaMethod: "totp" | "none";
@@ -110,6 +115,12 @@ const UserSchema: Schema = new Schema<IUser>(
       type: String,
       enum: ["free", "basic", "premium", "enterprise"],
       default: "free",
+    },
+
+    dailyUsage: {
+      date: { type: String, default: "" },
+      aiAssistant: { type: Number, default: 0 },
+      atsScore: { type: Number, default: 0 },
     },
 
     // MFA fields

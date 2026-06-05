@@ -52,6 +52,30 @@ const css = `
   }
   .ats-panel-title { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #fafafa; }
 
+  .ats-score-ring {
+    width: 80px; height: 80px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; flex-shrink: 0;
+  }
+  .ats-score-ring-inner {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #18181b;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  .ats-score-value { font-size: 22px; font-weight: 800; line-height: 1; }
+  .ats-score-label { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  .ats-stat-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #3f3f46;
+    border-radius: 10px; padding: 12px 14px; text-align: center;
+    transition: all 0.2s ease;
+  }
+  .ats-stat-box:hover { background: rgba(255, 255, 255, 0.04); border-color: #71717a; }
+  .ats-stat-value { font-size: 20px; font-weight: 700; color: #fafafa; }
+  .ats-stat-label { font-size: 10px; color: #a1a1aa; font-weight: 500; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+
   .ats-section-label {
     font-size: 11px; font-weight: 600; color: #a1a1aa;
     text-transform: uppercase; letter-spacing: 0.5px;
@@ -126,6 +150,13 @@ const scoreColor = (score: number) => {
   if (score >= 80) return "#22c55e";
   if (score >= 60) return "#eab308";
   return "#ef4444";
+};
+
+const scoreLabel = (score: number) => {
+  if (score >= 80) return "Excellent";
+  if (score >= 60) return "Good";
+  if (score >= 40) return "Needs Work";
+  return "Poor";
 };
 
 const sectionStarCount = (score: number) => Math.max(1, Math.min(5, Math.round(score / 20)));
@@ -242,6 +273,50 @@ export function ATSAnalysisPanel() {
 
         {report && (
           <>
+            {/* Score Section */}
+            {(() => {
+              const os = report.overallScore ?? 0;
+              return (
+              <div style={{ display: "flex", gap: 16, padding: "14px 18px", alignItems: "center" }}>
+                <div style={{ position: "relative" }}>
+                  <div className="ats-score-ring" style={{ background: `conic-gradient(${scoreColor(os)} 0% ${os}%, rgba(255,255,255,0.05) ${os}% 100%)` }}>
+                    <div className="ats-score-ring-inner">
+                      <span className="ats-score-value" style={{ color: scoreColor(os) }}>{os}</span>
+                      <span className="ats-score-label" style={{ color: scoreColor(os) }}>{scoreLabel(os)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {typeof report.previousOverallScore === 'number' && (
+                    <div style={{ color: '#a1a1aa', fontSize: 11 }}>
+                      Previous: <span style={{ color: '#fafafa', fontWeight: 700 }}>{report.previousOverallScore}</span>
+                    </div>
+                  )}
+                  <div style={{ color: report.overallScore >= (report.previousOverallScore ?? 0) ? '#86efac' : '#fca5a5', fontSize: 11 }}>
+                    {report.previousOverallScore !== undefined ? `${report.overallScore - report.previousOverallScore >= 0 ? '+' : ''}${report.overallScore - report.previousOverallScore}` : ''} from base
+                  </div>
+                </div>
+                <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div className="ats-stat-box">
+                    <div className="ats-stat-value">{report.keywordAnalysis?.missingKeywords?.length ?? 0}</div>
+                    <div className="ats-stat-label">Missing Keywords</div>
+                  </div>
+                  <div className="ats-stat-box">
+                    <div className="ats-stat-value">{report.sectionScores?.summary ?? 0}%</div>
+                    <div className="ats-stat-label">Summary</div>
+                  </div>
+                  <div className="ats-stat-box">
+                    <div className="ats-stat-value">{report.sectionScores?.formatting ?? 0}%</div>
+                    <div className="ats-stat-label">Formatting</div>
+                  </div>
+                  <div className="ats-stat-box">
+                    <div className="ats-stat-value">{report.sectionScores?.skills ?? 0}%</div>
+                    <div className="ats-stat-label">Skills</div>
+                  </div>
+                </div>
+              </div>
+            )})()}
+
             {/* Section Scores */}
             {report.sectionScores && (
               <>

@@ -15,6 +15,7 @@ import { compactText } from "../../../shared/src/ai";
 import type { AiOperation } from "../utils/creditCalculator";
 import { env } from "../config/env";
 import { assertAiCreditsAvailable, deductAiCredits, refreshAiCreditsIfNeeded } from "../utils/aiCredits";
+import { reserveDailyUsage } from "../utils/dailyUsage";
 
 const getUserId = (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -54,6 +55,9 @@ const getSectionCounts = (snapshot: any) => ({
 export const analyzeAts = wrapController(async (req, res) => {
   const userId = getUserId(req, res);
   if (!userId) return;
+
+  // Strict daily usage gate — atomic reserve before consuming resources
+  await reserveDailyUsage(userId, "ats-score");
 
   const resume = await Resume.findOne({ _id: req.params.id, userId });
   if (!resume) {

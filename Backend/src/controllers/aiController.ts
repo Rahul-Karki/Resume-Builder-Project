@@ -10,6 +10,7 @@ import { trackAiRequest, trackValidationError } from "../observability/aiMetrics
 import { MemoryLRUCache } from "../utils/memoryCache";
 import { env } from "../config/env";
 import { assertAiCreditsAvailable, deductAiCredits, refreshAiCreditsIfNeeded } from "../utils/aiCredits";
+import { reserveDailyUsage } from "../utils/dailyUsage";
 import type { AiOperation } from "../utils/creditCalculator";
 import { wrapController } from "../utils/controllerWrapper";
 
@@ -147,6 +148,9 @@ const createAiHandler = (aiType: string, cacheKeyPrefix: string, handlerFn: AiHa
         if (res.headersSent) return;
       }
     }
+
+    // Strict daily usage gate — atomic reserve before consuming AI resources
+    await reserveDailyUsage(userId, "ai-assistant");
 
     await enforceCreditsIfNeeded(aiType as AiOperation, req, userId);
 
