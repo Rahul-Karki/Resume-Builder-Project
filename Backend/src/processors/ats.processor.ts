@@ -1418,7 +1418,7 @@ export const processAtsAnalysisJob = async (job: { id: string; data: AtsAnalysis
     const saved = await AtsAnalysis.findOneAndUpdate(
       { jobId: job.id, userId: job.data.userId },
       {
-        jobId: job.id, resumeId: job.data.resumeId, userId: job.data.userId, status: "completed",
+        jobId: job.id, resumeId: job.data.resumeId, userId: job.data.userId, aiUsed: report.aiUsed ?? false, status: "completed",
         reportType: report.reportType, jobTitle: report.jobTitle ?? "", jobDescription: report.jobDescription ?? "",
         targetKeywords: report.targetKeywords, previousOverallScore: job.data.previousOverallScore ?? undefined,
         overallScore: report.overallScore, matchScore: report.matchScore, sectionScores: report.sectionScores,

@@ -19,6 +19,7 @@ export interface IAtsAnalysis extends Document {
   resumeId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   previousOverallScore?: number | null;
+  aiUsed?: boolean;
   status: AtsAnalysisStatus;
   reportType: AtsAnalysisReportType;
   grade?: string;
@@ -139,6 +140,7 @@ const AtsAnalysisSchema = new Schema<IAtsAnalysis>(
     jobDescription: { type: String, default: "" },
     targetKeywords: { type: [String], default: [] },
     previousOverallScore: { type: Number, default: undefined },
+    aiUsed: { type: Boolean, default: false },
     overallScore: { type: Number, required: true, min: 0, max: 100, default: 0 },
     matchScore: { type: Number, required: true, min: 0, max: 100, default: 0 },
     sectionScores: {
