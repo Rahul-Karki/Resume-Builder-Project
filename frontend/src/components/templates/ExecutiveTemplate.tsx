@@ -33,7 +33,7 @@ const ExecutiveTemplate = memo(function ExecutiveTemplate({ data }: { data: Resu
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Lato:wght@300;400;700&display=swap');
     .exec-wrap { font-family:'Lato',sans-serif; color:#1c1c1c; background:#fff; width:100%; height:100%; min-height:100%; max-width:none; margin:0; box-sizing:border-box; display:flex; flex-direction:column; }
-    .exec-header { background:#1B2B4B; color:#fff; padding:36px 52px 28px; }
+    .exec-header { background:#1B2B4B; color:#fff; }
     .exec-name { font-family:'Playfair Display',serif; font-size:30pt; font-weight:700; margin:0 0 8px; letter-spacing:0.3px; }
     .exec-title-bar { font-size:9.5pt; font-weight:300; letter-spacing:2px; text-transform:uppercase; color:#A8BDD8; margin-bottom:14px; }
     .exec-contact-bar { display:flex; flex-wrap:wrap; gap:6px 24px; font-size:9pt; color:#c8d8ec; }
@@ -67,7 +67,7 @@ const ExecutiveTemplate = memo(function ExecutiveTemplate({ data }: { data: Resu
     <>
       <style>{css}</style>
       <div className="exec-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, height: "100%", minHeight: "100%", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
-        <div className="exec-header" style={{ background: style.accentColor, padding: `36px ${pagePadding.split(" ")[1]} 28px` }}>
+        <div className="exec-header" style={{ background: style.accentColor, padding: `0 ${pagePadding.split(" ")[1]} 28px` }}>
           <div className="exec-name" style={{ fontFamily: style.headingFont, textAlign: style.headerAlign }}>{p.name}</div>
           {p.title && <div className="exec-title-bar" style={{ color: style.mutedColor, textAlign: style.headerAlign }}>{p.title}</div>}
           {(contactItems.length > 0 || socialItems.length > 0) && (
@@ -100,7 +100,7 @@ const ExecutiveTemplate = memo(function ExecutiveTemplate({ data }: { data: Resu
             </div>
           )}
         </div>
-        <div className="exec-body" style={{ padding: `28px ${pagePadding.split(" ")[1]} 40px` }}>
+        <div className="exec-body" style={{ padding: `${pagePadding.split(" ")[0]} ${pagePadding.split(" ")[1]} 40px` }}>
           {sectionVisibility.experience && s.experience.length > 0 && (
           <div className="exec-section" style={{ marginBottom: sectionGap }}>
             <div className="exec-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor, borderBottomColor: style.accentColor, borderBottomWidth: style.showDividers ? 2 : 0 }}>Professional Experience</div>

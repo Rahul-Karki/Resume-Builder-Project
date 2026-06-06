@@ -225,11 +225,11 @@ export class TemplateService {
     const templates = await Template.find().lean();
     if (templates.length === 0) return [];
 
-    const templateIds = templates.map((t) => String(t._id));
+    const templateObjectIds = templates.map((t) => new mongoose.Types.ObjectId(t._id));
 
     // Single aggregation: group by templateId with separate sums for monthly/weekly/prev-week
     const usageAgg = await TemplateUsage.aggregate([
-      { $match: { templateId: { $in: templateIds }, date: { $gte: prevWeekStart, $lte: end } } },
+      { $match: { templateId: { $in: templateObjectIds }, date: { $gte: prevWeekStart, $lte: end } } },
       {
         $facet: {
           monthly: [

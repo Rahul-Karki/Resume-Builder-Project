@@ -27,6 +27,7 @@ export function useDashboardStats(period: 7 | 30) {
           totalUsesThisMonth: 0,
           mostUsed: null,
           leastUsed: null,
+          userSignups: [],
         };
         const analyticsData = analyticsRes.data.data ?? [];
         const publishedAnalytics = analyticsData.filter((item) => item.status === "published");
