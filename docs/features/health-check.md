@@ -32,7 +32,6 @@ Provides lightweight and detailed health check endpoints for monitoring service 
 | Backend/src/router/health.routes.ts | All health endpoints with MongoDB ping, Redis health, queue status |
 | Backend/src/utils/redis.ts | checkRedisHealth, getCacheProvider |
 | Backend/src/models/ResumeDownloadJob.ts | Queue job count aggregation |
-| Backend/src/models/WorkerHeartbeat.ts | Worker freshness check |
 
 ### API endpoints
 | Method | Route | Auth required | Description |

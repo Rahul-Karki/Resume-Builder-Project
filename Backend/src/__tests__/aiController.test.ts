@@ -14,6 +14,7 @@ vi.mock("../utils/memoryCache", () => ({
 }));
 vi.mock("../services/aiService");
 vi.mock("../utils/aiCredits");
+vi.mock("../utils/dailyUsage", () => ({ reserveDailyUsage: vi.fn().mockResolvedValue(undefined), getDailyUsage: vi.fn() }));
 vi.mock("../utils/controllerObservability", () => ({ startControllerSpan: vi.fn(() => ({})), markSpanSuccess: vi.fn(), markSpanError: vi.fn(), finishControllerSpan: vi.fn() }));
 vi.mock("../utils/errorResponse", () => ({ sendErrorResponse: vi.fn((res: any, err: any) => res.status(err?.statusCode ?? 500).json({ message: err?.message ?? "Error" })) }));
 vi.mock("../utils/tokenCounter", () => ({ calculateAICost: vi.fn(() => ({ input: 0, output: 0, total: 0 })) }));

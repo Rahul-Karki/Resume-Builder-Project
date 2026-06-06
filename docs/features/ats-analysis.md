@@ -30,8 +30,8 @@ Analyzes a resume against a target job description to calculate an ATS (Applican
 |------|------|
 | Backend/src/controllers/resumeEnhancementController.ts | analyzeAts, getLatestAtsAnalysis, getAtsAnalysisByJobId, applyAtsSuggestion |
 | Backend/src/router/resume.routes.ts | ATS routes with referential integrity |
-| Backend/src/queue/atsQueue.ts | BullMQ shim — processes ATS analysis synchronously |
-| Backend/src/services/aiProviders.ts | AI provider abstraction for ATS scoring calls |
+| Backend/src/processors/ats.processor.ts | ATS analysis processing — heuristic + AI enhancement inline |
+| Backend/src/services/aiService.ts | AI provider abstraction for ATS scoring calls |
 | Backend/src/utils/atsPromptTemplates.ts | Prompt template loading and interpolation |
 | Backend/prompts/enhanced_ats_prompt.py | System prompt file for ATS analysis |
 | Backend/src/models/AtsAnalysis.ts | Analysis schema with scores, keyword matches, section breakdown |

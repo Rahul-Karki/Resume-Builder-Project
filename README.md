@@ -145,7 +145,7 @@ ResumeStudio is a full-stack SaaS platform that transforms how job seekers build
 | **OpenAPI 3.0 Docs** | Auto-generated API documentation at `/api/docs` |
 | **Prometheus Metrics** | Built-in metrics endpoint with AI, compliance, and uptime counters |
 | **OpenTelemetry Integration** | Distributed tracing across HTTP, Express, and MongoDB operations |
-| **Sentry Error Tracking** | Client and server error capture with user context and PII redaction |
+| **Error Tracking** | Client and server error capture with user context and PII redaction |
 | **Structured Logging (Pino)** | JSON logs with correlation IDs, request tracking, and Loki push support |
 | **Health Check Endpoints** | Deep health checks with component-level status (MongoDB, Redis, queue) |
 | **Development Modes** | Hot-reload with `ts-node`, TypeScript compilation, PM2 ecosystem support |
@@ -170,7 +170,7 @@ ResumeStudio is a full-stack SaaS platform that transforms how job seekers build
 | **PDF (Client)** | html2canvas 1.4 + jsPDF 4.2 (fallback) |
 | **Icons** | Lucide React 1.0 |
 | **OAuth** | @react-oauth/google 0.13 |
-| **Error Tracking** | Sentry React 10.22 |
+| **State Mgmt** | TanStack React Query 5.100 |
 | **Testing** | Vitest 4.1, Playwright 1.59 |
 
 ### Backend
@@ -180,13 +180,13 @@ ResumeStudio is a full-stack SaaS platform that transforms how job seekers build
 | **Runtime** | Node.js 20+ |
 | **Framework** | Express 5.2, TypeScript 5.9 |
 | **Database (ORM)** | MongoDB 7.0, Mongoose 9.3 |
-| **Cache / Rate Limit** | Redis 7 (Upstash REST or self-hosted via ioredis 5.8) |
+| **Cache / Rate Limit** | Redis 7 (Upstash REST or self-hosted via redis 5.8) |
 | **PDF Generation** | Puppeteer 24.43 (Chromium) |
 | **Request Validation** | Zod 4.3 |
 | **Authentication** | jsonwebtoken 9.0, bcrypt 6.0, Google Auth Library 10.6 |
 | **Input Sanitization** | isomorphic-dompurify 3.14 |
 | **Email** | Resend 4.0 (transactional) |
-| **Observability** | OpenTelemetry SDK 0.214, Prometheus 15.1, Pino 10.3, Sentry Node 10.22 |
+| **Observability** | OpenTelemetry SDK 0.214, Prometheus 15.1, Pino 10.3 |
 | **Security** | Helmet 8.1 (CSP, HSTS, etc.) |
 | **Compression** | compression 1.7 (gzip middleware) |
 | **Logging** | Pino 10.3, pino-http 11.0 |
@@ -322,13 +322,21 @@ resume-builder/
 │   │   ├── services/                # Business logic (AI providers, cache, etc.)
 │   │   ├── queue/                   # BullMQ queue shims
 │   │   ├── utils/                   # Utilities (tokens, cookies, email, etc.)
-│   │   ├── config/                  # Configuration (env schema, DB, Sentry)
+│   │   ├── config/                  # Configuration (env schema, DB, indexes)
 │   │   ├── errors/                  # Custom error classes
 │   │   ├── events/                  # Event definitions
 │   │   ├── observability/           # Monitoring (metrics, logging)
 │   │   ├── validation/              # Zod schemas
-│   │   └── types/                   # TypeScript type definitions
-│   ├── automated-tests/             # 15 top-level tests + 3 integration tests
+│   │   ├── types/                   # TypeScript type definitions
+│   │   ├── events/                  # Event definitions
+│   │   ├── processors/              # Background job processors (ATS, resume, JD match, grammar)
+│   │   ├── lib/                     # Browser pool, worker shim
+│   │   ├── migrations/              # DB index migration scripts
+│   │   ├── constants/               # Auth constants, cache scopes
+│   │   ├── enums/                   # Enum definitions
+│   │   ├── modules/                 # Export modules (HTML builder)
+│   │   └── __tests__/               # Vitest unit + integration tests
+│   ├── automated-tests/             # Node native test runner tests
 │   ├── prompts/                     # AI prompt templates (Python)
 │   ├── deploy/                      # Deployment configs
 │   └── Dockerfile                   # Multi-stage build (builder + runtime)
@@ -351,7 +359,7 @@ resume-builder/
 ├── shared/                           # Shared types (not published)
 │   └── src/
 │       ├── ai.ts                    # AI-related types
-│       └── bullmq.ts                # BullMQ job schemas
+│       └── jobs.ts                   # BullMQ job schemas
 │
 ├── docs/                             # Project documentation
 │   ├── ARCHITECTURE.md              # This architecture
@@ -521,7 +529,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 
 # ─── AI Providers ────────────────────────
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4-1106-preview
+OPENAI_MODEL=gpt-4.1-mini
 
 GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.0-flash
@@ -531,10 +539,6 @@ RESEND_API_KEY=re_...
 RESEND_FROM=noreply@example.com
 
 # ─── Observability ──────────────────────
-SENTRY_DSN=https://...@....ingest.sentry.io/...
-SENTRY_ENVIRONMENT=development
-SENTRY_TRACES_SAMPLE_RATE=0.1
-
 ENABLE_METRICS=true
 METRICS_PATH=/metrics
 
@@ -551,7 +555,7 @@ AI_CREDIT_COST_IMPROVE_TEXT=1
 AI_CREDIT_COST_CHECK_GRAMMAR=1
 AI_CREDIT_COST_ENHANCE_BULLET=1
 AI_CREDIT_COST_ANALYZE_ATS=5
-ENFORCE_AI_CREDITS=false              # Warn if false, block if true
+AI_CREDITS_ENFORCED=false             # Warn if false, block if true
 
 # ─── PDF Generation ──────────────────────
 PUPPETEER_HEADLESS=true
@@ -559,7 +563,7 @@ PUPPETEER_TIMEOUT_MS=30000
 PDF_MAX_CONCURRENT_JOBS=3
 
 # ─── File Upload ─────────────────────────
-MAX_UPLOAD_SIZE=5242880               # 5MB
+REQUEST_BODY_LIMIT=1mb               # Request body size limit
 
 # ─── Features ────────────────────────────
 ENABLE_MFA=true
@@ -582,9 +586,7 @@ VITE_BASE_URL=http://localhost:5173
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
 
 # ─── Observability (Optional) ─────────────
-VITE_SENTRY_DSN=https://...@....ingest.sentry.io/...
-VITE_SENTRY_ENVIRONMENT=development
-VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+# No Sentry SDK — error tracking uses custom lib/errorTracking.ts
 
 # ─── Feature Flags ────────────────────────
 VITE_ENABLE_AI_FEATURES=true

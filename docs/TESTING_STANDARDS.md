@@ -61,7 +61,7 @@ describe("<ModuleName>", () => {
 - Mock file paths must mirror the source module path under `__mocks__/`:
   ```
   src/utils/redis.ts          →  src/__mocks__/redis.ts
-  src/services/aiProviders.ts →  src/__mocks__/aiProviders.ts
+   src/services/aiService.ts  →  src/__mocks__/aiService.ts
   ```
 - Create a manual mock file at `src/__mocks__/<module>.ts` exporting all public functions as `vi.fn()`.
 - For Mongoose models, use `vi.mock("../models/User")` and provide a factory that returns a plain object with the expected methods.

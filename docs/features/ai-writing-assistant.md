@@ -33,7 +33,7 @@ Provides AI-powered writing improvements, grammar corrections, and bullet-point 
 |------|------|
 | Backend/src/controllers/aiController.ts | improveTextHandler, checkGrammarHandler, enhanceBulletHandler |
 | Backend/src/router/ai.routes.ts | AI route definitions with rate limiting, dedup, credit deduction |
-| Backend/src/services/aiProviders.ts | Provider abstraction — OpenAI and Gemini calls |
+| Backend/src/services/aiService.ts | Provider abstraction — OpenAI, Gemini, and OpenRouter calls |
 | Backend/src/middleware/aiValidation.ts | Input sanitization, length checks, hallucination detection |
 | Backend/src/middleware/aiErrorHandler.ts | Error categorization and structured responses |
 | Backend/src/middleware/creditDeduction.ts | AI credit cost estimation |

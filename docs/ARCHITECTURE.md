@@ -26,7 +26,7 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 | AI providers | OpenAI (GPT-4.1 Mini) / Gemini (2.0 Flash) | — | ATS analysis, text improvement, grammar checking |
 | Email | Resend | — | Transactional emails (password reset, account notifications) |
 | Auth | JWT + Google OAuth | — | Access/refresh token pair with CSRF protection |
-| Observability | OpenTelemetry + Prometheus + Sentry + Pino | — | Traces, custom metrics, error tracking, structured logging |
+| Observability | OpenTelemetry + Prometheus + Pino | — | Traces, custom metrics, structured logging |
 | Compliance | Mongoose plugins | — | Audit trail, soft delete, cascade delete on all models |
 | Deployment | Docker / Render (backend), Vercel (frontend) | — | Containerized backend, static frontend hosting |
 
@@ -39,14 +39,15 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 │   │   ├── app.ts             # Express app factory — middleware stack, route mounting, CORS
 │   │   ├── server.ts          # Entry point — DB connect, queue init, browser pool, graceful shutdown
 │   │   ├── instrumentation.ts # OpenTelemetry SDK initialization
-│   │   ├── config/            # env.ts (Zod schema), db.ts, sentry.ts, indexes.ts, openapi.ts
-│   │   ├── controllers/       # 9 controllers — auth, resume, AI, admin, templates, etc.
-│   │   ├── middleware/        # 18 middleware — auth, CSRF, validation, caching, rate-limit, etc.
-│   │   ├── models/            # 12 Mongoose models + 3 global plugins (audit, soft-delete, cascade)
+│   │   ├── config/            # env.ts (Zod schema), db.ts, indexes.ts, openapi.ts
+│   │   ├── controllers/       # 11 controllers — auth, resume, AI, admin, templates, observability, etc.
+│   │   ├── middleware/        # 17 middleware — auth, CSRF, validation, caching, rate-limit, etc.
+│   │   ├── models/            # 15 Mongoose models + 3 global plugins (audit, soft-delete, cascade)
 │   │   ├── router/            # 8 route modules — auth, resume, AI, admin, templates, health, etc.
-│   │   ├── services/          # Business logic — AI provider routing, data integrity, browser pool
+│   │   ├── services/          # Business logic — AI service, observability, template, resume version
 │   │   ├── queue/             # BullMQ queue shims (resume download, ATS analysis — run inline)
-│   │   ├── utils/             # 26 utility modules — tokens, cookies, email, caching, validation
+│   │   ├── processors/        # Job processors — ATS analysis, JD match, grammar, resume
+│   │   ├── utils/             # 29 utility modules — tokens, cookies, email, caching, validation
 │   │   ├── observability/     # Prometheus metrics (AI, compliance), alerting, logging config
 │   │   ├── bootstrap/         # Default template seed on first startup
 │   │   ├── errors/            # Custom error classes
@@ -54,8 +55,11 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 │   │   ├── types/             # Backend-specific TypeScript types
 │   │   ├── validation/        # Zod schemas for request validation
 │   │   ├── migrations/        # Database migration scripts
-│   │   └── workers/           # BullMQ worker definitions (legacy, not actively used)
-│   ├── automated-tests/       # 17 node:test unit + integration tests
+│   │   ├── lib/               # Browser pool, worker shim
+│   │   ├── constants/         # Auth constants, cache scopes
+│   │   ├── enums/             # Enum definitions
+│   │   └── __tests__/         # Vitest unit + integration tests
+│   ├── automated-tests/       # Node native test runner tests
 │   ├── prompts/               # ATS analysis AI prompt templates (Python files loaded at runtime)
 │   ├── manual-tests/          # Ad-hoc console.log-based HTTP verification scripts
 │   └── deploy/                # Production deployment config (Dockerfile, render.yaml)
@@ -64,14 +68,15 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 │   ├── src/
 │   │   ├── main.tsx           # Entry point — Google OAuth provider, error tracking init
 │   │   ├── App.tsx            # Router configuration with lazy-loaded pages
-│   │   ├── pages/             # 12 page components (Home, Login, ResumeBuilder, Admin*, etc.)
+│   │   ├── pages/             # 14 page components (Home, Login, ResumeBuilder, Admin*, etc.)
 │   │   ├── components/        # 50+ components organized by domain (admin/, builder/, landing/, etc.)
-│   │   ├── hooks/             # 5 custom hooks (useAISuggestions, useMyResume, useAdminTemplate, etc.)
-│   │   ├── store/             # 1 Zustand store (useResumeBuilderStore)
-│   │   ├── services/          # 1 Axios-based API client with CSRF token management
+│   │   ├── hooks/             # 9 custom hooks (useAISuggestions, useMyResume, useObservability, etc.)
+│   │   ├── store/             # Zustand store (useResumeBuilderStore with slices)
+│   │   ├── services/          # Axios-based API client with CSRF token management
 │   │   ├── types/             # TypeScript type definitions (resume-types.ts, admin.types.ts)
-│   │   ├── utils/             # 11 utility modules (logger, pdfGenerator, printPreview, etc.)
+│   │   ├── utils/             # 12 utility modules (logger, pdfGenerator, resumePagination, etc.)
 │   │   ├── data/              # Static data (templateMeta[], sampleData, component mapping)
+│   │   ├── lib/               # Query client, error tracking, general utilities
 │   │   └── templates/         # ResumeRenderer — routes to the correct template component by ID
 │   ├── e2e/                   # 4 Playwright E2E spec files
 │   └── playwright.config.ts
@@ -79,18 +84,17 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 ├── shared/                    # Shared types and utilities (TypeScript, not published)
 │   └── src/
 │       ├── ai.ts              # AI-related shared types
-│       └── bullmq.ts          # BullMQ job data types, connection config, helpers
+│       └── jobs.ts            # BullMQ job data types, connection config, helpers
 │
 ├── docs/                      # Project documentation
 │   ├── ARCHITECTURE.md        # This file
-│   ├── technical_audit.md     # Security and performance audit
-│   ├── UPSTASH_TUNING.md      # Upstash Redis configuration guide
-│   └── archive/               # 15 stale documents (old worker/BullMQ architecture) — delete pending
+│   ├── DEPLOYMENT.md          # Production deployment instructions
+│   ├── TESTING_STANDARDS.md   # Testing conventions
+│   └── features/              # Feature docs (auth, AI, ATS, etc.)
 │
 ├── docker-compose.yml         # Local development environment
-├── DEPLOYMENT.md              # Production deployment instructions (partially stale)
+├── DOCKER_LOCAL_SETUP.md      # Docker setup guide
 ├── README.md                  # Project overview and setup guide
-├── COMPLIANCE_*.md            # Compliance feature docs (3 files, ~80% overlap)
 └── TESTING_AND_DOCS_STANDARDS.md
 ```
 
@@ -175,7 +179,7 @@ This project is a SaaS resume builder platform that lets users create, edit, and
 | `models/plugins/auditTrail.ts` | Mongoose plugin — auto-creates AuditLog entries on create/update/delete/restore |
 | `models/plugins/softDelete.ts` | Mongoose plugin — adds `deletedAt`, filters soft-deleted docs, exposes `.softDelete()` / `.restore()` |
 | `models/plugins/cascadeDelete.ts` | Mongoose plugin — cascades deletes to child documents (e.g. User → Resume, AiUsage) |
-| `services/aiProviders.ts` | AI provider abstraction — OpenAI and Gemini calls with fallback logic |
+| `services/aiService.ts` | AI provider abstraction — OpenAI, Gemini, and OpenRouter calls with fallback logic |
 | `services/dataIntegrityService.ts` | Periodic data integrity checks, orphaned-document detection |
 | `observability.ts` | Pino logger, pino-http request logger, OpenTelemetry tracer and metrics |
 | `observability/aiMetrics.ts` | Prometheus AI-specific metrics — request count, latency, fallback rate, tokens |

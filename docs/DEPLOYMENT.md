@@ -72,7 +72,7 @@ git clone <repo> /opt/resume-builder
 cd /opt/resume-builder
 
 # 2. Create .env.production
-cp .env.example .env.production
+cp Backend/.env.example .env.production
 nano .env.production
 
 # 3. Start all services
@@ -81,24 +81,13 @@ docker compose -f docker-compose.prod.yml up -d
 # 4. Set up reverse proxy (Caddy handles SSL automatically)
 ```
 
-**With Caddy reverse proxy (recommended):**
-```caddyfile
-yourdomain.com {
-    reverse_proxy frontend:80
-}
-```
-
-```bash
-# Start with Caddy
-docker network create web
-docker run -d --name caddy \
-  -p 80:80 -p 443:443 \
-  -v $PWD/Caddyfile:/etc/caddy/Caddyfile \
-  -v caddy_data:/data \
-  --network web \
-  caddy:2
-
-# Add to your services networks
+**With reverse proxy (recommended):**
+```nginx
+# Example Nginx reverse proxy — create nginx.conf and mount it
+# docker run -d --name nginx-proxy \
+#   -p 80:80 -p 443:443 \
+#   -v $PWD/nginx.conf:/etc/nginx/conf.d/default.conf \
+#   nginx:alpine
 ```
 
 **Resource requirements:**
@@ -322,7 +311,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx-reverse-proxy.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
 ```
 
 **Limitations:**

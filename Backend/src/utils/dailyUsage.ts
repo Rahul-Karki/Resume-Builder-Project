@@ -56,7 +56,7 @@ export const reserveDailyUsage = async (userId: string, feature: DailyFeature): 
         },
       },
     ],
-    { new: true, projection: { dailyUsage: 1 } },
+    { new: true, projection: { dailyUsage: 1 }, updatePipeline: true },
   );
 
   if (!result) {

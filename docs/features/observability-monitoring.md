@@ -4,12 +4,12 @@ Last updated: 2026-05-22
 Status: [x] Complete
 
 ## Purpose
-Provides comprehensive observability across the backend through structured logging, distributed tracing, Prometheus metrics, and Sentry error tracking — enabling operators to monitor performance, debug issues, and measure business KPIs.
+Provides comprehensive observability across the backend through structured logging, distributed tracing, Prometheus metrics — enabling operators to monitor performance, debug issues, and measure business KPIs.
 
 ## User Stories
 - As an operator, I want to see structured logs with correlation IDs so that I can trace a request across services.
 - As an operator, I want Prometheus metrics for request rates, error rates, and latency so that I can set up dashboards and alerts.
-- As a developer, I want Sentry to capture unhandled errors so that I can fix bugs before users report them.
+- As a developer, I want error capture so that I can fix bugs before users report them.
 - As a product manager, I want business metrics (signups, resumes created) so that I can track growth.
 
 ## Scope
@@ -22,10 +22,10 @@ Provides comprehensive observability across the backend through structured loggi
 - Business metrics: signups, logins, resumes created, AI usage, template usage
 - AI-specific metrics: request count, latency, tokens, fallback rate
 - Compliance metrics: audit log entries, integrity violations, cascade failures
-- Sentry error tracking (backend + frontend)
+- Client-side error tracking (custom lib/errorTracking.ts)
 - Grafana Loki log aggregation integration
 - Health check counters and uptime tracking
-- Alert dispatch (Slack, PagerDuty, Sentry, email, webhook)
+- Alert dispatch (Slack, PagerDuty, email, webhook)
 
 ### Out of scope
 - Database query performance tracing (only MongoDB operation duration)
@@ -44,12 +44,9 @@ Provides comprehensive observability across the backend through structured loggi
 | Backend/src/utils/controllerObservability.ts | Span helpers for controllers |
 | Backend/src/utils/securityLogger.ts | Security event logging |
 | Backend/src/utils/businessMetrics.ts | Business KPI metric recording |
-| Backend/src/config/sentry.ts | Sentry SDK initialization and flush |
 | frontend/src/utils/logger.ts | Client-side structured logging |
 | frontend/src/utils/errorTracking.ts | Client-side error capture |
 | frontend/src/utils/performance.ts | Client-side performance monitoring |
-| frontend/src/lib/sentry.ts | Frontend Sentry initialization |
-| frontend/src/lib/errorTracking.ts | Client error reporting to Sentry |
 
 ### API endpoints
 | Method | Route | Auth required | Description |
