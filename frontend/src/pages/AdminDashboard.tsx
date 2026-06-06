@@ -127,7 +127,28 @@ export function AdminDashboard() {
       </div>
 
       {/* Section 2: Charts row */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+        {/* User signups bar chart */}
+        <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "18px 20px 14px" }}>
+          {dbLoading ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Skeleton className="h-3 w-36 rounded-md" />
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 180, paddingTop: 30 }}>
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <Skeleton key={i} className="flex-1 rounded-t-md" style={{ height: `${20 + Math.random() * 60}%` }} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <BarChart
+              data={stats?.userSignups ?? []}
+              color="#818CF8"
+              label={`User Signups — Last 30 Days`}
+              height={180}
+            />
+          )}
+        </div>
+
         {/* Total usage bar chart */}
         <div style={{ background: "#111", border: "1px solid #1A1A1A", borderRadius: 14, padding: "18px 20px 14px" }}>
           {dbLoading ? (

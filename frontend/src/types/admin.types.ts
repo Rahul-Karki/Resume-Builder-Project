@@ -83,6 +83,7 @@ export interface DashboardStats {
   totalUsesThisMonth: number;
   mostUsed:           TemplateAnalytics | null;
   leastUsed:          TemplateAnalytics | null;
+  userSignups:        DailyUsage[];
 }
 
 // ─── Observability Types ──────────────────────────────────────────────────────

@@ -59,6 +59,7 @@ export interface DashboardStats {
   totalUsesThisMonth: number;
   mostUsed:  TemplateAnalytics | null;
   leastUsed: TemplateAnalytics | null;
+  userSignups:        DailyUsage[];
 }
 
 // ─── Helper: day bucket ────────────────────────────────────────────────────────
@@ -302,7 +303,9 @@ export class TemplateService {
 
   // Dashboard summary stats — single aggregation for usage, template counts via Promise.all
   static async getDashboardStats(): Promise<DashboardStats> {
-    const [templateCounts, totalUsers, analytics] = await Promise.all([
+    const { start, end } = dateRange(30);
+
+    const [templateCounts, totalUsers, analytics, userSignupsAgg] = await Promise.all([
       Template.aggregate([
         {
           $group: {
@@ -316,7 +319,30 @@ export class TemplateService {
       ]),
       User.countDocuments(),
       TemplateService.getAllAnalytics(30),
+      User.aggregate([
+        { $match: { createdAt: { $gte: start } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
     ]);
+
+    const dayMap: Record<string, DailyUsage> = {};
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = cursor.toISOString().slice(0, 10);
+      dayMap[key] = { date: key, count: 0, resumesCreated: 0, resumesEdited: 0 };
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    for (const row of userSignupsAgg) {
+      if (dayMap[row._id]) {
+        dayMap[row._id].count = row.count;
+      }
+    }
 
     const counts = templateCounts[0] ?? { total: 0, published: 0, draft: 0, premium: 0 };
     const published = analytics.filter(a => a.status === "published");
@@ -333,6 +359,7 @@ export class TemplateService {
       totalUsesThisMonth,
       mostUsed:  published[0] ?? null,
       leastUsed: published.length > 0 ? published[published.length - 1] : null,
+      userSignups: Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date)),
     };
   }
 }
