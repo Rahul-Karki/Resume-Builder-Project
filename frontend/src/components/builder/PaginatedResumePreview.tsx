@@ -9,10 +9,7 @@ import {
 import { ResumePage } from "@/components/builder/ResumePage";
 
 const PAGE_GAP_PX = 24;
-const PAGE_TOP_PADDING_PX = 16;
-const PAGE_BOTTOM_PADDING_PX = 16;
-const TOTAL_VERTICAL_PADDING_PX = PAGE_TOP_PADDING_PX + PAGE_BOTTOM_PADDING_PX;
-const EFFECTIVE_PAGE_HEIGHT = A4_HEIGHT_PX - TOTAL_VERTICAL_PADDING_PX;
+const EFFECTIVE_PAGE_HEIGHT = A4_HEIGHT_PX;
 const RECALC_DEBOUNCE_MS = 200;
 
 function offsetsEqual(a: number[], b: number[]): boolean {
@@ -130,8 +127,7 @@ export function PaginatedResumePreview({
           : pageOffsets[index + 1];
         const sliceHeight = nextOffset - offset;
         const pageContentHeight = Math.min(EFFECTIVE_PAGE_HEIGHT, sliceHeight);
-        const totalPageHeight = pageContentHeight + TOTAL_VERTICAL_PADDING_PX;
-        const scaledContentHeight = totalPageHeight * scale;
+        const scaledContentHeight = pageContentHeight * scale;
 
         return (
           <ResumePage
@@ -141,8 +137,6 @@ export function PaginatedResumePreview({
             style={{
               width: `${scaledWidth}px`,
               height: `${scaledContentHeight}px`,
-              paddingTop: `${PAGE_TOP_PADDING_PX * scale}px`,
-              paddingBottom: `${PAGE_BOTTOM_PADDING_PX * scale}px`,
             }}
           >
             <div
