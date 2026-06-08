@@ -140,10 +140,17 @@ export function PaginatedResumePreview({
             style={{
               width: `${scaledWidth}px`,
               height: `${scaledContentHeight}px`,
-              paddingTop: `${PAGE_PADDING_PX * scale}px`,
-              paddingBottom: `${PAGE_PADDING_PX * scale}px`,
+              padding: 0,
+              display: "block",
             }}
           >
+            {/* Top spacer — accentColor on page 0 (matches full-width header),
+                backgroundColor on subsequent pages (matches body) */}
+            <div style={{
+              width: "100%",
+              height: `${PAGE_PADDING_PX * scale}px`,
+              background: index === 0 ? resume.style.accentColor : resume.style.backgroundColor,
+            }} />
             <div
               data-preview-scale="true"
               style={{
@@ -174,6 +181,12 @@ export function PaginatedResumePreview({
                 </div>
               </div>
             </div>
+            {/* Bottom spacer — always backgroundColor */}
+            <div style={{
+              width: "100%",
+              height: `${PAGE_PADDING_PX * scale}px`,
+              background: resume.style.backgroundColor,
+            }} />
           </ResumePage>
         );
       })}
