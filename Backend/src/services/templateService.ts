@@ -267,13 +267,13 @@ export class TemplateService {
     interface WeeklyRow { _id: string; total: number; }
 
     const monthlyMap = new Map<string, MonthlyRow>(
-      (usageAgg[0]?.monthly ?? []).map((r: any) => [r._id, r as MonthlyRow])
+      (usageAgg[0]?.monthly ?? []).map((r: any) => [String(r._id), r as MonthlyRow])
     );
     const weeklyMap = new Map<string, number>(
-      (usageAgg[0]?.weekly ?? []).map((r: any) => [r._id, (r as WeeklyRow).total])
+      (usageAgg[0]?.weekly ?? []).map((r: any) => [String(r._id), (r as WeeklyRow).total])
     );
     const prevWeekMap = new Map<string, number>(
-      (usageAgg[0]?.prevWeek ?? []).map((r: any) => [r._id, (r as WeeklyRow).total])
+      (usageAgg[0]?.prevWeek ?? []).map((r: any) => [String(r._id), (r as WeeklyRow).total])
     );
 
     const analytics: TemplateAnalytics[] = templates.map((tpl) => {
