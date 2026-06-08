@@ -1,6 +1,7 @@
 import Template, { ITemplate } from "../models/Template";
 import TemplateUsage from "../models/TemplateUsage";
 import User from "../models/User";
+import Resume from "../models/Resume";
 import mongoose from "mongoose";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export interface TemplateAnalytics {
 export interface DashboardStats {
   totalUsers:         number;
   totalTemplates:     number;
+  totalResumes:       number;
   publishedTemplates: number;
   draftTemplates:     number;
   premiumTemplates:   number;
@@ -305,7 +307,7 @@ export class TemplateService {
   static async getDashboardStats(): Promise<DashboardStats> {
     const { start, end } = dateRange(30);
 
-    const [templateCounts, totalUsers, analytics, userSignupsAgg] = await Promise.all([
+    const [templateCounts, totalUsers, totalResumes, analytics, userSignupsAgg] = await Promise.all([
       Template.aggregate([
         {
           $group: {
@@ -318,6 +320,7 @@ export class TemplateService {
         },
       ]),
       User.countDocuments(),
+      Resume.countDocuments(),
       TemplateService.getAllAnalytics(30),
       User.aggregate([
         { $match: { createdAt: { $gte: start } } },
@@ -351,6 +354,7 @@ export class TemplateService {
 
     return {
       totalUsers,
+      totalResumes,
       totalTemplates:     counts.total,
       publishedTemplates: counts.published,
       draftTemplates:     counts.draft,

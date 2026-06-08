@@ -20,6 +20,7 @@ export function useDashboardStats(period: 7 | 30) {
         const dashboardStats = dashboardRes.data.data ?? {
           totalUsers: 0,
           totalTemplates: 0,
+          totalResumes: 0,
           publishedTemplates: 0,
           draftTemplates: 0,
           premiumTemplates: 0,

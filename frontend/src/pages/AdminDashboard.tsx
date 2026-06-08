@@ -123,7 +123,7 @@ export function AdminDashboard() {
           <div style={{ width: 3, height: 14, background: "#C8F55A", borderRadius: 2 }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "1px" }}>System Overview</span>
         </div>
-        <SystemOverviewCards stats={stats} metrics={null} isLoading={dbLoading} />
+        <SystemOverviewCards stats={stats} isLoading={dbLoading} />
       </div>
 
       {/* Section 2: Charts row */}

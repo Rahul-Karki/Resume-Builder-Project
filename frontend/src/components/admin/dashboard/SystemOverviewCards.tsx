@@ -1,18 +1,17 @@
-import { DashboardStats, MetricsSnapshot } from "@/types/admin.types";
+import { DashboardStats } from "@/types/admin.types";
 import { MetricCard } from "./MetricCard";
 import { Skeleton } from "@/components/Skeleton";
 
 interface Props {
   stats?: DashboardStats | null;
-  metrics?: MetricsSnapshot | null;
   isLoading: boolean;
 }
 
-export function SystemOverviewCards({ stats, metrics, isLoading }: Props) {
+export function SystemOverviewCards({ stats, isLoading }: Props) {
   if (isLoading) {
     return (
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} style={{
             background: "#18181b", border: "1px solid #3f3f46", borderRadius: 12,
             padding: "18px 20px", flex: 1, minWidth: 180,
@@ -33,21 +32,14 @@ export function SystemOverviewCards({ stats, metrics, isLoading }: Props) {
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
       <MetricCard
         label="Total Users"
-        value={stats?.totalUsers ?? metrics?.totalUsers ?? 0}
+        value={stats?.totalUsers ?? 0}
         subtitle="All registered accounts"
         accent="#818CF8"
         icon="👤"
       />
       <MetricCard
-        label="Active Sessions"
-        value={metrics?.activeSessions ?? 0}
-        subtitle="Current logged-in users"
-        accent="#4ADE80"
-        icon="●"
-      />
-      <MetricCard
         label="Resumes Generated"
-        value={metrics?.totalResumes ?? 0}
+        value={stats?.totalResumes ?? 0}
         subtitle="Total resumes created"
         accent="#C8F55A"
         icon="◇"
