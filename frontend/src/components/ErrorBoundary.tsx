@@ -164,39 +164,4 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-/**
- * Wrapper for specific sections (resume sections, form panels, etc.)
- * Provides isolated error handling without crashing entire UI
- */
-export function SectionErrorBoundary({
-  children,
-  sectionName,
-  onError,
-}: {
-  children: ReactNode;
-  sectionName?: string;
-  onError?: (error: Error, info: ErrorInfo) => void;
-}) {
-  return (
-    <ErrorBoundary
-      onError={onError}
-      fallback={
-        <div
-          style={{
-            padding: "20px",
-            background: "#fff3e0",
-            border: "1px solid #ffb74d",
-            borderRadius: "4px",
-            margin: "10px 0",
-          }}
-        >
-          <p style={{ color: "#e65100", fontSize: "14px", margin: 0 }}>
-            {sectionName ? `${sectionName} encountered an error` : "This section encountered an error"}. Please refresh or contact support.
-          </p>
-        </div>
-      }
-    >
-      {children}
-    </ErrorBoundary>
-  );
-}
+

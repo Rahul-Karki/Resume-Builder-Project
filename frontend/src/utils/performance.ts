@@ -13,9 +13,11 @@ class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private metrics: PerformanceMetric[] = [];
   private timers: Map<string, number> = new Map();
-  
+  private maxMetrics = 500;
+
   private constructor() {
-    this.initializeWebVitals();
+    this.observeWebVitals();
+    this.observePageLoad();
   }
 
   static getInstance(): PerformanceMonitor {
@@ -25,42 +27,70 @@ class PerformanceMonitor {
     return PerformanceMonitor.instance;
   }
 
-  private initializeWebVitals() {
-    // Monitor Core Web Vitals if available
-    if ('web-vitals' in window) {
-      // This would require installing web-vitals package
-      // For now, we'll use basic Performance API
-    }
+  private observeWebVitals() {
+    if (typeof window === 'undefined' || !window.PerformanceObserver) return;
 
-    // Monitor page load
+    try {
+      const lcpObserver = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        const last = entries[entries.length - 1];
+        if (last) this.recordMetric('LCP', last.startTime, 'ms', { type: 'web-vital' });
+      });
+      lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+    } catch {}
+
+    try {
+      const fidObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+          this.recordMetric('FID', entry.duration, 'ms', { type: 'web-vital' });
+        });
+      });
+      fidObserver.observe({ type: 'first-input', buffered: true });
+    } catch {}
+
+    try {
+      let clsValue = 0;
+      const clsObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+          const shift = entry as any;
+          if (!shift.hadRecentInput) clsValue += shift.value;
+        });
+        this.recordMetric('CLS', clsValue, 'score', { type: 'web-vital' });
+      });
+      clsObserver.observe({ type: 'layout-shift', buffered: true });
+    } catch {}
+  }
+
+  private observePageLoad() {
+    if (typeof window === 'undefined') return;
+
     window.addEventListener('load', () => {
-      setTimeout(() => {
-        this.recordPageLoadMetrics();
-      }, 0);
+      setTimeout(() => this.recordPageLoadMetrics(), 0);
     });
   }
 
   private recordPageLoadMetrics() {
-    if (!window.performance || !window.performance.timing) return;
+    let nav: PerformanceNavigationTiming | null = null;
 
-    const timing = window.performance.timing;
-    const navigation = window.performance.navigation;
+    if (typeof performance !== 'undefined' && typeof performance.getEntriesByType === 'function') {
+      const entries = performance.getEntriesByType('navigation');
+      if (entries.length > 0) nav = entries[0] as PerformanceNavigationTiming;
+    }
 
-    const metrics = {
-      dnsLookup: timing.domainLookupEnd - timing.domainLookupStart,
-      tcpConnect: timing.connectEnd - timing.connectStart,
-      serverResponse: timing.responseEnd - timing.requestStart,
-      domLoad: timing.domContentLoadedEventEnd - timing.navigationStart,
-      fullPageLoad: timing.loadEventEnd - timing.navigationStart,
-      redirectTime: timing.redirectEnd - timing.redirectStart,
-      unloadTime: timing.unloadEventEnd - timing.unloadEventStart,
-    };
+    if (nav) {
+      const metrics: Record<string, number> = {
+        dnsLookup: nav.domainLookupEnd - nav.domainLookupStart,
+        tcpConnect: nav.connectEnd - nav.connectStart,
+        serverResponse: nav.responseEnd - nav.requestStart,
+        domLoad: nav.domContentLoadedEventEnd - nav.startTime,
+        fullPageLoad: nav.loadEventEnd - nav.startTime,
+        redirectTime: nav.redirectEnd - nav.redirectStart,
+      };
 
-    Object.entries(metrics).forEach(([name, value]) => {
-      if (value > 0) {
-        this.recordMetric(name, value, 'ms', { type: 'page-load' });
-      }
-    });
+      Object.entries(metrics).forEach(([name, value]) => {
+        if (value > 0) this.recordMetric(name, value, 'ms', { type: 'page-load' });
+      });
+    }
   }
 
   recordMetric(name: string, value: number, unit: string = 'ms', context?: Record<string, any>) {
@@ -75,9 +105,8 @@ class PerformanceMonitor {
     this.metrics.push(metric);
     logger.logPerformance(name, value, unit);
 
-    // Keep only last 500 metrics
-    if (this.metrics.length > 500) {
-      this.metrics = this.metrics.slice(-500);
+    if (this.metrics.length > this.maxMetrics) {
+      this.metrics = this.metrics.slice(-this.maxMetrics);
     }
   }
 
@@ -96,14 +125,13 @@ class PerformanceMonitor {
     return 0;
   }
 
-  // Measure API call performance
   measureApiCall<T>(
     name: string,
     apiCall: () => Promise<T>,
     context?: Record<string, any>
   ): Promise<T> {
     const startTime = performance.now();
-    
+
     return apiCall()
       .then(result => {
         const duration = performance.now() - startTime;
@@ -117,20 +145,39 @@ class PerformanceMonitor {
       });
   }
 
-  // Measure React component render time
   measureComponentRender(componentName: string) {
     return (WrappedComponent: React.ComponentType<any>) => {
-      return (props: any) => {
+      const displayName = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Component';
+      const MeasuredComponent = (props: any) => {
+        const startRef = React.useRef<number>(performance.now());
+
         React.useEffect(() => {
-          const startTime = performance.now();
-          return () => {
-            const renderTime = performance.now() - startTime;
-            this.recordMetric(`component_${componentName}`, renderTime, 'ms');
-          };
-        }, []);
+          const renderTime = performance.now() - startRef.current;
+          this.recordMetric(`component_${displayName}`, renderTime, 'ms', { type: 'render' });
+        });
+
         return React.createElement(WrappedComponent, props);
       };
+      MeasuredComponent.displayName = `withPerformance(${displayName})`;
+      return MeasuredComponent;
     };
+  }
+
+  mark(name: string) {
+    if (typeof performance !== 'undefined' && typeof performance.mark === 'function') {
+      performance.mark(name);
+    }
+  }
+
+  measure(name: string, startMark: string, endMark?: string) {
+    if (typeof performance !== 'undefined' && typeof performance.measure === 'function') {
+      try {
+        const measure = endMark
+          ? performance.measure(name, startMark, endMark)
+          : performance.measure(name, startMark);
+        this.recordMetric(name, measure.duration, 'ms', { type: 'user-mark' });
+      } catch {}
+    }
   }
 
   getMetrics(name?: string): PerformanceMetric[] {
@@ -140,26 +187,25 @@ class PerformanceMonitor {
   getAverageMetric(name: string): number | null {
     const relevantMetrics = this.metrics.filter(m => m.name === name);
     if (relevantMetrics.length === 0) return null;
-    
+
     const sum = relevantMetrics.reduce((acc, m) => acc + m.value, 0);
     return sum / relevantMetrics.length;
   }
 
   getMetricsSummary() {
     const summary: Record<string, { count: number; avg: number; min: number; max: number }> = {};
-    
+
     this.metrics.forEach(metric => {
       if (!summary[metric.name]) {
         summary[metric.name] = { count: 0, avg: 0, min: Infinity, max: -Infinity };
       }
-      
+
       const stat = summary[metric.name];
       stat.count++;
       stat.min = Math.min(stat.min, metric.value);
       stat.max = Math.max(stat.max, metric.value);
     });
 
-    // Calculate averages
     Object.keys(summary).forEach(name => {
       const metrics = this.metrics.filter(m => m.name === name);
       const sum = metrics.reduce((acc, m) => acc + m.value, 0);
@@ -185,26 +231,27 @@ class PerformanceMonitor {
 
 export const performanceMonitor = PerformanceMonitor.getInstance();
 
-// React Hook for performance monitoring
 export function usePerformanceMonitor(componentName: string) {
+  const startRef = React.useRef<number>(performance.now());
+
   React.useEffect(() => {
-    const startTime = performance.now();
-    return () => {
-      const renderTime = performance.now() - startTime;
-      performanceMonitor.recordMetric(`component_${componentName}`, renderTime, 'ms');
-    };
-  }, [componentName]);
+    const renderTime = performance.now() - startRef.current;
+    performanceMonitor.recordMetric(`component_${componentName}`, renderTime, 'ms', { type: 'render' });
+  });
 }
 
-// Higher-order component for performance monitoring
 export function withPerformanceMonitoring<P extends object>(
   WrappedComponent: React.ComponentType<P>,
   componentName?: string
 ) {
   const name = componentName || WrappedComponent.displayName || WrappedComponent.name || 'Component';
-  
-  return React.memo((props: P) => {
+  const displayName = `withPerformance(${name})`;
+
+  const MonitoredComponent = React.memo((props: P) => {
     usePerformanceMonitor(name);
     return React.createElement(WrappedComponent, props);
   });
+  MonitoredComponent.displayName = displayName;
+
+  return MonitoredComponent;
 }

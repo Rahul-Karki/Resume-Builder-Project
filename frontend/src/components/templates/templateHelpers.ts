@@ -163,11 +163,6 @@ export function isGitHubUrl(url: string): boolean {
   return /github\.com/i.test(url);
 }
 
-export function isPortfolioUrl(url: string): boolean {
-  // Portfolio is anything that's not LinkedIn or GitHub
-  return !isLinkedInUrl(url) && !isGitHubUrl(url);
-}
-
 export function LinkedInIcon({ width = 14, height = 14 }: { width?: number; height?: number } = {}) {
   return React.createElement(
     "svg",

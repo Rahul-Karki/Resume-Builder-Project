@@ -86,7 +86,6 @@ const setAiResponseHeaders = (res: Response, headers: {
   creditsDeducted?: number;
   creditsRemaining?: number;
   creditsResetAt?: Date;
-  creditsPlan?: string;
 }) => {
   res.setHeader("x-ai-cached", headers.cached ? "1" : "0");
   if (headers.fallback !== undefined) res.setHeader("x-ai-fallback", headers.fallback ? "1" : "0");
@@ -96,7 +95,6 @@ const setAiResponseHeaders = (res: Response, headers: {
   if (typeof headers.creditsDeducted === "number") res.setHeader("x-ai-credits-deducted", String(headers.creditsDeducted));
   if (typeof headers.creditsRemaining === "number") res.setHeader("x-ai-credits-remaining", String(headers.creditsRemaining));
   if (headers.creditsResetAt) res.setHeader("x-ai-credits-reset-at", new Date(headers.creditsResetAt).toISOString());
-  if (headers.creditsPlan) res.setHeader("x-ai-credits-plan", headers.creditsPlan);
 };
 
 type AiRequestBody = {
@@ -177,7 +175,7 @@ const createAiHandler = (aiType: string, cacheKeyPrefix: string, handlerFn: AiHa
       cached: false, fallback: result._fallback || false, provider: result._provider,
       model: result._model, creditsEstimated: req.creditContext?.estimatedCredits,
       creditsDeducted: deducted, creditsRemaining: user?.aiCreditsRemaining,
-      creditsResetAt: user?.aiCreditsResetAt, creditsPlan: user?.aiCreditsPlan,
+      creditsResetAt: user?.aiCreditsResetAt,
     });
 
     const { _tokens, _provider, _model, _fallback, ...responseData } = result;

@@ -114,13 +114,11 @@ const fetchRotatedCsrfToken = async () => {
 const syncCreditsFromHeaders = (headers: Record<string, string | string[] | undefined>, deducted: number, operation: AiOperation, extra?: Record<string, unknown>) => {
   const remaining = headers["x-ai-credits-remaining"];
   const resetAt = headers["x-ai-credits-reset-at"];
-  const plan = headers["x-ai-credits-plan"];
 
   if (remaining !== undefined) {
     aiCreditsManager.syncFromServer({
       remaining: Number(remaining) || 0,
       resetAt: typeof resetAt === "string" ? resetAt : undefined,
-      plan: (plan as any) || undefined,
     });
   }
 
@@ -130,16 +128,6 @@ const syncCreditsFromHeaders = (headers: Record<string, string | string[] | unde
 };
 
 const apiBaseURL = import.meta.env.VITE_API_BASE_URL || "/api";
-
-const resolveBackendOrigin = (baseUrl: string) => {
-  try {
-    const parsed = new URL(baseUrl, window.location.origin);
-    const pathname = parsed.pathname.replace(/\/api\/?$/, "").replace(/\/$/, "");
-    return `${parsed.origin}${pathname}`;
-  } catch {
-    return baseUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
-  }
-};
 
 export const api = axios.create({
   baseURL: apiBaseURL,
@@ -202,11 +190,6 @@ export type AtsAnalysisQueueResponse = {
 
 export type AtsAnalysisResponse = {
   analysis: AtsAnalysisReport;
-};
-
-export const getResumeExportPreset = async (resumeId: string, preset: ExportPreset) => {
-  const response = await api.post(`/resumes/${resumeId}/export-pdf`, { preset });
-  return response.data?.export as { preset: ExportPreset; options: { scale: number }; filename: string };
 };
 
 export const queueResumeDownload = async (payload: ResumeDownloadRequest) => {

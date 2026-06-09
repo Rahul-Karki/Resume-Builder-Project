@@ -22,7 +22,6 @@ const makeMockUser = (overrides: Record<string, unknown> = {}) => ({
   _id: "user-1",
   aiCreditsRemaining: 100,
   aiCreditsResetAt: new Date(Date.now() + 86400000),
-  aiCreditsPlan: "free",
   save: vi.fn().mockResolvedValue(true),
   ...overrides,
 });
@@ -105,7 +104,6 @@ describe("aiCredits", () => {
       const user = makeMockUser({
         aiCreditsRemaining: 0,
         aiCreditsResetAt: new Date(Date.now() - 86400000),
-        aiCreditsPlan: "basic",
         save: saveMock,
       });
       (User.findById as any).mockReturnValue({
@@ -117,7 +115,7 @@ describe("aiCredits", () => {
       expect(result).toBeTruthy();
       expect(saveMock).toHaveBeenCalled();
       if (result) {
-        expect((result as any).aiCreditsRemaining).toBe(1000);
+        expect((result as any).aiCreditsRemaining).toBe(200);
       }
     });
 

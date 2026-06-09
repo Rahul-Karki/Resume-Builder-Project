@@ -22,6 +22,7 @@ export const CSRF_EXEMPT_PATHS = new Set([
   "/api/auth/resend",
   "/api/auth/resend-verification",
   "/api/auth/verify-email",
+  "/api/logs/ingest",
 ]);
 
 const secureCompare = (a: string, b: string) => {

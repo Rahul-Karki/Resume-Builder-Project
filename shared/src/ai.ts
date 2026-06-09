@@ -184,10 +184,10 @@ export type SectionScoreDetail = {
   recruiterEffectivenessScore: number;
 };
 
-export type ExpandendSectionKey = AtsSectionKey | "header" | "contact_info" | "achievements" | "interests" | "links" | "portfolio" | "publications" | "volunteer";
+export type ExpandedSectionKey = AtsSectionKey | "header" | "contact_info" | "achievements" | "interests" | "links" | "portfolio" | "publications" | "volunteer";
 
 export type SectionWiseAnalysis = {
-  section: ExpandendSectionKey;
+  section: ExpandedSectionKey;
   label: string;
   scores: SectionScoreDetail;
   isPresent: boolean;
@@ -316,7 +316,7 @@ export type IndustryCheck = {
 export type AtsWarning = {
   type: "missing_section" | "empty_section" | "weak_content" | "missing_field" | "formatting" | "keyword" | "experience" | "education";
   severity: "critical" | "warning" | "info";
-  section: ExpandendSectionKey;
+  section: ExpandedSectionKey;
   message: string;
   suggestion: string;
 };
@@ -404,3 +404,5 @@ export const normalizeTone = (tone?: string): AiTone => {
 export const compactText = (value: unknown) => (typeof value === "string" || typeof value === "number" || typeof value === "boolean" ? String(value) : "").replace(/\s+/g, " ").trim();
 
 export const sliceText = (value: unknown, maxLength: number) => compactText(value).slice(0, maxLength);
+
+

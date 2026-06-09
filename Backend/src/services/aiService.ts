@@ -119,18 +119,24 @@ const buildRewriteFallback = (context: AiPromptContext): AiRewriteResult => {
   const primaryRewrite = `${baseVerb} ${cleanRemainder || "work"} to ${tonePhrases[tone]}${focusTail}.`.replace(/\s+/g, " ").trim();
   const improvedRewrite = primaryRewrite.replace(/^worked on/i, "Developed");
 
+  const hasWeakPhrasing = /worked on|helped with|responsible for/i.test(text);
+  const hasMetrics = hasMetric(text);
+  const impactLevel = hasWeakPhrasing ? "high" : hasMetrics ? "medium" : "low";
+
   return {
     improvedText: improvedRewrite,
-    impactLevel: "high",
+    impactLevel,
     atsScoreImpact: {
-      estimatedImprovement: "10-20%",
-      reason: "Strengthened action verbs and improved ATS keyword density.",
+      estimatedImprovement: hasWeakPhrasing ? "10-20%" : hasMetrics ? "5-10%" : "3-7%",
+      reason: hasWeakPhrasing
+        ? "Strengthened action verbs and improved ATS keyword density."
+        : "Minor improvements for clarity and impact.",
     },
     detectedWeaknesses: [
-      /worked on|helped with|responsible for/i.test(text)
+      hasWeakPhrasing
         ? "Uses weak phrasing that reduces recruiter impact"
         : "Could benefit from stronger technical positioning",
-      "Missing measurable outcome language",
+      !hasMetrics ? "Missing measurable outcome language" : "Metrics present but could be more prominent",
     ],
     addedKeywords: targetRole ? targetRole.toLowerCase().split(/\s+/) : ["action", "impact"],
     recruiterSignalsAdded: [
@@ -159,12 +165,17 @@ const buildBulletFallback = (context: AiPromptContext): AiRewriteResult => {
 
   const improved = `${verb} ${remainder || "a stronger result"}${quantifier}.`.replace(/\s+/g, " ").trim();
 
+  const hasWeakPhrasing = /worked on|helped with|responsible for/i.test(text);
+  const bulletImpactLevel = hasWeakPhrasing ? "high" : hasMetric(text) ? "medium" : "low";
+
   return {
     improvedText: improved,
-    impactLevel: "high",
+    impactLevel: bulletImpactLevel,
     atsScoreImpact: {
-      estimatedImprovement: "10-20%",
-      reason: "Strengthened bullet with action verb and ATS-friendly impact language.",
+      estimatedImprovement: hasWeakPhrasing ? "10-20%" : hasMetric(text) ? "5-10%" : "3-7%",
+      reason: hasWeakPhrasing
+        ? "Strengthened bullet with action verb and ATS-friendly impact language."
+        : "Minor improvements for clarity and impact.",
     },
     detectedWeaknesses: [
       /worked on|helped with|responsible for/i.test(text)

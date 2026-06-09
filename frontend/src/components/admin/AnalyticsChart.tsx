@@ -8,7 +8,6 @@ interface BarChartProps {
   height?: number;
 }
 
-// ─── Mini Sparkline ────────────────────────────────────────────────────────────
 export function Sparkline({ data, color, width = 80, height = 28 }: { data: number[]; color: string; width?: number; height?: number }) {
   if (!data.length) return null;
   const safeData = data.map((value) => (Number.isFinite(value) ? value : 0));

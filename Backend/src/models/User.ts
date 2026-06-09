@@ -13,7 +13,7 @@ export interface IUser extends Document {
   authProvider: string[];
   aiCreditsRemaining: number;
   aiCreditsResetAt: Date;
-  aiCreditsPlan: "free" | "basic" | "premium" | "enterprise";
+  aiCreditsPlan?: string;
   dailyUsage: {
     date: string;
     aiAssistant: number;
@@ -73,7 +73,7 @@ const UserSchema: Schema = new Schema<IUser>(
       type: [
         {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Job",
+          ref: "Resume",
         },
       ],
       default: [],
@@ -109,12 +109,6 @@ const UserSchema: Schema = new Schema<IUser>(
     aiCreditsResetAt: {
       type: Date,
       default: getNextCreditsResetAt,
-    },
-
-    aiCreditsPlan: {
-      type: String,
-      enum: ["free", "basic", "premium", "enterprise"],
-      default: "free",
     },
 
     dailyUsage: {

@@ -770,7 +770,7 @@ const getCurrentUser = wrapController(async (req, res) => {
     return sendErrorResponse(res, new AuthError("Authentication required"));
   }
 
-  const user = await User.findById(userId).select("name email avatar role authProvider aiCreditsRemaining aiCreditsResetAt aiCreditsPlan emailVerified");
+  const user = await User.findById(userId).select("name email avatar role authProvider aiCreditsRemaining aiCreditsResetAt emailVerified");
 
   if (!user) {
     logger.warn({ userId }, "Get current user not found");
@@ -789,7 +789,6 @@ const getCurrentUser = wrapController(async (req, res) => {
       aiCredits: {
         remaining: user.aiCreditsRemaining ?? 0,
         resetAt: user.aiCreditsResetAt,
-        plan: user.aiCreditsPlan ?? "free",
       },
     },
   });

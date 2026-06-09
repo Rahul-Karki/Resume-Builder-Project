@@ -104,7 +104,6 @@ export function useMyResumes() {
           name: currentUser.name ?? "My Account",
           email: currentUser.email ?? "",
           avatar: currentUser.avatar ?? "ME",
-          plan: currentUser.aiCredits?.plan ?? "free",
           aiCredits: currentUser.aiCredits,
         });
       }

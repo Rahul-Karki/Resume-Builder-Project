@@ -77,7 +77,7 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
     }),
 
     updateStyle: (field, value) => set((state: DocumentSliceState) => {
-      (state.resume.style as Record<string, string | boolean>)[field] = value;
+      (state.resume.style as any)[field] = value;
       state.ui.isDirty = true;
       state.ui.isSaved = false;
     }),
@@ -101,7 +101,7 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
 
     updateExperience: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.experience.find((e: any) => e.id === id);
-      if (entry) (entry as Record<string, unknown>)[field] = value;
+      if (entry) (entry as any)[field] = value;
       state.ui.isDirty = true;
       state.ui.isSaved = false;
     }),
@@ -146,7 +146,7 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
 
     updateEducation: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.education.find((e: any) => e.id === id);
-      if (entry) (entry as Record<string, unknown>)[field] = value;
+      if (entry) (entry as any)[field] = value;
       state.ui.isDirty = true;
     }),
 
@@ -165,7 +165,7 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
 
     updateSkillGroup: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.skills.find((sk: any) => sk.id === id);
-      if (entry) (entry as Record<string, unknown>)[field] = value;
+      if (entry) (entry as any)[field] = value;
       state.ui.isDirty = true;
     }),
 
@@ -184,7 +184,7 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
 
     updateProject: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.projects.find((p: any) => p.id === id);
-      if (entry) (entry as Record<string, unknown>)[field] = value;
+      if (entry) (entry as any)[field] = value;
       state.ui.isDirty = true;
     }),
 
@@ -220,7 +220,7 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
 
     updateCertification: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.certifications.find((c: any) => c.id === id);
-      if (entry) (entry as Record<string, unknown>)[field] = value;
+      if (entry) (entry as any)[field] = value;
       state.ui.isDirty = true;
     }),
 
@@ -238,7 +238,7 @@ export function createDocumentSlice(set: any, get: any): DocumentSlice {
 
     updateLanguage: (id, field, value) => set((state: DocumentSliceState) => {
       const entry = state.resume.sections.languages.find((l: any) => l.id === id);
-      if (entry) (entry as Record<string, unknown>)[field] = value;
+      if (entry) (entry as any)[field] = value;
       state.ui.isDirty = true;
     }),
 

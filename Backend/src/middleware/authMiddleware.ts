@@ -146,7 +146,8 @@ export const authMiddleware = async (
       sendErrorResponse(res, new AuthError("Unauthorized: User not found", { code: "AUTH_REQUIRED" }));
       return;
     }
-    if (user.tokenVersion !== (decodedPayload as { userId: string; tokenVersion?: number }).tokenVersion) {
+    const payloadTokenVersion = (decodedPayload as { userId: string; tokenVersion?: number }).tokenVersion ?? 0;
+    if (user.tokenVersion !== payloadTokenVersion) {
       logAuthFailure(req, "Token version mismatch — session invalidated");
       sendErrorResponse(res, new AuthError("Session expired — please login again", { code: "AUTH_REQUIRED" }));
       return;

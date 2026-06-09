@@ -1,12 +1,11 @@
-﻿// ─── Module: errorTracking ───────────────────────────
-// Description: Client-side error capture and reporting
-
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/utils/logger", () => ({
   logger: {
     error: vi.fn(),
+    warn: vi.fn(),
     info: vi.fn(),
+    getSessionInfo: vi.fn(() => ({ sessionId: "session_mock", userId: undefined, logCount: 0, sessionStart: new Date().toISOString() })),
   },
 }));
 
@@ -20,8 +19,6 @@ describe("errorTracking", () => {
     vi.resetModules();
 
     errorTracking = await import("@/utils/errorTracking");
-    // Clear stored state; create new instance by clearing localStorage
-    localStorage.removeItem("errorReports");
   });
 
   afterEach(() => {
@@ -30,7 +27,6 @@ describe("errorTracking", () => {
 
   it("should capture an error with context when trackError is called", () => {
     localStorage.setItem("userId", "user-123");
-    localStorage.setItem("sessionId", "session_123_test");
 
     const errorId = errorTracking.errorTracker.trackError(
       "Resume save failed",
@@ -40,8 +36,6 @@ describe("errorTracking", () => {
 
     expect(errorTracking.errorTracker.getErrorStats()).toMatchObject({
       total: 1,
-      resolved: 0,
-      unresolved: 1,
       errorsByType: { user_error: 1 },
     });
   });
@@ -56,19 +50,29 @@ describe("errorTracking", () => {
     });
   });
 
-  it("should mark an error resolved when fixed-it feedback is added", () => {
-    const errorId = errorTracking.errorTracker.trackError("Validation error", new Error("bad input"), {
-      type: "user_error",
-    });
+  it("should group duplicate errors and increment count", () => {
+    const err = new Error("network timeout");
+    const id1 = errorTracking.errorTracker.trackError("Request failed", err, { url: "/api/data" });
+    const id2 = errorTracking.errorTracker.trackError("Request failed", err, { url: "/api/data" });
 
-    errorTracking.errorTracker.addFeedback(errorId, {
-      errorId,
-      feedback: "fixed-it",
-      timestamp: new Date().toISOString(),
-    });
+    expect(id1).toBe(id2);
+    const [report] = errorTracking.errorTracker.getErrors();
+    expect(report.count).toBe(2);
+  });
 
-    const errors = errorTracking.errorTracker.getErrors(true);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].resolved).toBe(true);
+  it("should not crash in SSR (no window/navigator)", () => {
+    const win = global.window;
+    const nav = global.navigator;
+    delete (global as any).window;
+    delete (global as any).navigator;
+
+    errorTracking.errorTracker.trackError("SSR safe", new Error("test"));
+    const [report] = errorTracking.errorTracker.getErrors();
+
+    expect(report.userAgent).toBe("ssr");
+    expect(report.url).toBe("ssr");
+
+    global.window = win;
+    global.navigator = nav;
   });
 });

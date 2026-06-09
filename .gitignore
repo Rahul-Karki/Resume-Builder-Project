@@ -81,3 +81,10 @@ pnpm-debug.log*
 .temp/
 .tmp/
 coverage/
+playwright-report/
+test-results/
+
+# ========================
+# Distributed JS (Backend build output)
+# ========================
+Backend/dist/

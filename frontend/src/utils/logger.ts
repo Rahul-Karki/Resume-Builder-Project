@@ -87,19 +87,15 @@ class Logger {
 
   private async sendToRemoteService(entry: LogEntry) {
     try {
-      // In a real implementation, you'd send this to your logging service
-      // For now, we'll just store it locally
-      const remoteLogs = JSON.parse(localStorage.getItem('remoteLogs') || '[]');
-      remoteLogs.push(entry);
-      
-      // Keep only last 100 remote logs
-      if (remoteLogs.length > 100) {
-        remoteLogs.splice(0, remoteLogs.length - 100);
-      }
-      
-      localStorage.setItem('remoteLogs', JSON.stringify(remoteLogs));
-    } catch (error) {
-      console.error('Failed to send log to remote service:', error);
+      const baseURL = import.meta.env.VITE_API_BASE_URL || "/api";
+      await fetch(`${baseURL}/logs/ingest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ logs: [entry] }),
+      });
+    } catch {
+      // Silently fail — logging should never affect the user experience
     }
   }
 

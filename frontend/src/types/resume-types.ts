@@ -164,17 +164,6 @@ export type ActiveSection =
 export type PreviewScale = 0.5 | 0.6 | 0.7 | 0.75 | 0.85 | 1;
 export type ExportPreset = "web" | "standard" | "print";
 
-export interface ResumeVersionMeta {
-  _id: string;
-  versionNo: number;
-  note?: string;
-  createdAt: string;
-  updatedAt: string;
-  snapshot?: {
-    title?: string;
-  };
-}
-
 export interface BuilderUIState {
   activeTab: EditorTab;
   activeSection: ActiveSection;
@@ -316,6 +305,8 @@ export interface TemplateMeta {
   palette: { bg: string; primary: string; secondary: string; sidebar?: string; };
 }
 
+
+
 export type {
   AiRewriteResult,
   AiSuggestion,
@@ -330,10 +321,9 @@ export type SortOption = "updatedAt" | "createdAt" | "title" | "completion";
 export type AiCreditsInfo = {
   remaining: number;
   resetAt?: string;
-  plan: "free" | "basic" | "premium" | "enterprise";
 };
 
-export interface User { id: string; name: string; email: string; avatar: string; plan: "free" | "pro"; aiCredits?: AiCreditsInfo; }
+export interface User { id: string; name: string; email: string; avatar: string; aiCredits?: AiCreditsInfo; }
 
 // ─── ATS Analysis Types ────────────────────────────────────────────────────────
 
@@ -346,17 +336,4 @@ export interface AtsSuggestion {
   impact: "low" | "medium" | "high";
 }
 
-export interface AtsAnalysisResult {
-  _id: string;
-  resumeId: string;
-  scoreOverall: number;
-  sectionScores: {
-    summary: number;
-    experience: number;
-    skills: number;
-    education: number;
-    formatting: number;
-  };
-  missingKeywords: string[];
-  rewriteSuggestions: AtsSuggestion[];
-}
+

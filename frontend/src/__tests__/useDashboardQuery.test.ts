@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 
 const mockApi = {
   get: vi.fn(),
@@ -19,7 +19,7 @@ describe("useDashboardStats", () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    return ({ children }: { children: unknown }) =>
+    return ({ children }: { children: ReactNode }) =>
       createElement(QueryClientProvider, { client: queryClient }, children);
   };
 

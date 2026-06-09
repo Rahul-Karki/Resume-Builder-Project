@@ -135,7 +135,6 @@ export const analyzeAts = wrapController(async (req, res) => {
   res.setHeader("x-ai-credits-deducted", String(deducted));
   if (creditUser?.aiCreditsRemaining !== undefined) res.setHeader("x-ai-credits-remaining", String(creditUser.aiCreditsRemaining));
   if (creditUser?.aiCreditsResetAt) res.setHeader("x-ai-credits-reset-at", new Date(creditUser.aiCreditsResetAt).toISOString());
-  if (creditUser?.aiCreditsPlan) res.setHeader("x-ai-credits-plan", creditUser.aiCreditsPlan);
 
   logger.info({ userId, resumeId: req.params.id, jobId, creditsDeducted: deducted }, "ATS analysis completed (synchronous)");
   res.status(200).json({ message: "ATS analysis completed", analysis: analysisResult });

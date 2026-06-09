@@ -227,6 +227,58 @@ const lokiStream = {
   },
 };
 
+const frontendLokiBuffer: LokiPushEntry[] = [];
+let frontendLokiFlushTimer: NodeJS.Timeout | null = null;
+let frontendLokiFlushing = false;
+
+const flushFrontendLokiBuffer = async () => {
+  if (!lokiEnabled || frontendLokiFlushing || frontendLokiBuffer.length === 0) return;
+  frontendLokiFlushing = true;
+  const batch = frontendLokiBuffer.splice(0, frontendLokiBuffer.length);
+  try {
+    const authHeader = Buffer.from(`${env.LOKI_INSTANCE_ID}:${grafanaApiToken}`).toString("base64");
+    await fetch(env.GRAFANA_LOKI_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${authHeader}`,
+      },
+      body: JSON.stringify({
+        streams: [{
+          stream: { ...getLokiLabels(), source: "frontend" },
+          values: batch.map((e) => [e.ts, e.line]),
+        }],
+      }),
+    });
+  } catch {
+    // Silent — avoid logger to prevent feedback loop
+  } finally {
+    frontendLokiFlushing = false;
+  }
+};
+
+const queueFrontendLokiLine = (line: string) => {
+  if (!lokiEnabled) return;
+  frontendLokiBuffer.push({
+    ts: (BigInt(Date.now()) * 1_000_000n).toString(),
+    line: line.trimEnd(),
+  });
+  if (frontendLokiBuffer.length >= 20) {
+    void flushFrontendLokiBuffer();
+    return;
+  }
+  if (!frontendLokiFlushTimer) {
+    frontendLokiFlushTimer = setTimeout(() => {
+      frontendLokiFlushTimer = null;
+      void flushFrontendLokiBuffer();
+    }, 5000);
+  }
+};
+
+export const pushFrontendLog = (line: string) => {
+  queueFrontendLokiLine(line);
+};
+
 const redactCommandArgs = (record: Record<string, unknown>) => {
   const command = record.command;
 
@@ -467,12 +519,17 @@ export const shutdownObservability = async () => {
     lokiFlushTimer = null;
   }
 
-  await flushLokiBuffer();
+  if (frontendLokiFlushTimer) {
+    clearTimeout(frontendLokiFlushTimer);
+    frontendLokiFlushTimer = null;
+  }
 
   await Promise.all([
+    flushLokiBuffer(),
+    flushFrontendLokiBuffer(),
     meterProvider?.shutdown(),
     tracerProvider?.shutdown(),
-  ]);
+  ].filter(Boolean));
 };
 
 process.once("SIGTERM", () => {

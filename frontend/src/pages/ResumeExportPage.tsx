@@ -1,15 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ResumeRenderer } from "@/templates/ResumeRenderer";
+import { api } from "@/services/api";
 import type { ResumeDocument } from "@/types/resume-types";
 import { A4_WIDTH_PX, A4_HEIGHT_PX } from "@/utils/resumePagination";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
-
-function apiUrl(path: string) {
-  const base = API_BASE.replace(/\/api\/?$/, "");
-  return `${base}${path}`;
-}
 
 const ResumeExportPage = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -25,16 +19,12 @@ const ResumeExportPage = () => {
       return;
     }
 
-    const params = new URLSearchParams();
-    if (previewToken) params.set("previewToken", previewToken);
+    const params: Record<string, string> = {};
+    if (previewToken) params.previewToken = previewToken;
 
-    fetch(`${apiUrl("/api/resumes/preview-data")}/${encodeURIComponent(jobId)}?${params.toString()}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`Failed to load resume: ${r.status}`);
-        return r.json();
-      })
-      .then((data) => setResume(data.resume as ResumeDocument))
-      .catch((err) => setError(err.message));
+    api.get(`/resumes/preview-data/${encodeURIComponent(jobId)}`, { params })
+      .then((response) => setResume(response.data.resume as ResumeDocument))
+      .catch((err) => setError(err.response?.data?.message || err.message || "Failed to load resume"));
   }, [jobId, previewToken]);
 
   if (error) {

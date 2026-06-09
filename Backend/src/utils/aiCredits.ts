@@ -1,37 +1,22 @@
 import User from "../models/User";
 import { AppError } from "../errors/AppError";
 
-export type AiCreditsPlan = "free" | "basic" | "premium" | "enterprise";
-
-const PLAN_MONTHLY_CREDITS: Record<AiCreditsPlan, number> = {
-  free: 200,
-  basic: 1000,
-  premium: 5000,
-  enterprise: 20000,
-};
+const MONTHLY_CREDITS = 200;
 
 const getNextCreditsResetAt = () => {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 };
 
-export const getPlanMonthlyCredits = (plan: unknown): number => {
-  if (plan === "basic" || plan === "premium" || plan === "enterprise") {
-    return PLAN_MONTHLY_CREDITS[plan];
-  }
-
-  return PLAN_MONTHLY_CREDITS.free;
-};
-
 export const refreshAiCreditsIfNeeded = async (userId: string) => {
-  const user = await User.findById(userId).select("aiCreditsRemaining aiCreditsResetAt aiCreditsPlan");
+  const user = await User.findById(userId).select("aiCreditsRemaining aiCreditsResetAt");
   if (!user) return null;
 
   const resetAt = user.aiCreditsResetAt ? new Date(user.aiCreditsResetAt) : null;
   const now = new Date();
 
   if (!resetAt || resetAt.getTime() <= now.getTime()) {
-    user.aiCreditsRemaining = getPlanMonthlyCredits(user.aiCreditsPlan);
+    user.aiCreditsRemaining = MONTHLY_CREDITS;
     user.aiCreditsResetAt = getNextCreditsResetAt();
     await user.save();
   }
@@ -55,7 +40,6 @@ export const assertAiCreditsAvailable = async (userId: string, requiredCredits: 
         required: requiredCredits,
         remaining: user.aiCreditsRemaining ?? 0,
         resetAt: user.aiCreditsResetAt,
-        plan: user.aiCreditsPlan ?? "free",
       },
       expose: true,
     });

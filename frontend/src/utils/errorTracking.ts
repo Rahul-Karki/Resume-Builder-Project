@@ -10,21 +10,15 @@ export interface ErrorReport {
   url: string;
   userId?: string;
   sessionId: string;
-  resolved: boolean;
-}
-
-export interface UserFeedback {
-  errorId: string;
-  feedback: 'helpful' | 'not-helpful' | 'fixed-it';
-  comment?: string;
-  timestamp: string;
+  groupKey: string;
+  count: number;
 }
 
 class ErrorTracker {
   private static instance: ErrorTracker;
   private errors: ErrorReport[] = [];
-  private feedback: Map<string, UserFeedback[]> = new Map();
   private maxErrors = 100;
+  private maxErrorAgeMs = 7 * 24 * 60 * 60 * 1000;
 
   static getInstance(): ErrorTracker {
     if (!ErrorTracker.instance) {
@@ -33,67 +27,115 @@ class ErrorTracker {
     return ErrorTracker.instance;
   }
 
-  trackError(message: string, error: Error | any, context?: Record<string, any>): string {
-    const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  private getSessionId(): string {
+    try {
+      return logger.getSessionInfo().sessionId;
+    } catch {
+      return 'unknown';
+    }
+  }
+
+  private getUserId(): string | undefined {
+    try {
+      return localStorage.getItem('userId') || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private getBrowserInfo(): { userAgent: string; url: string } {
+    return {
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'ssr',
+      url: typeof window !== 'undefined' ? window.location.href : 'ssr',
+    };
+  }
+
+  private computeGroupKey(message: string, error: unknown): string {
+    const stack = error instanceof Error ? error.stack : '';
+    const firstFrame = stack?.split('\n').find(line => line.includes('at ')) || '';
+    return `${message}::${firstFrame}`;
+  }
+
+  private evictOldErrors() {
+    const cutoff = Date.now() - this.maxErrorAgeMs;
+    this.errors = this.errors.filter(e => new Date(e.timestamp).getTime() > cutoff);
+  }
+
+  trackError(message: string, error: unknown, context?: Record<string, any>): string {
+    const groupKey = this.computeGroupKey(message, error);
+    const existing = this.errors.find(e => e.groupKey === groupKey);
+
+    if (existing) {
+      existing.count++;
+      existing.timestamp = new Date().toISOString();
+      logger.warn(`Repeated error: ${message} (${existing.count}x)`, { groupKey, count: existing.count, ...context });
+      return existing.id;
+    }
+
+    const binfo = this.getBrowserInfo();
+    const errorId = `error_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const stack = error instanceof Error ? error.stack : undefined;
     const errorReport: ErrorReport = {
       id: errorId,
       timestamp: new Date().toISOString(),
       message,
-      stack: error?.stack,
+      stack,
       context,
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      userId: localStorage.getItem('userId') || undefined,
-      sessionId: localStorage.getItem('sessionId') || 'unknown',
-      resolved: false,
+      userAgent: binfo.userAgent,
+      url: binfo.url,
+      userId: this.getUserId(),
+      sessionId: this.getSessionId(),
+      groupKey,
+      count: 1,
     };
 
     this.errors.push(errorReport);
-    logger.error(message, { errorId, ...context, stack: error?.stack });
+    this.evictOldErrors();
 
     if (this.errors.length > this.maxErrors) {
       this.errors = this.errors.slice(-this.maxErrors);
     }
 
-    if (import.meta.env.PROD) {
-      try {
-        const errors = JSON.parse(localStorage.getItem('errorReports') || '[]');
-        errors.push(errorReport);
-        if (errors.length > 50) errors.splice(0, errors.length - 50);
-        localStorage.setItem('errorReports', JSON.stringify(errors));
-      } catch (e) {
-        logger.error('Failed to persist error report', { sendError: e });
-      }
-    }
+    logger.error(message, { errorId, groupKey, source: context?.source || 'manual', ...context, stack });
 
     return errorId;
   }
 
-  addFeedback(errorId: string, feedback: UserFeedback) {
-    if (!this.feedback.has(errorId)) this.feedback.set(errorId, []);
-    this.feedback.get(errorId)!.push(feedback);
-    if (feedback.feedback === 'fixed-it') {
-      const error = this.errors.find(e => e.id === errorId);
-      if (error) error.resolved = true;
-    }
-  }
-
-  getErrors(resolved?: boolean): ErrorReport[] {
-    return resolved !== undefined
-      ? this.errors.filter(e => e.resolved === resolved)
-      : [...this.errors];
+  getErrors(): ErrorReport[] {
+    return [...this.errors];
   }
 
   getErrorStats() {
     const total = this.errors.length;
-    const resolved = this.errors.filter(e => e.resolved).length;
     const errorsByType = this.errors.reduce((acc, error) => {
       const type = error.context?.type || 'unknown';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    return { total, resolved, unresolved: total - resolved, resolutionRate: total > 0 ? (resolved / total) * 100 : 0, errorsByType };
+    return { total, errorsByType };
+  }
+
+  initGlobalHandlers() {
+    if (typeof window === 'undefined') return;
+
+    window.onerror = (event, source, lineno, colno, error) => {
+      this.trackError(
+        typeof event === 'string' ? event : 'Uncaught error',
+        error || new Error(String(event)),
+        { source, lineno, colno, type: 'window.onerror' },
+      );
+    };
+
+    window.addEventListener('unhandledrejection', (event) => {
+      const reason = event.reason;
+      this.trackError(
+        reason?.message || 'Unhandled promise rejection',
+        reason,
+        { type: 'unhandledrejection' },
+      );
+    });
   }
 }
 
 export const errorTracker = ErrorTracker.getInstance();
+export const initErrorTracking = () => errorTracker.initGlobalHandlers();

@@ -22,6 +22,7 @@ import aiRoutes from "./router/ai.routes";
 import adminRoutes from "./router/admin.routes";
 import templateRoutes from "./router/template.routes";
 import healthRoutes from "./router/health.routes";
+import frontendLogsRoutes from "./router/frontendLogs.routes";
 import { adminGuard } from "./middleware/adminAuthMiddleware";
 
 export const createApp = () => {
@@ -123,7 +124,7 @@ export const createApp = () => {
 
   // 2. Compression middleware to reduce response payload size
   app.use(compression({
-    level: 6, // balance between compression ratio and CPU usage
+    level: 3, // balance between compression ratio and CPU usage
     threshold: 1024, // only compress responses larger than 1KB
   }));
 
@@ -209,6 +210,7 @@ export const createApp = () => {
   }, apiRouter);
   // Templates and health — not in auth-protected router
   app.use("/api/templates", templateRoutes);
+  app.use("/api/logs/ingest", frontendLogsRoutes);
   app.use("/api/health", healthRoutes);
   app.use("/health", healthRoutes);
 
