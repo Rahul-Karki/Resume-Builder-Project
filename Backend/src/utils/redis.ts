@@ -18,7 +18,6 @@ const isNativeRedisUrl = (value: string) => {
     return false;
   }
 
-  
   try {
     const parsed = new URL(value);
     return parsed.protocol === "redis:" || parsed.protocol === "rediss:";
