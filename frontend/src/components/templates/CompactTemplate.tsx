@@ -66,7 +66,7 @@ const CompactTemplate = memo(function CompactTemplate({ data }: { data: ResumeDo
   return (
     <>
       <style>{css}</style>
-      <div className="comp-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont,         fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding, height: "100%", minHeight: "100%", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+      <div className="comp-wrap" style={{ background: style.backgroundColor, color: style.textColor, fontFamily: style.bodyFont, fontSize: style.fontSize, lineHeight: style.lineHeight, padding: pagePadding, height: "100%", minHeight: "100%", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
         <div className="comp-header">
           <div className="comp-name" style={{ fontFamily: style.headingFont, color: style.headingColor, textAlign: style.headerAlign }}>{p.name}</div>
           {p.title && <div style={{ fontSize: "9pt", color: style.mutedColor, marginBottom: 6, textAlign: style.headerAlign }}>{p.title}</div>}
