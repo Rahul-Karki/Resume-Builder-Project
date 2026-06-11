@@ -35,6 +35,7 @@ function LiveMockup() {
       width: "100%",
       maxWidth: 420,
       flexShrink: 0,
+      aspectRatio: "380/490",
     }}>
       {/* Glow */}
       <div style={{
