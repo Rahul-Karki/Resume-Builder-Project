@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { lazy, Suspense } from "react"
+import { Analytics } from "@vercel/analytics/react"
 import { RequireRole } from "./components/auth/RequireRole"
 import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 import { ErrorBoundary } from "./components/ErrorBoundary"
@@ -28,6 +29,7 @@ function App() {
         console.error("App-level error:", error, errorInfo);
       }}
     >
+      <Analytics />
       <BrowserRouter>
         <Suspense fallback={<PageSkeleton />}>
           <Routes>
