@@ -14,15 +14,6 @@ const TOTAL_VERTICAL_PADDING_PX = PAGE_PADDING_PX * 2;
 const EFFECTIVE_PAGE_HEIGHT = A4_HEIGHT_PX - TOTAL_VERTICAL_PADDING_PX;
 const RECALC_DEBOUNCE_MS = 200;
 
-function isLightColor(hex: string): boolean {
-  const clean = hex.replace("#", "");
-  if (clean.length < 6) return true;
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 200;
-}
-
 function offsetsEqual(a: number[], b: number[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -153,12 +144,12 @@ export function PaginatedResumePreview({
               display: "block",
             }}
           >
-            {/* Top spacer — accentColor on page 0 for dark backgrounds,
-                backgroundColor for light backgrounds and subsequent pages */}
+            {/* Top spacer — accentColor on page 0 for Executive (full-width header),
+                backgroundColor for other templates and subsequent pages */}
             <div style={{
               width: "100%",
               height: `${PAGE_PADDING_PX * scale}px`,
-              background: index === 0 && !isLightColor(resume.style.backgroundColor) ? resume.style.accentColor : resume.style.backgroundColor,
+              background: index === 0 && resume.templateId === "executive" ? resume.style.accentColor : resume.style.backgroundColor,
             }} />
             <div
               data-preview-scale="true"
