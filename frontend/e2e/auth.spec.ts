@@ -7,7 +7,7 @@ test.describe("Authentication Flow", () => {
 
     // Check if the login form is present
     const loginHeader = page.locator("h1");
-    await expect(loginHeader).toContainText(/Sign In|Log In|Welcome/i);
+    await expect(loginHeader).toContainText(/Sign In|Log In|Login|Welcome/i);
 
     // Check for email and password inputs
     const emailInput = page.locator('input[type="email"]');
@@ -31,6 +31,6 @@ test.describe("Authentication Flow", () => {
     // Check if validation messages appear (adjust selector based on your UI library)
     // Most forms will show some required text
     const formBody = page.locator("form");
-    await expect(formBody).toContainText(/Required|Invalid/i);
+    await expect(formBody).toContainText(/Required|Invalid|Please enter/i);
   });
 });

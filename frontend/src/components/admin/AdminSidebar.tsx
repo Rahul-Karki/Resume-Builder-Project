@@ -69,7 +69,7 @@ export function AdminSidebar({ activePage, onNavigate, adminName, isMobile = fal
               onMouseLeave={e => { if (!active) e.currentTarget.style.color = "#a1a1aa"; }}
             >
               <span style={{ fontSize: 13, width: 16, textAlign: "center", opacity: active ? 1 : 0.4 }}>{item.icon}</span>
-              {!isMobile && <span>{item.label}</span>}
+              <span style={isMobile ? { position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0,0,0,0)", whiteSpace: "nowrap", border: 0 } : {}}>{item.label}</span>
             </button>
           );
         })}

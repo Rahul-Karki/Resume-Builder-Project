@@ -42,7 +42,7 @@ async function login(page: Page, email: string, password: string) {
  */
 async function signup(page: Page, name: string, email: string, password: string) {
   await page.goto(`${BASE_URL}/signup`);
-  await page.fill('input[placeholder*="Name" i]', name);
+  await page.fill('input#name', name);
   await page.fill('input[type="email"]', email);
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
@@ -296,15 +296,15 @@ test.describe("Accessibility", () => {
   test("should have proper heading hierarchy on home page", async ({ page }) => {
     await page.goto(`${BASE_URL}/`);
 
-    const h1s = page.locator("h1");
-    expect(await h1s.count()).toBeGreaterThan(0);
+    const h1 = page.locator("h1").first();
+    await expect(h1).toBeVisible({ timeout: 10000 });
   });
 
   test("should have form labels", async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);
 
     const labels = page.locator("label");
-    expect(await labels.count()).toBeGreaterThan(0);
+    await expect(labels.first()).toBeVisible({ timeout: 10000 });
   });
 
   test("should be keyboard navigable", async ({ page }) => {
