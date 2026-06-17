@@ -8,6 +8,7 @@ export default defineConfig({
     include: ["src/__tests__/**/*.test.ts"],
     exclude: ["node_modules", "dist"],
     coverage: {
+      enabled: process.env.CI === "true",
       provider: "v8",
       reporter: ["text", "lcov", "cobertura"],
       include: ["src/**/*.ts"],

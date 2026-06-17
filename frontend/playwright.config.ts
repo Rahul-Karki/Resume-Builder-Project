@@ -63,20 +63,22 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: [
-    {
-      command: "npm run dev",
-      url: "http://localhost:5173",
-      reuseExistingServer: !process.env.CI,
-      cwd: ".",
-      timeout: 120000,
-    },
-    {
-      command: "npm run dev",
-      url: "http://localhost:5000/health",
-      reuseExistingServer: !process.env.CI,
-      cwd: "./Backend",
-      timeout: 120000,
-    },
-  ],
+  webServer: process.env.CI
+    ? []
+    : [
+        {
+          command: "npm run dev",
+          url: "http://localhost:5173",
+          reuseExistingServer: true,
+          cwd: ".",
+          timeout: 120000,
+        },
+        {
+          command: "npm run dev",
+          url: "http://localhost:5000/health",
+          reuseExistingServer: true,
+          cwd: "../Backend",
+          timeout: 120000,
+        },
+      ],
 });
