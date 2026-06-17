@@ -128,18 +128,25 @@ test-backend-unit:
 
 test-backend-integration:
   stage: test
-  # FIX: needs must include install-backend-deps (not just typecheck-backend)
-  # so that node_modules artifact is available; also wait for typecheck to pass
   needs:
     - job: install-backend-deps
     - job: typecheck-backend
   script:
-    - cd Backend && npm run build && node --test --test-force-exit --test-reporter=junit --test-reporter-destination=report-node-test.xml --test-reporter=spec --test-reporter-destination=test-output.txt automated-tests/**/*.test.js
+    - cd Backend
+    - npm run build
+    # Use find + sort instead of ** glob pattern because CI bash does not
+    # enable globstar by default, causing the unexpanded literal to fail.
+    - node --test --test-force-exit --test-reporter=junit --test-reporter-destination=report-node-test.xml --test-reporter=spec --test-reporter-destination=test-output.txt $(find automated-tests -name '*.test.js' | sort)
   dependencies:
     - install-backend-deps
   variables:
     MONGO_URI: mongodb://mongo:27017/test
     REDIS_URL: redis://redis:6379/0
+    FRONTEND_URL: "http://localhost:5173"
+    JWT_ACCESS_SECRET: "test-access-secret"
+    JWT_REFRESH_SECRET: "test-refresh-secret"
+    GOOGLE_CLIENT_ID: "test-google-client-id"
+    USE_MEMORY_ONLY_CACHE: "true"
   services:
     - name: mongo:7.0
       alias: mongo
@@ -263,7 +270,6 @@ docker-backend:
 docker-frontend:
   extends: .docker-base
   needs:
-    - job: test-backend-unit
     - job: test-frontend-unit
   script:
     - docker build -t ${REGISTRY}/frontend:${TAG} -t ${REGISTRY}/frontend:latest -f frontend/Dockerfile frontend/
