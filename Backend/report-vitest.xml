@@ -1,0 +1,1019 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="409" failures="0" errors="0" time="53.2997002">
+    <testsuite name="src/__tests__/adminAudit.test.ts" timestamp="2026-06-17T12:27:00.423Z" hostname="Lenovo-Loq" tests="1" failures="0" errors="0" skipped="0" time="0.0143722">
+        <testcase classname="src/__tests__/adminAudit.test.ts" name="adminAuditMiddleware &gt; logs the completed admin action" time="0.0103366">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/adminAuthMiddleware.test.ts" timestamp="2026-06-17T12:27:00.428Z" hostname="Lenovo-Loq" tests="8" failures="0" errors="0" skipped="0" time="0.0309674">
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; authenticate &gt; should call next() when a valid access token is provided" time="0.0103234">
+        </testcase>
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; authenticate &gt; should return 401 when no token is provided" time="0.0032656">
+        </testcase>
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; authenticate &gt; should return 401 when the token is expired" time="0.0020832">
+        </testcase>
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; requireAdmin &gt; should call next() when the user has an admin role" time="0.0018846">
+        </testcase>
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; requireAdmin &gt; should return 403 when the user has a user role" time="0.0020014">
+        </testcase>
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; requireAdmin &gt; should return 401 when req.user is not set" time="0.0026014">
+        </testcase>
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; requireSuperAdmin &gt; should call next() when the user has a superadmin role" time="0.002602">
+        </testcase>
+        <testcase classname="src/__tests__/adminAuthMiddleware.test.ts" name="adminAuthMiddleware &gt; requireSuperAdmin &gt; should return 403 when the user has an admin role" time="0.0022521">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/aiController.test.ts" timestamp="2026-06-17T12:27:00.431Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.0231639">
+        <testcase classname="src/__tests__/aiController.test.ts" name="aiController &gt; improveTextHandler &gt; should improve text and return the result" time="0.0168641">
+        </testcase>
+        <testcase classname="src/__tests__/aiController.test.ts" name="aiController &gt; enhanceBulletHandler &gt; should enhance a bullet point and return the result" time="0.0025512">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/aiErrorHandler.test.ts" timestamp="2026-06-17T12:27:00.432Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0299068">
+        <testcase classname="src/__tests__/aiErrorHandler.test.ts" name="aiErrorHandler &gt; categorizeAiError &gt; should categorize a 429 response as a rate-limit error" time="0.0088324">
+        </testcase>
+        <testcase classname="src/__tests__/aiErrorHandler.test.ts" name="aiErrorHandler &gt; categorizeAiError &gt; should categorize a timeout as a timeout error" time="0.0009134">
+        </testcase>
+        <testcase classname="src/__tests__/aiErrorHandler.test.ts" name="aiErrorHandler &gt; categorizeAiError &gt; should categorize a 401 response as an auth error" time="0.0003997">
+        </testcase>
+        <testcase classname="src/__tests__/aiErrorHandler.test.ts" name="aiErrorHandler &gt; categorizeAiError &gt; should categorize a malformed response as a parse error" time="0.000963">
+        </testcase>
+        <testcase classname="src/__tests__/aiErrorHandler.test.ts" name="aiErrorHandler &gt; handleAiError &gt; should return a structured error response with the category" time="0.0152178">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/aiMetrics.test.ts" timestamp="2026-06-17T12:27:00.433Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0336373">
+        <testcase classname="src/__tests__/aiMetrics.test.ts" name="aiMetrics &gt; trackAiRequest &gt; should increment the request counter with provider and feature labels" time="0.0266395">
+        </testcase>
+        <testcase classname="src/__tests__/aiMetrics.test.ts" name="aiMetrics &gt; trackAiRequest &gt; should record request duration" time="0.0013237">
+        </testcase>
+        <testcase classname="src/__tests__/aiMetrics.test.ts" name="aiMetrics &gt; trackAiFallback &gt; should increment the fallback counter when provider switches" time="0.0007363">
+        </testcase>
+        <testcase classname="src/__tests__/aiMetrics.test.ts" name="aiMetrics &gt; trackAiTokens &gt; should record token usage by model" time="0.0006335">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/aiUsageController.test.ts" timestamp="2026-06-17T12:27:00.435Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0288375">
+        <testcase classname="src/__tests__/aiUsageController.test.ts" name="aiUsageController &gt; getAiUsageStats &gt; should return aggregated usage stats for the authenticated user" time="0.0113477">
+        </testcase>
+        <testcase classname="src/__tests__/aiUsageController.test.ts" name="aiUsageController &gt; getAiUsageStats &gt; should return zeros when the user has no AI usage" time="0.0028448">
+        </testcase>
+        <testcase classname="src/__tests__/aiUsageController.test.ts" name="aiUsageController &gt; getAiUsageStats &gt; should return 401 when the user is not authenticated" time="0.0031178">
+        </testcase>
+        <testcase classname="src/__tests__/aiUsageController.test.ts" name="aiUsageController &gt; getAiRequestHistory &gt; should return a paginated list of AI requests" time="0.0026233">
+        </testcase>
+        <testcase classname="src/__tests__/aiUsageController.test.ts" name="aiUsageController &gt; getAiRequestHistory &gt; should return an empty array when there is no history" time="0.0042923">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/aiValidation.test.ts" timestamp="2026-06-17T12:27:00.436Z" hostname="Lenovo-Loq" tests="6" failures="0" errors="0" skipped="0" time="0.0125196">
+        <testcase classname="src/__tests__/aiValidation.test.ts" name="aiValidation &gt; validateAiInput &gt; should pass valid input" time="0.0063849">
+        </testcase>
+        <testcase classname="src/__tests__/aiValidation.test.ts" name="aiValidation &gt; validateAiInput &gt; should reject input exceeding the max length" time="0.0010649">
+        </testcase>
+        <testcase classname="src/__tests__/aiValidation.test.ts" name="aiValidation &gt; validateAiInput &gt; should accept input with no HTML sanitation (sanitizeAiInput only strips null bytes/newlines)" time="0.0004096">
+        </testcase>
+        <testcase classname="src/__tests__/aiValidation.test.ts" name="aiValidation &gt; detectHallucinations &gt; should return false when the response is consistent with the input" time="0.0004547">
+        </testcase>
+        <testcase classname="src/__tests__/aiValidation.test.ts" name="aiValidation &gt; detectHallucinations &gt; should return true when the response fabricates contact details" time="0.0002153">
+        </testcase>
+        <testcase classname="src/__tests__/aiValidation.test.ts" name="aiValidation &gt; detectHallucinations &gt; should return true when the response invents job history" time="0.0002955">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/alerting.test.ts" timestamp="2026-06-17T12:27:00.438Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0255182">
+        <testcase classname="src/__tests__/alerting.test.ts" name="alerting &gt; alertComplianceIssue &gt; should dispatch alerts to all configured channels" time="0.0105444">
+        </testcase>
+        <testcase classname="src/__tests__/alerting.test.ts" name="alerting &gt; alertComplianceIssue &gt; should throw when a channel is unreachable" time="0.005156">
+        </testcase>
+        <testcase classname="src/__tests__/alerting.test.ts" name="alerting &gt; alertSecurityIssue &gt; should include severity and source IP in the alert payload" time="0.0018914">
+        </testcase>
+        <testcase classname="src/__tests__/alerting.test.ts" name="alerting &gt; alertSecurityIssue &gt; should send high-severity alerts immediately" time="0.0029438">
+        </testcase>
+        <testcase classname="src/__tests__/alerting.test.ts" name="alerting &gt; alertDataIntegrityIssue &gt; should include document IDs and collection names" time="0.0015497">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/apiVersion.test.ts" timestamp="2026-06-17T12:27:00.439Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0216006">
+        <testcase classname="src/__tests__/apiVersion.test.ts" name="apiVersionMiddleware &gt; should set X-Service-Version from the config value" time="0.0135052">
+        </testcase>
+        <testcase classname="src/__tests__/apiVersion.test.ts" name="apiVersionMiddleware &gt; should read x-api-version header and attach it to req" time="0.0013894">
+        </testcase>
+        <testcase classname="src/__tests__/apiVersion.test.ts" name="apiVersionMiddleware &gt; should default to latest version when no header is present" time="0.0011884">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/authController.test.ts" timestamp="2026-06-17T12:27:00.439Z" hostname="Lenovo-Loq" tests="15" failures="0" errors="0" skipped="0" time="0.473573">
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; registerUser &gt; should create a new user and return 201 when valid data is provided" time="0.0091713">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; registerUser &gt; should return 409 when email already exists" time="0.0017508">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; registerUser &gt; should return 400 when required fields are missing" time="0.0010163">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; login &gt; should return 200 when credentials are valid" time="0.001562">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; login &gt; should return 401 when password is incorrect" time="0.0010898">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; forgotPassword &gt; should send a reset email when the email exists" time="0.2379099">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; forgotPassword &gt; should return 200 even when the email does not exist (to prevent enumeration)" time="0.209119">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; resetPassword &gt; should update the password when a valid token is provided" time="0.0011154">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; resetPassword &gt; should return 400 when the token has expired" time="0.0009278">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; googleLogin &gt; should create a new user and return auth cookies when Google token is valid" time="0.0011451">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; googleLogin &gt; should return 400 when the Google token verification fails" time="0.0007897">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; getCurrentUser &gt; should return the authenticated user&apos;s profile" time="0.0010981">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; getCurrentUser &gt; should return 401 when no access token is present" time="0.0008451">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; logout &gt; should clear auth cookies and blacklist the refresh token" time="0.0008874">
+        </testcase>
+        <testcase classname="src/__tests__/authController.test.ts" name="authController &gt; logout &gt; should not error when no cookies are present" time="0.0007097">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/authMiddleware.test.ts" timestamp="2026-06-17T12:27:00.442Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.020261">
+        <testcase classname="src/__tests__/authMiddleware.test.ts" name="authMiddleware &gt; returns 401 when no access token cookie is present" time="0.0085517">
+        </testcase>
+        <testcase classname="src/__tests__/authMiddleware.test.ts" name="authMiddleware &gt; attaches the current user when the token is valid" time="0.0051672">
+        </testcase>
+        <testcase classname="src/__tests__/authMiddleware.test.ts" name="authMiddleware &gt; returns 401 when the user cannot be found" time="0.0017971">
+        </testcase>
+        <testcase classname="src/__tests__/authMiddleware.test.ts" name="authMiddleware &gt; returns 401 when token verification fails" time="0.0012163">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/baseQueue.test.ts" timestamp="2026-06-17T12:27:00.443Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0274155">
+        <testcase classname="src/__tests__/baseQueue.test.ts" name="BaseQueue &gt; adds a job via updateOne with upsert" time="0.0111857">
+        </testcase>
+        <testcase classname="src/__tests__/baseQueue.test.ts" name="BaseQueue &gt; polls for pending jobs and processes them" time="0.0037367">
+        </testcase>
+        <testcase classname="src/__tests__/baseQueue.test.ts" name="BaseQueue &gt; retries failed jobs with exponential backoff" time="0.0025963">
+        </testcase>
+        <testcase classname="src/__tests__/baseQueue.test.ts" name="BaseQueue &gt; marks job as failed after max attempts" time="0.0028272">
+        </testcase>
+        <testcase classname="src/__tests__/baseQueue.test.ts" name="BaseQueue &gt; recoverPending calls updateMany on stuck jobs" time="0.0015345">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/complianceMetrics.test.ts" timestamp="2026-06-17T12:27:00.444Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.1942777">
+        <testcase classname="src/__tests__/complianceMetrics.test.ts" name="complianceMetrics &gt; trackAuditLogEntry &gt; should increment the audit log counter with action labels" time="0.1695732">
+        </testcase>
+        <testcase classname="src/__tests__/complianceMetrics.test.ts" name="complianceMetrics &gt; trackComplianceViolation &gt; should increment the violation counter with violation type" time="0.0027534">
+        </testcase>
+        <testcase classname="src/__tests__/complianceMetrics.test.ts" name="complianceMetrics &gt; trackOrphanedDocuments &gt; should set the orphaned documents gauge" time="0.0173656">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/correlationId.test.ts" timestamp="2026-06-17T12:27:00.445Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.016342">
+        <testcase classname="src/__tests__/correlationId.test.ts" name="correlationIdMiddleware &gt; should generate a correlation ID when none is provided" time="0.0063709">
+        </testcase>
+        <testcase classname="src/__tests__/correlationId.test.ts" name="correlationIdMiddleware &gt; should propagate a W3C traceparent header" time="0.001042">
+        </testcase>
+        <testcase classname="src/__tests__/correlationId.test.ts" name="correlationIdMiddleware &gt; should set x-correlation-id and x-trace-id on the response" time="0.0049249">
+        </testcase>
+        <testcase classname="src/__tests__/correlationId.test.ts" name="correlationIdMiddleware &gt; should use an existing x-correlation-id header when present" time="0.0005365">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/creditDeduction.test.ts" timestamp="2026-06-17T12:27:00.445Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.016921">
+        <testcase classname="src/__tests__/creditDeduction.test.ts" name="creditDeductionMiddleware &gt; should attach estimated credits to the request for valid operations" time="0.0058042">
+        </testcase>
+        <testcase classname="src/__tests__/creditDeduction.test.ts" name="creditDeductionMiddleware &gt; should return 0 credits for unknown operation types" time="0.0006102">
+        </testcase>
+        <testcase classname="src/__tests__/creditDeduction.test.ts" name="creditDeductionMiddleware &gt; should scale credit cost with input length" time="0.0067042">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/csrfProtection.test.ts" timestamp="2026-06-17T12:27:00.446Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0123494">
+        <testcase classname="src/__tests__/csrfProtection.test.ts" name="csrfProtection &gt; allows safe methods without a token" time="0.0048031">
+        </testcase>
+        <testcase classname="src/__tests__/csrfProtection.test.ts" name="csrfProtection &gt; blocks unsafe requests with missing or mismatched tokens" time="0.0019863">
+        </testcase>
+        <testcase classname="src/__tests__/csrfProtection.test.ts" name="csrfProtection &gt; allows matching CSRF tokens" time="0.0006168">
+        </testcase>
+        <testcase classname="src/__tests__/csrfProtection.test.ts" name="csrfProtection &gt; requires CSRF token for logout route (state-changing — not exempt)" time="0.0004979">
+        </testcase>
+        <testcase classname="src/__tests__/csrfProtection.test.ts" name="csrfProtection &gt; allows logout with matching CSRF tokens" time="0.000349">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/dataIntegrityService.test.ts" timestamp="2026-06-17T12:27:00.447Z" hostname="Lenovo-Loq" tests="6" failures="0" errors="0" skipped="0" time="0.3762555">
+        <testcase classname="src/__tests__/dataIntegrityService.test.ts" name="dataIntegrityService &gt; checkReferentialIntegrity &gt; should return no violations when all references are valid" time="0.2026588">
+        </testcase>
+        <testcase classname="src/__tests__/dataIntegrityService.test.ts" name="dataIntegrityService &gt; checkReferentialIntegrity &gt; should detect orphaned resume references to deleted users" time="0.0337738">
+        </testcase>
+        <testcase classname="src/__tests__/dataIntegrityService.test.ts" name="dataIntegrityService &gt; checkReferentialIntegrity &gt; should detect orphaned ATS analysis references to deleted resumes" time="0.0293092">
+        </testcase>
+        <testcase classname="src/__tests__/dataIntegrityService.test.ts" name="dataIntegrityService &gt; startPeriodicChecks &gt; should run checks on the configured interval" time="0.0255457">
+        </testcase>
+        <testcase classname="src/__tests__/dataIntegrityService.test.ts" name="dataIntegrityService &gt; startPeriodicChecks &gt; should not overlap concurrent runs" time="0.0370221">
+        </testcase>
+        <testcase classname="src/__tests__/dataIntegrityService.test.ts" name="dataIntegrityService &gt; stopPeriodicChecks &gt; should clear the interval timer" time="0.0437338">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/db.test.ts" timestamp="2026-06-17T12:27:00.450Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="16.228745">
+        <testcase classname="src/__tests__/db.test.ts" name="db &gt; should connect to MongoDB with the configured URI" time="1.1122245">
+        </testcase>
+        <testcase classname="src/__tests__/db.test.ts" name="db &gt; should reject when the connection URI is invalid" time="15.1083537">
+        </testcase>
+        <testcase classname="src/__tests__/db.test.ts" name="db &gt; should close the connection gracefully" time="0.0048877">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/defaultTemplates.test.ts" timestamp="2026-06-17T12:27:00.450Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="1.1211445">
+        <testcase classname="src/__tests__/defaultTemplates.test.ts" name="defaultTemplates &gt; ensureDefaultTemplatesInBackend &gt; should insert default templates when the collection is empty" time="1.0182363">
+        </testcase>
+        <testcase classname="src/__tests__/defaultTemplates.test.ts" name="defaultTemplates &gt; ensureDefaultTemplatesInBackend &gt; should skip insertion when templates already exist" time="0.0243369">
+        </testcase>
+        <testcase classname="src/__tests__/defaultTemplates.test.ts" name="defaultTemplates &gt; ensureDefaultTemplatesInBackend &gt; should not error when a concurrent insert happens" time="0.015124">
+        </testcase>
+        <testcase classname="src/__tests__/defaultTemplates.test.ts" name="defaultTemplates &gt; ensureDefaultTemplatesInBackend &gt; should create a bootstrap admin when no users exist" time="0.0262715">
+        </testcase>
+        <testcase classname="src/__tests__/defaultTemplates.test.ts" name="defaultTemplates &gt; ensureDefaultTemplatesInBackend &gt; should create a local bootstrap admin when credentials are provided" time="0.0320044">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/env.test.ts" timestamp="2026-06-17T12:27:00.451Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.3811093">
+        <testcase classname="src/__tests__/env.test.ts" name="env configuration &gt; should parse and validate all required environment variables" time="0.2978209">
+        </testcase>
+        <testcase classname="src/__tests__/env.test.ts" name="env configuration &gt; should apply default values for optional variables" time="0.0233056">
+        </testcase>
+        <testcase classname="src/__tests__/env.test.ts" name="env configuration &gt; should exit the process when a required variable is missing" time="0.0349789">
+            <system-err>
+Invalid environment configuration:
+- MONGO_URI: MONGO_URI is required
+- FRONTEND_URL: FRONTEND_URL must be a valid URL
+- JWT_ACCESS_SECRET: JWT_ACCESS_SECRET is required
+- JWT_REFRESH_SECRET: JWT_REFRESH_SECRET is required
+- GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID is required
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/__tests__/env.test.ts" name="env configuration &gt; should reject invalid FRONTEND_URLS entries" time="0.0209961">
+            <system-err>
+Invalid environment configuration:
+- FRONTEND_URLS: Invalid URL in FRONTEND_URLS: not-a-url
+
+            </system-err>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/errorHandler.test.ts" timestamp="2026-06-17T12:27:00.453Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0455486">
+        <testcase classname="src/__tests__/errorHandler.test.ts" name="errorHandler &gt; notFoundHandler &gt; should return 404 for unknown routes" time="0.0052935">
+        </testcase>
+        <testcase classname="src/__tests__/errorHandler.test.ts" name="errorHandler &gt; notFoundHandler &gt; should include the requested path in the error response" time="0.0042099">
+        </testcase>
+        <testcase classname="src/__tests__/errorHandler.test.ts" name="errorHandler &gt; errorHandler &gt; should return 500 for unhandled errors" time="0.0197133">
+        </testcase>
+        <testcase classname="src/__tests__/errorHandler.test.ts" name="errorHandler &gt; errorHandler &gt; should omit stack traces in production mode" time="0.0060183">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/indexes.test.ts" timestamp="2026-06-17T12:27:00.454Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="1.0256676">
+        <testcase classname="src/__tests__/indexes.test.ts" name="indexes &gt; createAllIndexes &gt; should create indexes for all configured collections" time="1.0005136">
+        </testcase>
+        <testcase classname="src/__tests__/indexes.test.ts" name="indexes &gt; createAllIndexes &gt; should handle duplicate index errors gracefully" time="0.0202381">
+            <system-err>
+Error creating indexes: Error: MongoDB connection not established
+    at createAllIndexes (C:/Users/Rahul Karki/OneDrive/Desktop/Project/Backend/src/config/indexes.ts:255:13)
+    at C:/Users/Rahul Karki/OneDrive/Desktop/Project/Backend/src/__tests__/indexes.test.ts:16:20
+[90m    at processTicksAndRejections (node:internal/process/task_queues:105:5)[39m
+    at [90mfile:///C:/Users/Rahul%20Karki/OneDrive/Desktop/Project/Backend/[39mnode_modules/[4m@vitest[24m/runner/dist/chunk-artifact.js:1903:20
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/__tests__/indexes.test.ts" name="indexes &gt; createAllIndexes &gt; should create TTL indexes where configured" time="0.0008368">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/mfaBackupCode.test.ts" timestamp="2026-06-17T12:27:00.455Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="3.1967494">
+        <testcase classname="src/__tests__/mfaBackupCode.test.ts" name="MFA backup code hashing &gt; hashBackupCode produces a salted scrypt hash" time="2.4832766">
+        </testcase>
+        <testcase classname="src/__tests__/mfaBackupCode.test.ts" name="MFA backup code hashing &gt; same code produces different hashes each time" time="0.2563183">
+        </testcase>
+        <testcase classname="src/__tests__/mfaBackupCode.test.ts" name="MFA backup code hashing &gt; verifyBackupCode validates correct code" time="0.2154966">
+        </testcase>
+        <testcase classname="src/__tests__/mfaBackupCode.test.ts" name="MFA backup code hashing &gt; verifyBackupCode rejects incorrect code" time="0.2367409">
+        </testcase>
+        <testcase classname="src/__tests__/mfaBackupCode.test.ts" name="MFA backup code hashing &gt; verifyBackupCode returns false for malformed hash" time="0.0006579">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/mfaController.test.ts" timestamp="2026-06-17T12:27:00.456Z" hostname="Lenovo-Loq" tests="9" failures="0" errors="0" skipped="0" time="0.9200819">
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; setupMfa &gt; should generate a TOTP secret and return QR code URI" time="0.9062001">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; setupMfa &gt; should return 409 when MFA is already enabled" time="0.0011574">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; verifyMfa &gt; should return 401 when the TOTP code is invalid (real crypto)" time="0.0011669">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; verifyMfa &gt; should return 422 when the TOTP code is invalid" time="0.0037699">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; verifyMfa &gt; should return 401 when no user is authenticated" time="0.0006835">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; disableMfa &gt; should disable MFA when the correct password is provided" time="0.0008621">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; disableMfa &gt; should return 400 when MFA is not enabled" time="0.0007765">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; getMfaStatus &gt; should return whether MFA is enabled and which method" time="0.0009286">
+        </testcase>
+        <testcase classname="src/__tests__/mfaController.test.ts" name="mfaController &gt; getMfaStatus &gt; should return 401 when not authenticated" time="0.0006945">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/observability.test.ts" timestamp="2026-06-17T12:27:00.458Z" hostname="Lenovo-Loq" tests="6" failures="0" errors="0" skipped="0" time="1.312216">
+        <testcase classname="src/__tests__/observability.test.ts" name="observability &gt; logger &gt; should log messages at the configured level" time="1.1330056">
+        </testcase>
+        <testcase classname="src/__tests__/observability.test.ts" name="observability &gt; logger &gt; should include service name and version in every log" time="0.0267731">
+        </testcase>
+        <testcase classname="src/__tests__/observability.test.ts" name="observability &gt; metricsMiddleware &gt; should record request count and duration" time="0.0433409">
+        </testcase>
+        <testcase classname="src/__tests__/observability.test.ts" name="observability &gt; metricsMiddleware &gt; should increment error count on failed requests" time="0.0288831">
+        </testcase>
+        <testcase classname="src/__tests__/observability.test.ts" name="observability &gt; metricsHandler &gt; should expose Prometheus-formatted metrics" time="0.0426458">
+        </testcase>
+        <testcase classname="src/__tests__/observability.test.ts" name="observability &gt; metricsHandler &gt; should include default Node.js metrics" time="0.0334752">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/openapi.test.ts" timestamp="2026-06-17T12:27:00.459Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0196295">
+        <testcase classname="src/__tests__/openapi.test.ts" name="openapi &gt; should export a valid OpenAPI 3.0 specification" time="0.0120803">
+        </testcase>
+        <testcase classname="src/__tests__/openapi.test.ts" name="openapi &gt; should include all API paths" time="0.0007124">
+        </testcase>
+        <testcase classname="src/__tests__/openapi.test.ts" name="openapi &gt; should define all request and response schemas" time="0.0005657">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/redisCache.test.ts" timestamp="2026-06-17T12:27:00.460Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.011857">
+        <testcase classname="src/__tests__/redisCache.test.ts" name="redisCache &gt; cache scopes are versioned" time="0.0045177">
+        </testcase>
+        <testcase classname="src/__tests__/redisCache.test.ts" name="redisCache &gt; invalidateRedisCache uses versioned cache patterns" time="0.0021469">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/redisRateLimit.test.ts" timestamp="2026-06-17T12:27:00.461Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0253641">
+        <testcase classname="src/__tests__/redisRateLimit.test.ts" name="redisRateLimit &gt; should allow requests within the configured limit" time="0.0072651">
+        </testcase>
+        <testcase classname="src/__tests__/redisRateLimit.test.ts" name="redisRateLimit &gt; should return 429 when the limit is exceeded" time="0.0030069">
+        </testcase>
+        <testcase classname="src/__tests__/redisRateLimit.test.ts" name="redisRateLimit &gt; should include Retry-After headers on 429 responses" time="0.0012237">
+        </testcase>
+        <testcase classname="src/__tests__/redisRateLimit.test.ts" name="redisRateLimit &gt; should use user ID when available, falling back to IP" time="0.0011739">
+        </testcase>
+        <testcase classname="src/__tests__/redisRateLimit.test.ts" name="redisRateLimit &gt; should reset the window after the configured duration" time="0.0041311">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/referentialIntegrity.test.ts" timestamp="2026-06-17T12:27:00.462Z" hostname="Lenovo-Loq" tests="7" failures="0" errors="0" skipped="0" time="0.0380459">
+        <testcase classname="src/__tests__/referentialIntegrity.test.ts" name="referentialIntegrityMiddleware &gt; findOrphanedDocuments &gt; uses aggregation pipeline to avoid loading all parent IDs into memory" time="0.0211289">
+        </testcase>
+        <testcase classname="src/__tests__/referentialIntegrity.test.ts" name="referentialIntegrityMiddleware &gt; findOrphanedDocuments &gt; returns empty array when no orphans exist" time="0.0006518">
+        </testcase>
+        <testcase classname="src/__tests__/referentialIntegrity.test.ts" name="referentialIntegrityMiddleware &gt; findOrphanedDocuments &gt; returns empty array when model is not registered" time="0.0022156">
+        </testcase>
+        <testcase classname="src/__tests__/referentialIntegrity.test.ts" name="referentialIntegrityMiddleware &gt; should allow the request when all referenced documents exist" time="0.0013388">
+        </testcase>
+        <testcase classname="src/__tests__/referentialIntegrity.test.ts" name="referentialIntegrityMiddleware &gt; should return errors when a referenced document does not exist" time="0.0008176">
+        </testcase>
+        <testcase classname="src/__tests__/referentialIntegrity.test.ts" name="referentialIntegrityMiddleware &gt; should skip validation when referenced fields are not present in the data" time="0.0046136">
+        </testcase>
+        <testcase classname="src/__tests__/referentialIntegrity.test.ts" name="referentialIntegrityMiddleware &gt; should handle nested object references" time="0.0005643">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/refreshController.test.ts" timestamp="2026-06-17T12:27:00.464Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0175191">
+        <testcase classname="src/__tests__/refreshController.test.ts" name="refreshController &gt; refreshAccessToken returns 401 when refresh token cookie is missing" time="0.0066686">
+        </testcase>
+        <testcase classname="src/__tests__/refreshController.test.ts" name="refreshController &gt; refreshAccessToken refreshes access cookie and returns csrf token for a valid refresh token" time="0.0055683">
+        </testcase>
+        <testcase classname="src/__tests__/refreshController.test.ts" name="refreshController &gt; refreshAccessToken returns 403 when refresh token verification fails" time="0.0006986">
+        </testcase>
+        <testcase classname="src/__tests__/refreshController.test.ts" name="refreshController &gt; issueCsrfToken issues a csrf token and cookie" time="0.0008933">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/requestDeduplication.test.ts" timestamp="2026-06-17T12:27:00.464Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0230334">
+        <testcase classname="src/__tests__/requestDeduplication.test.ts" name="requestDeduplicationMiddleware &gt; should return cached response when the same request is repeated within the window" time="0.0144887">
+        </testcase>
+        <testcase classname="src/__tests__/requestDeduplication.test.ts" name="requestDeduplicationMiddleware &gt; should forward the request to the handler when the hash is new" time="0.0024598">
+        </testcase>
+        <testcase classname="src/__tests__/requestDeduplication.test.ts" name="requestDeduplicationMiddleware &gt; should use a combination of user ID and content for the dedup key" time="0.0013613">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/requestSizeLimit.test.ts" timestamp="2026-06-17T12:27:00.465Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0196793">
+        <testcase classname="src/__tests__/requestSizeLimit.test.ts" name="requestSizeLimitMiddleware &gt; should allow requests within the configured size limit" time="0.0051801">
+        </testcase>
+        <testcase classname="src/__tests__/requestSizeLimit.test.ts" name="requestSizeLimitMiddleware &gt; should return 413 when Content-Length exceeds the limit" time="0.0102663">
+        </testcase>
+        <testcase classname="src/__tests__/requestSizeLimit.test.ts" name="requestSizeLimitMiddleware &gt; should allow requests without a Content-Length header" time="0.0007311">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/requestTimeout.test.ts" timestamp="2026-06-17T12:27:00.466Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.0116009">
+        <testcase classname="src/__tests__/requestTimeout.test.ts" name="requestTimeoutMiddleware &gt; resolveRequestTimeoutMs extends PDF export routes" time="0.0051281">
+        </testcase>
+        <testcase classname="src/__tests__/requestTimeout.test.ts" name="requestTimeoutMiddleware &gt; sends a timeout response when the timer fires" time="0.0034936">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/resumeController.test.ts" timestamp="2026-06-17T12:27:00.466Z" hostname="Lenovo-Loq" tests="10" failures="0" errors="0" skipped="0" time="0.0244031">
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; getAllResumes &gt; should return all resumes for the authenticated user" time="0.0107012">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; getAllResumes &gt; should return an empty array when the user has no resumes" time="0.0024817">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; getResumeById &gt; should return the resume when the ID belongs to the user" time="0.0012294">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; getResumeById &gt; should return 404 when the resume does not exist" time="0.0009083">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; createResume &gt; should create a resume with valid data and return 201" time="0.0013907">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; createResume &gt; should return 401 when the user is not authenticated" time="0.0005817">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; updateResume &gt; should update and return the resume when valid data is provided" time="0.0008555">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; updateResume &gt; should return 404 when the resume does not exist" time="0.0005483">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; deleteResume &gt; should delete the resume and return 204" time="0.00061">
+        </testcase>
+        <testcase classname="src/__tests__/resumeController.test.ts" name="resumeController &gt; deleteResume &gt; should return 404 when the resume does not exist" time="0.0004295">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/resumeDownloadController.test.ts" timestamp="2026-06-17T12:27:00.468Z" hostname="Lenovo-Loq" tests="7" failures="0" errors="0" skipped="0" time="0.0233907">
+        <testcase classname="src/__tests__/resumeDownloadController.test.ts" name="resumeDownloadController &gt; downloadResume &gt; should enqueue a download job and return its ID" time="0.0105095">
+        </testcase>
+        <testcase classname="src/__tests__/resumeDownloadController.test.ts" name="resumeDownloadController &gt; downloadResume &gt; should return 500 when the resume does not exist" time="0.0009955">
+        </testcase>
+        <testcase classname="src/__tests__/resumeDownloadController.test.ts" name="resumeDownloadController &gt; getResumeDownloadJobStatus &gt; should return the job status when the job exists" time="0.0011959">
+        </testcase>
+        <testcase classname="src/__tests__/resumeDownloadController.test.ts" name="resumeDownloadController &gt; getResumeDownloadJobStatus &gt; should return 404 when the job ID is unknown" time="0.0005465">
+        </testcase>
+        <testcase classname="src/__tests__/resumeDownloadController.test.ts" name="resumeDownloadController &gt; streamResumeDownloadJobEvents &gt; should open an SSE connection and emit status changes" time="0.0034995">
+        </testcase>
+        <testcase classname="src/__tests__/resumeDownloadController.test.ts" name="resumeDownloadController &gt; downloadResumeResult &gt; should serve the PDF file when the job is completed" time="0.0016114">
+        </testcase>
+        <testcase classname="src/__tests__/resumeDownloadController.test.ts" name="resumeDownloadController &gt; downloadResumeResult &gt; should return 404 when the job is not found" time="0.0010344">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/resumeEnhancementController.test.ts" timestamp="2026-06-17T12:27:00.470Z" hostname="Lenovo-Loq" tests="6" failures="0" errors="0" skipped="0" time="0.0211015">
+        <testcase classname="src/__tests__/resumeEnhancementController.test.ts" name="resumeEnhancementController &gt; analyzeAts &gt; should enqueue an ATS analysis and return the analysis ID" time="0.0116299">
+        </testcase>
+        <testcase classname="src/__tests__/resumeEnhancementController.test.ts" name="resumeEnhancementController &gt; analyzeAts &gt; should return 404 when the resume is not found" time="0.001058">
+        </testcase>
+        <testcase classname="src/__tests__/resumeEnhancementController.test.ts" name="resumeEnhancementController &gt; getLatestAtsAnalysis &gt; should return the most recent ATS analysis for the resume" time="0.0009734">
+        </testcase>
+        <testcase classname="src/__tests__/resumeEnhancementController.test.ts" name="resumeEnhancementController &gt; getLatestAtsAnalysis &gt; should return 404 when no analysis exists" time="0.0006206">
+        </testcase>
+        <testcase classname="src/__tests__/resumeEnhancementController.test.ts" name="resumeEnhancementController &gt; restoreResumeVersion &gt; should restore a previous version of the resume" time="0.0012881">
+        </testcase>
+        <testcase classname="src/__tests__/resumeEnhancementController.test.ts" name="resumeEnhancementController &gt; restoreResumeVersion &gt; should return 404 when the version does not exist" time="0.0007275">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/schemas.test.ts" timestamp="2026-06-17T12:27:00.471Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="3.7327751">
+        <testcase classname="src/__tests__/schemas.test.ts" name="emailSchema &gt; validates a correct email" time="3.7043746">
+        </testcase>
+        <testcase classname="src/__tests__/schemas.test.ts" name="emailSchema &gt; rejects an invalid email" time="0.0022212">
+        </testcase>
+        <testcase classname="src/__tests__/schemas.test.ts" name="emailSchema &gt; rejects empty string" time="0.0022186">
+        </testcase>
+        <testcase classname="src/__tests__/schemas.test.ts" name="emailSchema &gt; trims and lowercases email" time="0.0005723">
+        </testcase>
+        <testcase classname="src/__tests__/schemas.test.ts" name="emailSchema &gt; rejects email exceeding max length" time="0.0009257">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/templateController.test.ts" timestamp="2026-06-17T12:27:00.472Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.015011">
+        <testcase classname="src/__tests__/templateController.test.ts" name="templateController &gt; listPublicTemplates requests published tech templates" time="0.0094538">
+        </testcase>
+        <testcase classname="src/__tests__/templateController.test.ts" name="templateController &gt; createTemplate normalizes tags and tech category fields" time="0.0018845">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/tokenBlacklist.test.ts" timestamp="2026-06-17T12:27:00.473Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0199958">
+        <testcase classname="src/__tests__/tokenBlacklist.test.ts" name="tokenBlacklist &gt; isTokenBlacklisted &gt; returns false when Redis is unavailable (avoids mass logout)" time="0.0119762">
+        </testcase>
+        <testcase classname="src/__tests__/tokenBlacklist.test.ts" name="tokenBlacklist &gt; isTokenBlacklisted &gt; returns true when token is blacklisted" time="0.0006113">
+        </testcase>
+        <testcase classname="src/__tests__/tokenBlacklist.test.ts" name="tokenBlacklist &gt; isTokenBlacklisted &gt; returns false when token is not blacklisted" time="0.0003105">
+        </testcase>
+        <testcase classname="src/__tests__/tokenBlacklist.test.ts" name="tokenBlacklist &gt; blacklistAccessToken &gt; stores the token hash in Redis with TTL" time="0.0011152">
+        </testcase>
+        <testcase classname="src/__tests__/tokenBlacklist.test.ts" name="tokenBlacklist &gt; blacklistRefreshToken &gt; stores the token hash in Redis with TTL for 8 days" time="0.0010109">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/validate.test.ts" timestamp="2026-06-17T12:27:00.474Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.0289527">
+        <testcase classname="src/__tests__/validate.test.ts" name="validate &gt; should call next() when validation passes" time="0.0144234">
+        </testcase>
+        <testcase classname="src/__tests__/validate.test.ts" name="validate &gt; should return 400 with error details when validation fails" time="0.01055">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/validateRequest.test.ts" timestamp="2026-06-17T12:27:00.475Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0342987">
+        <testcase classname="src/__tests__/validateRequest.test.ts" name="validateRequest &gt; calls next and applies parsed body for valid input" time="0.0193645">
+        </testcase>
+        <testcase classname="src/__tests__/validateRequest.test.ts" name="validateRequest &gt; returns 400 with formatted errors for invalid body" time="0.0060353">
+        </testcase>
+        <testcase classname="src/__tests__/validateRequest.test.ts" name="validateRequest &gt; parses params and query schemas" time="0.0048499">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/aiUsage.test.ts" timestamp="2026-06-17T12:27:00.476Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0204782">
+        <testcase classname="src/__tests__/models/aiUsage.test.ts" name="AiUsage model &gt; should record AI usage with provider and token counts" time="0.0078211">
+        </testcase>
+        <testcase classname="src/__tests__/models/aiUsage.test.ts" name="AiUsage model &gt; should validate the provider enum" time="0.0072297">
+        </testcase>
+        <testcase classname="src/__tests__/models/aiUsage.test.ts" name="AiUsage model &gt; should calculate cost based on provider pricing" time="0.0005087">
+        </testcase>
+        <testcase classname="src/__tests__/models/aiUsage.test.ts" name="AiUsage model &gt; should mark fallback attempts" time="0.0005873">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/atsAnalysis.test.ts" timestamp="2026-06-17T12:27:00.476Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0360618">
+        <testcase classname="src/__tests__/models/atsAnalysis.test.ts" name="AtsAnalysis model &gt; should create an analysis with scores and keyword matches" time="0.018253">
+        </testcase>
+        <testcase classname="src/__tests__/models/atsAnalysis.test.ts" name="AtsAnalysis model &gt; should enforce unique jobId per analysis" time="0.0004833">
+        </testcase>
+        <testcase classname="src/__tests__/models/atsAnalysis.test.ts" name="AtsAnalysis model &gt; should validate status transitions" time="0.0123345">
+        </testcase>
+        <testcase classname="src/__tests__/models/atsAnalysis.test.ts" name="AtsAnalysis model &gt; should store section-level scores" time="0.0009737">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/auditLog.test.ts" timestamp="2026-06-17T12:27:00.477Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0130607">
+        <testcase classname="src/__tests__/models/auditLog.test.ts" name="AuditLog model &gt; should create an audit entry with action and changes" time="0.004258">
+        </testcase>
+        <testcase classname="src/__tests__/models/auditLog.test.ts" name="AuditLog model &gt; should validate the action enum" time="0.0035596">
+        </testcase>
+        <testcase classname="src/__tests__/models/auditLog.test.ts" name="AuditLog model &gt; should store old and new values for updates" time="0.0005756">
+        </testcase>
+        <testcase classname="src/__tests__/models/auditLog.test.ts" name="AuditLog model &gt; should have a TTL index on createdAt" time="0.001428">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/jobs.test.ts" timestamp="2026-06-17T12:27:00.478Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0070108">
+        <testcase classname="src/__tests__/models/jobs.test.ts" name="Jobs model &gt; should create a job listing with recruiter and title" time="0.0027359">
+        </testcase>
+        <testcase classname="src/__tests__/models/jobs.test.ts" name="Jobs model &gt; should support text search across title, company, and description" time="0.0012543">
+        </testcase>
+        <testcase classname="src/__tests__/models/jobs.test.ts" name="Jobs model &gt; should store skills as an array of strings" time="0.0002573">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/plugins.test.ts" timestamp="2026-06-17T12:27:00.479Z" hostname="Lenovo-Loq" tests="10" failures="0" errors="0" skipped="0" time="0.0201503">
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; auditTrailPlugin &gt; should create an AuditLog entry on create" time="0.0047636">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; auditTrailPlugin &gt; should create an AuditLog entry on update" time="0.000847">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; auditTrailPlugin &gt; should create an AuditLog entry on delete" time="0.000555">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; auditTrailPlugin &gt; should include the user ID from async context" time="0.0013911">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; softDeletePlugin &gt; should set deletedAt on soft delete" time="0.0015108">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; softDeletePlugin &gt; should exclude soft-deleted documents from normal queries" time="0.0012955">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; softDeletePlugin &gt; should expose withDeleted() to include soft-deleted docs" time="0.0009408">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; softDeletePlugin &gt; should support restore()" time="0.0007928">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; cascadeDeletePlugin &gt; should delete child documents when parent is deleted" time="0.0011077">
+        </testcase>
+        <testcase classname="src/__tests__/models/plugins.test.ts" name="Mongoose plugins &gt; cascadeDeletePlugin &gt; should handle missing child collections gracefully" time="0.0026163">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/resetToken.test.ts" timestamp="2026-06-17T12:27:00.480Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.010757">
+        <testcase classname="src/__tests__/models/resetToken.test.ts" name="ResetToken model &gt; should create a reset token with an expiry" time="0.0047895">
+        </testcase>
+        <testcase classname="src/__tests__/models/resetToken.test.ts" name="ResetToken model &gt; should auto-expire via TTL index" time="0.0020867">
+        </testcase>
+        <testcase classname="src/__tests__/models/resetToken.test.ts" name="ResetToken model &gt; should track resend attempts" time="0.0003995">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/resume.test.ts" timestamp="2026-06-17T12:27:00.481Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0138443">
+        <testcase classname="src/__tests__/models/resume.test.ts" name="Resume model &gt; should create a resume with personal info and sections" time="0.0047661">
+        </testcase>
+        <testcase classname="src/__tests__/models/resume.test.ts" name="Resume model &gt; should validate section structure and field types" time="0.003634">
+        </testcase>
+        <testcase classname="src/__tests__/models/resume.test.ts" name="Resume model &gt; should support variant linking via baseResumeId" time="0.0006336">
+        </testcase>
+        <testcase classname="src/__tests__/models/resume.test.ts" name="Resume model &gt; should store ATS scores and analysis metadata" time="0.0005179">
+        </testcase>
+        <testcase classname="src/__tests__/models/resume.test.ts" name="Resume model &gt; should have timestamps enabled" time="0.0002893">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/resumeDownloadJob.test.ts" timestamp="2026-06-17T12:27:00.482Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0195012">
+        <testcase classname="src/__tests__/models/resumeDownloadJob.test.ts" name="ResumeDownloadJob model &gt; should create a download job with status queued" time="0.0037534">
+        </testcase>
+        <testcase classname="src/__tests__/models/resumeDownloadJob.test.ts" name="ResumeDownloadJob model &gt; should store the generated PDF as Buffer" time="0.0007343">
+        </testcase>
+        <testcase classname="src/__tests__/models/resumeDownloadJob.test.ts" name="ResumeDownloadJob model &gt; should track attempt count and last error" time="0.0078982">
+        </testcase>
+        <testcase classname="src/__tests__/models/resumeDownloadJob.test.ts" name="ResumeDownloadJob model &gt; should transition through statuses" time="0.0035072">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/resumeVersion.test.ts" timestamp="2026-06-17T12:27:00.483Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0112464">
+        <testcase classname="src/__tests__/models/resumeVersion.test.ts" name="ResumeVersion model &gt; should create a versioned snapshot of a resume" time="0.0040191">
+        </testcase>
+        <testcase classname="src/__tests__/models/resumeVersion.test.ts" name="ResumeVersion model &gt; should auto-increment the version number per resume" time="0.0007764">
+        </testcase>
+        <testcase classname="src/__tests__/models/resumeVersion.test.ts" name="ResumeVersion model &gt; should reject duplicate version numbers for the same resume" time="0.001481">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/template.test.ts" timestamp="2026-06-17T12:27:00.484Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0137735">
+        <testcase classname="src/__tests__/models/template.test.ts" name="Template model &gt; should create a template with a unique layoutId" time="0.0042158">
+        </testcase>
+        <testcase classname="src/__tests__/models/template.test.ts" name="Template model &gt; should reject duplicate layoutIds" time="0.0003887">
+        </testcase>
+        <testcase classname="src/__tests__/models/template.test.ts" name="Template model &gt; should validate audience and category enums" time="0.0015826">
+        </testcase>
+        <testcase classname="src/__tests__/models/template.test.ts" name="Template model &gt; should track publishedAt when status changes to published" time="0.0021425">
+        </testcase>
+        <testcase classname="src/__tests__/models/template.test.ts" name="Template model &gt; should store CSS variable overrides" time="0.0004388">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/templateUsage.test.ts" timestamp="2026-06-17T12:27:00.485Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0180736">
+        <testcase classname="src/__tests__/models/templateUsage.test.ts" name="TemplateUsage model &gt; should record daily template usage" time="0.010669">
+        </testcase>
+        <testcase classname="src/__tests__/models/templateUsage.test.ts" name="TemplateUsage model &gt; should enforce one record per template per day" time="0.0015955">
+        </testcase>
+        <testcase classname="src/__tests__/models/templateUsage.test.ts" name="TemplateUsage model &gt; should increment usage counts atomically" time="0.0002617">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/models/user.test.ts" timestamp="2026-06-17T12:27:00.486Z" hostname="Lenovo-Loq" tests="7" failures="0" errors="0" skipped="0" time="0.0138758">
+        <testcase classname="src/__tests__/models/user.test.ts" name="User model &gt; should create a user with valid email and password" time="0.004317">
+        </testcase>
+        <testcase classname="src/__tests__/models/user.test.ts" name="User model &gt; should hash the password before saving" time="0.0005424">
+        </testcase>
+        <testcase classname="src/__tests__/models/user.test.ts" name="User model &gt; should reject duplicate emails" time="0.00029">
+        </testcase>
+        <testcase classname="src/__tests__/models/user.test.ts" name="User model &gt; should validate the role enum" time="0.0018813">
+        </testcase>
+        <testcase classname="src/__tests__/models/user.test.ts" name="User model &gt; should support Google OAuth linking" time="0.0007053">
+        </testcase>
+        <testcase classname="src/__tests__/models/user.test.ts" name="User model &gt; should track login attempts and lock the account" time="0.0004316">
+        </testcase>
+        <testcase classname="src/__tests__/models/user.test.ts" name="User model &gt; should support MFA configuration fields" time="0.0007809">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/services/aiService.test.ts" timestamp="2026-06-17T12:27:00.487Z" hostname="Lenovo-Loq" tests="6" failures="0" errors="0" skipped="0" time="9.6130618">
+        <testcase classname="src/__tests__/services/aiService.test.ts" name="aiService &gt; fingerprintText &gt; should return a consistent SHA-1 hash for the same input" time="0.4439274">
+        </testcase>
+        <testcase classname="src/__tests__/services/aiService.test.ts" name="aiService &gt; fingerprintText &gt; should return different hashes for different inputs" time="0.0016979">
+        </testcase>
+        <testcase classname="src/__tests__/services/aiService.test.ts" name="aiService &gt; fingerprintText &gt; should normalize whitespace before hashing" time="0.0009203">
+        </testcase>
+        <testcase classname="src/__tests__/services/aiService.test.ts" name="aiService &gt; fingerprintText &gt; should handle null/undefined as empty string" time="0.0005138">
+        </testcase>
+        <testcase classname="src/__tests__/services/aiService.test.ts" name="aiService &gt; improveText fallback behavior &gt; should return a fallback rewrite even when AI calls fail" time="5.6920038">
+        </testcase>
+        <testcase classname="src/__tests__/services/aiService.test.ts" name="aiService &gt; enhanceBullet fallback behavior &gt; should return a fallback enhancement even when AI calls fail" time="3.4669735">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/integration/admin.test.ts" timestamp="2026-06-17T12:27:00.488Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.2357323">
+        <testcase classname="src/__tests__/integration/admin.test.ts" name="admin operations integration &gt; should reject admin routes for non-admin users" time="0.0791184">
+        </testcase>
+        <testcase classname="src/__tests__/integration/admin.test.ts" name="admin operations integration &gt; should list, create, update, and delete templates as admin" time="0.1205873">
+        </testcase>
+        <testcase classname="src/__tests__/integration/admin.test.ts" name="admin operations integration &gt; should update template status and premium flags" time="0.0171819">
+        </testcase>
+        <testcase classname="src/__tests__/integration/admin.test.ts" name="admin operations integration &gt; should return dashboard analytics" time="0.0135198">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/integration/ai.test.ts" timestamp="2026-06-17T12:27:00.489Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.1253552">
+        <testcase classname="src/__tests__/integration/ai.test.ts" name="AI features integration &gt; should improve text via the AI endpoint" time="0.0812609">
+        </testcase>
+        <testcase classname="src/__tests__/integration/ai.test.ts" name="AI features integration &gt; should analyze ATS and return a score" time="0.0151798">
+        </testcase>
+        <testcase classname="src/__tests__/integration/ai.test.ts" name="AI features integration &gt; should reject AI requests without authentication" time="0.0139001">
+        </testcase>
+        <testcase classname="src/__tests__/integration/ai.test.ts" name="AI features integration &gt; should reject excessively long input text" time="0.010832">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/integration/auth.test.ts" timestamp="2026-06-17T12:27:00.490Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="10.6024339">
+        <testcase classname="src/__tests__/integration/auth.test.ts" name="auth integration &gt; auth signup and login flows work end to end" time="0.4608141">
+        </testcase>
+        <testcase classname="src/__tests__/integration/auth.test.ts" name="auth integration &gt; resume CRUD works for an authenticated user" time="0.5141295">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/integration/health.test.ts" timestamp="2026-06-17T12:27:00.491Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0935667">
+        <testcase classname="src/__tests__/integration/health.test.ts" name="health check integration &gt; should return 200 OK from /health" time="0.0527428">
+        </testcase>
+        <testcase classname="src/__tests__/integration/health.test.ts" name="health check integration &gt; should return 200 OK from /api/health" time="0.0160048">
+        </testcase>
+        <testcase classname="src/__tests__/integration/health.test.ts" name="health check integration &gt; should include service version and uptime" time="0.0111628">
+        </testcase>
+        <testcase classname="src/__tests__/integration/health.test.ts" name="health check integration &gt; should return deep health status when available" time="0.0101856">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/integration/resume.test.ts" timestamp="2026-06-17T12:27:00.492Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.1974665">
+        <testcase classname="src/__tests__/integration/resume.test.ts" name="resume CRUD integration &gt; should create a resume, list it, read it, update it, and delete it" time="0.1468273">
+        </testcase>
+        <testcase classname="src/__tests__/integration/resume.test.ts" name="resume CRUD integration &gt; should reject creating a resume without authentication" time="0.0136374">
+        </testcase>
+        <testcase classname="src/__tests__/integration/resume.test.ts" name="resume CRUD integration &gt; should return 404 for a non-existent resume" time="0.0092471">
+        </testcase>
+        <testcase classname="src/__tests__/integration/resume.test.ts" name="resume CRUD integration &gt; should not list another user&apos;s resumes" time="0.0116834">
+        </testcase>
+        <testcase classname="src/__tests__/integration/resume.test.ts" name="resume CRUD integration &gt; should verify the resume is soft-deleted after delete" time="0.0125387">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/aiCredits.test.ts" timestamp="2026-06-17T12:27:00.493Z" hostname="Lenovo-Loq" tests="7" failures="0" errors="0" skipped="0" time="0.0405132">
+        <testcase classname="src/__tests__/utils/aiCredits.test.ts" name="aiCredits &gt; assertAiCreditsAvailable &gt; should resolve when credits are available" time="0.0267337">
+        </testcase>
+        <testcase classname="src/__tests__/utils/aiCredits.test.ts" name="aiCredits &gt; assertAiCreditsAvailable &gt; should throw when credits are exhausted and enforcement is on" time="0.0039904">
+        </testcase>
+        <testcase classname="src/__tests__/utils/aiCredits.test.ts" name="aiCredits &gt; assertAiCreditsAvailable &gt; should log a warning when credits are low" time="0.0009436">
+        </testcase>
+        <testcase classname="src/__tests__/utils/aiCredits.test.ts" name="aiCredits &gt; deductAiCredits &gt; should decrement the user&apos;s remaining credits" time="0.0018073">
+        </testcase>
+        <testcase classname="src/__tests__/utils/aiCredits.test.ts" name="aiCredits &gt; deductAiCredits &gt; should update the reset timestamp" time="0.0006776">
+        </testcase>
+        <testcase classname="src/__tests__/utils/aiCredits.test.ts" name="aiCredits &gt; refreshAiCreditsIfNeeded &gt; should reset credits when the reset time has passed" time="0.0012501">
+        </testcase>
+        <testcase classname="src/__tests__/utils/aiCredits.test.ts" name="aiCredits &gt; refreshAiCreditsIfNeeded &gt; should not reset credits when the reset time is in the future" time="0.0011672">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/apiResponse.test.ts" timestamp="2026-06-17T12:27:00.496Z" hostname="Lenovo-Loq" tests="6" failures="0" errors="0" skipped="0" time="0.0135936">
+        <testcase classname="src/__tests__/utils/apiResponse.test.ts" name="apiResponse &gt; sendSuccess &gt; should send a 200 JSON response with the data" time="0.0060196">
+        </testcase>
+        <testcase classname="src/__tests__/utils/apiResponse.test.ts" name="apiResponse &gt; sendSuccess &gt; should include the CSRF token in the response body when provided" time="0.0008279">
+        </testcase>
+        <testcase classname="src/__tests__/utils/apiResponse.test.ts" name="apiResponse &gt; sendCreated &gt; should send a 201 JSON response" time="0.0005627">
+        </testcase>
+        <testcase classname="src/__tests__/utils/apiResponse.test.ts" name="apiResponse &gt; sendBadRequest &gt; should send a 400 response with error details" time="0.0005192">
+        </testcase>
+        <testcase classname="src/__tests__/utils/apiResponse.test.ts" name="apiResponse &gt; sendUnauthorized &gt; should send a 401 response" time="0.0005356">
+        </testcase>
+        <testcase classname="src/__tests__/utils/apiResponse.test.ts" name="apiResponse &gt; sendServerError &gt; should send a 500 response and log the error" time="0.0007326">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/atsPromptTemplates.test.ts" timestamp="2026-06-17T12:27:00.497Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.048118">
+        <testcase classname="src/__tests__/utils/atsPromptTemplates.test.ts" name="atsPromptTemplates &gt; should load the system prompt from the file when available" time="0.0390015">
+        </testcase>
+        <testcase classname="src/__tests__/utils/atsPromptTemplates.test.ts" name="atsPromptTemplates &gt; should fall back to the hardcoded default when the file is missing" time="0.0021503">
+        </testcase>
+        <testcase classname="src/__tests__/utils/atsPromptTemplates.test.ts" name="atsPromptTemplates &gt; should interpolate resume content into the user prompt" time="0.0013876">
+        </testcase>
+        <testcase classname="src/__tests__/utils/atsPromptTemplates.test.ts" name="atsPromptTemplates &gt; should include target keywords in the keyword analysis prompt" time="0.0010002">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/authCookies.test.ts" timestamp="2026-06-17T12:27:00.498Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0176994">
+        <testcase classname="src/__tests__/utils/authCookies.test.ts" name="authCookies &gt; setAccessTokenCookie &gt; should set expected auth cookie attributes" time="0.0065943">
+        </testcase>
+        <testcase classname="src/__tests__/utils/authCookies.test.ts" name="authCookies &gt; setAccessTokenCookie &gt; should use SameSite=None for secure auth cookies" time="0.0012851">
+        </testcase>
+        <testcase classname="src/__tests__/utils/authCookies.test.ts" name="authCookies &gt; setCsrfCookie &gt; should return token and set non-HttpOnly cookie (JS-readable for double-submit)" time="0.0017424">
+        </testcase>
+        <testcase classname="src/__tests__/utils/authCookies.test.ts" name="authCookies &gt; setAuthCookies &gt; should set access, refresh, and csrf cookies" time="0.0020014">
+        </testcase>
+        <testcase classname="src/__tests__/utils/authCookies.test.ts" name="authCookies &gt; clearAuthCookies &gt; should clear auth and csrf cookies" time="0.0008448">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/businessMetrics.test.ts" timestamp="2026-06-17T12:27:00.499Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0138595">
+        <testcase classname="src/__tests__/utils/businessMetrics.test.ts" name="businessMetrics &gt; recordUserSignup &gt; should increment the signup counter" time="0.0059151">
+        </testcase>
+        <testcase classname="src/__tests__/utils/businessMetrics.test.ts" name="businessMetrics &gt; recordUserSignup &gt; should record the signup method" time="0.0013576">
+        </testcase>
+        <testcase classname="src/__tests__/utils/businessMetrics.test.ts" name="businessMetrics &gt; recordLogin &gt; should increment the login success counter" time="0.000552">
+        </testcase>
+        <testcase classname="src/__tests__/utils/businessMetrics.test.ts" name="businessMetrics &gt; recordLoginFailure &gt; should increment the login failure counter" time="0.0006096">
+        </testcase>
+        <testcase classname="src/__tests__/utils/businessMetrics.test.ts" name="businessMetrics &gt; recordResumeCreated &gt; should increment the resume created counter" time="0.0013632">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/controllerObservability.test.ts" timestamp="2026-06-17T12:27:00.500Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0140483">
+        <testcase classname="src/__tests__/utils/controllerObservability.test.ts" name="controllerObservability &gt; startControllerSpan &gt; should create and return a new span with controller name" time="0.0075183">
+        </testcase>
+        <testcase classname="src/__tests__/utils/controllerObservability.test.ts" name="controllerObservability &gt; markSpanSuccess &gt; should set the span status to OK" time="0.0014679">
+        </testcase>
+        <testcase classname="src/__tests__/utils/controllerObservability.test.ts" name="controllerObservability &gt; markSpanError &gt; should record the error and set span status to ERROR" time="0.0011584">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/controllerWrapper.test.ts" timestamp="2026-06-17T12:27:00.501Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0352206">
+        <testcase classname="src/__tests__/utils/controllerWrapper.test.ts" name="wrapController &gt; should call the controller function and mark success" time="0.0274852">
+        </testcase>
+        <testcase classname="src/__tests__/utils/controllerWrapper.test.ts" name="wrapController &gt; should call onError and send error response when controller throws" time="0.0019852">
+        </testcase>
+        <testcase classname="src/__tests__/utils/controllerWrapper.test.ts" name="wrapController &gt; should not send error response if headers already sent" time="0.0009621">
+        </testcase>
+        <testcase classname="src/__tests__/utils/controllerWrapper.test.ts" name="wrapController &gt; should use function name as span name when no options given" time="0.0007405">
+        </testcase>
+        <testcase classname="src/__tests__/utils/controllerWrapper.test.ts" name="wrapController &gt; should accept string as span name" time="0.0006245">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/cookieParser.test.ts" timestamp="2026-06-17T12:27:00.502Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.0118548">
+        <testcase classname="src/__tests__/utils/cookieParser.test.ts" name="cookieParser &gt; returns empty object when cookie header is missing" time="0.0052656">
+        </testcase>
+        <testcase classname="src/__tests__/utils/cookieParser.test.ts" name="cookieParser &gt; decodes keys and values and preserves equals signs" time="0.0007976">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/creditCalculator.test.ts" timestamp="2026-06-17T12:27:00.503Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.011234">
+        <testcase classname="src/__tests__/utils/creditCalculator.test.ts" name="creditCalculator &gt; should return the correct credit cost for improve-text operation" time="0.0050139">
+        </testcase>
+        <testcase classname="src/__tests__/utils/creditCalculator.test.ts" name="creditCalculator &gt; should scale credit cost with input text length" time="0.0008613">
+        </testcase>
+        <testcase classname="src/__tests__/utils/creditCalculator.test.ts" name="creditCalculator &gt; should return 0 for unknown operation types" time="0.0009363">
+        </testcase>
+        <testcase classname="src/__tests__/utils/creditCalculator.test.ts" name="creditCalculator &gt; should floor at minimum credit cost for very short inputs" time="0.0004314">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/dailyUsage.test.ts" timestamp="2026-06-17T12:27:00.504Z" hostname="Lenovo-Loq" tests="8" failures="0" errors="0" skipped="0" time="0.0598649">
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; reserveDailyUsage &gt; should allow usage when under limit" time="0.0436063">
+        </testcase>
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; reserveDailyUsage &gt; should throw 429 when daily limit is exceeded" time="0.0029898">
+        </testcase>
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; reserveDailyUsage &gt; should allow ATS score usage when under limit of 2" time="0.0008867">
+        </testcase>
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; reserveDailyUsage &gt; should throw 429 when ATS score limit of 2 is exceeded" time="0.0007986">
+        </testcase>
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; reserveDailyUsage &gt; should use findOneAndUpdate with aggregation pipeline" time="0.0046662">
+        </testcase>
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; getDailyUsage &gt; should return current day usage counts" time="0.0011508">
+        </testcase>
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; getDailyUsage &gt; should return zeros when no usage record exists" time="0.0006689">
+        </testcase>
+        <testcase classname="src/__tests__/utils/dailyUsage.test.ts" name="dailyUsage &gt; getDailyUsage &gt; should return zeros when date is stale (previous day)" time="0.0006693">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/errorResponse.test.ts" timestamp="2026-06-17T12:27:00.506Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0129088">
+        <testcase classname="src/__tests__/utils/errorResponse.test.ts" name="errorResponse &gt; maps validation errors to a structured payload" time="0.0078774">
+        </testcase>
+        <testcase classname="src/__tests__/utils/errorResponse.test.ts" name="errorResponse &gt; maps not found errors to 404" time="0.0006818">
+        </testcase>
+        <testcase classname="src/__tests__/utils/errorResponse.test.ts" name="errorResponse &gt; maps auth errors with explicit codes" time="0.000533">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/generateToken.test.ts" timestamp="2026-06-17T12:27:00.507Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.0201058">
+        <testcase classname="src/__tests__/utils/generateToken.test.ts" name="generateToken &gt; signs token with access secret" time="0.0120749">
+        </testcase>
+        <testcase classname="src/__tests__/utils/generateToken.test.ts" name="generateToken &gt; signs token with refresh secret and long ttl" time="0.0039875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/google.test.ts" timestamp="2026-06-17T12:27:00.507Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0391021">
+        <testcase classname="src/__tests__/utils/google.test.ts" name="google &gt; verifyGoogleToken &gt; should return the user payload when the Google token is valid" time="0.0305274">
+        </testcase>
+        <testcase classname="src/__tests__/utils/google.test.ts" name="google &gt; verifyGoogleToken &gt; should throw when the audience does not match the client ID" time="0.00318">
+        </testcase>
+        <testcase classname="src/__tests__/utils/google.test.ts" name="google &gt; verifyGoogleToken &gt; should throw when the token is expired" time="0.0012238">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/hashToken.test.ts" timestamp="2026-06-17T12:27:00.508Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="0.0121372">
+        <testcase classname="src/__tests__/utils/hashToken.test.ts" name="hashToken &gt; returns deterministic 64-char sha256 hex" time="0.0068248">
+        </testcase>
+        <testcase classname="src/__tests__/utils/hashToken.test.ts" name="hashToken &gt; returns different hashes for different values" time="0.001692">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/hashUtils.test.ts" timestamp="2026-06-17T12:27:00.509Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.0134074">
+        <testcase classname="src/__tests__/utils/hashUtils.test.ts" name="hashUtils &gt; createTextHash &gt; should produce a consistent hash for the same text" time="0.0057119">
+        </testcase>
+        <testcase classname="src/__tests__/utils/hashUtils.test.ts" name="hashUtils &gt; createTextHash &gt; should produce different hashes for different text" time="0.0019992">
+        </testcase>
+        <testcase classname="src/__tests__/utils/hashUtils.test.ts" name="hashUtils &gt; createTextHash &gt; should handle empty strings" time="0.0010327">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/memoryCache.test.ts" timestamp="2026-06-17T12:27:00.510Z" hostname="Lenovo-Loq" tests="13" failures="0" errors="0" skipped="0" time="0.0214194">
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should store and retrieve values by key" time="0.0045978">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should evict the least-recently-used entry when at capacity" time="0.001336">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should return null for missing keys" time="0.0002887">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should return expired entries as null" time="0.0046132">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should delete existing keys" time="0.0009113">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should clear all entries" time="0.0003956">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should respect the configured TTL" time="0.0007993">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should delete keys by glob pattern" time="0.0007853">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; should report correct size" time="0.0003002">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; cleanup removes all expired entries" time="0.0009002">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="MemoryLRUCache &gt; startCleanup/stopCleanup manage the periodic timer" time="0.0014477">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="memoryCache singleton &gt; is an instance of MemoryLRUCache" time="0.0005721">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryCache.test.ts" name="memoryCache singleton &gt; has a positive max size from env" time="0.0003358">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/memoryRateLimit.test.ts" timestamp="2026-06-17T12:27:00.514Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0108005">
+        <testcase classname="src/__tests__/utils/memoryRateLimit.test.ts" name="memoryRateLimit &gt; should allow requests within the configured limit" time="0.0049542">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryRateLimit.test.ts" name="memoryRateLimit &gt; should reject requests that exceed the limit" time="0.0011334">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryRateLimit.test.ts" name="memoryRateLimit &gt; should reset after the configured window" time="0.0004145">
+        </testcase>
+        <testcase classname="src/__tests__/utils/memoryRateLimit.test.ts" name="memoryRateLimit &gt; should return remaining count on each consume" time="0.0007917">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/mongooseModelResolver.test.ts" timestamp="2026-06-17T12:27:00.515Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0169233">
+        <testcase classname="src/__tests__/utils/mongooseModelResolver.test.ts" name="mongooseModelResolver &gt; getModelIfRegistered &gt; should return the model when it is registered" time="0.0095916">
+        </testcase>
+        <testcase classname="src/__tests__/utils/mongooseModelResolver.test.ts" name="mongooseModelResolver &gt; getModelIfRegistered &gt; should return null for unregistered model names" time="0.0009497">
+        </testcase>
+        <testcase classname="src/__tests__/utils/mongooseModelResolver.test.ts" name="mongooseModelResolver &gt; resolveModelByCollection &gt; should return the model matching the collection name" time="0.0011058">
+        </testcase>
+        <testcase classname="src/__tests__/utils/mongooseModelResolver.test.ts" name="mongooseModelResolver &gt; resolveModelByCollection &gt; should return null when no model matches the collection" time="0.0003367">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/redactSensitive.test.ts" timestamp="2026-06-17T12:27:00.516Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0137121">
+        <testcase classname="src/__tests__/utils/redactSensitive.test.ts" name="redactSensitive &gt; should redact password fields" time="0.0050765">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redactSensitive.test.ts" name="redactSensitive &gt; should redact token and secret fields" time="0.000744">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redactSensitive.test.ts" name="redactSensitive &gt; should leave non-sensitive fields unchanged" time="0.0006881">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redactSensitive.test.ts" name="redactSensitive &gt; should handle deeply nested sensitive fields" time="0.0003875">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redactSensitive.test.ts" name="redactSensitive &gt; should return a copy without mutating the original" time="0.00045">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/redis.test.ts" timestamp="2026-06-17T12:27:00.518Z" hostname="Lenovo-Loq" tests="7" failures="0" errors="0" skipped="0" time="0.3673061">
+        <testcase classname="src/__tests__/utils/redis.test.ts" name="redis &gt; getCacheProvider &gt; should return &apos;none&apos; when USE_MEMORY_ONLY_CACHE is true" time="0.3537985">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redis.test.ts" name="redis &gt; setCache &gt; should store a value with TTL via memory fallback" time="0.004032">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redis.test.ts" name="redis &gt; setCache &gt; should serialize objects to JSON" time="0.0008512">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redis.test.ts" name="redis &gt; getCache &gt; should return the cached value when it exists" time="0.0008995">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redis.test.ts" name="redis &gt; getCache &gt; should return null for a cache miss" time="0.0004763">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redis.test.ts" name="redis &gt; consumeRateLimit &gt; should use memory rate limiter when provider is none" time="0.0011702">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redis.test.ts" name="redis &gt; closeRedisClient &gt; should resolve without error when no client exists" time="0.0018754">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/redisProvider.integration.test.ts" timestamp="2026-06-17T12:27:00.519Z" hostname="Lenovo-Loq" tests="10" failures="0" errors="0" skipped="0" time="0.0210171">
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should detect Redis as the active provider" time="0.0032101">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should cache and retrieve values via Redis" time="0.0012122">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should return null for missing cache keys" time="0.0004125">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should cache JSON-serializable values" time="0.0017808">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should overwrite existing cache entries" time="0.0004508">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should consume rate limit and return incremented count" time="0.0013067">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should handle independent rate limit keys separately" time="0.0005834">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should delete cache entries by pattern" time="0.0019348">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should use Redis client for get/set operations" time="0.0026724">
+        </testcase>
+        <testcase classname="src/__tests__/utils/redisProvider.integration.test.ts" name="Redis provider integration &gt; should use Lua EVAL for rate limiting" time="0.0005977">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/resumeTemplate.test.ts" timestamp="2026-06-17T12:27:00.522Z" hostname="Lenovo-Loq" tests="6" failures="0" errors="0" skipped="0" time="0.0221622">
+        <testcase classname="src/__tests__/utils/resumeTemplate.test.ts" name="resumeTemplate &gt; normalizeResumeTemplateId &gt; maps legacy template labels to current ids" time="0.0056533">
+        </testcase>
+        <testcase classname="src/__tests__/utils/resumeTemplate.test.ts" name="resumeTemplate &gt; normalizeResumeTemplateId &gt; falls back to classic for removed unknown templates" time="0.0009425">
+        </testcase>
+        <testcase classname="src/__tests__/utils/resumeTemplate.test.ts" name="resumeTemplate &gt; schemas &gt; createResumeSchema accepts github in personal info" time="0.0053013">
+        </testcase>
+        <testcase classname="src/__tests__/utils/resumeTemplate.test.ts" name="resumeTemplate &gt; schemas &gt; updateResumeSchema accepts legacy template ids and github-only updates" time="0.0019376">
+        </testcase>
+        <testcase classname="src/__tests__/utils/resumeTemplate.test.ts" name="resumeTemplate &gt; schemas &gt; createTemplateSchema accepts the new audience split" time="0.0034167">
+        </testcase>
+        <testcase classname="src/__tests__/utils/resumeTemplate.test.ts" name="resumeTemplate &gt; schemas &gt; publicTemplateListQuerySchema accepts audience filters" time="0.0007971">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/sanitize.test.ts" timestamp="2026-06-17T12:27:00.523Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0577447">
+        <testcase classname="src/__tests__/utils/sanitize.test.ts" name="sanitize &gt; sanitizeText &gt; should remove HTML tags from text" time="0.0350462">
+        </testcase>
+        <testcase classname="src/__tests__/utils/sanitize.test.ts" name="sanitize &gt; sanitizeText &gt; should preserve safe characters" time="0.0007056">
+        </testcase>
+        <testcase classname="src/__tests__/utils/sanitize.test.ts" name="sanitize &gt; sanitizeText &gt; should handle empty strings" time="0.0026365">
+        </testcase>
+        <testcase classname="src/__tests__/utils/sanitize.test.ts" name="sanitize &gt; stripScriptTags &gt; should remove script tags and their content" time="0.0099861">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/secretsRotation.test.ts" timestamp="2026-06-17T12:27:00.524Z" hostname="Lenovo-Loq" tests="3" failures="0" errors="0" skipped="0" time="0.2318631">
+        <testcase classname="src/__tests__/utils/secretsRotation.test.ts" name="secretsRotation &gt; generateSecret &gt; should generate a cryptographically random secret of the specified length via signWithRotation" time="0.2241823">
+        </testcase>
+        <testcase classname="src/__tests__/utils/secretsRotation.test.ts" name="secretsRotation &gt; validateSecret &gt; should return true for a validly formatted secret via verifyWithRotation" time="0.0010988">
+        </testcase>
+        <testcase classname="src/__tests__/utils/secretsRotation.test.ts" name="secretsRotation &gt; validateSecret &gt; should return false for an empty secret" time="0.0009449">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/securityLogger.test.ts" timestamp="2026-06-17T12:27:00.526Z" hostname="Lenovo-Loq" tests="5" failures="0" errors="0" skipped="0" time="0.0318705">
+        <testcase classname="src/__tests__/utils/securityLogger.test.ts" name="securityLogger &gt; logAuthFailure &gt; should log an auth failure with reason and IP" time="0.0234732">
+        </testcase>
+        <testcase classname="src/__tests__/utils/securityLogger.test.ts" name="securityLogger &gt; logLoginAttempt &gt; should log login attempts with success or failure" time="0.0019024">
+        </testcase>
+        <testcase classname="src/__tests__/utils/securityLogger.test.ts" name="securityLogger &gt; logSuspiciousActivity &gt; should log suspicious activity with details" time="0.000969">
+        </testcase>
+        <testcase classname="src/__tests__/utils/securityLogger.test.ts" name="securityLogger &gt; logAdminAction &gt; should log admin actions with the admin user ID" time="0.0009706">
+        </testcase>
+        <testcase classname="src/__tests__/utils/securityLogger.test.ts" name="securityLogger &gt; logCsrfFailure &gt; should log CSRF validation failures" time="0.0007488">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/sendEmail.test.ts" timestamp="2026-06-17T12:27:00.527Z" hostname="Lenovo-Loq" tests="2" failures="0" errors="0" skipped="0" time="1.26891">
+        <testcase classname="src/__tests__/utils/sendEmail.test.ts" name="sendEmail &gt; should resolve without error" time="1.2617342">
+        </testcase>
+        <testcase classname="src/__tests__/utils/sendEmail.test.ts" name="sendPasswordResetEmail &gt; should resolve without error" time="0.0017795">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/tokenBlacklist.test.ts" timestamp="2026-06-17T12:27:00.528Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0702048">
+        <testcase classname="src/__tests__/utils/tokenBlacklist.test.ts" name="tokenBlacklist &gt; blacklistToken &gt; should store the token with a TTL matching its original expiry" time="0.059795">
+        </testcase>
+        <testcase classname="src/__tests__/utils/tokenBlacklist.test.ts" name="tokenBlacklist &gt; isTokenBlacklisted &gt; should return true when the token is blacklisted" time="0.0021128">
+        </testcase>
+        <testcase classname="src/__tests__/utils/tokenBlacklist.test.ts" name="tokenBlacklist &gt; isTokenBlacklisted &gt; should return false when the token is not blacklisted" time="0.0007026">
+        </testcase>
+        <testcase classname="src/__tests__/utils/tokenBlacklist.test.ts" name="tokenBlacklist &gt; isTokenBlacklisted &gt; should return false for expired blacklisted entries" time="0.0004889">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/tokenCounter.test.ts" timestamp="2026-06-17T12:27:00.528Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0106008">
+        <testcase classname="src/__tests__/utils/tokenCounter.test.ts" name="tokenCounter &gt; should calculate cost based on input and output tokens" time="0.0050524">
+        </testcase>
+        <testcase classname="src/__tests__/utils/tokenCounter.test.ts" name="tokenCounter &gt; should use the correct pricing per provider" time="0.0006376">
+        </testcase>
+        <testcase classname="src/__tests__/utils/tokenCounter.test.ts" name="tokenCounter &gt; should return 0 for zero tokens" time="0.0004784">
+        </testcase>
+        <testcase classname="src/__tests__/utils/tokenCounter.test.ts" name="tokenCounter &gt; should round to 6 decimal places" time="0.0003449">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/utils/transactionHelper.test.ts" timestamp="2026-06-17T12:27:00.529Z" hostname="Lenovo-Loq" tests="4" failures="0" errors="0" skipped="0" time="0.0702093">
+        <testcase classname="src/__tests__/utils/transactionHelper.test.ts" name="transactionHelper &gt; withTransaction &gt; should execute the callback within a transaction" time="0.0600255">
+        </testcase>
+        <testcase classname="src/__tests__/utils/transactionHelper.test.ts" name="transactionHelper &gt; withTransaction &gt; should commit the transaction on success" time="0.0009247">
+        </testcase>
+        <testcase classname="src/__tests__/utils/transactionHelper.test.ts" name="transactionHelper &gt; withTransaction &gt; should abort the transaction on error" time="0.0042966">
+        </testcase>
+        <testcase classname="src/__tests__/utils/transactionHelper.test.ts" name="transactionHelper &gt; withTransaction &gt; should retry on transient transaction errors" time="0.0010856">
+        </testcase>
+    </testsuite>
+</testsuites>

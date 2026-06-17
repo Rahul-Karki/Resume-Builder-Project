@@ -111,7 +111,7 @@ test-backend-unit:
   stage: test
   needs: [install-backend-deps]
   script:
-    - cd Backend && npm run test:vitest -- --coverage --reporter=junit --outputFile=report-vitest.xml
+    - cd Backend && npx vitest run --coverage --reporter=junit --outputFile=report-vitest.xml
   dependencies:
     - install-backend-deps
   coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'

@@ -11,6 +11,7 @@ let mongoServer;
 let app;
 let Template;
 let Resume;
+let PendingUser;
 let closeRedisClient;
 
 const withTimeout = (promise, ms, label) =>
@@ -46,6 +47,7 @@ test.before(async () => {
   ({ default: app } = require("../../dist/Backend/src/app"));
   ({ default: Template } = require("../../dist/Backend/src/models/Template"));
   ({ default: Resume } = require("../../dist/Backend/src/models/Resume"));
+  ({ default: PendingUser } = require("../../dist/Backend/src/models/PendingUser"));
   ({ closeRedisClient } = require("../../dist/Backend/src/utils/redis"));
 });
 
@@ -68,20 +70,28 @@ test.beforeEach(async () => {
 test("auth signup and login flows work end to end", async () => {
   const user = getTestUser();
 
-  const signupResponse = await request(app)
+  // Step 1: Signup creates a pending registration and sends OTP
+  await request(app)
     .post("/api/auth/signup")
     .send(user)
     .expect(201);
 
-  assert.equal(signupResponse.body.user.email, user.email);
-  assert.equal(signupResponse.body.user.emailVerified, false);
+  // Step 2: Retrieve the OTP from the pending user document
+  const pending = await PendingUser.findOne({ email: user.email });
+  assert.ok(pending, "PendingUser should exist after signup");
+  const otp = pending.emailVerificationOtp;
+  assert.ok(otp, "OTP should be generated");
 
-  // Bypass email verification in test environment
-  await mongoose.model("User").findOneAndUpdate(
-    { email: user.email },
-    { emailVerified: true, emailVerificationToken: null, emailVerificationTokenExpires: null },
-  );
+  // Step 3: Verify email with the OTP
+  const verifyResponse = await request(app)
+    .post("/api/auth/verify-email")
+    .send({ email: user.email, otp })
+    .expect(200);
 
+  assert.equal(verifyResponse.body.user.email, user.email);
+  assert.equal(verifyResponse.body.user.emailVerified, true);
+
+  // Step 4: Login should now work
   const loginAgent = request.agent(app);
   const loginResponse = await loginAgent
     .post("/api/auth/login")
@@ -101,11 +111,16 @@ test("resume CRUD works for an authenticated user", async () => {
     .send(user)
     .expect(201);
 
-  // Bypass email verification in test environment
-  await mongoose.model("User").findOneAndUpdate(
-    { email: user.email },
-    { emailVerified: true, emailVerificationToken: null, emailVerificationTokenExpires: null },
-  );
+  // Retrieve OTP from pending user and verify email
+  const pending = await PendingUser.findOne({ email: user.email });
+  assert.ok(pending, "PendingUser should exist after signup");
+  const otp = pending.emailVerificationOtp;
+  assert.ok(otp, "OTP should be generated");
+
+  await agent
+    .post("/api/auth/verify-email")
+    .send({ email: user.email, otp })
+    .expect(200);
 
   const loginResponse = await agent
     .post("/api/auth/login")

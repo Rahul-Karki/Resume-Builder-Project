@@ -8,6 +8,7 @@ const { loadWithMocks } = require("./helpers/mockModule");
 
 const distRoot = path.join(__dirname, "..", "dist", "Backend", "src");
 const authMiddlewarePath = path.join(distRoot, "middleware", "authMiddleware.js");
+const secretsRotationPath = path.join(distRoot, "utils", "secretsRotation.js");
 const cookieParserPath = path.join(distRoot, "utils", "cookieParser.js");
 const userModelPath = path.join(distRoot, "models", "User.js");
 
@@ -26,28 +27,35 @@ function createRes() {
   };
 }
 
+function mockUser(overrides = {}) {
+  return overrides.findById ?? (() => ({
+    select() {
+      return {
+        lean() {
+          return Promise.resolve({
+            _id: "user-123",
+            role: "admin",
+            name: "Rahul",
+            tokenVersion: 0,
+          });
+        },
+      };
+    },
+  }));
+}
+
 function loadAuthMiddleware(overrides = {}) {
   return loadWithMocks(authMiddlewarePath, {
+    [secretsRotationPath]: {
+      verifyTokenWithRotation: overrides.verifyTokenWithRotation ?? (() => ({ userId: "user-123" })),
+      signWithRotation: () => "",
+      initSecretRotation: () => {},
+    },
     [cookieParserPath]: {
       parseCookies: overrides.parseCookies ?? (() => ({ accessToken: "access-token" })),
     },
     [userModelPath]: {
-      findById: overrides.findById ?? (() => ({
-        select() {
-          return {
-            lean() {
-              return Promise.resolve({
-                _id: "user-123",
-                role: "admin",
-                name: "Rahul",
-              });
-            },
-          };
-        },
-      })),
-    },
-    jsonwebtoken: {
-      verify: overrides.verify ?? (() => ({ userId: "user-123" })),
+      findById: mockUser(overrides),
     },
   });
 }
@@ -105,6 +113,7 @@ test("authMiddleware attaches the current user when the token is valid", async (
     role: "admin",
     name: "Rahul",
     email: undefined,
+    tokenVersion: 0,
   });
 });
 
@@ -145,9 +154,7 @@ test("authMiddleware returns 401 when the user cannot be found", async () => {
 
 test("authMiddleware returns 401 when token verification fails", () => {
   const { authMiddleware } = loadAuthMiddleware({
-    verify: () => {
-      throw new Error("invalid token");
-    },
+    verifyTokenWithRotation: () => null,
   });
 
   const req = {

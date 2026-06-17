@@ -16,9 +16,17 @@ const observabilityPath = path.join(distRoot, "observability.js");
 const controllerObservabilityPath = path.join(distRoot, "utils", "controllerObservability.js");
 const errorResponsePath = path.join(distRoot, "utils", "errorResponse.js");
 const tokenBlacklistPath = path.join(distRoot, "utils", "tokenBlacklist.js");
+const userModelPath = path.join(distRoot, "models", "User.js");
 
 function loadRefreshController(overrides = {}) {
   return loadWithMocks(refreshControllerPath, {
+    [userModelPath]: {
+      findById: overrides.findById ?? (() => ({
+        select() {
+          return { lean() { return Promise.resolve({ tokenVersion: 0 }); } };
+        },
+      })),
+    },
     [generateTokenPath]: {
       generateAccessToken: overrides.generateAccessToken ?? (() => "new-access-token"),
       generateRefreshToken: () => "unused-refresh-token",

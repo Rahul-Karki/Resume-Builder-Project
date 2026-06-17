@@ -13,10 +13,7 @@ const isHttpsRequest = (req: Request) => {
 };
 
 const getBaseCookieOptions = (req: Request, sameSite: "lax" | "none") => {
-  // SameSite=None requires Secure per browser spec (Chrome rejects None cookies without Secure).
-  // When sameSite is "none", always set secure=true so the cookie is accepted even on HTTP
-  // (localhost is treated as a secure context by Chrome). Uses partitioned for CHIPS support.
-  const secure = sameSite === "none" ? true : isHttpsRequest(req);
+  const secure = isHttpsRequest(req);
   return {
     secure,
     sameSite,

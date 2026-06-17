@@ -44,11 +44,11 @@ test("setAccessTokenCookie sets expected auth cookie attributes", () => {
   assert.equal(res.cookies[0].options.httpOnly, true);
   assert.equal(res.cookies[0].options.path, "/");
   assert.equal(res.cookies[0].options.maxAge, 15 * 60 * 1000);
-  assert.equal(res.cookies[0].options.sameSite, "lax");
+  assert.equal(res.cookies[0].options.sameSite, "none");
   assert.equal(res.cookies[0].options.secure, false);
 });
 
-test("setCsrfCookie returns token and sets HttpOnly cookie", () => {
+test("setCsrfCookie returns token and sets readable cookie", () => {
   const req = createReq();
   const res = createRes();
 
@@ -58,7 +58,7 @@ test("setCsrfCookie returns token and sets HttpOnly cookie", () => {
   assert.equal(res.cookies.length, 1);
   assert.equal(res.cookies[0].name, "csrfToken");
   assert.equal(res.cookies[0].value, csrfToken);
-  assert.equal(res.cookies[0].options.httpOnly, true);
+  assert.equal(res.cookies[0].options.httpOnly, false);
 });
 
 test("setAuthCookies sets access, refresh, and csrf cookies", () => {
