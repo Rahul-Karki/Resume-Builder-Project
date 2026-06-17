@@ -1,6 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/data/templateMeta", () => ({ templates: [] }));
+vi.mock("@/data/templateMeta", () => ({
+  templates: [
+    { id: "classic", category: "non-tech" },
+    { id: "executive", category: "non-tech" },
+    { id: "modern", category: "tech" },
+    { id: "compact", category: "non-tech" },
+    { id: "sidebar", category: "tech" },
+    { id: "scholarly", category: "non-tech" },
+    { id: "research", category: "non-tech" },
+    { id: "chronological", category: "non-tech" },
+    { id: "functional", category: "non-tech" },
+    { id: "combination", category: "non-tech" },
+    { id: "traditional-assistant", category: "non-tech" },
+    { id: "community-impact", category: "non-tech" },
+  ],
+}));
 vi.mock("@/store/templateConfig", () => ({
   resolveTemplateCategory: vi.fn(() => "non-tech"),
   resolveTemplateConfig: vi.fn(() => ({ templateId: "classic", templateCategory: "non-tech", style: {}, sectionVisibility: {} })),

@@ -61,10 +61,10 @@ describe("errorTracking", () => {
   });
 
   it("should not crash in SSR (no window/navigator)", () => {
-    const win = global.window;
-    const nav = global.navigator;
-    delete (global as any).window;
-    delete (global as any).navigator;
+    const win = globalThis.window;
+    const nav = globalThis.navigator;
+    delete (globalThis as any).window;
+    delete (globalThis as any).navigator;
 
     errorTracking.errorTracker.trackError("SSR safe", new Error("test"));
     const [report] = errorTracking.errorTracker.getErrors();
@@ -72,7 +72,7 @@ describe("errorTracking", () => {
     expect(report.userAgent).toBe("ssr");
     expect(report.url).toBe("ssr");
 
-    global.window = win;
-    global.navigator = nav;
+    globalThis.window = win;
+    globalThis.navigator = nav;
   });
 });

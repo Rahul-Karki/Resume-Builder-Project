@@ -3,7 +3,22 @@
 vi.mock("@/services/api", () => ({
   api: { get: vi.fn().mockResolvedValue({ data: {} }), post: vi.fn().mockResolvedValue({ data: {} }), put: vi.fn().mockResolvedValue({ data: {} }) },
 }));
-vi.mock("@/data/templateMeta", () => ({ templates: [] }));
+vi.mock("@/data/templateMeta", () => ({
+  templates: [
+    { id: "classic", category: "non-tech" },
+    { id: "executive", category: "non-tech" },
+    { id: "modern", category: "tech" },
+    { id: "compact", category: "non-tech" },
+    { id: "sidebar", category: "tech" },
+    { id: "scholarly", category: "non-tech" },
+    { id: "research", category: "non-tech" },
+    { id: "chronological", category: "non-tech" },
+    { id: "functional", category: "non-tech" },
+    { id: "combination", category: "non-tech" },
+    { id: "traditional-assistant", category: "non-tech" },
+    { id: "community-impact", category: "non-tech" },
+  ],
+}));
 
 describe("useResumeBuilderStore", () => {
   beforeEach(async () => {
@@ -11,7 +26,22 @@ describe("useResumeBuilderStore", () => {
     vi.doMock("@/services/api", () => ({
       api: { get: vi.fn().mockResolvedValue({ data: {} }), post: vi.fn().mockResolvedValue({ data: {} }), put: vi.fn().mockResolvedValue({ data: {} }) },
     }));
-    vi.doMock("@/data/templateMeta", () => ({ templates: [] }));
+    vi.doMock("@/data/templateMeta", () => ({
+      templates: [
+        { id: "classic", category: "non-tech" },
+        { id: "executive", category: "non-tech" },
+        { id: "modern", category: "tech" },
+        { id: "compact", category: "non-tech" },
+        { id: "sidebar", category: "tech" },
+        { id: "scholarly", category: "non-tech" },
+        { id: "research", category: "non-tech" },
+        { id: "chronological", category: "non-tech" },
+        { id: "functional", category: "non-tech" },
+        { id: "combination", category: "non-tech" },
+        { id: "traditional-assistant", category: "non-tech" },
+        { id: "community-impact", category: "non-tech" },
+      ],
+    }));
   });
 
   it("should initialize with default state", async () => {

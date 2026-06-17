@@ -119,10 +119,10 @@ describe("performance", () => {
   });
 
   it("should handle mark when performance is undefined", () => {
-    const origPerf = (global as any).performance;
-    delete (global as any).performance;
+    const origPerf = (globalThis as any).performance;
+    delete (globalThis as any).performance;
     expect(() => performanceMonitor.mark("test")).not.toThrow();
-    (global as any).performance = origPerf;
+    (globalThis as any).performance = origPerf;
   });
 
   it("should measure between marks", () => {
