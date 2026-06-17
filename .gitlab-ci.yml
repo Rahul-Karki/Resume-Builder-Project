@@ -205,8 +205,8 @@ build-frontend:
 # ==============================================================================
 test-frontend-e2e:
   stage: e2e
+  image: mcr.microsoft.com/playwright:v1.59.1-noble
   needs: [build-backend, build-frontend]
-    image: mcr.microsoft.com/playwright:v1.59.1-noble
   script:
     - cd frontend
     - npm ci --prefer-offline
