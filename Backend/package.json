@@ -7,6 +7,7 @@
     "postinstall": "node -e \"process.env.PUPPETEER_SKIP_DOWNLOAD || require('child_process').execSync('npx @puppeteer/browsers install chrome', { stdio: 'inherit', cwd: __dirname })\"",
     "build": "tsc",
     "start": "node -r ./dist/Backend/src/instrumentation.js dist/Backend/src/server.js",
+    "lint": "eslint . --quiet",
     "test": "npm run build && node --test --test-force-exit automated-tests/**/*.test.js",
     "test:unit": "npm run build && node --test --test-force-exit automated-tests/*.test.js",
     "test:integration": "npm run build && node --test --test-force-exit automated-tests/integration/*.test.js",
@@ -71,6 +72,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/bcrypt": "^6.0.0",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
@@ -80,12 +82,16 @@
     "@types/nodemailer": "^8.0.0",
     "@types/redis-info": "^3.0.3",
     "@types/supertest": "^6.0.3",
+    "eslint": "^9.39.4",
+    "eslint-plugin-security": "^4.0.1",
+    "globals": "^17.6.0",
     "mongodb-memory-server": "^10.2.3",
     "nodemon": "^3.1.14",
     "supertest": "^7.1.4",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.61.1",
     "vitest": "^4.1.7"
   }
 }

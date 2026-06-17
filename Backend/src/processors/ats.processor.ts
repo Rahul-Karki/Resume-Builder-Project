@@ -883,7 +883,7 @@ const buildFormattingChecks = (resume: Record<string, unknown>): AtsFormattingCh
   const sections = getSections(resume);
   const personal = (resume.personalInfo as Record<string, unknown> | undefined) ?? {};
   return [
-    { id: "contact-info", label: "Contact information present", passed: Boolean(compactText(personal.name) && compactText(personal.email)), score: Boolean(compactText(personal.name) && compactText(personal.email)) ? 100 : 40, reason: "A clear name and email improve ATS parsing." },
+    { id: "contact-info", label: "Contact information present", passed: Boolean(compactText(personal.name) && compactText(personal.email)), score: compactText(personal.name) && compactText(personal.email) ? 100 : 40, reason: "A clear name and email improve ATS parsing." },
     { id: "summary-length", label: "Summary length is balanced", passed: sections.summary.length >= 80 && sections.summary.length <= 500, score: sections.summary.length === 0 ? 20 : sections.summary.length < 80 ? 45 : sections.summary.length > 500 ? 65 : 100, reason: "A concise but substantive summary helps recruiters scan quickly." },
     { id: "core-sections", label: "Core sections are populated", passed: sections.experience.length > 0 && sections.skills.length > 0, score: clampScore((sections.experience.length > 0 ? 55 : 20) + (sections.skills.length > 0 ? 45 : 20)), reason: "Experience and skills are the core ATS signals." },
     { id: "project-presence", label: "Project or experience depth", passed: sections.projects.length > 0 || sections.experience.length > 1, score: clampScore((sections.projects.length > 0 ? 60 : 30) + Math.min(sections.experience.length * 10, 40)), reason: "Projects or multiple roles improve context and depth." },

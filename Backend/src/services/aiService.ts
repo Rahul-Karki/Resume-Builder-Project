@@ -764,7 +764,7 @@ const computeFormattingChecks = (resume: Record<string, unknown>): AtsFormatting
       id: "contact-info",
       label: "Contact information present",
       passed: Boolean(compactText(personal.name) && compactText(personal.email)),
-      score: Boolean(compactText(personal.name) && compactText(personal.email)) ? 100 : 40,
+      score: compactText(personal.name) && compactText(personal.email) ? 100 : 40,
       reason: "Recruiters and ATS parsers need a clear name and email.",
     },
     {

@@ -18,7 +18,7 @@ describe("db", () => {
   });
 
   it("should reject when the connection URI is invalid", async () => {
-    vi.doMock("../observability", () => ({ logger: { info: vi.fn(), error: vi.fn() } }));
+    vi.doMock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
     vi.doMock("../models/plugins/softDelete", () => ({ default: () => {} }));
     vi.doMock("../models/plugins/auditTrail", () => ({ default: () => {} }));
     const mongoose = await import("mongoose");

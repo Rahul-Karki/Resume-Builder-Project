@@ -76,7 +76,7 @@ export const downloadResume = wrapController(async (req, res) => {
   const preset = allowedPresets.has(body.preset ?? "standard") ? (body.preset ?? "standard") : "standard";
   const snapshot = await resolveResumeSnapshot(userId, body);
   const payload = { userId, preset, ...snapshot };
-  let jobId = createResumeDownloadJobId(payload);
+  const jobId = createResumeDownloadJobId(payload);
 
   const existingJob = await ResumeDownloadJob.findOne({ jobId, userId }).lean();
   if (existingJob) {

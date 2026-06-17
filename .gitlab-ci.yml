@@ -1,0 +1,379 @@
+image: node:20-slim
+
+variables:
+  REGISTRY: ${CI_REGISTRY_IMAGE}
+  TAG: ${CI_COMMIT_SHORT_SHA}
+  NODE_ENV: test
+  PUPPETEER_CACHE_DIR: ${CI_PROJECT_DIR}/.cache/puppeteer
+  npm_config_cache: ${CI_PROJECT_DIR}/.npm
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: tcp://docker:2375
+
+default:
+  interruptible: true
+  retry:
+    max: 2
+    when:
+      - stuck_or_timeout_failure
+      - runner_system_failure
+
+cache:
+  key:
+    files:
+      - Backend/package-lock.json
+      - frontend/package-lock.json
+  paths:
+    - .npm/
+    - Backend/node_modules/
+    - frontend/node_modules/
+    - .cache/puppeteer/
+  policy: pull-push
+
+stages:
+  - setup
+  - lint
+  - typecheck
+  - test
+  - build
+  - docker
+  - security
+  - deploy
+
+# ==============================================================================
+# SETUP
+# ==============================================================================
+install-backend-deps:
+  stage: setup
+  script:
+    - apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+    - cd Backend
+    - npm ci --prefer-offline
+    - npx puppeteer browsers install chrome
+  artifacts:
+    paths:
+      - Backend/node_modules/
+      - .cache/puppeteer/
+    expire_in: 2h
+
+install-frontend-deps:
+  stage: setup
+  script:
+    - cd frontend
+    - npm ci --prefer-offline
+  artifacts:
+    paths:
+      - frontend/node_modules/
+    expire_in: 2h
+
+# ==============================================================================
+# LINT
+# ==============================================================================
+lint-frontend:
+  stage: lint
+  needs: [install-frontend-deps]
+  script:
+    - cd frontend && npm run lint
+  dependencies:
+    - install-frontend-deps
+
+lint-backend:
+  stage: lint
+  needs: [install-backend-deps]
+  script:
+    - cd Backend && npm run lint
+  dependencies:
+    - install-backend-deps
+
+# ==============================================================================
+# TYPECHECK
+# ==============================================================================
+typecheck-backend:
+  stage: typecheck
+  needs: [install-backend-deps]
+  script:
+    - cd Backend && npx tsc --noEmit
+  dependencies:
+    - install-backend-deps
+
+typecheck-frontend:
+  stage: typecheck
+  needs: [install-frontend-deps]
+  script:
+    - cd frontend && npx tsc --noEmit
+  dependencies:
+    - install-frontend-deps
+
+# ==============================================================================
+# TEST
+# ==============================================================================
+test-backend-unit:
+  stage: test
+  needs: [install-backend-deps]
+  script:
+    - cd Backend && npm run test:vitest -- --reporter=junit --outputFile=report-vitest.xml
+  dependencies:
+    - install-backend-deps
+  coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
+  artifacts:
+    reports:
+      junit: Backend/report-vitest.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: Backend/coverage/cobertura-coverage.xml
+    paths:
+      - Backend/coverage/
+    expire_in: 30d
+
+test-backend-integration:
+  stage: test
+  needs: [typecheck-backend]
+  script:
+    - cd Backend && npm run build && node --test --test-force-exit automated-tests/**/*.test.js
+  dependencies:
+    - install-backend-deps
+  variables:
+    MONGO_URI: mongodb://mongo:27017/test
+    REDIS_URL: redis://redis:6379/0
+  services:
+    - name: mongo:7.0
+      alias: mongo
+    - name: redis:7-alpine
+      alias: redis
+  artifacts:
+    when: always
+    reports:
+      junit: Backend/report-node-test.xml
+    paths:
+      - Backend/test-output.txt
+    expire_in: 7d
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+test-frontend-unit:
+  stage: test
+  needs: [install-frontend-deps]
+  script:
+    - cd frontend && npm run test:unit -- --reporter=junit --outputFile=report-vitest.xml
+  dependencies:
+    - install-frontend-deps
+  coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
+  artifacts:
+    reports:
+      junit: frontend/report-vitest.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
+    paths:
+      - frontend/coverage/
+    expire_in: 30d
+
+test-frontend-e2e:
+  stage: test
+  needs: [build-backend, build-frontend]
+  image: mcr.microsoft.com/playwright:v1.59.1-focal
+  script:
+    - cd frontend
+    - npm ci --prefer-offline
+    - npx playwright install --with-deps chromium
+    - npm run test:e2e
+  dependencies:
+    - build-backend
+    - build-frontend
+  artifacts:
+    when: always
+    paths:
+      - frontend/playwright-report/
+      - frontend/test-results/
+    expire_in: 30d
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ==============================================================================
+# BUILD
+# ==============================================================================
+build-backend:
+  stage: build
+  needs: [install-backend-deps]
+  script:
+    - cd Backend && npm run build
+  dependencies:
+    - install-backend-deps
+  artifacts:
+    paths:
+      - Backend/dist/
+    expire_in: 2h
+
+build-frontend:
+  stage: build
+  needs: [install-frontend-deps]
+  script:
+    - cd frontend && npm run build
+  dependencies:
+    - install-frontend-deps
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 2h
+
+# ==============================================================================
+# DOCKER BUILD & PUSH
+# ==============================================================================
+.docker-base:
+  stage: docker
+  image: docker:27
+  services:
+    - docker:27-dind
+  before_script:
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} -u "${CI_REGISTRY_USER}" --password-stdin
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+docker-backend:
+  extends: .docker-base
+  needs:
+    - job: test-backend-unit
+    - job: test-frontend-unit
+    - job: test-backend-integration
+      optional: true
+  script:
+    - docker build -t ${REGISTRY}/backend:${TAG} -t ${REGISTRY}/backend:latest -f Backend/Dockerfile .
+    - docker push ${REGISTRY}/backend:${TAG}
+    - docker push ${REGISTRY}/backend:latest
+
+docker-frontend:
+  extends: .docker-base
+  needs:
+    - job: test-backend-unit
+    - job: test-frontend-unit
+  script:
+    - docker build -t ${REGISTRY}/frontend:${TAG} -t ${REGISTRY}/frontend:latest -f frontend/Dockerfile frontend/
+    - docker push ${REGISTRY}/frontend:${TAG}
+    - docker push ${REGISTRY}/frontend:latest
+
+docker-backend-latest:
+  extends: .docker-base
+  needs: [docker-backend]
+  script:
+    - echo "Promoting backend:${TAG} to :latest (already done in docker-backend)"
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+
+# ==============================================================================
+# SECURITY SCANNING
+# ==============================================================================
+dependency-scanning:
+  stage: security
+  image:
+    name: registry.gitlab.com/gitlab-org/security-products/dependency-scanning:latest
+    entrypoint: [""]
+  script:
+    - /analyzer run
+  artifacts:
+    reports:
+      dependency_scanning: gl-dependency-scanning-report.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+sast:
+  stage: security
+  image:
+    name: registry.gitlab.com/gitlab-org/security-products/sast:latest
+    entrypoint: [""]
+  script:
+    - /analyzer run
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+license-scanning:
+  stage: security
+  image:
+    name: registry.gitlab.com/gitlab-org/security-products/license-scanning:latest
+    entrypoint: [""]
+  script:
+    - /analyzer run
+  artifacts:
+    reports:
+      license_scanning: gl-license-scanning-report.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ==============================================================================
+# DEPLOY
+# ==============================================================================
+deploy-staging:
+  stage: deploy
+  needs: [docker-backend, docker-frontend]
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no ${STAGING_HOST} "
+        cd /opt/resume-builder &&
+        docker compose -f docker-compose.prod.yml pull &&
+        TAG=${TAG} docker compose -f docker-compose.prod.yml up -d --remove-orphans &&
+        docker image prune -f
+      "
+  environment:
+    name: staging
+    url: https://staging.resume-builder.example.com
+    on_stop: stop-staging
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stop-staging:
+  stage: deploy
+  needs: [docker-backend, docker-frontend]
+  script:
+    - ssh -o StrictHostKeyChecking=no ${STAGING_HOST} "cd /opt/resume-builder && docker compose -f docker-compose.prod.yml down"
+  environment:
+    name: staging
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+
+deploy-production:
+  stage: deploy
+  needs: [docker-backend, docker-frontend]
+  script:
+    - |
+      ssh -o StrictHostKeyChecking=no ${PRODUCTION_HOST} "
+        cd /opt/resume-builder &&
+        docker compose -f docker-compose.prod.yml pull &&
+        TAG=${TAG} docker compose -f docker-compose.prod.yml up -d --remove-orphans &&
+        docker image prune -f
+      "
+  environment:
+    name: production
+    url: https://resume-builder.example.com
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  when: manual
+  allow_failure: false
+
+# ==============================================================================
+# TRIVY CONTAINER SCAN (post-deploy)
+# ==============================================================================
+container-scanning:
+  stage: security
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  script:
+    - apk add --no-cache curl
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --format gl-code-quality --output gl-container-scanning-report.json ${REGISTRY}/backend:${TAG}
+    - trivy image --exit-code 0 --severity HIGH,CRITICAL --format gl-code-quality --output gl-container-scanning-report-frontend.json ${REGISTRY}/frontend:${TAG}
+  artifacts:
+    reports:
+      container_scanning: gl-container-scanning-report.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  needs: [docker-backend, docker-frontend]

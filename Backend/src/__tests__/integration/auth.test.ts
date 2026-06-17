@@ -7,6 +7,7 @@ import { MongoMemoryServer } from "mongodb-memory-server";
 
 let mongoServer: MongoMemoryServer;
 let app: any;
+let PendingUser: any;
 let Template: any;
 let Resume: any;
 let closeRedisClient: (() => Promise<void>) | null = null;
@@ -28,6 +29,23 @@ const getTestUser = () => {
   };
 };
 
+async function signupAndVerify(agent: any, user: ReturnType<typeof getTestUser>) {
+  await agent
+    .post("/api/auth/signup")
+    .send(user)
+    .expect(201);
+
+  const pending = await PendingUser.findOne({ email: user.email.toLowerCase().trim() });
+  if (!pending || !pending.emailVerificationOtp) {
+    throw new Error("PendingUser or OTP not found");
+  }
+
+  await agent
+    .post("/api/auth/verify-email")
+    .send({ email: user.email, otp: pending.emailVerificationOtp })
+    .expect(200);
+}
+
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create({
     instance: {
@@ -41,6 +59,8 @@ beforeAll(async () => {
 
   const appMod = await import("../../app");
   app = appMod.default;
+  const pendingUserMod = await import("../../models/PendingUser");
+  PendingUser = pendingUserMod.default;
   const templateMod = await import("../../models/Template");
   Template = templateMod.default;
   const resumeMod = await import("../../models/Resume");
@@ -70,13 +90,8 @@ describe("auth integration", () => {
     const user = getTestUser();
 
     const agent = request.agent(app);
-    const signupResponse = await agent
-      .post("/api/auth/signup")
-      .send(user)
-      .expect(201);
 
-    expect(signupResponse.body.user.email).toBe(user.email);
-    // Signup doesn't return csrfToken — user must verify email, then login
+    await signupAndVerify(agent, user);
 
     const loginResponse = await agent
       .post("/api/auth/login")
@@ -91,10 +106,7 @@ describe("auth integration", () => {
     const user = getTestUser();
     const agent = request.agent(app);
 
-    await agent
-      .post("/api/auth/signup")
-      .send(user)
-      .expect(201);
+    await signupAndVerify(agent, user);
 
     const loginResponse = await agent
       .post("/api/auth/login")
@@ -102,6 +114,14 @@ describe("auth integration", () => {
       .expect(200);
 
     const csrfToken = loginResponse.body.csrfToken;
+    const setCookieHeaders = loginResponse.headers["set-cookie"];
+    const cookies = (Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders])
+      .map((c: string) => c.split(";")[0])
+      .join("; ");
+    if (cookies) {
+      agent.set("Cookie", cookies);
+    }
+
     const userId = loginResponse.body.user.id;
     const layoutId = `integration-template-${randomUUID().slice(0, 8)}`;
 

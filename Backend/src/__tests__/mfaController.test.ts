@@ -40,7 +40,7 @@ describe("mfaController", () => {
       vi.mocked(User.findById).mockResolvedValue(buildUser() as any);
 
       const req = { user: { id: "user1" }, headers: {} } as any;
-      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+      const res = { status: vi.fn().mockReturnThis(), json: vi.fn(), setHeader: vi.fn() } as any;
 
       await setupMfa(req, res);
 

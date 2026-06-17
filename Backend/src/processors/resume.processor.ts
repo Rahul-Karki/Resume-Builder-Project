@@ -232,7 +232,7 @@ export const generateResumePdfArtifact = async (
 
       try {
         await page.evaluate(() => {
-          document.body.offsetHeight;
+          void document.body.offsetHeight;
         });
       } catch (err) {
         logger.debug({ jobId, err }, "Layout recalculation failed");

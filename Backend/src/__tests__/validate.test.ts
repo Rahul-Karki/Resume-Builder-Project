@@ -1,6 +1,6 @@
 ﻿import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
-import { validate } from "../middleware/validate";
+import { validateRequest as validate } from "../middleware/validateRequest";
 
 describe("validate", () => {
   it("should call next() when validation passes", () => {
@@ -25,7 +25,7 @@ describe("validate", () => {
 
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ error: "validation_error" })
+      expect.objectContaining({ code: "VALIDATION_ERROR" })
     );
     expect(next).not.toHaveBeenCalled();
   });

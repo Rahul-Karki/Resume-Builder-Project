@@ -42,6 +42,7 @@ const resolveExecutablePath = (): string | undefined => {
       return bundled;
     }
   } catch {
+    // ignored - fall through to system chrome detection
   }
 
   const candidates =

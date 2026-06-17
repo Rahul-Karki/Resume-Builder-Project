@@ -55,8 +55,7 @@ export function softDeletePlugin(schema: Schema) {
   });
 
   // query helper to include deleted docs
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore - augment query type at runtime
+  // @ts-ignore
   (schema as any).query.withDeleted = function () {
     // @ts-ignore
     (this as any)._withDeleted = true;
