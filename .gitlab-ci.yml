@@ -132,10 +132,10 @@ test-backend-integration:
     - job: install-backend-deps
     - job: typecheck-backend
   script:
+    # MongoMemoryServer requires libcurl for the mongod binary on Debian
+    - apt-get update && apt-get install -y --no-install-recommends libcurl4 && rm -rf /var/lib/apt/lists/*
     - cd Backend
     - npm run build
-    # Use find + sort instead of ** glob pattern because CI bash does not
-    # enable globstar by default, causing the unexpanded literal to fail.
     - node --test --test-force-exit --test-reporter=junit --test-reporter-destination=report-node-test.xml --test-reporter=spec --test-reporter-destination=test-output.txt $(find automated-tests -name '*.test.js' | sort)
   dependencies:
     - install-backend-deps
