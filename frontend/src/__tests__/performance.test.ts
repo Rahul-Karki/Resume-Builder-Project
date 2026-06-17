@@ -79,4 +79,62 @@ describe("performance", () => {
     expect(metrics).toHaveLength(1);
     expect(metrics[0].context).toMatchObject({ route: "/api/resumes", success: false, error: "boom" });
   });
+
+  it("should start and end a timer", () => {
+    performanceMonitor.startTimer("custom_timer");
+    const duration = performanceMonitor.endTimer("custom_timer");
+    expect(duration).toBeGreaterThanOrEqual(0);
+  });
+
+  it("should return 0 when ending a non-existent timer", () => {
+    const duration = performanceMonitor.endTimer("nonexistent");
+    expect(duration).toBe(0);
+  });
+
+  it("should get all metrics when no name given", () => {
+    performanceMonitor.recordMetric("test1", 10);
+    performanceMonitor.recordMetric("test2", 20);
+    const all = performanceMonitor.getMetrics();
+    expect(all.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should return null average for unknown metric", () => {
+    expect(performanceMonitor.getAverageMetric("unknown")).toBeNull();
+  });
+
+  it("should export metrics as JSON", () => {
+    performanceMonitor.recordMetric("export_test", 42);
+    const exported = performanceMonitor.exportMetrics();
+    const parsed = JSON.parse(exported);
+    expect(parsed.metrics).toBeDefined();
+    expect(parsed.summary).toBeDefined();
+    expect(parsed.exportedAt).toBeDefined();
+  });
+
+  it("should call performance.mark when mark is called", () => {
+    const markSpy = vi.spyOn(performance, "mark").mockImplementation(() => undefined);
+    performanceMonitor.mark("test_mark");
+    expect(markSpy).toHaveBeenCalledWith("test_mark");
+    markSpy.mockRestore();
+  });
+
+  it("should handle mark when performance is undefined", () => {
+    const origPerf = (global as any).performance;
+    delete (global as any).performance;
+    expect(() => performanceMonitor.mark("test")).not.toThrow();
+    (global as any).performance = origPerf;
+  });
+
+  it("should measure between marks", () => {
+    performanceMonitor.mark("start");
+    performanceMonitor.mark("end");
+    performanceMonitor.measure("custom", "start", "end");
+    const metrics = performanceMonitor.getMetrics("custom");
+    expect(metrics).toBeDefined();
+  });
+
+  it("should handle getMetricsSummary with no metrics", () => {
+    const summary = performanceMonitor.getMetricsSummary();
+    expect(summary).toEqual({});
+  });
 });

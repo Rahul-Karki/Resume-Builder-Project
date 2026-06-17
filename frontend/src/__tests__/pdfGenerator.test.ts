@@ -39,4 +39,29 @@ describe("pdfGenerator", () => {
     Object.defineProperty(document, "fonts", { value: { ready: Promise.resolve(undefined) }, configurable: true });
     await expect(waitForFonts()).resolves.toBeUndefined();
   });
+
+  it("should preload images with actual src", async () => {
+    const { preloadImages } = await import("../utils/pdfGenerator");
+    const img = document.createElement("img");
+    img.src = "data:image/png;base64,iVBORw0KGgo=";
+    const mockElement = { querySelectorAll: vi.fn().mockReturnValue([img]) } as unknown as HTMLElement;
+    await expect(preloadImages(mockElement)).resolves.toBeUndefined();
+  });
+
+  it("should handle downloadPDF errors", async () => {
+    const { downloadPDF } = await import("../utils/pdfGenerator");
+    await expect(downloadPDF(null as any, "test.pdf")).rejects.toThrow();
+  });
+
+  it("should handle fonts ready with errors gracefully", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const origFonts = document.fonts;
+    Object.defineProperty(document, "fonts", { value: { ready: Promise.reject(new Error("font load failed")) }, configurable: true });
+    const { waitForFonts } = await import("../utils/pdfGenerator");
+    const result = waitForFonts();
+    await new Promise(r => setTimeout(r, 10));
+    Object.defineProperty(document, "fonts", { value: origFonts, configurable: true });
+    await expect(result).resolves.toBeUndefined();
+    vi.restoreAllMocks();
+  });
 });

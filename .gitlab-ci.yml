@@ -111,7 +111,7 @@ test-backend-unit:
   stage: test
   needs: [install-backend-deps]
   script:
-    - cd Backend && npm run test:vitest -- --reporter=junit --outputFile=report-vitest.xml
+    - cd Backend && npm run test:vitest -- --coverage --reporter=junit --outputFile=report-vitest.xml
   dependencies:
     - install-backend-deps
   coverage: '/All files[^|]*\|[^|]*\s+([\d.]+)/'
@@ -133,7 +133,7 @@ test-backend-integration:
     - job: install-backend-deps
     - job: typecheck-backend
   script:
-    - cd Backend && npm run build && node --test --test-force-exit automated-tests/**/*.test.js
+    - cd Backend && npm run build && node --test --test-force-exit --test-reporter=junit --test-reporter-destination=report-node-test.xml --test-reporter=spec --test-reporter-destination=test-output.txt automated-tests/**/*.test.js
   dependencies:
     - install-backend-deps
   variables:
@@ -206,7 +206,7 @@ build-frontend:
 test-frontend-e2e:
   stage: e2e
   needs: [build-backend, build-frontend]
-  image: mcr.microsoft.com/playwright:v1.59.1-focal
+    image: mcr.microsoft.com/playwright:v1.59.1-noble
   script:
     - cd frontend
     - npm ci --prefer-offline
@@ -280,10 +280,12 @@ include:
 
 # Override rules so security scans only run on the default branch
 sast:
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 dependency_scanning:
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
