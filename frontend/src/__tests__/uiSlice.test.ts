@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { createUISlice, initialUI } from "@/store/slices/uiSlice";
+import type { FocusedEditorField } from "@/types/resume-types";
 
 function createMockSet() {
   return vi.fn((fn: any) => {
@@ -33,7 +34,7 @@ describe("uiSlice", () => {
   it("should set focused field", () => {
     const set = createMockSet();
     const slice = createUISlice(set);
-    slice.setFocusedField("name");
+    slice.setFocusedField({ section: "personal", label: "name", kind: "personal" } satisfies FocusedEditorField);
     expect(set).toHaveBeenCalled();
   });
 
@@ -54,7 +55,7 @@ describe("uiSlice", () => {
   it("should set export preset", () => {
     const set = createMockSet();
     const slice = createUISlice(set);
-    slice.setExportPreset("compact");
+    slice.setExportPreset("standard");
     expect(set).toHaveBeenCalled();
   });
 });

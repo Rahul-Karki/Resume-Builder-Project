@@ -112,7 +112,7 @@ describe("performance", () => {
   });
 
   it("should call performance.mark when mark is called", () => {
-    const markSpy = vi.spyOn(performance, "mark").mockImplementation(() => undefined);
+    const markSpy = vi.spyOn(performance, "mark").mockReturnValue(undefined as any);
     performanceMonitor.mark("test_mark");
     expect(markSpy).toHaveBeenCalledWith("test_mark");
     markSpy.mockRestore();
