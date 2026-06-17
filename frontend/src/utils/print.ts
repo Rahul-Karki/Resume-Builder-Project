@@ -95,9 +95,11 @@ export async function printResume(selector = ".resume-preview", resume?: unknown
     if (!family) continue;
     usedFamilies.add(family.split(",")[0].replace(/["']/g, "").trim());
   }
-  await Promise.allSettled(
-    Array.from(usedFamilies).map((family) => document.fonts?.load(`1em "${family}"`)),
-  );
+  if (typeof document.fonts?.load === "function") {
+    await Promise.allSettled(
+      Array.from(usedFamilies).map((family) => document.fonts.load(`1em "${family}"`)),
+    );
+  }
 
   const images = Array.from(root.querySelectorAll<HTMLImageElement>("img"));
   await Promise.all(images.map((image) => {
