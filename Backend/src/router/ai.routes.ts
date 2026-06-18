@@ -20,6 +20,14 @@ const aiLimiter = createRedisRateLimitMiddleware({
   message: "Too many AI requests. Please wait and try again.",
 });
 
+const aiReadLimiter = createRedisRateLimitMiddleware({
+  scope: "ai-read",
+  windowMs: 60_000,
+  max: 60,
+  keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+  message: "Too many AI read requests. Please wait and try again.",
+});
+
 router.use(authMiddleware);
 
 // Apply credit deduction middleware to all AI routes
@@ -51,7 +59,7 @@ router.post(
 );
 
 // AI usage stats endpoints
-router.get("/usage-stats", getAiUsageStats);
-router.get("/request-history", getAiRequestHistory);
+router.get("/usage-stats", aiReadLimiter, getAiUsageStats);
+router.get("/request-history", aiReadLimiter, getAiRequestHistory);
 
 export default router;

@@ -182,8 +182,16 @@ export const createApp = () => {
     app.get(env.METRICS_PATH, metricsHandler);
   }
 
+  const docsLimiter = createRedisRateLimitMiddleware({
+    scope: "api-docs",
+    windowMs: 60_000,
+    max: 60,
+    keyBuilder: (req) => `ip:${req.ip}`,
+    message: "Too many API docs requests.",
+  });
+
   let cachedDocs: string | null = null;
-  app.get("/api/docs", (_req, res) => {
+  app.get("/api/docs", docsLimiter, (_req, res) => {
     res.setHeader("Content-Type", "application/json");
     if (!cachedDocs) {
       cachedDocs = JSON.stringify(openAPISpec);

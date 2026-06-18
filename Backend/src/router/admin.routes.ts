@@ -69,6 +69,14 @@ const adminTemplateMutationLimiter = createRedisRateLimitMiddleware({
   message: "Too many template changes. Please try again later.",
 });
 
+const adminReadLimiter = createRedisRateLimitMiddleware({
+  scope: "admin-reads",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(30, Math.floor(env.REDIS_RATE_LIMIT_MAX / 2)),
+  keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+  message: "Too many admin read requests. Please try again later.",
+});
+
 // ─── All /admin routes require adminGuard ─────────────────────────────────────
 
 router.use("/analytics", ...adminGuard, adminAuditMiddleware("analytics"));
@@ -76,13 +84,13 @@ router.use("/templates", ...adminGuard, adminAuditMiddleware("templates"));
 router.use("/observability", ...adminGuard, adminAuditMiddleware("observability"));
 
 // Dashboard analytics
-router.get("/analytics/dashboard", adminCache("admin-dashboard"), getDashboardStats);
-router.get("/analytics/templates", adminCache("admin-analytics"), getAnalytics);
+router.get("/analytics/dashboard", adminReadLimiter, adminCache("admin-dashboard"), getDashboardStats);
+router.get("/analytics/templates", adminReadLimiter, adminCache("admin-analytics"), getAnalytics);
 
 // Template CRUD
-router.get("/templates", validateRequest({ query: templateListQuerySchema }), adminCache("admin-templates"), listTemplates);
-router.get("/templates/:id", validateRequest({ params: objectIdParamSchema }), adminCache("admin-templates-item"), getTemplate);
-router.get("/templates/:id/preview", validateRequest({ params: objectIdParamSchema }), previewTemplate);
+router.get("/templates", adminReadLimiter, validateRequest({ query: templateListQuerySchema }), adminCache("admin-templates"), listTemplates);
+router.get("/templates/:id", adminReadLimiter, validateRequest({ params: objectIdParamSchema }), adminCache("admin-templates-item"), getTemplate);
+router.get("/templates/:id/preview", adminReadLimiter, validateRequest({ params: objectIdParamSchema }), previewTemplate);
 router.post("/templates", validateRequest({ body: createTemplateSchema }), adminTemplateMutationLimiter, createTemplate);
 router.put("/templates/reorder", validateRequest({ body: reorderTemplatesSchema }), adminTemplateMutationLimiter, reorderTemplates);   // before :id route
 router.put("/templates/:id", validateRequest({ params: objectIdParamSchema, body: updateTemplateSchema }), adminTemplateMutationLimiter, updateTemplate);
@@ -91,11 +99,11 @@ router.patch("/templates/:id/premium", validateRequest({ params: objectIdParamSc
 router.delete("/templates/:id", validateRequest({ params: objectIdParamSchema }), adminTemplateMutationLimiter, deleteTemplate);
 
 // ─── Observability routes (metrics, health, AI analytics) ─────────────────────
-router.get("/observability/overview", adminCache("admin-dashboard"), getMetricsOverview);
-router.get("/observability/system", getSystemHealth);
-router.get("/observability/ai", getAIMetrics);
-router.get("/observability/errors", getErrorMetrics);
-router.post("/observability/seed-ai-metrics", seedAiDiagnostics);
+router.get("/observability/overview", adminReadLimiter, adminCache("admin-dashboard"), getMetricsOverview);
+router.get("/observability/system", adminReadLimiter, getSystemHealth);
+router.get("/observability/ai", adminReadLimiter, getAIMetrics);
+router.get("/observability/errors", adminReadLimiter, getErrorMetrics);
+router.post("/observability/seed-ai-metrics", adminReadLimiter, seedAiDiagnostics);
 
 // ─── Public route: record template usage (called from resume builder) ─────────
 // Uses authenticate (not adminGuard) — any logged-in user can record usage

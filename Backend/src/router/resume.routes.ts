@@ -73,6 +73,22 @@ const previewHtmlLimiter = createRedisRateLimitMiddleware({
   message: "Too many preview requests. Please try again later.",
 });
 
+const resumeReadLimiter = createRedisRateLimitMiddleware({
+  scope: "resume-reads",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(20, Math.floor(env.REDIS_RATE_LIMIT_MAX / 2)),
+  keyBuilder: resumeRateLimitKeyBuilder,
+  message: "Too many resume read requests. Please try again later.",
+});
+
+const resumeDeleteLimiter = createRedisRateLimitMiddleware({
+  scope: "resume-deletes",
+  windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
+  max: Math.max(5, Math.floor(env.REDIS_RATE_LIMIT_MAX / 5)),
+  keyBuilder: resumeRateLimitKeyBuilder,
+  message: "Too many resume delete requests. Please try again later.",
+});
+
 router.post("/preview-html", previewHtmlLimiter, validateRequest({ body: previewHtmlSchema }), previewHtml);
 
 router.use(authMiddleware);
@@ -81,12 +97,14 @@ router.use(authMiddleware);
 
 router.get(
   "/",
+  resumeReadLimiter,
   validateRequest({ query: resumeListQuerySchema }),
   resumeCacheMiddleware,
   baseGetAllResumes,
 );
 router.get(
   "/:id",
+  resumeReadLimiter,
   validateRequest({ params: objectIdParamSchema }),
   resumeCacheMiddleware,
   baseGetResumeById,
@@ -109,7 +127,7 @@ router.put(
   createReferentialIntegrityMiddleware("resumes", (req) => ({ userId: req.user?.id }), "update"),
   baseUpdateResume,
 );
-router.delete("/:id", validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
+router.delete("/:id", resumeDeleteLimiter, validateRequest({ params: objectIdParamSchema }), baseDeleteResume);
 
 router.post(
   "/download-resume",
@@ -117,23 +135,24 @@ router.post(
   resumeExportLimiter,
   downloadResume,
 );
-router.get("/job-status/:id", validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
-router.get("/job-events/:id", validateRequest({ params: jobStatusParamSchema }), streamResumeDownloadJobEvents);
-router.post("/job-cancel/:id", validateRequest({ params: jobStatusParamSchema }), cancelResumeDownload);
-router.get("/download-result/:id", validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
-router.get("/preview-data/:id", validateRequest({ params: jobStatusParamSchema }), getResumePreviewData);
+router.get("/job-status/:id", resumeReadLimiter, validateRequest({ params: jobStatusParamSchema }), getResumeDownloadJobStatus);
+router.get("/job-events/:id", resumeReadLimiter, validateRequest({ params: jobStatusParamSchema }), streamResumeDownloadJobEvents);
+router.post("/job-cancel/:id", resumeMutationLimiter, validateRequest({ params: jobStatusParamSchema }), cancelResumeDownload);
+router.get("/download-result/:id", resumeReadLimiter, validateRequest({ params: jobStatusParamSchema }), downloadResumeResult);
+router.get("/preview-data/:id", resumeReadLimiter, validateRequest({ params: jobStatusParamSchema }), getResumePreviewData);
 
 
 
 router.post(
   "/:id/analyze-ats",
+  resumeMutationLimiter,
   validateRequest({ params: objectIdParamSchema }),
   creditDeductionMiddleware({ operation: "ats-analysis" }),
   createReferentialIntegrityMiddleware("atsanalyses", (req) => ({ resumeId: req.params.id })),
   analyzeAts,
 );
-router.get("/:id/ats-analysis/latest", validateRequest({ params: objectIdParamSchema }), getLatestAtsAnalysis);
-router.get("/:id/ats-analysis/:jobId", validateRequest({ params: objectIdParamSchema }), getAtsAnalysisByJobId);
+router.get("/:id/ats-analysis/latest", resumeReadLimiter, validateRequest({ params: objectIdParamSchema }), getLatestAtsAnalysis);
+router.get("/:id/ats-analysis/:jobId", resumeReadLimiter, validateRequest({ params: objectIdParamSchema }), getAtsAnalysisByJobId);
 
 
 
