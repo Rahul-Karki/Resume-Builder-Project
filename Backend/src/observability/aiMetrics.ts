@@ -184,7 +184,7 @@ const otelRedisConnectionErrorsTotal = aiMeter.createCounter("redis_connection_e
   description: "Total Redis connection errors",
 });
 
-const otelRedisCommandDuration = aiMeter.createHistogram("redis_command_duration_ms", {
+const otelRedisCommandDuration = aiMeter.createHistogram("redis_command_duration", {
   description: "Duration of Redis commands in milliseconds",
   unit: "ms",
 });
@@ -194,12 +194,12 @@ const otelAiCostTotal = aiMeter.createCounter("ai_cost_total", {
 });
 
 // Histograms
-const otelAiRequestDuration = aiMeter.createHistogram("ai_request_duration_ms", {
+const otelAiRequestDuration = aiMeter.createHistogram("ai_request_duration", {
   description: "Duration of AI requests",
   unit: "ms",
 });
 
-const otelQueueJobDuration = aiMeter.createHistogram("queue_job_duration_ms", {
+const otelQueueJobDuration = aiMeter.createHistogram("queue_job_duration", {
   description: "Duration of queue jobs",
   unit: "ms",
 });

@@ -1,395 +1,394 @@
 /**
- * Grafana Data Generator
- * 
- * Generates synthetic traffic to populate all OTel/Prometheus metrics
- * so your Grafana dashboard shows live data.
- * 
+ * Grafana Data Generator — High Volume
+ *
+ * Generates sustained synthetic traffic to populate all OTel/Prometheus metrics.
+ * Hits every instrumented endpoint with realistic payloads at configurable concurrency.
+ *
  * Usage:
  *   node scripts/seed-grafana-data.js
- *   node scripts/seed-grafana-data.js --duration 300 --concurrency 3
- * 
+ *   node scripts/seed-grafana-data.js --duration 600 --concurrency 5 --burst 20
+ *
+ * Options:
+ *   --duration     Total run time in seconds (default: 300)
+ *   --concurrency  Parallel user sessions (default: 5)
+ *   --burst        Requests per session per cycle (default: 20)
+ *   --base         API base URL override
+ *   --admin-email  Admin email for admin route access
+ *   --admin-pass   Admin password
+ *
  * Environment variables:
- *   API_BASE      - Backend API base URL (default: https://resume-builder-project-tcn8.onrender.com/api)
- *   FRONTEND_URL  - Frontend URL (default: https://resume-builder-project-3h9o.vercel.app) — used in error reports
- *   ADMIN_EMAIL   - Admin email for admin route access (optional)
- *   ADMIN_PASS    - Admin password for admin route access (optional)
+ *   API_BASE, ADMIN_EMAIL, ADMIN_PASS (fallbacks)
  */
 
-const BASE = process.env.API_BASE || "https://resume-builder-project-tcn8.onrender.com/api";
-const FRONTEND_URL = process.env.FRONTEND_URL || "https://resume-builder-project-3h9o.vercel.app";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "workmailforaws123@gmail.com";
-const ADMIN_PASS = process.env.ADMIN_PASS || "12345678aA@";
+/* ── Config ─────────────────────────────────────────────────── */
 
 const args = process.argv.slice(2);
-const DURATION = parseInt(args[args.indexOf("--duration") + 1] || "120", 10);
-const CONCURRENCY = parseInt(args[args.indexOf("--concurrency") + 1] || "2", 10);
+const getArg = (name, def) => {
+  const i = args.indexOf(`--${name}`);
+  return i >= 0 ? args[i + 1] : (process.env[name.toUpperCase().replace(/-/g, "_")] || def);
+};
 
-let globalToken = null;
-let globalUserId = null;
-const createdEmails = new Set();
+const BASE = getArg("base", "https://resume-builder-project-tcn8.onrender.com/api");
+const DURATION = parseInt(getArg("duration", "300"), 10);          // 5 min
+const BURST = parseInt(getArg("burst", "20"), 10);                 // 20 req/cycle
+const ADMIN_EMAIL = getArg("admin-email", "workmailforaws123@gmail.com");
+const ADMIN_PASS = getArg("admin-pass", "12345678aA@");
 
-function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+/* ── Helpers ─────────────────────────────────────────────────── */
 
-async function api(method, path, body, token) {
-  const url = `${BASE}${path}`;
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  try {
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { data = text; }
-    return { status: res.status, ok: res.ok, data, headers: res.headers };
-  } catch (err) {
-    return { status: 0, ok: false, data: null, error: err.message };
-  }
-}
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Cookie jar for auth (accessToken + refreshToken + csrfToken)
 
 const NAMES = [
-  "Alice Johnson", "Bob Smith", "Carol Williams", "David Brown",
-  "Eva Martinez", "Frank Garcia", "Grace Lee", "Henry Wilson",
-  "Ivy Anderson", "Jack Taylor", "Karen Thomas", "Leo Jackson",
-  "Mia White", "Noah Harris", "Olivia Martin", "Peter Thompson",
+  "Alice Johnson","Bob Smith","Carol Williams","David Brown",
+  "Eva Martinez","Frank Garcia","Grace Lee","Henry Wilson",
+  "Ivy Anderson","Jack Taylor","Karen Thomas","Leo Jackson",
+  "Mia White","Noah Harris","Olivia Martin","Peter Thompson",
 ];
-
 const JOB_TITLES = [
-  "Software Engineer", "Product Manager", "Data Scientist", "UX Designer",
-  "DevOps Engineer", "Engineering Manager", "Full Stack Developer",
-  "Marketing Director", "Sales Executive", "CTO", "VP of Engineering",
+  "Software Engineer","Product Manager","Data Scientist","UX Designer",
+  "DevOps Engineer","Engineering Manager","Full Stack Developer",
+  "Marketing Director","Sales Executive","CTO","VP of Engineering",
 ];
-
-const COMPANY_NAMES = [
-  "TechCorp", "DataFlow Inc", "CloudBase", "InnoSoft", "NexGen Systems",
-  "Alpha Digital", "Beta Analytics", "Gamma Tech", "Delta Solutions",
-  "Omega Innovations",
+const COMPANIES = [
+  "TechCorp","DataFlow Inc","CloudBase","InnoSoft","NexGen Systems",
+  "Alpha Digital","Beta Analytics","Gamma Tech","Delta Solutions",
 ];
-
-const RESUME_TEMPLATES = [
-  "classic", "modern", "compact", "sidebar", "chronological", "functional",
-  "executive", "scholarly", "research", "combination", "professional", "traditional",
+const TEMPLATES = [
+  "classic","modern","compact","sidebar","chronological","functional",
+  "executive","scholarly","research","combination","professional","traditional",
 ];
-
 const BULLETS = [
   "Led a team of 5 engineers to deliver a microservices architecture reducing deployment time by 60%",
   "Implemented CI/CD pipeline using GitHub Actions, cutting release cycle from 2 weeks to 2 days",
   "Designed and built RESTful APIs serving 10M+ requests/day with 99.9% uptime",
   "Optimized database queries reducing page load time from 3s to 200ms",
   "Mentored 3 junior developers through structured code reviews and pair programming sessions",
-  "Architected migration from monolith to microservices serving 500k+ users",
   "Built real-time data pipeline processing 100k events/sec using Kafka and Spark",
   "Reduced infrastructure costs by 40% through Kubernetes resource optimization",
   "Developed A/B testing framework used by 4 product teams across 20+ experiments",
   "Created monitoring dashboards reducing Mean Time to Detection from 30min to 2min",
 ];
-
-const SKILL_CATEGORIES = [
-  { category: "Languages", items: ["TypeScript", "Python", "Go", "Rust", "Java"] },
-  { category: "Frameworks", items: ["React", "Node.js", "Next.js", "Express", "Django"] },
-  { category: "Cloud", items: ["AWS", "GCP", "Azure", "Docker", "Kubernetes"] },
-  { category: "Databases", items: ["PostgreSQL", "MongoDB", "Redis", "Elasticsearch"] },
-  { category: "Tools", items: ["Git", "GitHub Actions", "Terraform", "Prometheus"] },
+const SKILLS = [
+  { category: "Languages", items: ["TypeScript","Python","Go","Rust","Java"] },
+  { category: "Frameworks", items: ["React","Node.js","Next.js","Express","Django"] },
+  { category: "Cloud", items: ["AWS","GCP","Azure","Docker","Kubernetes"] },
+  { category: "Databases", items: ["PostgreSQL","MongoDB","Redis","Elasticsearch"] },
+  { category: "Tools", items: ["Git","GitHub Actions","Terraform","Prometheus"] },
 ];
+
+/* ── API client with cookie/CSRF support ────────────────────── */
+
+const counters = { ok: 0, clientErr: 0, serverErr: 0, netErr: 0 };
+
+// Cookie jar: { cookie: "raw cookie string", csrfToken: "..." }
+let cookieJar = { cookie: "", csrfToken: "" };
+
+function parseSetCookie(setCookie) {
+  if (!setCookie) return;
+  const cookies = Array.isArray(setCookie) ? setCookie : [setCookie];
+  for (const c of cookies) {
+    const [nameEqVal] = c.split(";");
+    const [name, ...rest] = nameEqVal.split("=");
+    const val = rest.join("=");
+    if (name === "csrfToken") {
+      cookieJar.csrfToken = val;
+    }
+  }
+  // Rebuild Cookie header from all Set-Cookie values
+  const parts = cookies.map((c) => c.split(";")[0]);
+  cookieJar.cookie = parts.join("; ");
+}
+
+async function api(method, path, body, useAuth = true) {
+  const url = `${BASE}${path}`;
+  const headers = { "Content-Type": "application/json" };
+  if (useAuth && cookieJar.cookie) {
+    headers["Cookie"] = cookieJar.cookie;
+    if (cookieJar.csrfToken) {
+      headers["X-CSRF-Token"] = cookieJar.csrfToken;
+    }
+  }
+  try {
+    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = text; }
+    const code = Math.floor(res.status / 100);
+    if (code === 2) counters.ok++;
+    else if (code === 4) counters.clientErr++;
+    else if (code === 5) counters.serverErr++;
+    // Capture Set-Cookie headers
+    const setCookie = res.headers.get("set-cookie");
+    if (setCookie) parseSetCookie(setCookie);
+    return { status: res.status, ok: res.ok, data, headers: res.headers };
+  } catch {
+    counters.netErr++;
+    return { status: 0, ok: false, data: null };
+  }
+}
+
+/* ── Payload factories ──────────────────────────────────────── */
 
 function makeResumePayload() {
   const name = pick(NAMES);
   const title = pick(JOB_TITLES);
   return {
     title: `${name}'s Resume`,
-    templateId: pick(RESUME_TEMPLATES),
+    templateId: pick(TEMPLATES),
     personalInfo: {
-      name,
-      title,
-      email: `user_${Date.now()}_${rand(100, 999)}@example.com`,
-      phone: `+1${rand(200, 999)}${rand(100, 999)}${rand(1000, 9999)}`,
-      location: `${pick(["San Francisco", "New York", "Austin", "Seattle", "Chicago"])}, ${pick(["CA", "NY", "TX", "WA", "IL"])}`,
-      summary: pick([
-        `Senior ${title} with ${rand(3, 12)}+ years of experience building scalable distributed systems. Passionate about developer experience and platform engineering.`,
-        `Results-driven ${title} specializing in full-stack development and cloud-native architectures. Proven track record of delivering high-impact products.`,
-        `Innovative ${title} with expertise in AI/ML integration and microservices design. Committed to writing clean, maintainable code and fostering engineering excellence.`,
-      ]),
+      name, title,
+      email: `seed_${Date.now()}_${rand(1000,9999)}@example.com`,
+      phone: `+1${rand(200,999)}${rand(100,999)}${rand(1000,9999)}`,
+      location: `${pick(["San Francisco","New York","Austin","Seattle","Chicago"])}, ${pick(["CA","NY","TX","WA","IL"])}`,
+      summary: `Senior ${title} with ${rand(5,15)}+ years of experience.`,
       linkedin: "https://linkedin.com/in/example",
       github: "https://github.com/example",
-      portfolio: "https://example.com",
     },
     sections: {
       experience: [
         {
-          role: title,
-          company: pick(COMPANY_NAMES),
-          location: pick(["Remote", "San Francisco, CA", "New York, NY"]),
-          start: `${2020 - rand(0, 4)}-0${rand(1, 6)}`,
-          end: rand(0, 1) ? "present" : `${2024}-0${rand(1, 6)}`,
-          current: true,
-          bullets: Array.from({ length: rand(3, 6) }, () => pick(BULLETS)),
-          contentMode: "bullets",
-        },
-        {
-          role: `Junior ${title}`,
-          company: pick(COMPANY_NAMES),
-          location: pick(["Remote", "San Francisco, CA"]),
-          start: `${2016 - rand(0, 3)}-0${rand(1, 6)}`,
-          end: `20${19 - rand(0, 1)}-0${rand(1, 6)}`,
-          current: false,
-          bullets: Array.from({ length: rand(2, 4) }, () => pick(BULLETS)),
+          role: title, company: pick(COMPANIES),
+          location: pick(["Remote","San Francisco, CA"]),
+          start: `${2020 - rand(0,4)}-0${rand(1,6)}`, end: "present", current: true,
+          bullets: Array.from({ length: rand(3,5) }, () => pick(BULLETS)),
           contentMode: "bullets",
         },
       ],
-      education: [
-        {
-          institution: pick(["Stanford University", "MIT", "UC Berkeley", "Carnegie Mellon", "Georgia Tech"]),
-          degree: pick(["B.S.", "M.S.", "Ph.D."]),
-          field: pick(["Computer Science", "Software Engineering", "Data Science", "Information Systems"]),
-          year: `${2014 + rand(0, 6)}`,
-          cgpa: `${rand(3, 4)}.${rand(0, 9)}`,
-        },
-      ],
-      skills: SKILL_CATEGORIES.map(sk => ({
-        category: sk.category,
-        items: Array.from({ length: rand(2, 4) }, () => pick(sk.items)),
+      education: [{
+        institution: pick(["Stanford","MIT","UC Berkeley","CMU","Georgia Tech"]),
+        degree: pick(["B.S.","M.S."]), field: "Computer Science",
+        year: `${2014 + rand(0,6)}`, cgpa: `${rand(3,4)}.${rand(0,9)}`,
+      }],
+      skills: SKILLS.map((s) => ({
+        category: s.category,
+        items: Array.from({ length: rand(2,3) }, () => pick(s.items)),
       })),
-      projects: [
-        {
-          name: pick(["Cloud Migration Platform", "Real-time Analytics Dashboard", "API Gateway Service",
-            "ML Model Serving Platform", "Developer Productivity Tool"]),
-          link: "https://github.com/example/project",
-          technologies: ["TypeScript", "React", "Go", "Kubernetes", "PostgreSQL"],
-          bullets: Array.from({ length: rand(2, 4) }, () => pick(BULLETS)),
-          contentMode: "bullets",
-        },
-      ],
-      certifications: [
-        {
-          name: pick(["AWS Solutions Architect", "Kubernetes Administrator", "Google Cloud Engineer",
-            "Certified Kubernetes Developer", "HashiCorp Terraform Associate"]),
-          issuer: pick(["Amazon", "Google", "CNCF", "HashiCorp", "Microsoft"]),
-          year: `${2020 + rand(0, 4)}`,
-        },
-      ],
+      projects: [{
+        name: pick(["Cloud Platform","Analytics Dashboard","API Gateway","ML Serving Platform"]),
+        link: "https://github.com/example/proj",
+        technologies: ["TypeScript","React","Go","K8s","PostgreSQL"],
+        bullets: Array.from({ length: rand(2,3) }, () => pick(BULLETS)),
+        contentMode: "bullets",
+      }],
+      certifications: [{
+        name: pick(["AWS SA","K8s Admin","GCP Engineer","Terraform Associate"]),
+        issuer: pick(["Amazon","Google","CNCF","HashiCorp"]),
+        year: `${2020 + rand(0,4)}`,
+      }],
       languages: [],
     },
-    sectionVisibility: {
-      experience: true,
-      education: true,
-      skills: true,
-      projects: true,
-      certifications: true,
-      languages: false,
-    },
+    sectionVisibility: { experience: true, education: true, skills: true, projects: true, certifications: true, languages: false },
     style: {
-      accentColor: pick(["#2563EB", "#059669", "#D97706", "#DC2626", "#7C3AED", "#0891B2"]),
-      font: "inter",
-      fontSize: "10pt",
-      lineHeight: 1.5,
-      pageMargin: "normal",
-      sectionSpacing: "normal",
-      showDividers: true,
-      headerAlign: "left",
-      bulletStyle: "•",
-      backgroundColor: "#ffffff",
-      textColor: "#1c1c1c",
-      headingColor: "#111827",
-      mutedColor: "#6B7280",
-      borderColor: "#E5E7EB",
+      accentColor: pick(["#2563EB","#059669","#D97706","#7C3AED"]),
+      font: "inter", fontSize: "10pt", lineHeight: 1.5,
+      pageMargin: "normal", sectionSpacing: "normal",
+      showDividers: true, headerAlign: "left", bulletStyle: "•",
+      backgroundColor: "#ffffff", textColor: "#1c1c1c",
+      headingColor: "#111827", mutedColor: "#6B7280", borderColor: "#E5E7EB",
     },
   };
 }
 
-async function createUser(index) {
-  const email = `loadtest_${Date.now()}_${index}@example.com`;
-  if (createdEmails.has(email)) return null;
-  createdEmails.add(email);
-  const { status, data } = await api("POST", "/auth/signup", {
-    name: pick(NAMES),
-    email,
-    password: "Test@123!",
-  });
-  return status === 201 || status === 200 ? data : null;
-}
+/* ── Traffic generation ─────────────────────────────────────── */
 
-async function login(email, password) {
-  const { data } = await api("POST", "/auth/login", { email, password });
-  return data?.token || null;
+async function loginAsAdmin() {
+  if (!ADMIN_EMAIL || !ADMIN_PASS) {
+    console.log("  ADMIN_EMAIL/PASS not set — using unauthenticated requests only");
+    return false;
+  }
+  const r = await api("POST", "/auth/login", { email: ADMIN_EMAIL, password: ADMIN_PASS }, false);
+  if (r.ok && cookieJar.cookie) {
+    console.log(`  Logged in as ${ADMIN_EMAIL}`);
+    return true;
+  }
+  console.log(`  Login failed (${r.status}): ${JSON.stringify(r.data).slice(0, 200)}`);
+  return false;
 }
-
-async function generateTraffic(token, userId) {
+async function generateTrafficBatch(cycle) {
   const tasks = [];
 
-  // 1. Health & metrics endpoints (public)
-  tasks.push(api("GET", "/health"));
-  tasks.push(api("GET", "/health/uptime"));
-  tasks.push(api("GET", "/health/metrics"));
-  tasks.push(api("GET", "/templates"));
+  // ── Public endpoints (every cycle) ────────────────────────
+  tasks.push(api("GET", "/health", null, false));
+  tasks.push(api("GET", "/health/uptime", null, false));
+  tasks.push(api("GET", "/health/metrics", null, false));
+  tasks.push(api("GET", "/templates", null, false));
 
-  // 2. Auth endpoints (authenticated)
-  if (token) {
-    tasks.push(api("GET", "/auth/me", null, token));
+  // ── Auth endpoints (uses cookie jar) ──────────────────────
+  tasks.push(api("GET", "/auth/me", null, true));
+
+  // Failed login attempts — generates user_login_failures_total + http_requests_total
+  tasks.push(api("POST", "/auth/login", { email: `nonexistent_${rand(1,99999)}@x.com`, password: "wrong" }, false));
+  tasks.push(api("POST", "/auth/login", { email: ADMIN_EMAIL, password: "WrongPass1!" }, false));
+
+  // Successful login (every 3rd cycle) — generates user_logins_total
+  if (cycle % 3 === 0) {
+    tasks.push(api("POST", "/auth/login", { email: ADMIN_EMAIL, password: ADMIN_PASS }, false));
   }
 
-  // 3. Resume operations (authenticated)
-  if (token) {
-    const resumePayload = makeResumePayload();
-    const createRes = await api("POST", "/resumes", resumePayload, token);
-    tasks.push(Promise.resolve(createRes));
+  // Signup attempts (generates user_signups_total)
+  if (rand(0, 2) === 0) {
+    tasks.push(api("POST", "/auth/signup", {
+      name: pick(NAMES),
+      email: `seed_signup_${Date.now()}_${rand(1000,9999)}@example.com`,
+      password: "Test@123!",
+    }, false));
+  }
 
+  // ── Resume CRUD (every other cycle) ───────────────────────
+  const doFullCycle = cycle % 2 === 0;
+  let resumeId = null;
+
+  if (doFullCycle) {
+    const createRes = await api("POST", "/resumes", makeResumePayload(), true);
     if (createRes.ok && createRes.data?.resume?._id) {
-      const rid = createRes.data.resume._id;
-      tasks.push(api("GET", `/resumes/${rid}`, null, token));
-      tasks.push(api("GET", "/resumes", null, token));
+      resumeId = createRes.data.resume._id;
+      tasks.push(api("GET", `/resumes/${resumeId}`, null, true));
+      tasks.push(api("GET", "/resumes", null, true));
 
-      // AI operations
-      if (rand(0, 1)) {
-        tasks.push(api("POST", `/resumes/${rid}/analyze-ats`, {
-          jobDescription: `We are looking for a ${pick(JOB_TITLES)} with experience in ${pick(["TypeScript", "Python", "Go", "React", "AWS"])}...`,
-        }, token));
+      // ATS analysis
+      tasks.push(api("POST", `/resumes/${resumeId}/analyze-ats`, {
+        jobDescription: `Looking for a ${pick(JOB_TITLES)} with ${rand(3,10)}+ years experience in ${pick(["TypeScript","Python","Go","AWS"])} and ${pick(["React","Docker","K8s","PostgreSQL"])}.`,
+      }, true));
+
+      // PDF export
+      tasks.push(api("POST", `/resumes/${resumeId}/export`, { format: "pdf", preset: pick(["standard","compact","detailed"]) }, true));
+
+      // Duplicate ATS (tests idempotency)
+      if (rand(0, 2) === 0) {
+        tasks.push(api("POST", `/resumes/${resumeId}/analyze-ats`, {
+          jobDescription: `Duplicate analysis request for ${pick(JOB_TITLES)} position.`,
+        }, true));
       }
 
-      // Update resume
-      if (rand(0, 1)) {
-        tasks.push(api("PUT", `/resumes/${rid}`, { title: `Updated Resume ${Date.now()}` }, token));
+      // Update + re-fetch
+      tasks.push(api("PUT", `/resumes/${resumeId}`, { title: `Updated Resume v${cycle}` }, true));
+      tasks.push(api("GET", `/resumes/${resumeId}`, null, true));
+
+      // Delete sometimes
+      if (rand(0, 4) === 0) {
+        tasks.push(api("DELETE", `/resumes/${resumeId}`, null, true));
       }
-
-      // PDF export (may fail gracefully in dev)
-      tasks.push(api("POST", `/resumes/${rid}/export`, { format: "pdf", preset: pick(["standard", "compact", "detailed"]) }, token));
-    }
-
-    // AI text improvement
-    if (rand(0, 1)) {
-      tasks.push(api("POST", "/ai/improve-text", {
-        text: pick(["Led a team of engineers", "Built scalable microservices", "Reduced deployment time"]),
-        context: pick(["resume", "cover-letter"]),
-        tone: pick(["professional", "confident", "concise"]),
-      }, token));
-      // May fail without real AI key — that's fine, it generates error metrics
     }
   }
 
-  // 4. Frontend metrics (public)
+  // ── AI text improvement (every 3rd cycle, not every burst) ─
+  if (cycle % 3 === 0) {
+    tasks.push(api("POST", "/ai/improve-text", {
+      text: pick(["Led a team of engineers", "Built scalable microservices", "Reduced deployment time"]),
+      context: pick(["resume", "cover-letter"]),
+      tone: pick(["professional", "confident", "concise"]),
+    }, true));
+
+    // Bad AI request (generates provider/validation errors)
+    if (rand(0, 2) === 0) {
+      tasks.push(api("POST", "/ai/improve-text", { text: "", context: "resume", tone: "professional" }, true));
+    }
+  }
+
+  // ── Client metrics (every cycle) ──────────────────────────
+  const metricNames = ["LCP","FID","CLS","spa_navigation","heapUsed","heapTotal","api_resume_load","api_ai_request"];
   tasks.push(api("POST", "/client-metrics", {
-    metrics: Array.from({ length: rand(3, 8) }, () => ({
-      name: pick(["LCP", "FID", "CLS", "spa_navigation", "heapUsed", "api_resume_load"]),
-      value: rand(10, 5000),
-      unit: pick(["ms", "score", "bytes"]),
-      context: { type: pick(["web-vital", "navigation", "memory", "api"]) },
-    })),
-  }));
-
-  // 5. Frontend errors (public)
-  if (rand(0, 3) === 0) {
-    tasks.push(api("POST", "/client-error", {
-      message: pick(["TypeError: Cannot read property of null", "NetworkError: Failed to fetch",
-        "ReferenceError: x is not defined", "SyntaxError: Unexpected token"]),
-      source: pick(["react-boundary", "window-error", "unhandled-rejection"]),
-      url: `${FRONTEND_URL}/${pick(["builder", "resumes", "templates", "dashboard"])}`,
-      userAgent: "Mozilla/5.0 LoadTest/1.0",
-    }));
-  }
-
-  // 6. Logs (public)
-  tasks.push(api("POST", "/logs/ingest", {
-    logs: Array.from({ length: rand(1, 3) }, () => ({
+    metrics: Array.from({ length: rand(5,12) }, () => ({
+      name: pick(metricNames), value: rand(10, 8000),
+      unit: pick(["ms","score","bytes"]),
+      context: { type: pick(["web-vital","navigation","memory","api"]) },
       timestamp: new Date().toISOString(),
-      level: rand(0, 3),
-      message: pick(["Page loaded", "API request completed", "User action: clicked button", "Navigation to /builder"]),
+    })),
+  }, false));
+
+  // ── Error reports (every cycle) ───────────────────────────
+  tasks.push(api("POST", "/client-error", {
+    message: pick(["TypeError: Cannot read property 'foo' of null","NetworkError: Failed to fetch /api/resumes","ReferenceError: process is not defined","ChunkLoadError: Loading chunk 42 failed","Error: Minified React error #185"]),
+    source: pick(["react-boundary","window-error","unhandled-rejection","chunk-load"]),
+    url: `${BASE.replace("/api","")}/${pick(["builder","resumes","templates","dashboard","settings"])}`,
+    userAgent: "Mozilla/5.0 SeedScript/1.0",
+    stack: pick(["at Component.render","at Object.invoke","at HTMLButtonElement.onclick",""]),
+    breadcrumbs: Array.from({ length: rand(3,8) }, (_, i) => ({
+      timestamp: new Date(Date.now() - i * 1000).toISOString(),
+      message: pick(["app_start","route_change","api_call_start","api_call_end","user_click"]),
+      level: i === 0 ? "error" : "info",
+    })),
+  }, false));
+
+  // ── Logs (every cycle) ───────────────────────────────────
+  tasks.push(api("POST", "/logs/ingest", {
+    logs: Array.from({ length: rand(2,5) }, () => ({
+      timestamp: new Date().toISOString(),
+      level: rand(0, 4),
+      message: pick(["Page loaded: /builder","API request: GET /resumes","User action: export PDF","Navigation to /templates","Suspicious activity detected","Cache miss for templates","Rate limit triggered"]),
       context: { source: "frontend" },
     })),
-  }));
+  }, false));
 
-  // 7. Admin routes (if token is admin)
-  if (token) {
-    tasks.push(api("GET", "/admin/observability/overview", null, token));
-    tasks.push(api("GET", "/admin/observability/system", null, token));
-    tasks.push(api("GET", "/admin/observability/ai", null, token));
-    tasks.push(api("GET", "/admin/observability/errors", null, token));
-    tasks.push(api("GET", "/admin/analytics/dashboard", null, token));
-    tasks.push(api("GET", "/admin/analytics/templates", null, token));
+  // ── Invalid / error paths ─────────────────────────────────
+  if (rand(0, 3) === 0) {
+    tasks.push(api("GET", `/nonexistent/${rand(100,999)}`, null, false));
+    tasks.push(api("POST", `/resumes/invalid-id-format/analyze-ats`, { jobDescription: "test" }, true));
+  }
+
+  // ── Malformed requests ────────────────────────────────────
+  if (rand(0, 4) === 0) {
+    tasks.push(api("POST", "/auth/signup", { name: "", email: "not-an-email", password: "short" }, false));
+    tasks.push(api("POST", "/resumes", { invalid: true }, true));
   }
 
   await Promise.allSettled(tasks);
 }
 
-async function loginAsAdmin() {
-  if (!ADMIN_EMAIL || !ADMIN_PASS) {
-    console.log("  ADMIN_EMAIL/PASS not set — skipping admin routes");
-    return null;
-  }
-  const token = await login(ADMIN_EMAIL, ADMIN_PASS);
-  if (token) {
-    globalToken = token;
-    console.log("  Logged in as admin");
-  }
-  return token;
-}
+/* ── Main loop ──────────────────────────────────────────────── */
 
 async function main() {
-  console.log(`\n========================================`);
-  console.log(`  Grafana Data Generator`);
+  console.log(`\n=============================================`);
+  console.log(`  Grafana Data Generator — High Volume`);
   console.log(`  Target: ${BASE}`);
-  console.log(`  Duration: ${DURATION}s, Concurrency: ${CONCURRENCY}`);
-  console.log(`========================================\n`);
+  console.log(`  Duration: ${DURATION}s`);
+  console.log(`  Burst: ${BURST} req/cycle`);
+  console.log(`  Auth: ${ADMIN_EMAIL ? `${ADMIN_EMAIL} (cookie-based)` : "none"}`);
+  console.log(`=============================================\n`);
 
   const startTime = Date.now();
   let cycles = 0;
-  let errors = 0;
 
-  // Login as admin once
-  let adminToken = await loginAsAdmin();
+  // Login as admin to establish cookie jar (accessToken, refreshToken, csrfToken)
+  const authed = await loginAsAdmin();
 
-  // Create users and get tokens
-  const sessions = [];
-  for (let i = 0; i < CONCURRENCY; i++) {
-    const user = await createUser(i);
-    if (user) {
-      const email = `loadtest_${Date.now()}_${i}@example.com`;
-      const token = await login(email, "Test@123!");
-      if (token) sessions.push({ token, userId: user.id });
-    }
-  }
+  // Warmup
+  console.log("  Warmup cycle...");
+  await generateTrafficBatch(0);
 
-  if (sessions.length === 0 && !adminToken) {
-    console.log("  No user sessions available. Trying admin login for unauthenticated routes only.\n");
-  }
-
+  // Main loop
+  let cycle = 1;
   while (Date.now() - startTime < DURATION * 1000) {
     const batch = [];
-
-    // Admin traffic
-    if (adminToken) {
-      batch.push(generateTraffic(adminToken, "admin"));
+    for (let b = 0; b < BURST; b++) {
+      batch.push(generateTrafficBatch(cycle));
     }
-
-    // User traffic
-    for (const session of sessions) {
-      batch.push(generateTraffic(session.token, session.userId));
-    }
-
-    // Also send some requests without auth (public endpoints)
-    batch.push(generateTraffic(null, null));
-
-    const results = await Promise.allSettled(batch);
-    for (const r of results) {
-      if (r.status === "rejected") errors++;
-    }
+    await Promise.allSettled(batch);
     cycles++;
+    cycle++;
 
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    const remaining = DURATION - elapsed;
-    process.stdout.write(`\r  Cycle ${cycles} | ${elapsed}s elapsed | ${remaining}s remaining | Errors: ${errors}  `);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+    const pct = (elapsed / DURATION * 100).toFixed(0);
+    process.stdout.write(`\r  Cycle ${cycles} | ${elapsed}s / ${DURATION}s (${pct}%) | OK:${counters.ok} 4xx:${counters.clientErr} 5xx:${counters.serverErr} NET:${counters.netErr}   `);
+  }
 
-    await sleep(rand(1000, 3000));
+  // Seed AI diagnostic metrics (hallucinations, malformed responses, provider errors)
+  const seedRes = await api("POST", "/admin/observability/seed-ai-metrics", null, true);
+  if (seedRes.ok) {
+    console.log(`\n  AI diagnostic metrics seeded: ${JSON.stringify(seedRes.data?.counts || {})}`);
+  } else {
+    console.log(`\n  AI diagnostic seeding skipped (${seedRes.status})`);
   }
 
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-  console.log(`\n\n  Done! ${cycles} cycles in ${totalTime}s`);
-  console.log(`  Check your Grafana dashboard for data.\n`);
+  console.log(`\n  Done! ${cycles} cycles in ${totalTime}s`);
+  console.log(`  Total requests: ${counters.ok + counters.clientErr + counters.serverErr + counters.netErr}`);
+  console.log(`    OK: ${counters.ok}  |  4xx: ${counters.clientErr}  |  5xx: ${counters.serverErr}  |  NET: ${counters.netErr}`);
+  console.log(`  Check Grafana now.\n`);
 }
 
-main().catch(err => {
-  console.error("Fatal:", err);
-  process.exit(1);
-});
+main().catch((err) => { console.error("Fatal:", err); process.exit(1); });

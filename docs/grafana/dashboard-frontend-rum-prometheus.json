@@ -1,0 +1,784 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus datasource (Prometheus)",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "6.0.0"
+    }
+  ],
+  "title": "Resume Builder — Frontend RUM (Prometheus)",
+  "description": "Web Vitals (LCP, FID, CLS), JS heap, SPA navigation timing, frontend error rates by source. Prometheus-only — from /metrics endpoint.",
+  "tags": [
+    "resume-builder",
+    "frontend"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "60s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "24h"
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "LCP (p75)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "description": "Good <2500ms, Poor >4000ms",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.75, sum(rate(resume_builder_frontend_metric_value_bucket{name=\"LCP\"}[5m])) by (le))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 2500
+              },
+              {
+                "color": "red",
+                "value": 4000
+              }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "FID (p75)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "description": "Good <100ms, Poor >300ms",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.75, sum(rate(resume_builder_frontend_metric_value_bucket{name=\"FID\"}[5m])) by (le))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 100
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "CLS (p75)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "description": "Good <0.1, Poor >0.25",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.75, sum(rate(resume_builder_frontend_metric_value_bucket{name=\"CLS\"}[5m])) by (le))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "JS Heap (avg)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "sum(rate(resume_builder_frontend_metric_value_sum{name=\"heapUsed\"}[5m])) / sum(rate(resume_builder_frontend_metric_value_count{name=\"heapUsed\"}[5m]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50000000
+              },
+              {
+                "color": "red",
+                "value": 100000000
+              }
+            ]
+          },
+          "unit": "bytes"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "SPA Nav Duration (p95)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
+        "y": 0
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(resume_builder_frontend_metric_value_bucket{name=\"spa_navigation\"}[5m])) by (le))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 500
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "API Call Duration (p95)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(resume_builder_frontend_metric_value_bucket{name=~\"api_.*\"}[5m])) by (le))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Web Vitals Trend (LCP)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 3
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.75, sum by (le) (rate(resume_builder_frontend_metric_value_bucket{name=\"LCP\"}[5m])))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Web Vitals Trend (FID)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 3
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.75, sum by (le) (rate(resume_builder_frontend_metric_value_bucket{name=\"FID\"}[5m])))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Web Vitals Trend (CLS)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 3
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.75, sum by (le) (rate(resume_builder_frontend_metric_value_bucket{name=\"CLS\"}[5m])))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "options": {
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "JS Heap Timeline",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "sum by (name) (rate(resume_builder_frontend_metric_value_sum{name=~\"heap.*\"}[5m])) / sum by (name) (rate(resume_builder_frontend_metric_value_count{name=~\"heap.*\"}[5m]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        }
+      },
+      "options": {
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "SPA Navigation Duration",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(resume_builder_frontend_metric_value_bucket{name=\"spa_navigation\"}[5m])))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Metric Reports by Name",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "sum by (name) (rate(resume_builder_frontend_metrics_total[5m]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            },
+            "lineInterpolation": "smooth"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Error Rate by Source",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 13
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "sum by (source) (rate(resume_builder_client_errors_total[5m]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            },
+            "lineInterpolation": "smooth"
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "Error Rate by Type",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 13
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "sum by (error_type) (rate(resume_builder_client_errors_total[5m]))",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "stacking": {
+              "mode": "normal"
+            },
+            "lineInterpolation": "smooth"
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    },
+    {
+      "id": 15,
+      "title": "Errors Over Time",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 13
+      },
+      "description": "",
+      "targets": [
+        {
+          "expr": "rate(resume_builder_client_errors_total[5m])",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "textMode": "auto",
+        "legend": {
+          "showAt": "right",
+          "calcs": [
+            "max"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,12 +1,30 @@
 import User from "../models/User";
 import { AppError } from "../errors/AppError";
 
-const DAILY_LIMITS = {
-  "ai-assistant": 6,
-  "ats-score": 2,
+const DEFAULT_DAILY_LIMITS = {
+  "ai-assistant": 1000,
+  "ats-score": 200,
 } as const;
 
-export type DailyFeature = keyof typeof DAILY_LIMITS;
+const getDailyLimits = () => {
+  const limits = { ...DEFAULT_DAILY_LIMITS };
+  const envOverrides = process.env.DAILY_USAGE_LIMITS;
+  if (envOverrides) {
+    try {
+      const parsed = JSON.parse(envOverrides) as Record<string, number>;
+      for (const [key, value] of Object.entries(parsed)) {
+        if (key in limits && typeof value === "number" && value > 0) {
+          (limits as Record<string, number>)[key] = value;
+        }
+      }
+    } catch {
+      // ignore invalid env override
+    }
+  }
+  return limits;
+};
+
+export type DailyFeature = keyof typeof DEFAULT_DAILY_LIMITS;
 
 const getToday = () => {
   const now = new Date();
@@ -25,7 +43,8 @@ const getField = (feature: DailyFeature) => `dailyUsage.${feature}`;
  */
 export const reserveDailyUsage = async (userId: string, feature: DailyFeature): Promise<void> => {
   const today = getToday();
-  const limit = DAILY_LIMITS[feature];
+  const limits = getDailyLimits();
+  const limit = limits[feature];
   const field = getField(feature);
 
   const result = await User.findOneAndUpdate(

@@ -28,20 +28,20 @@ if (env.ENABLE_METRICS) {
 }
 
 const eventLoopLagGauge = new Gauge({
-  name: "event_loop_lag_ms",
+  name: "resume_builder_event_loop_lag_ms",
   help: "Event loop lag in milliseconds",
   registers: [metricsRegistry],
 });
 
 const gcDurationGauge = new Gauge({
-  name: "gc_duration_ms",
+  name: "resume_builder_gc_duration_ms",
   help: "Garbage collection duration in milliseconds",
   labelNames: ["type"],
   registers: [metricsRegistry],
 });
 
 const cpuPercentGauge = new Gauge({
-  name: "cpu_percent",
+  name: "resume_builder_cpu_percent",
   help: "Process CPU usage percentage (0-100 per core)",
   registers: [metricsRegistry],
 });
@@ -180,7 +180,7 @@ const createAppMetrics = (meterInstance: ReturnType<MeterProvider["getMeter"]>):
   httpRequestsTotal: meterInstance.createCounter("http_requests_total", {
     description: "Total HTTP requests",
   }),
-  httpRequestDuration: meterInstance.createHistogram("http_request_duration_ms", {
+  httpRequestDuration: meterInstance.createHistogram("http_request_duration", {
     description: "HTTP request duration in milliseconds",
     unit: "ms",
   }),
@@ -194,7 +194,7 @@ const createAppMetrics = (meterInstance: ReturnType<MeterProvider["getMeter"]>):
   activeConnections: meterInstance.createUpDownCounter("active_connections", {
     description: "Active connections",
   }),
-  dbQueryDuration: meterInstance.createHistogram("db_query_duration_ms", {
+  dbQueryDuration: meterInstance.createHistogram("db_query_duration", {
     description: "Database query duration in milliseconds",
     unit: "ms",
   }),
@@ -204,7 +204,7 @@ const createAppMetrics = (meterInstance: ReturnType<MeterProvider["getMeter"]>):
   emailSentTotal: meterInstance.createCounter("email_sent_total", {
     description: "Total emails sent",
   }),
-  emailDuration: meterInstance.createHistogram("email_duration_ms", {
+  emailDuration: meterInstance.createHistogram("email_duration", {
     description: "Email send duration in milliseconds",
     unit: "ms",
   }),
@@ -646,6 +646,11 @@ export const initializeObservability = () => {
     description: "Filesystem write operations per second",
   }).addCallback((result) => {
     result.observe(lastDiskWriteOpsPerSec);
+  });
+  rm.createObservableGauge("process_resident_memory_bytes", {
+    description: "Resident memory size in bytes",
+  }).addCallback((result) => {
+    result.observe(process.memoryUsage().rss);
   });
 
   // Start event loop lag monitoring (measure every 2s)

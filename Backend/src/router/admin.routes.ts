@@ -20,6 +20,7 @@ import {
   getSystemHealth,
   getAIMetrics,
   getErrorMetrics,
+  seedAiDiagnostics,
 } from "../controllers/observabilityController";
 import { validateRequest } from "../middleware/validateRequest";
 import {
@@ -94,6 +95,7 @@ router.get("/observability/overview", adminCache("admin-dashboard"), getMetricsO
 router.get("/observability/system", getSystemHealth);
 router.get("/observability/ai", getAIMetrics);
 router.get("/observability/errors", getErrorMetrics);
+router.post("/observability/seed-ai-metrics", seedAiDiagnostics);
 
 // ─── Public route: record template usage (called from resume builder) ─────────
 // Uses authenticate (not adminGuard) — any logged-in user can record usage
