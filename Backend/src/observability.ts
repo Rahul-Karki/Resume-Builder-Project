@@ -68,13 +68,6 @@ export const promEmailDurationSeconds = new Histogram({
   registers: [metricsRegistry],
 });
 
-export const promDbErrorsTotal = new Counter({
-  name: "resume_builder_db_errors_total",
-  help: "Total database operation errors",
-  labelNames: ["operation", "model"],
-  registers: [metricsRegistry],
-});
-
 const promRequestCounter = new Counter({
   name: "resume_builder_http_requests_total",
   help: "Total HTTP requests",
@@ -177,7 +170,6 @@ type AppMetrics = {
   activeConnections: { add: (value: number, attributes?: Record<string, string>) => void };
   dbQueryDuration: { record: (value: number, attributes?: Record<string, string>) => void };
   dbOperationsTotal: { add: (value: number, attributes?: Record<string, string>) => void };
-  dbErrorsTotal: { add: (value: number, attributes?: Record<string, string>) => void };
   emailSentTotal: { add: (value: number, attributes?: Record<string, string>) => void };
   emailDuration: { record: (value: number, attributes?: Record<string, string>) => void };
   cacheHits: { add: (value: number, attributes?: Record<string, string>) => void };
@@ -208,9 +200,6 @@ const createAppMetrics = (meterInstance: ReturnType<MeterProvider["getMeter"]>):
   }),
   dbOperationsTotal: meterInstance.createCounter("db_operations_total", {
     description: "Total database operations",
-  }),
-  dbErrorsTotal: meterInstance.createCounter("db_errors_total", {
-    description: "Total database operation errors",
   }),
   emailSentTotal: meterInstance.createCounter("email_sent_total", {
     description: "Total emails sent",

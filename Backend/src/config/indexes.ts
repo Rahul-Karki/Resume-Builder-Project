@@ -225,12 +225,13 @@ export const INDEX_DEFINITIONS = {
   AtsAnalysis: {
     resumeId: {
       spec: { resumeId: 1 },
-      options: { unique: true },
+      options: {},
       reason:
-        "Fetch ATS analysis for a resume. One analysis per resume. " +
-        "Query: AtsAnalysis.findOne({ resumeId })",
+        "Fetch ATS analyses for a resume. " +
+        "Query: AtsAnalysis.find({ resumeId })",
       estimatedDocs: 10000,
       selectivity: "high",
+      note: "Unique constraint removed — one resume can have multiple analyses (different jobs, JD matches). Compound index { resumeId, userId, createdAt } covers lookups.",
     },
     score: {
       spec: { score: -1 },

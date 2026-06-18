@@ -1,7 +1,7 @@
 // Registers all Mongoose models at startup to avoid MissingSchemaError.
 // Applies compliance plugins (audit trail, soft delete, cascade delete) to all models
 import mongoose from "mongoose";
-import { appMetrics, promDbOperationsTotal, promDbErrorsTotal } from "../observability";
+import { appMetrics, promDbOperationsTotal } from "../observability";
 import { auditTrailPlugin } from "./plugins/auditTrail";
 import { softDeletePlugin } from "./plugins/softDelete";
 import { cascadeDeletePlugin } from "./plugins/cascadeDelete";
@@ -25,18 +25,6 @@ mongoose.plugin((schema) => {
         promDbOperationsTotal.labels(method, model, "success").inc();
         appMetrics.dbOperationsTotal.add(1, { operation: method, model, status: "success" });
       }
-    });
-    schema.post(method as any, function (this: any, error: any, doc: any, next: any) {
-      if (error) {
-        const model = this.model?.modelName ?? "unknown";
-        promDbOperationsTotal.labels(method, model, "error").inc();
-        appMetrics.dbOperationsTotal.add(1, { operation: method, model, status: "error" });
-        promDbErrorsTotal.labels(method, model).inc();
-        appMetrics.dbErrorsTotal.add(1, { operation: method, model });
-        next(error);
-        return;
-      }
-      next();
     });
   }
 });
