@@ -63,8 +63,16 @@ const mfaLimiter = createRedisRateLimitMiddleware({
 	message: "Too many MFA attempts. Please try again later.",
 });
 
-const generalAuthLimiter = createRedisRateLimitMiddleware({
-	scope: "auth-general",
+const meLimiter = createRedisRateLimitMiddleware({
+	scope: "auth-me",
+	windowMs: 60000,
+	max: 30,
+	keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
+	message: "Too many requests. Please try again later.",
+});
+
+const authActionLimiter = createRedisRateLimitMiddleware({
+	scope: "auth-actions",
 	windowMs: env.REDIS_RATE_LIMIT_WINDOW_MS,
 	max: Math.max(10, Math.floor(env.REDIS_RATE_LIMIT_MAX / 3)),
 	keyBuilder: (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`),
@@ -85,18 +93,18 @@ router.post("/resend", passwordRecoveryLimiter, validateRequest({ body: authEmai
 
 
 router.post("/google-login", oauthLimiter, validateRequest({ body: googleLoginSchema }), googleLogin);
-router.post("/link-google", generalAuthLimiter, authMiddleware, validateRequest({ body: oauthLinkSchema }), linkGoogleAccount);
-router.post("/unlink-oauth", generalAuthLimiter, authMiddleware, validateRequest({ body: oauthUnlinkSchema }), unlinkOAuthProvider);
-router.post("/logout", generalAuthLimiter, authMiddleware, logout);
-router.get("/me", generalAuthLimiter, authMiddleware, getCurrentUser);
+router.post("/link-google", authMiddleware, authActionLimiter, validateRequest({ body: oauthLinkSchema }), linkGoogleAccount);
+router.post("/unlink-oauth", authMiddleware, authActionLimiter, validateRequest({ body: oauthUnlinkSchema }), unlinkOAuthProvider);
+router.post("/logout", authMiddleware, authActionLimiter, logout);
+router.get("/me", authMiddleware, meLimiter, getCurrentUser);
 
 // ─── MFA Routes ─────────────────────────────────────────────────────────────────
 import { setupMfa, verifyMfa, disableMfa, getMfaStatus } from "../controllers/mfaController";
 import { mfaSetupSchema, mfaVerifySchema, mfaDisableSchema } from "../validation/schemas";
 
-router.post("/mfa/setup", mfaLimiter, authMiddleware, validateRequest({ body: mfaSetupSchema }), setupMfa);
-router.post("/mfa/verify", mfaLimiter, authMiddleware, validateRequest({ body: mfaVerifySchema }), verifyMfa);
-router.post("/mfa/disable", mfaLimiter, authMiddleware, validateRequest({ body: mfaDisableSchema }), disableMfa);
-router.get("/mfa/status", mfaLimiter, authMiddleware, getMfaStatus);
+router.post("/mfa/setup", authMiddleware, mfaLimiter, validateRequest({ body: mfaSetupSchema }), setupMfa);
+router.post("/mfa/verify", authMiddleware, mfaLimiter, validateRequest({ body: mfaVerifySchema }), verifyMfa);
+router.post("/mfa/disable", authMiddleware, mfaLimiter, validateRequest({ body: mfaDisableSchema }), disableMfa);
+router.get("/mfa/status", authMiddleware, mfaLimiter, getMfaStatus);
 
 export default router;

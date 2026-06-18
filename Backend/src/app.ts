@@ -179,7 +179,14 @@ export const createApp = () => {
   app.use(metricsMiddleware);
 
   if (env.ENABLE_METRICS) {
-    app.get(env.METRICS_PATH, metricsHandler);
+    const metricsLimiter = createRedisRateLimitMiddleware({
+      scope: "prometheus-metrics",
+      windowMs: 60_000,
+      max: 30,
+      keyBuilder: (req) => `ip:${req.ip}`,
+      message: "Too many metrics requests.",
+    });
+    app.get(env.METRICS_PATH, metricsLimiter, metricsHandler);
   }
 
   const docsLimiter = createRedisRateLimitMiddleware({
@@ -199,10 +206,20 @@ export const createApp = () => {
     res.send(cachedDocs);
   });
 
+  // Global catch-all rate limiter as a safety net for all /api routes
+  const globalApiLimiter = createRedisRateLimitMiddleware({
+    scope: "global-api",
+    windowMs: 60_000,
+    max: 500,
+    keyBuilder: (req) => `ip:${req.ip}`,
+    message: "Too many requests. Please try again later.",
+  });
+
   // API routes — single mount point under /api
   // Legacy /api/v1 prefix is supported via a simple rewrite middleware
   const apiRouter = express.Router();
 
+  apiRouter.use(globalApiLimiter);
   apiRouter.use("/auth", authRoutes);
   apiRouter.use("/", refreshRoutes);
   apiRouter.use("/ai", aiRoutes);
@@ -217,10 +234,17 @@ export const createApp = () => {
     next();
   }, apiRouter);
   // Templates and health — not in auth-protected router
-  app.use("/api/templates", templateRoutes);
-  app.use("/api/logs/ingest", frontendLogsRoutes);
-  app.use("/api/health", healthRoutes);
-  app.use("/health", healthRoutes);
+  const publicReadLimiter = createRedisRateLimitMiddleware({
+    scope: "public-reads",
+    windowMs: 60_000,
+    max: 200,
+    keyBuilder: (req) => `ip:${req.ip}`,
+    message: "Too many requests. Please try again later.",
+  });
+  app.use("/api/templates", publicReadLimiter, templateRoutes);
+  app.use("/api/logs/ingest", publicReadLimiter, frontendLogsRoutes);
+  app.use("/api/health", publicReadLimiter, healthRoutes);
+  app.use("/health", publicReadLimiter, healthRoutes);
 
   const clientErrorLimiter = createRedisRateLimitMiddleware({
     scope: "client-error",
