@@ -7,10 +7,12 @@ import "./index.css"
 import { bootstrapAuthSession } from "./services/api"
 import { initializeClientErrorTracking } from "./lib/errorTracking"
 import { initMetricsReporter } from "./lib/metricsReporter"
+import { logger } from "./utils/logger"
 import { queryClient } from "./lib/queryClient"
 
 initializeClientErrorTracking()
 initMetricsReporter()
+logger.logUserAction("app_start", { url: location.href })
 
 function AppLoading() {
   return (

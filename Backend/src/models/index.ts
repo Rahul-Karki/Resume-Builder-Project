@@ -10,9 +10,8 @@ import { cascadeDeletePlugin } from "./plugins/cascadeDelete";
 mongoose.plugin((schema) => {
   const wrappedMethods = ["find", "findOne", "findOneAndUpdate", "findOneAndDelete", "findOneAndReplace", "updateOne", "updateMany", "deleteOne", "deleteMany", "countDocuments", "estimatedDocumentCount", "distinct", "aggregate"];
   for (const method of wrappedMethods) {
-    schema.pre(method as any, function (this: any, next: () => void) {
+    schema.pre(method as any, function (this: any) {
       this._startTime = Date.now();
-      next();
     });
     schema.post(method as any, function (this: any) {
       if (this._startTime) {

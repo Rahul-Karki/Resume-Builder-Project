@@ -80,11 +80,16 @@ class PerformanceMonitor {
     const recordNav = () => {
       const now = performance.now();
       const duration = now - this.lastNavTime;
+      const from = this.lastNavUrl;
+      const to = location.href;
       if (duration > 0 && duration < 300_000) {
-        this.recordMetric('spa_navigation', duration, 'ms', { from: this.lastNavUrl, to: location.href });
+        this.recordMetric('spa_navigation', duration, 'ms', { from, to });
+      }
+      if (from !== to) {
+        logger.logUserAction('navigation', { from, to });
       }
       this.lastNavTime = now;
-      this.lastNavUrl = location.href;
+      this.lastNavUrl = to;
     };
 
     window.addEventListener('popstate', recordNav);

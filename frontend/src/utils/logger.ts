@@ -153,6 +153,11 @@ class Logger {
     return JSON.stringify(this.logs, null, 2);
   }
 
+  // Get recent logs for breadcrumbs
+  getRecentLogs(count: number = 30): LogEntry[] {
+    return this.logs.slice(-count);
+  }
+
   // Get session info
   getSessionInfo() {
     return {

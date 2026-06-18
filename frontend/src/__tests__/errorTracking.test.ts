@@ -1,10 +1,12 @@
 ﻿import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/utils/logger", () => ({
+  LogLevel: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 },
   logger: {
     error: vi.fn(),
     warn: vi.fn(),
     info: vi.fn(),
+    getRecentLogs: vi.fn(() => []),
     getSessionInfo: vi.fn(() => ({ sessionId: "session_mock", userId: undefined, logCount: 0, sessionStart: new Date().toISOString() })),
   },
 }));

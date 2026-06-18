@@ -1,4 +1,4 @@
-import { logger } from './logger';
+import { logger, LogEntry } from './logger';
 
 export interface ErrorReport {
   id: string;
@@ -12,6 +12,7 @@ export interface ErrorReport {
   sessionId: string;
   groupKey: string;
   count: number;
+  breadcrumbs?: LogEntry[];
 }
 
 class ErrorTracker {
@@ -75,6 +76,7 @@ class ErrorTracker {
     const binfo = this.getBrowserInfo();
     const errorId = `error_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const stack = error instanceof Error ? error.stack : undefined;
+    const breadcrumbs = logger.getRecentLogs(30);
     const errorReport: ErrorReport = {
       id: errorId,
       timestamp: new Date().toISOString(),
@@ -87,6 +89,7 @@ class ErrorTracker {
       sessionId: this.getSessionId(),
       groupKey,
       count: 1,
+      breadcrumbs,
     };
 
     this.errors.push(errorReport);
