@@ -3,6 +3,7 @@ import { env } from "../config/env";
 import crypto from "crypto";
 import { browserPool } from "../lib/browserPool";
 import { logger } from "../observability";
+import { recordPdfExportSuccess, recordPdfExportFailure, recordPdfExportRetry } from "../utils/businessMetrics";
 import ResumeDownloadJob from "../models/ResumeDownloadJob";
 
 type ResumeSnapshot = Record<string, unknown> & {
@@ -255,6 +256,7 @@ export const generateResumePdfArtifact = async (
         } catch (err) {
           logger.warn({ jobId, attempt, err }, "PDF generation attempt failed");
           if (attempt < maxPdfAttempts) {
+            recordPdfExportRetry(`pdf_generation_attempt_${attempt}`);
             await new Promise((r) => setTimeout(r, 300 * attempt));
           } else {
             throw err;
@@ -284,8 +286,9 @@ export const generateResumePdfArtifact = async (
   };
 };
 
-export const processResumeDownloadJob = async (job: { id: string; data: ResumeDownloadJobData; attemptsMade: number; opts: { attempts: number } }) => {
+export const processResumeDownloadJob = async (job: { id: string; data: ResumeDownloadJobData & { preset?: string }; attemptsMade: number; opts: { attempts: number } }) => {
   const startedAt = Date.now();
+  const pdfStartTime = Date.now();
 
   await ResumeDownloadJob.updateOne(
     { jobId: String(job.id) },
@@ -340,6 +343,9 @@ export const processResumeDownloadJob = async (job: { id: string; data: ResumeDo
       },
     );
 
+    const totalMs = Date.now() - pdfStartTime;
+    recordPdfExportSuccess(totalMs, job.data.preset || "standard");
+
     logger.info({ jobId: job.id, durationMs: Date.now() - startedAt, fileSize: pdfSizeBytes, fileSizeMb: pdfSizeMb.toFixed(2), mongoUpdateResult: { modifiedCount: updateResult.modifiedCount, matchedCount: updateResult.matchedCount } }, "Resume download job completed");
 
     const savedJob = await ResumeDownloadJob.findOne({ jobId: String(job.id) }).lean();
@@ -365,6 +371,7 @@ export const processResumeDownloadJob = async (job: { id: string; data: ResumeDo
       },
     );
 
+    recordPdfExportFailure(error instanceof Error ? error.message : String(error));
     logger.error({ error, jobId: job.id }, "Resume download job failed");
     throw error;
   }

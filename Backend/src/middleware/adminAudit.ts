@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { recordAuditLog } from "../observability/complianceMetrics";
 import { logAdminAction } from "../utils/securityLogger";
 
 const resolveAdminResource = (req: Request, resourceGroup: string) => {
@@ -18,15 +19,18 @@ export const adminAuditMiddleware = (resourceGroup: string) => {
         return;
       }
 
+      const durationMs = Date.now() - startedAt;
       logAdminAction(req, `${req.method} ${resolveAdminResource(req, resourceGroup)}`, {
         resourceGroup,
         resource: req.originalUrl,
         route: req.route?.path ?? req.path,
         statusCode: res.statusCode,
-        durationMs: Date.now() - startedAt,
+        durationMs,
         params: req.params,
         query: req.query,
       });
+
+      recordAuditLog(`${req.method} ${resourceGroup}`, resourceGroup, durationMs);
     });
 
     next();

@@ -24,7 +24,8 @@ vi.mock("../utils/errorResponse", () => ({ sendErrorResponse: vi.fn((res: any, e
 vi.mock("../errors/AppError", () => ({
   AuthError: class extends Error { statusCode = 401; code = "AUTH_REQUIRED"; constructor(m: string) { super(m); } },
 }));
-vi.mock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+import { Registry } from "prom-client";
+vi.mock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }, metricsRegistry: new Registry() }));
 
 import { analyzeAts, getLatestAtsAnalysis, restoreResumeVersion } from "../controllers/resumeEnhancementController";
 import Resume from "../models/Resume";

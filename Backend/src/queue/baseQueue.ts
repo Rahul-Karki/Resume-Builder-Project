@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
+import { trackQueueJob, trackQueueJobFailure, updateQueueDepth } from "../observability/aiMetrics";
 import { logger } from "../observability";
 
 export interface IQueueJob extends Document {
@@ -97,6 +98,8 @@ export class BaseQueue<T = Record<string, unknown>> {
       },
       { upsert: true },
     );
+    const depth = await Model.countDocuments({ type: this.type, status: "pending" });
+    updateQueueDepth(this.type, depth);
   }
 
   async recoverPending(): Promise<number> {
@@ -182,6 +185,10 @@ export class BaseQueue<T = Record<string, unknown>> {
       },
     );
 
+    // Update queue depth gauge after each poll cycle
+    const depth = await Model.countDocuments({ type: this.type, status: "pending" });
+    updateQueueDepth(this.type, depth);
+
     if (!job) {
       // Adaptive backoff: increase poll interval when idle, reset when busy
       this.consecutiveIdlePolls++;
@@ -207,6 +214,7 @@ export class BaseQueue<T = Record<string, unknown>> {
   }
 
   private async process(job: IQueueJob): Promise<void> {
+    const startedAt = Date.now();
     try {
       await this.handler({
         id: job.jobId,
@@ -214,13 +222,17 @@ export class BaseQueue<T = Record<string, unknown>> {
         attemptsMade: job.attemptsMade,
       });
 
+      const durationMs = Date.now() - startedAt;
+
       // Delete completed jobs immediately to keep the collection lean.
       // Failed jobs are retained with a TTL index on completedAt (7 days).
       await getModel().deleteOne({ jobId: job.jobId });
 
+      trackQueueJob(this.type, "process", "success", durationMs, job.attemptsMade);
       logger.debug({ jobId: job.jobId, type: this.type }, "Queue job completed and removed");
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
+      const durationMs = Date.now() - startedAt;
 
       if (job.attemptsMade >= job.maxAttempts) {
         await getModel().updateOne(
@@ -234,6 +246,8 @@ export class BaseQueue<T = Record<string, unknown>> {
           },
         );
 
+        trackQueueJob(this.type, "process", "failed", durationMs, job.attemptsMade);
+        trackQueueJobFailure(this.type, "max_retries_exceeded");
         logger.warn(
           { jobId: job.jobId, type: this.type, attempts: job.attemptsMade, error: errorMsg },
           "Queue job failed after max attempts",
@@ -250,6 +264,7 @@ export class BaseQueue<T = Record<string, unknown>> {
           },
         );
 
+        trackQueueJob(this.type, "process", "retried", durationMs, job.attemptsMade);
         logger.debug(
           { jobId: job.jobId, type: this.type, attempt: job.attemptsMade, nextRetryMs: this.backoffMs(job.attemptsMade) },
           "Queue job will be retried",

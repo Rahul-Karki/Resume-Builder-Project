@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { env } from "../config/env";
 import { logger } from "../observability";
+import { trackAiCost, trackHallucination, trackMalformedResponse, trackProviderError } from "../observability/aiMetrics";
+import { detectHallucinations } from "../middleware/aiValidation";
 import AiUsage from "../models/AiUsage";
 import {
   clampScore,
@@ -366,36 +368,50 @@ const getProviderOrder = (preferredProvider?: AiProviderName): AiProviderName[] 
 };
 
 const callProvider = async (provider: AiProviderName, systemPrompt: string, userPrompt: string) => {
-  const raw = provider === "openai"
-    ? await callOpenAI(systemPrompt, userPrompt)
-    : provider === "openrouter"
-      ? await callOpenRouter(systemPrompt, userPrompt)
-      : await callGemini(systemPrompt, userPrompt);
-
-  const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-  let parsed: Record<string, unknown>;
+  const startTime = Date.now();
   try {
-    parsed = JSON.parse(cleaned) as Record<string, unknown>;
-  } catch {
-    logger.warn({ provider, raw: raw.slice(0, 200) }, "AI provider returned malformed JSON; using empty object");
-    parsed = {};
-  }
+    const raw = provider === "openai"
+      ? await callOpenAI(systemPrompt, userPrompt)
+      : provider === "openrouter"
+        ? await callOpenRouter(systemPrompt, userPrompt)
+        : await callGemini(systemPrompt, userPrompt);
 
-  const tokenCount = provider === "openai"
-    ? countOpenAITokens(systemPrompt, userPrompt, cleaned)
-    : provider === "openrouter"
+    const cleaned = raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(cleaned) as Record<string, unknown>;
+    } catch {
+      trackMalformedResponse(provider);
+      logger.warn({ provider, raw: raw.slice(0, 200) }, "AI provider returned malformed JSON; using empty object");
+      parsed = {};
+    }
+
+    const tokenCount = provider === "openai"
       ? countOpenAITokens(systemPrompt, userPrompt, cleaned)
-      : countGeminiTokens(systemPrompt, userPrompt, cleaned);
+      : provider === "openrouter"
+        ? countOpenAITokens(systemPrompt, userPrompt, cleaned)
+        : countGeminiTokens(systemPrompt, userPrompt, cleaned);
 
-  const model = provider === "openai" ? env.OPENAI_MODEL
-    : provider === "openrouter" ? env.OPENROUTER_MODEL
-    : env.GEMINI_MODEL;
+    const model = provider === "openai" ? env.OPENAI_MODEL
+      : provider === "openrouter" ? env.OPENROUTER_MODEL
+      : env.GEMINI_MODEL;
 
-  return {
-    parsed,
-    tokenCount,
-    model,
-  };
+    const hallucinationCheck = detectHallucinations(parsed);
+    if (hallucinationCheck.suspicious) {
+      trackHallucination(provider, hallucinationCheck.reason ?? "unknown");
+      logger.warn({ provider, reason: hallucinationCheck.reason }, "AI hallucination detected");
+    }
+
+    return {
+      parsed,
+      tokenCount,
+      model,
+    };
+  } catch (error) {
+    const errorCategory = error instanceof Error && error.name === "AbortError" ? "timeout" : "http_error";
+    trackProviderError(provider, errorCategory);
+    throw error;
+  }
 };
 
 // Calculate cost in USD based on provider and token usage
@@ -436,6 +452,10 @@ const logAiUsage = async (
     if (!userId || userId === "unknown") return; // Skip logging for unauthenticated users
 
     const costUsd = provider !== "fallback" ? calculateCost(provider, model, inputTokens, outputTokens) : 0;
+
+    if (costUsd > 0 && provider !== "fallback") {
+      trackAiCost(provider, model, costUsd);
+    }
 
     await AiUsage.create({
       userId,

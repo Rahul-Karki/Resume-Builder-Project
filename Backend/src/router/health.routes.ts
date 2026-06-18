@@ -1,3 +1,4 @@
+import { metrics } from "@opentelemetry/api";
 import express from "express";
 import mongoose from "mongoose";
 import { checkRedisHealth, getCacheProvider } from "../utils/redis";
@@ -20,6 +21,18 @@ const healthLimiter = createRedisRateLimitMiddleware({
 const startTime = Date.now();
 const uptimeRegistry = new Registry();
 collectDefaultMetrics({ register: uptimeRegistry, prefix: "uptime_" });
+
+// OTel dual-write for uptime metrics (visible in Grafana Cloud)
+const healthMeter = metrics.getMeter("resume-builder-health");
+const otelUptimeGauge = healthMeter.createObservableGauge("service_uptime_seconds", {
+  description: "Service uptime in seconds",
+});
+otelUptimeGauge.addCallback((result) => {
+  result.observe(Math.floor((Date.now() - startTime) / 1000));
+});
+const otelHealthChecksCounter = healthMeter.createCounter("health_checks_total", {
+  description: "Total health checks performed",
+});
 
 const uptimeGauge = new Gauge({
   name: "service_uptime_seconds",
@@ -89,6 +102,7 @@ const sendHealthResponse = async (_req: express.Request, res: express.Response) 
 
   const healthStatus = mongoHealthy ? 200 : 503;
   healthCheckTotalCounter.labels(status).inc();
+  otelHealthChecksCounter.add(1, { status });
   uptimeGauge.set(Math.floor((Date.now() - startTime) / 1000));
 
   res.status(healthStatus).json({
@@ -108,6 +122,7 @@ router.get("/deep", healthLimiter, sendHealthResponse);
 // ─── Uptime & SLA endpoint ─────────────────────────────────────────────────────
 router.get("/uptime", healthLimiter, (_req: express.Request, res: express.Response) => {
   healthCheckTotalCounter.labels("uptime_check").inc();
+  otelHealthChecksCounter.add(1, { status: "uptime_check" });
   res.json({
     status: "ok",
     ...getUptimeMetrics(),

@@ -1,8 +1,30 @@
+import crypto from "crypto";
 import { metrics } from "@opentelemetry/api";
 import { Counter, Histogram, Gauge } from "prom-client";
 import { metricsRegistry } from "../observability";
 
 const aiMeter = metrics.getMeter("resume-builder-ai");
+
+// ── Label Sanitization ──────────────────────────────────────────────
+// Prevents cardinality explosion from unexpected or free-text label values.
+
+const LABEL_MAX_LENGTH = 64;
+
+const KNOWN_PROVIDERS = new Set(["openai", "gemini", "openrouter"]);
+const KNOWN_ERROR_CATEGORIES = new Set(["timeout", "http_error", "rate_limited", "auth_error", "invalid_response", "provider_unavailable"]);
+const KNOWN_QUEUE_FAILURE_TYPES = new Set(["max_retries_exceeded", "worker_crash", "job_timeout", "invalid_job"]);
+const KNOWN_HALLUCINATION_TYPES = new Set(["contradiction", "unsubstantiated_claim", "hallucinated_skill", "hallucinated_experience", "invented_fact"]);
+
+const sanitizeBounded = (value: string, allowed: Set<string>): string =>
+  allowed.has(value) ? value : "other";
+
+const sanitizeFreeText = (value: string): string => {
+  if (typeof value !== "string" || value.length === 0) return "other";
+  if (value.length > LABEL_MAX_LENGTH) {
+    return crypto.createHash("sha1").update(value).digest("hex").slice(0, 12);
+  }
+  return value;
+};
 
 // ── Prometheus Metrics (local /metrics endpoint) ─────────────────────
 
@@ -46,21 +68,6 @@ export const aiProviderErrorsTotal = new Counter({
   name: "resume_builder_ai_provider_errors_total",
   help: "Total errors from AI providers",
   labelNames: ["provider", "error_category"],
-  registers: [metricsRegistry],
-});
-
-export const aiProviderLatencySeconds = new Histogram({
-  name: "resume_builder_ai_provider_latency_seconds",
-  help: "Latency of AI provider responses",
-  labelNames: ["provider"],
-  buckets: [0.1, 0.5, 1, 2, 3, 5],
-  registers: [metricsRegistry],
-});
-
-export const aiProviderSuccessRate = new Gauge({
-  name: "resume_builder_ai_provider_success_rate",
-  help: "Success rate of AI provider (0-100)",
-  labelNames: ["provider"],
   registers: [metricsRegistry],
 });
 
@@ -108,20 +115,6 @@ export const queueJobFailuresTotal = new Counter({
   registers: [metricsRegistry],
 });
 
-export const workerCrashesTotal = new Counter({
-  name: "resume_builder_worker_crashes_total",
-  help: "Total worker crashes",
-  labelNames: ["reason", "queue"],
-  registers: [metricsRegistry],
-});
-
-export const workerStalledJobsTotal = new Gauge({
-  name: "resume_builder_worker_stalled_jobs",
-  help: "Number of stalled jobs (> 30 minutes)",
-  labelNames: ["queue"],
-  registers: [metricsRegistry],
-});
-
 export const queueJobRetryCountHistogram = new Histogram({
   name: "resume_builder_queue_job_retries",
   help: "Number of retries for queue jobs",
@@ -137,16 +130,18 @@ export const redisConnectionErrorsTotal = new Counter({
   registers: [metricsRegistry],
 });
 
-export const aiTokenBudgetRemaining = new Gauge({
-  name: "resume_builder_ai_token_budget_remaining",
-  help: "Remaining AI token budget for the day",
+export const redisCommandDurationSeconds = new Histogram({
+  name: "resume_builder_redis_command_duration_seconds",
+  help: "Duration of Redis commands",
+  labelNames: ["command"],
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 3],
   registers: [metricsRegistry],
 });
 
-export const aiProviderQuotaUsedPercent = new Gauge({
-  name: "resume_builder_ai_provider_quota_used_percent",
-  help: "AI provider quota usage percentage (0-100)",
-  labelNames: ["provider"],
+export const aiCostTotal = new Counter({
+  name: "resume_builder_ai_cost_total",
+  help: "Accumulated AI provider cost in USD",
+  labelNames: ["provider", "model"],
   registers: [metricsRegistry],
 });
 
@@ -185,22 +180,22 @@ const otelQueueJobFailuresTotal = aiMeter.createCounter("queue_job_failures_tota
   description: "Total job failures in queue",
 });
 
-const otelWorkerCrashesTotal = aiMeter.createCounter("worker_crashes_total", {
-  description: "Total worker crashes",
-});
-
 const otelRedisConnectionErrorsTotal = aiMeter.createCounter("redis_connection_errors_total", {
   description: "Total Redis connection errors",
+});
+
+const otelRedisCommandDuration = aiMeter.createHistogram("redis_command_duration_ms", {
+  description: "Duration of Redis commands in milliseconds",
+  unit: "ms",
+});
+
+const otelAiCostTotal = aiMeter.createCounter("ai_cost_total", {
+  description: "Accumulated AI provider cost in USD",
 });
 
 // Histograms
 const otelAiRequestDuration = aiMeter.createHistogram("ai_request_duration_ms", {
   description: "Duration of AI requests",
-  unit: "ms",
-});
-
-const otelAiProviderLatency = aiMeter.createHistogram("ai_provider_latency_ms", {
-  description: "Latency of AI provider responses",
   unit: "ms",
 });
 
@@ -215,11 +210,7 @@ const otelQueueJobRetries = aiMeter.createHistogram("queue_job_retries", {
 
 // Observable Gauges — stores current value in a Map, reported on collection
 const fallbackRateValues = new Map<string, number>();
-const providerSuccessRateValues = new Map<string, number>();
 const queueDepthValues = new Map<string, number>();
-const stalledJobsValues = new Map<string, number>();
-let tokenBudgetValue = 0;
-const providerQuotaValues = new Map<string, number>();
 
 const otelAiFallbackRate = aiMeter.createObservableGauge("ai_fallback_rate", {
   description: "Rate of using fallback suggestions (0-100)",
@@ -230,46 +221,12 @@ otelAiFallbackRate.addCallback((result) => {
   }
 });
 
-const otelAiProviderSuccessRate = aiMeter.createObservableGauge("ai_provider_success_rate", {
-  description: "Success rate of AI provider (0-100)",
-});
-otelAiProviderSuccessRate.addCallback((result) => {
-  for (const [provider, value] of providerSuccessRateValues) {
-    result.observe(value, { provider });
-  }
-});
-
 const otelQueueDepth = aiMeter.createObservableGauge("queue_depth", {
   description: "Current number of jobs in queue",
 });
 otelQueueDepth.addCallback((result) => {
   for (const [queue, depth] of queueDepthValues) {
     result.observe(depth, { queue });
-  }
-});
-
-const otelStalledJobs = aiMeter.createObservableGauge("worker_stalled_jobs", {
-  description: "Number of stalled jobs (> 30 minutes)",
-});
-otelStalledJobs.addCallback((result) => {
-  for (const [queue, count] of stalledJobsValues) {
-    result.observe(count, { queue });
-  }
-});
-
-const otelAiTokenBudget = aiMeter.createObservableGauge("ai_token_budget_remaining", {
-  description: "Remaining AI token budget for the day",
-});
-otelAiTokenBudget.addCallback((result) => {
-  result.observe(tokenBudgetValue);
-});
-
-const otelAiProviderQuota = aiMeter.createObservableGauge("ai_provider_quota_used_percent", {
-  description: "AI provider quota usage percentage (0-100)",
-});
-otelAiProviderQuota.addCallback((result) => {
-  for (const [provider, percent] of providerQuotaValues) {
-    result.observe(percent, { provider });
   }
 });
 
@@ -310,32 +267,38 @@ export const trackAiRequest = (
  * Track a validation error.
  */
 export const trackValidationError = (errorType: string) => {
-  aiValidationErrorsTotal.labels(errorType).inc();
-  otelAiValidationErrorsTotal.add(1, { error_type: errorType });
+  const safeType = sanitizeFreeText(errorType);
+  aiValidationErrorsTotal.labels(safeType).inc();
+  otelAiValidationErrorsTotal.add(1, { error_type: safeType });
 };
 
 /**
  * Track a provider error.
  */
 export const trackProviderError = (provider: string, errorCategory: string) => {
-  aiProviderErrorsTotal.labels(provider, errorCategory).inc();
-  otelAiProviderErrorsTotal.add(1, { provider, error_category: errorCategory });
+  const safeProvider = sanitizeBounded(provider, KNOWN_PROVIDERS);
+  const safeCategory = sanitizeBounded(errorCategory, KNOWN_ERROR_CATEGORIES);
+  aiProviderErrorsTotal.labels(safeProvider, safeCategory).inc();
+  otelAiProviderErrorsTotal.add(1, { provider: safeProvider, error_category: safeCategory });
 };
 
 /**
  * Track a malformed response.
  */
 export const trackMalformedResponse = (provider: string) => {
-  aiMalformedResponsesTotal.labels(provider).inc();
-  otelAiMalformedResponsesTotal.add(1, { provider });
+  const safeProvider = sanitizeBounded(provider, KNOWN_PROVIDERS);
+  aiMalformedResponsesTotal.labels(safeProvider).inc();
+  otelAiMalformedResponsesTotal.add(1, { provider: safeProvider });
 };
 
 /**
  * Track a detected hallucination.
  */
 export const trackHallucination = (type: string, reason: string) => {
-  aiHallucinationDetectedTotal.labels(type, reason).inc();
-  otelAiHallucinationDetectedTotal.add(1, { type, reason });
+  const safeType = sanitizeBounded(type, KNOWN_HALLUCINATION_TYPES);
+  const safeReason = sanitizeFreeText(reason);
+  aiHallucinationDetectedTotal.labels(safeType, safeReason).inc();
+  otelAiHallucinationDetectedTotal.add(1, { type: safeType, reason: safeReason });
 };
 
 /**
@@ -362,16 +325,9 @@ export const trackQueueJob = (
  * Track a queue job failure.
  */
 export const trackQueueJobFailure = (queue: string, failureType: string) => {
-  queueJobFailuresTotal.labels(queue, failureType).inc();
-  otelQueueJobFailuresTotal.add(1, { queue, failure_type: failureType });
-};
-
-/**
- * Track a worker crash.
- */
-export const trackWorkerCrash = (queue: string, reason: string) => {
-  workerCrashesTotal.labels(reason, queue).inc();
-  otelWorkerCrashesTotal.add(1, { reason, queue });
+  const safeFailureType = sanitizeBounded(failureType, KNOWN_QUEUE_FAILURE_TYPES);
+  queueJobFailuresTotal.labels(queue, safeFailureType).inc();
+  otelQueueJobFailuresTotal.add(1, { queue, failure_type: safeFailureType });
 };
 
 /**
@@ -383,11 +339,22 @@ export const updateQueueDepth = (queue: string, depth: number) => {
 };
 
 /**
- * Update worker stalled jobs gauge.
+ * Track AI provider cost.
  */
-export const updateStalledJobs = (queue: string, count: number) => {
-  workerStalledJobsTotal.labels(queue).set(count);
-  stalledJobsValues.set(queue, count);
+export const trackAiCost = (provider: string, model: string, costUsd: number) => {
+  const safeProvider = sanitizeBounded(provider, KNOWN_PROVIDERS);
+  const safeModel = sanitizeFreeText(model);
+  aiCostTotal.labels(safeProvider, safeModel).inc(costUsd);
+  otelAiCostTotal.add(costUsd, { provider: safeProvider, model: safeModel });
+};
+
+/**
+ * Track a Redis command duration.
+ */
+export const trackRedisCommandDuration = (command: string, durationMs: number) => {
+  const safeCommand = sanitizeFreeText(command);
+  redisCommandDurationSeconds.labels(safeCommand).observe(durationMs / 1000);
+  otelRedisCommandDuration.record(durationMs, { command: safeCommand });
 };
 
 /**
@@ -398,18 +365,4 @@ export const trackRedisConnectionError = () => {
   otelRedisConnectionErrorsTotal.add(1);
 };
 
-/**
- * Update remaining AI token budget.
- */
-export const updateAiTokenBudget = (remaining: number) => {
-  aiTokenBudgetRemaining.set(remaining);
-  tokenBudgetValue = remaining;
-};
 
-/**
- * Update AI provider quota usage.
- */
-export const updateAiProviderQuota = (provider: string, percent: number) => {
-  aiProviderQuotaUsedPercent.labels(provider).set(percent);
-  providerQuotaValues.set(provider, percent);
-};

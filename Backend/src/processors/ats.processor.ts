@@ -2,6 +2,7 @@ import crypto from "crypto";
 import type { AtsAnalysisJobData } from "../../../shared/src/jobs";
 import { clampScore, compactText, createSuggestionId, sliceText, type AiSuggestion, type AtsActionPlanItem, type AtsAnalysisReport, type AtsFormattingCheck, type AtsScoreBreakdown, type AtsSectionAudit, type AtsSectionKey, type AtsSectionSuggestions, type AtsKeywordPlacement, type RecruiterImpression, type AtsKeywordAnalysis, type AtsCategoryScores, type AtsFormatIssue, type AtsContentImprovement, type AtsSectionAnalysis, type ClickToApply, type SectionWiseAnalysis, type SectionScoreDetail, type ExpandedSectionKey, type ExperienceAnalysis, type BulletAnalysis, type ProjectAnalysis, type SkillsAnalysis, type SkillCategorization, type RoleMatchAnalysis, type KeywordDensity, type ContentQualityAnalysis, type RecruiterFeedback, type IndustryCheck, type AtsWarning, type AtsRecommendation } from "../../../shared/src/ai";
 import { logger } from "../observability";
+import { trackAiRequest, trackProviderError } from "../observability/aiMetrics";
 import AtsAnalysis from "../models/AtsAnalysis";
 import Resume from "../models/Resume";
 import { analyzeGrammarIssues } from "./grammarAnalysis.processor";
@@ -800,6 +801,7 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
   let lastError: unknown;
   for (const provider of providers) {
     const timeoutMs = provider === "openrouter" ? openrouterTimeout : baseTimeout;
+    const providerStart = Date.now();
     try {
       const raw = await withTimeout(timeoutMs, async (signal) => {
         if (provider === "openai") return await callOpenAIJson(systemPrompt, userPrompt, signal);
@@ -861,10 +863,15 @@ const enhanceWithAi = async (job: { id: string; data: AtsAnalysisJobData }, base
         ...(enhancement.warnings?.length ? { warnings: enhancement.warnings } : {}),
         ...(enhancement.recommendations?.length ? { recommendations: enhancement.recommendations } : {}),
       };
+      trackAiRequest("ats-analysis", provider, "success", Date.now() - providerStart);
       logger.info({ jobId: job.id, provider }, "ATS AI enhancement applied");
       return { report, aiUsed: true };
     } catch (error) {
       lastError = error;
+      const isTimeout = error instanceof Error && error.name === "AbortError";
+      const errorCategory = isTimeout ? "timeout" : "http_error";
+      trackProviderError(provider, errorCategory);
+      trackAiRequest("ats-analysis", provider, isTimeout ? "timeout" : "error", Date.now() - providerStart);
       logger.warn({ error, jobId: job.id, provider }, "ATS AI enhancement failed; trying next provider if available");
     }
   }

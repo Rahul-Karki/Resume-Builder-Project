@@ -7,7 +7,7 @@ import { logger } from "../observability";
 import { wrapController } from "../utils/controllerWrapper";
 import { invalidateRedisCache } from "../middleware/redisCache";
 import { normalizeResumeTemplateId } from "../utils/resumeTemplate";
-import { recordResumeCreated, recordResumeDeleted } from "../utils/businessMetrics";
+import { recordResumeCreated, recordResumeDeleted, recordTemplateSelection } from "../utils/businessMetrics";
 import { AuthError, NotFoundError } from "../errors/AppError";
 import { sendErrorResponse } from "../utils/errorResponse";
 
@@ -121,6 +121,7 @@ const createResume = wrapController(async (req, res) => {
         resume: normalizeResumeResponse(resume),
     });
     recordResumeCreated(String(resume.templateId));
+    recordTemplateSelection(String(resume.templateId), resume.title || "Untitled");
     logger.info({ userId, resumeId: resume._id.toString() }, "Resume created");
 }, "resume.createResume");
 
@@ -158,6 +159,7 @@ const updateResume = wrapController(async (req, res) => {
         message: "Resume updated successfully",
         resume: normalizeResumeResponse(resume),
     });
+    recordTemplateSelection(String(resume.templateId), resume.title || "Untitled");
     logger.info({ userId, resumeId: req.params.id }, "Resume updated");
 }, "resume.updateResume");
 

@@ -25,6 +25,7 @@ function mockModel(overrides: Record<string, any> = {}) {
     updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
     findOneAndUpdate: vi.fn().mockResolvedValue(null),
     updateMany: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+    countDocuments: vi.fn().mockResolvedValue(0),
     ...overrides,
   };
 }

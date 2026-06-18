@@ -15,7 +15,7 @@ vi.mock("../errors/AppError", () => ({
   AuthError: class extends Error { statusCode = 401; code = "AUTH_REQUIRED"; constructor(m: string) { super(m); } },
   NotFoundError: class extends Error { statusCode = 404; code = "NOT_FOUND"; constructor(m: string) { super(m); } },
 }));
-vi.mock("../observability", () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
+vi.mock("../observability");
 
 import { downloadResume, getResumeDownloadJobStatus, streamResumeDownloadJobEvents, downloadResumeResult } from "../controllers/resumeDownloadController";
 import Resume from "../models/Resume";

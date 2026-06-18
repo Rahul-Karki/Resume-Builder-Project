@@ -1,7 +1,8 @@
 ﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Registry } from "prom-client";
 
 vi.mock("redis", () => ({ createClient: vi.fn() }));
-vi.mock("../../observability", () => ({ logger: { warn: vi.fn(), info: vi.fn() } }));
+vi.mock("../../observability", () => ({ logger: { warn: vi.fn(), info: vi.fn() }, metricsRegistry: new Registry() }));
 
 const memoryCacheMock = { get: vi.fn(), set: vi.fn(), deleteByPattern: vi.fn() };
 vi.mock("../../utils/memoryCache", () => ({ memoryCache: memoryCacheMock }));

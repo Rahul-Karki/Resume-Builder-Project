@@ -15,9 +15,14 @@ class PerformanceMonitor {
   private timers: Map<string, number> = new Map();
   private maxMetrics = 500;
 
+  private lastNavTime = performance.now();
+  private lastNavUrl = typeof location !== "undefined" ? location.href : "";
+
   private constructor() {
     this.observeWebVitals();
     this.observePageLoad();
+    this.observeRouteChanges();
+    this.observeMemoryUsage();
   }
 
   static getInstance(): PerformanceMonitor {
@@ -67,6 +72,54 @@ class PerformanceMonitor {
     window.addEventListener('load', () => {
       setTimeout(() => this.recordPageLoadMetrics(), 0);
     });
+  }
+
+  private observeRouteChanges() {
+    if (typeof window === 'undefined') return;
+
+    const recordNav = () => {
+      const now = performance.now();
+      const duration = now - this.lastNavTime;
+      if (duration > 0 && duration < 300_000) {
+        this.recordMetric('spa_navigation', duration, 'ms', { from: this.lastNavUrl, to: location.href });
+      }
+      this.lastNavTime = now;
+      this.lastNavUrl = location.href;
+    };
+
+    window.addEventListener('popstate', recordNav);
+
+    const origPushState = history.pushState.bind(history);
+    history.pushState = (data: any, title: string, url?: string | null) => {
+      origPushState(data, title, url);
+      recordNav();
+    };
+
+    const origReplaceState = history.replaceState.bind(history);
+    history.replaceState = (data: any, title: string, url?: string | null) => {
+      origReplaceState(data, title, url);
+      recordNav();
+    };
+  }
+
+  private observeMemoryUsage() {
+    if (typeof window === 'undefined') return;
+    const perfMem = (performance as any).memory;
+    if (!perfMem || typeof perfMem.usedJSHeapSize !== 'number') return;
+
+    const measure = () => {
+      try {
+        this.recordMetric('heapUsed', perfMem.usedJSHeapSize, 'bytes', { type: 'memory' });
+        this.recordMetric('heapTotal', perfMem.totalJSHeapSize, 'bytes', { type: 'memory' });
+        if (typeof perfMem.jsHeapSizeLimit === 'number') {
+          this.recordMetric('heapLimit', perfMem.jsHeapSizeLimit, 'bytes', { type: 'memory' });
+        }
+      } catch {
+        // best-effort
+      }
+      setTimeout(measure, 30_000);
+    };
+    setTimeout(measure, 10_000);
   }
 
   private recordPageLoadMetrics() {

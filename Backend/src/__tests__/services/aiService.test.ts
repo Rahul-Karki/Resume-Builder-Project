@@ -7,14 +7,7 @@ vi.mock("../../models/AiUsage", () => ({
   },
 }));
 
-// Mock logger to suppress noise
-vi.mock("../../observability", () => ({
-  logger: {
-    warn: vi.fn(),
-    info: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+vi.mock("../../observability");
 
 describe("aiService", () => {
   describe("fingerprintText", () => {

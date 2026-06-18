@@ -1,6 +1,7 @@
 import { createClient } from "redis";
 import { env } from "../config/env";
 import { logger } from "../observability";
+import { trackRedisCommandDuration, trackRedisConnectionError } from "../observability/aiMetrics";
 import { memoryCache } from "./memoryCache";
 import { memoryRateLimiter } from "./memoryRateLimit";
 
@@ -78,6 +79,7 @@ const upstashCall = async (
   const controller = new AbortController();
   const timeoutMs = env.REDIS_CONNECT_TIMEOUT_MS || 5000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const start = Date.now();
 
   try {
     const response = await fetch(endpoint, {
@@ -90,14 +92,19 @@ const upstashCall = async (
     });
 
     if (!response.ok) {
+      trackRedisConnectionError();
       const responseText = await response.text().catch(() => "");
       throw new Error(`Upstash ${command.toUpperCase()} failed (${response.status}): ${responseText}`);
     }
 
     const payload = (await response.json()) as { result?: unknown };
     return payload.result ?? null;
+  } catch (error) {
+    trackRedisConnectionError();
+    throw error;
   } finally {
     clearTimeout(timeoutId);
+    trackRedisCommandDuration(command, Date.now() - start);
   }
 };
 
@@ -133,10 +140,12 @@ const createRedisClient = () =>
 
 const attachRedisLogging = (client: RedisClient) => {
   client.on("error", (error) => {
+    trackRedisConnectionError();
     logger.warn({ error }, "Redis client error");
   });
 
   client.on("reconnecting", () => {
+    trackRedisConnectionError();
     logger.info("Redis reconnecting");
   });
 };
@@ -172,6 +181,7 @@ export const getRedisClient = async (): Promise<RedisClient | null> => {
       redisClient = client;
       return client;
     } catch (error) {
+      trackRedisConnectionError();
       logger.warn({ error }, "Redis unavailable; distributed cache and rate limiting are disabled");
       redisClient = null;
       lastRedisFailureAt = Date.now();
@@ -184,18 +194,26 @@ export const getRedisClient = async (): Promise<RedisClient | null> => {
   return redisConnectPromise;
 };
 
-export const withRedis = async <T>(operation: (client: RedisClient) => Promise<T>): Promise<T | null> => {
+export const withRedis = async <T>(operation: (client: RedisClient) => Promise<T>, command?: string): Promise<T | null> => {
   const client = await getRedisClient();
 
   if (!client) {
+    if (command) {
+      trackRedisCommandDuration(command, 0);
+    }
     return null;
   }
 
+  const start = Date.now();
   try {
     return await operation(client);
   } catch (error) {
     logger.warn({ error }, "Redis operation failed");
     return null;
+  } finally {
+    if (command) {
+      trackRedisCommandDuration(command, Date.now() - start);
+    }
   }
 };
 
@@ -203,7 +221,7 @@ export const cacheGet = async (key: string): Promise<string | null> => {
   const provider = getCacheProvider();
 
   if (provider === "redis") {
-    const result = await withRedis((client) => client.get(key));
+    const result = await withRedis((client) => client.get(key), "get");
     if (result !== null) return result;
     // Fall through to in-memory
     return memoryCache.get(key);
@@ -240,7 +258,7 @@ export const cacheSet = async (key: string, value: string, ttlSeconds: number): 
     const result = await withRedis(async (client) => {
       await client.set(key, value, { EX: ttlSeconds });
       return true;
-    });
+    }, "set");
 
     return Boolean(result);
   }
@@ -279,7 +297,7 @@ export const consumeRateLimit = async (
       }) as [number, number];
       const [count, ttlSeconds] = results;
       return { count, ttlSeconds };
-    });
+    }, "eval");
 
     // Fall back to in-memory if Redis is down
     if (!result) {
@@ -345,7 +363,7 @@ export const deleteByPattern = async (pattern: string): Promise<number> => {
       }
 
       return deletedCount;
-    });
+    }, "del_pattern");
 
     return deleted ?? 0;
   }

@@ -22,8 +22,11 @@ vi.mock("../models/Resume", () => ({
   },
 }));
 
+import { Registry } from "prom-client";
+
 vi.mock("../observability", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+  metricsRegistry: new Registry(),
 }));
 
 vi.mock("../processors/jdMatch.processor", () => ({

@@ -1,7 +1,7 @@
 ﻿import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockLogger = { warn: vi.fn(), error: vi.fn() };
-vi.mock("../../observability", () => ({ logger: mockLogger }));
+vi.mock("../../observability");
+import { logger as mockLogger } from "../../observability";
 
 beforeEach(() => { vi.clearAllMocks(); });
 

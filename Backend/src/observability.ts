@@ -13,7 +13,7 @@ import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import type { NextFunction, Request, Response } from "express";
 import pino, { LoggerOptions } from "pino";
 import pinoHttp from "pino-http";
-import { Counter, Histogram, Registry, collectDefaultMetrics } from "prom-client";
+import { Counter, Gauge, Histogram, Registry, collectDefaultMetrics } from "prom-client";
 import { env } from "./config/env";
 
 const metricsRegistry = new Registry();
@@ -27,6 +27,54 @@ if (env.ENABLE_METRICS) {
   });
 }
 
+const eventLoopLagGauge = new Gauge({
+  name: "event_loop_lag_ms",
+  help: "Event loop lag in milliseconds",
+  registers: [metricsRegistry],
+});
+
+const gcDurationGauge = new Gauge({
+  name: "gc_duration_ms",
+  help: "Garbage collection duration in milliseconds",
+  labelNames: ["type"],
+  registers: [metricsRegistry],
+});
+
+const cpuPercentGauge = new Gauge({
+  name: "cpu_percent",
+  help: "Process CPU usage percentage (0-100 per core)",
+  registers: [metricsRegistry],
+});
+
+export const promDbOperationsTotal = new Counter({
+  name: "resume_builder_db_operations_total",
+  help: "Total database operations",
+  labelNames: ["operation", "model", "status"],
+  registers: [metricsRegistry],
+});
+
+export const promEmailSentTotal = new Counter({
+  name: "resume_builder_email_sent_total",
+  help: "Total emails sent",
+  labelNames: ["type", "provider", "status"],
+  registers: [metricsRegistry],
+});
+
+export const promEmailDurationSeconds = new Histogram({
+  name: "resume_builder_email_duration_seconds",
+  help: "Email send duration in seconds",
+  labelNames: ["type", "provider"],
+  buckets: [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10],
+  registers: [metricsRegistry],
+});
+
+export const promDbErrorsTotal = new Counter({
+  name: "resume_builder_db_errors_total",
+  help: "Total database operation errors",
+  labelNames: ["operation", "model"],
+  registers: [metricsRegistry],
+});
+
 const promRequestCounter = new Counter({
   name: "resume_builder_http_requests_total",
   help: "Total HTTP requests",
@@ -39,6 +87,26 @@ const promRequestDurationHistogram = new Histogram({
   help: "HTTP request duration in seconds",
   labelNames: ["method", "route", "status_code"],
   buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.2, 0.5, 1, 2, 5],
+  registers: [metricsRegistry],
+});
+
+const promRequestSizeHistogram = new Histogram({
+  name: "resume_builder_http_request_size_bytes",
+  help: "HTTP request size in bytes",
+  labelNames: ["method", "route"],
+  buckets: [64, 256, 1024, 4096, 16384, 65536, 262144, 1048576],
+  registers: [metricsRegistry],
+});
+
+const promDiskReadOpsRate = new Gauge({
+  name: "resume_builder_disk_read_ops_per_second",
+  help: "Filesystem read operations per second",
+  registers: [metricsRegistry],
+});
+
+const promDiskWriteOpsRate = new Gauge({
+  name: "resume_builder_disk_write_ops_per_second",
+  help: "Filesystem write operations per second",
   registers: [metricsRegistry],
 });
 
@@ -104,9 +172,14 @@ const meterProviderFallback = new MeterProvider({ resource: sharedResource });
 type AppMetrics = {
   httpRequestsTotal: { add: (value: number, attributes?: Record<string, string>) => void };
   httpRequestDuration: { record: (value: number, attributes?: Record<string, string>) => void };
+  httpRequestSize: { record: (value: number, attributes?: Record<string, string>) => void };
   httpErrorsTotal: { add: (value: number, attributes?: Record<string, string>) => void };
   activeConnections: { add: (value: number, attributes?: Record<string, string>) => void };
   dbQueryDuration: { record: (value: number, attributes?: Record<string, string>) => void };
+  dbOperationsTotal: { add: (value: number, attributes?: Record<string, string>) => void };
+  dbErrorsTotal: { add: (value: number, attributes?: Record<string, string>) => void };
+  emailSentTotal: { add: (value: number, attributes?: Record<string, string>) => void };
+  emailDuration: { record: (value: number, attributes?: Record<string, string>) => void };
   cacheHits: { add: (value: number, attributes?: Record<string, string>) => void };
   cacheMisses: { add: (value: number, attributes?: Record<string, string>) => void };
 };
@@ -119,6 +192,10 @@ const createAppMetrics = (meterInstance: ReturnType<MeterProvider["getMeter"]>):
     description: "HTTP request duration in milliseconds",
     unit: "ms",
   }),
+  httpRequestSize: meterInstance.createHistogram("http_request_size_bytes", {
+    description: "HTTP request size in bytes",
+    unit: "By",
+  }),
   httpErrorsTotal: meterInstance.createCounter("http_errors_total", {
     description: "Total HTTP errors",
   }),
@@ -129,6 +206,19 @@ const createAppMetrics = (meterInstance: ReturnType<MeterProvider["getMeter"]>):
     description: "Database query duration in milliseconds",
     unit: "ms",
   }),
+  dbOperationsTotal: meterInstance.createCounter("db_operations_total", {
+    description: "Total database operations",
+  }),
+  dbErrorsTotal: meterInstance.createCounter("db_errors_total", {
+    description: "Total database operation errors",
+  }),
+  emailSentTotal: meterInstance.createCounter("email_sent_total", {
+    description: "Total emails sent",
+  }),
+  emailDuration: meterInstance.createHistogram("email_duration_ms", {
+    description: "Email send duration in milliseconds",
+    unit: "ms",
+  }),
   cacheHits: meterInstance.createCounter("cache_hits_total", {
     description: "Cache hits",
   }),
@@ -136,6 +226,16 @@ const createAppMetrics = (meterInstance: ReturnType<MeterProvider["getMeter"]>):
     description: "Cache misses",
   }),
 });
+
+// Saturation / runtime gauges (dual-written to OTel)
+let otelEventLoopLag: ReturnType<MeterProvider["getMeter"]>["createObservableGauge"] | null = null;
+let otelGcDuration: ReturnType<MeterProvider["getMeter"]>["createObservableGauge"] | null = null;
+let lastEventLoopLag = 0;
+let lastGcDuration = 0;
+let lastGcType = "";
+let lastCpuPercent = 0;
+let lastDiskReadOpsPerSec = 0;
+let lastDiskWriteOpsPerSec = 0;
 
 export let appMetrics: AppMetrics = createAppMetrics(
   meterProviderFallback.getMeter(serviceName, serviceVersion),
@@ -290,6 +390,13 @@ const queueFrontendLokiLine = (line: string) => {
   }
 };
 
+export const trackEmailSent = (type: string, provider: string, status: "success" | "error", durationMs: number) => {
+  promEmailSentTotal.labels(type, provider, status).inc();
+  appMetrics.emailSentTotal.add(1, { type, provider, status });
+  promEmailDurationSeconds.labels(type, provider).observe(durationMs / 1000);
+  appMetrics.emailDuration.record(durationMs, { type, provider });
+};
+
 export const pushFrontendLog = (line: string) => {
   queueFrontendLokiLine(line);
 };
@@ -411,6 +518,16 @@ export const metricsMiddleware = (req: Request, res: Response, next: NextFunctio
     }
 
     appMetrics.activeConnections.add(-1);
+
+    const contentLength = req.headers["content-length"];
+    if (contentLength) {
+      const sizeLabels = { method: req.method, route: resolveRouteLabel(req) };
+      const bytes = parseInt(contentLength, 10);
+      if (!isNaN(bytes) && bytes > 0) {
+        promRequestSizeHistogram.observe(sizeLabels, bytes);
+        appMetrics.httpRequestSize.record(bytes, sizeLabels);
+      }
+    }
   });
 
   next();
@@ -511,6 +628,108 @@ export const initializeObservability = () => {
     metrics.setGlobalMeterProvider(meterProviderFallback);
     appMetrics = createAppMetrics(meterProviderFallback.getMeter(serviceName, serviceVersion));
     logger.warn("OTLP metrics exporter not configured. Metrics remain local (/metrics)");
+  }
+
+  // Initialize saturation / runtime gauges (event loop lag, GC)
+  const runtimeMeter = meterProvider ?? meterProviderFallback;
+  const rm = runtimeMeter.getMeter(serviceName, serviceVersion);
+  rm.createObservableGauge("event_loop_lag_ms", {
+    description: "Event loop lag in milliseconds",
+  }).addCallback((result) => {
+    result.observe(lastEventLoopLag);
+  });
+  rm.createObservableGauge("gc_duration_ms", {
+    description: "Garbage collection duration in milliseconds",
+  }).addCallback((result) => {
+    if (lastGcDuration > 0) result.observe(lastGcDuration, { type: lastGcType });
+  });
+  rm.createObservableGauge("cpu_percent", {
+    description: "Process CPU usage percentage (0-100 per core)",
+  }).addCallback((result) => {
+    result.observe(lastCpuPercent);
+  });
+  rm.createObservableGauge("disk_read_ops_per_second", {
+    description: "Filesystem read operations per second",
+  }).addCallback((result) => {
+    result.observe(lastDiskReadOpsPerSec);
+  });
+  rm.createObservableGauge("disk_write_ops_per_second", {
+    description: "Filesystem write operations per second",
+  }).addCallback((result) => {
+    result.observe(lastDiskWriteOpsPerSec);
+  });
+
+  // Start event loop lag monitoring (measure every 2s)
+  let expected = Date.now() + 2000;
+  const measureLag = () => {
+    const actual = Date.now();
+    lastEventLoopLag = Math.max(0, actual - expected);
+    eventLoopLagGauge.set(lastEventLoopLag);
+    expected = actual + 2000;
+    setTimeout(measureLag, 2000);
+  };
+  setTimeout(measureLag, 2000);
+
+  // Start CPU usage monitoring (measure every 2s)
+  let lastCpuUsage = process.cpuUsage();
+  let lastCpuTime = Date.now();
+  const measureCpu = () => {
+    const now = Date.now();
+    const cpu = process.cpuUsage();
+    const wallMs = now - lastCpuTime;
+    if (wallMs > 0) {
+      const totalMicro = (cpu.user - lastCpuUsage.user) + (cpu.system - lastCpuUsage.system);
+      lastCpuPercent = Math.min(100, Math.round((totalMicro / (wallMs * 1000)) * 100));
+      cpuPercentGauge.set(lastCpuPercent);
+    }
+    lastCpuUsage = cpu;
+    lastCpuTime = now;
+    setTimeout(measureCpu, 2000);
+  };
+  setTimeout(measureCpu, 2000);
+
+  // Start disk I/O monitoring (measure every 2s)
+  let lastResourceUsage: { fsRead: number; fsWrite: number } = { fsRead: 0, fsWrite: 0 };
+  let lastDiskTime = Date.now();
+  try {
+    lastResourceUsage = process.resourceUsage();
+  } catch {
+    // resourceUsage not available on older Node
+  }
+  const measureDisk = () => {
+    const now = Date.now();
+    try {
+      const usage = process.resourceUsage();
+      const wallMs = now - lastDiskTime;
+      if (wallMs > 0) {
+        lastDiskReadOpsPerSec = Math.round((usage.fsRead - lastResourceUsage.fsRead) / (wallMs / 1000));
+        lastDiskWriteOpsPerSec = Math.round((usage.fsWrite - lastResourceUsage.fsWrite) / (wallMs / 1000));
+        promDiskReadOpsRate.set(lastDiskReadOpsPerSec);
+        promDiskWriteOpsRate.set(lastDiskWriteOpsPerSec);
+      }
+      lastResourceUsage = usage;
+    } catch {
+      // resourceUsage not available
+    }
+    lastDiskTime = now;
+    setTimeout(measureDisk, 2000);
+  };
+  setTimeout(measureDisk, 2000);
+
+  // GC monitoring via perf_hooks
+  try {
+    const { PerformanceObserver } = require("perf_hooks") as typeof import("perf_hooks");
+    const gcObs = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const kind = (entry as any).detail?.kind ?? "unknown";
+        lastGcDuration = entry.duration;
+        lastGcType = kind;
+        gcDurationGauge.labels(kind).set(entry.duration);
+      }
+    });
+    gcObs.observe({ entryTypes: ["gc"] });
+  } catch {
+    // GC monitoring not available (Node < 14 or non-V8 engine)
   }
 
   if (traceExportUrl && otlpAuthHeader) {

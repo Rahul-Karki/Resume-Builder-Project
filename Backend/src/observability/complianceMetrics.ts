@@ -27,27 +27,6 @@ export const errorRateTotalCounter = new Counter({
   registers: [complianceRegistry],
 });
 
-export const validationErrorsCounter = new Counter({
-  name: "validation_errors_total",
-  help: "Total validation errors",
-  labelNames: ["field", "type", "endpoint"],
-  registers: [complianceRegistry],
-});
-
-export const referentialIntegrityViolationsCounter = new Counter({
-  name: "referential_integrity_violations_total",
-  help: "Total referential integrity violations (orphaned documents)",
-  labelNames: ["collection", "reference_field"],
-  registers: [complianceRegistry],
-});
-
-export const cascadeDeleteFailuresCounter = new Counter({
-  name: "cascade_delete_failures_total",
-  help: "Total cascade delete operation failures",
-  labelNames: ["parent_collection", "child_collection"],
-  registers: [complianceRegistry],
-});
-
 export const auditLogEntriesCounter = new Counter({
   name: "audit_log_entries_total",
   help: "Total audit log entries created",
@@ -60,13 +39,6 @@ export const auditLogLatencyHistogram = new Histogram({
   help: "Latency of audit log creation in milliseconds",
   labelNames: ["action", "collection"],
   buckets: [10, 50, 100, 250, 500, 1000, 2500],
-  registers: [complianceRegistry],
-});
-
-export const missingAuditLogsCounter = new Counter({
-  name: "missing_audit_logs_total",
-  help: "Documents missing audit trail entries",
-  labelNames: ["collection"],
   registers: [complianceRegistry],
 });
 
@@ -91,25 +63,10 @@ export const softDeleteGauge = new Gauge({
   registers: [complianceRegistry],
 });
 
-export const requestComplianceHistogram = new Histogram({
-  name: "request_compliance_check_duration_ms",
-  help: "Duration of compliance checks per request",
-  labelNames: ["check_type"],
-  buckets: [5, 10, 25, 50, 100, 250],
-  registers: [complianceRegistry],
-});
-
 export const complianceViolationsCounter = new Counter({
   name: "compliance_violations_total",
   help: "Total compliance violations detected",
   labelNames: ["violation_type", "severity"],
-  registers: [complianceRegistry],
-});
-
-export const dataAccessLogsCounter = new Counter({
-  name: "data_access_logs_total",
-  help: "Total data access events logged",
-  labelNames: ["user_id", "action", "collection"],
   registers: [complianceRegistry],
 });
 
@@ -119,26 +76,8 @@ const otelErrorRateTotal = complianceMeter.createCounter("compliance_error_rate_
   description: "Total errors by type and endpoint",
 });
 
-const otelValidationErrors = complianceMeter.createCounter("compliance_validation_errors_total", {
-  description: "Total validation errors",
-});
-
-const otelReferentialIntegrityViolations = complianceMeter.createCounter(
-  "compliance_referential_integrity_violations_total",
-  { description: "Total referential integrity violations" },
-);
-
-const otelCascadeDeleteFailures = complianceMeter.createCounter(
-  "compliance_cascade_delete_failures_total",
-  { description: "Total cascade delete operation failures" },
-);
-
 const otelAuditLogEntries = complianceMeter.createCounter("compliance_audit_log_entries_total", {
   description: "Total audit log entries created",
-});
-
-const otelMissingAuditLogs = complianceMeter.createCounter("compliance_missing_audit_logs_total", {
-  description: "Documents missing audit trail entries",
 });
 
 const otelDataCorruptionDetections = complianceMeter.createCounter(
@@ -151,19 +90,10 @@ const otelComplianceViolations = complianceMeter.createCounter(
   { description: "Total compliance violations detected" },
 );
 
-const otelDataAccessLogs = complianceMeter.createCounter("compliance_data_access_logs_total", {
-  description: "Total data access events logged",
-});
-
 const otelAuditLogLatency = complianceMeter.createHistogram("compliance_audit_log_latency_ms", {
   description: "Latency of audit log creation",
   unit: "ms",
 });
-
-const otelRequestComplianceDuration = complianceMeter.createHistogram(
-  "compliance_request_check_duration_ms",
-  { description: "Duration of compliance checks per request", unit: "ms" },
-);
 
 // Observable gauges for set-style metrics
 const orphanedDocValues = new Map<string, number>();
@@ -221,46 +151,6 @@ export function recordError(
     complianceViolationsCounter.labels(errorType, "critical").inc();
     otelComplianceViolations.add(1, { violation_type: errorType, severity: "critical" });
   }
-}
-
-/**
- * Track validation errors
- */
-export function recordValidationError(
-  field: string,
-  type: string,
-  endpoint: string
-) {
-  validationErrorsCounter.labels(field, type, endpoint).inc();
-  otelValidationErrors.add(1, { field, type, endpoint });
-
-  complianceViolationsCounter.labels("validation_error", "warning").inc();
-  otelComplianceViolations.add(1, { violation_type: "validation_error", severity: "warning" });
-}
-
-/**
- * Track referential integrity violations
- */
-export function recordIntegrityViolation(collection: string, refField: string) {
-  referentialIntegrityViolationsCounter.labels(collection, refField).inc();
-  otelReferentialIntegrityViolations.add(1, { collection, reference_field: refField });
-
-  complianceViolationsCounter.labels("referential_integrity", "critical").inc();
-  otelComplianceViolations.add(1, { violation_type: "referential_integrity", severity: "critical" });
-}
-
-/**
- * Track cascade delete failures
- */
-export function recordCascadeDeleteFailure(
-  parentCollection: string,
-  childCollection: string
-) {
-  cascadeDeleteFailuresCounter.labels(parentCollection, childCollection).inc();
-  otelCascadeDeleteFailures.add(1, { parent_collection: parentCollection, child_collection: childCollection });
-
-  complianceViolationsCounter.labels("cascade_delete_failure", "critical").inc();
-  otelComplianceViolations.add(1, { violation_type: "cascade_delete_failure", severity: "critical" });
 }
 
 /**

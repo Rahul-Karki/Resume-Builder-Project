@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
-import { logger } from "../observability";
+import { logger, trackEmailSent } from "../observability";
 
 interface EmailPayload {
   to: string;
@@ -125,7 +125,14 @@ export const sendEmail = async (to: string, link: string, type: keyof typeof TEM
   if (env.NODE_ENV === "test") return;
 
   const template = TEMPLATES[type];
-  await provider.send({ to, subject: template.subject, html: template.html(link) });
+  const start = Date.now();
+  try {
+    await provider.send({ to, subject: template.subject, html: template.html(link) });
+    trackEmailSent(type, env.EMAIL_PROVIDER || "console", "success", Date.now() - start);
+  } catch (error) {
+    trackEmailSent(type, env.EMAIL_PROVIDER || "console", "error", Date.now() - start);
+    throw error;
+  }
 };
 
 export const sendVerificationEmail = async (to: string, otp: string) => {
@@ -149,7 +156,14 @@ export const sendVerificationEmail = async (to: string, otp: string) => {
     </div>
   `;
 
-  await provider.send({ to, subject: "Verify your email address", html });
+  const start = Date.now();
+  try {
+    await provider.send({ to, subject: "Verify your email address", html });
+    trackEmailSent("email-verification", env.EMAIL_PROVIDER || "console", "success", Date.now() - start);
+  } catch (error) {
+    trackEmailSent("email-verification", env.EMAIL_PROVIDER || "console", "error", Date.now() - start);
+    throw error;
+  }
 };
 
 export const sendPasswordResetEmail = async (to: string, token: string) => {

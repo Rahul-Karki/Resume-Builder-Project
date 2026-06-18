@@ -40,13 +40,6 @@ export const userLoginFailureCounter = meter.createCounter(
   }
 );
 
-/**
- * Gauge for active users (sessions)
- */
-export const activeUsersGauge = meter.createUpDownCounter("active_users", {
-  description: "Number of currently active users",
-});
-
 // ─────────────────────────────────────────────────────────────────
 // RESUME METRICS
 // ─────────────────────────────────────────────────────────────────
@@ -71,25 +64,6 @@ export const resumeDeletedCounter = meter.createCounter("resumes_deleted_total",
 export const totalResumesGauge = meter.createUpDownCounter("resumes_total", {
   description: "Total number of resumes in system",
 });
-
-/**
- * Histogram for resume content size (in bytes)
- */
-export const resumeSizeHistogram = meter.createHistogram("resume_size_bytes", {
-  description: "Distribution of resume content size",
-  unit: "bytes",
-});
-
-/**
- * Histogram for time to save a resume (milliseconds)
- */
-export const resumeSaveTimeHistogram = meter.createHistogram(
-  "resume_save_duration_ms",
-  {
-    description: "Time taken to save resume changes",
-    unit: "ms",
-  }
-);
 
 // ─────────────────────────────────────────────────────────────────
 // PDF EXPORT METRICS
@@ -133,16 +107,6 @@ export const pdfExportDurationHistogram = meter.createHistogram(
   }
 );
 
-/**
- * Gauge for PDF export queue size
- */
-export const pdfExportQueueGauge = meter.createUpDownCounter(
-  "pdf_export_queue_size",
-  {
-    description: "Number of PDF exports in queue",
-  }
-);
-
 // ─────────────────────────────────────────────────────────────────
 // TEMPLATE METRICS
 // ─────────────────────────────────────────────────────────────────
@@ -170,23 +134,6 @@ export const templateUsageGauge = meter.createUpDownCounter(
 // ─────────────────────────────────────────────────────────────────
 // SECURITY METRICS
 // ─────────────────────────────────────────────────────────────────
-
-/**
- * Counter for CSRF failures
- */
-export const csrfFailureCounter = meter.createCounter("csrf_failures_total", {
-  description: "Total CSRF validation failures",
-});
-
-/**
- * Counter for authentication failures
- */
-export const authFailureCounter = meter.createCounter(
-  "auth_failures_total",
-  {
-    description: "Total authentication failures",
-  }
-);
 
 /**
  * Counter for suspicious activities detected
@@ -224,13 +171,6 @@ export function recordLoginFailure(reason: string) {
 }
 
 /**
- * Update active users (increment/decrement)
- */
-export function updateActiveUsers(delta: number) {
-  activeUsersGauge.add(delta);
-}
-
-/**
  * Record resume creation
  */
 export function recordResumeCreated(templateId: string) {
@@ -244,20 +184,6 @@ export function recordResumeCreated(templateId: string) {
 export function recordResumeDeleted() {
   resumeDeletedCounter.add(1);
   totalResumesGauge.add(-1);
-}
-
-/**
- * Record resume content size
- */
-export function recordResumeSizeChange(sizeBytes: number) {
-  resumeSizeHistogram.record(sizeBytes);
-}
-
-/**
- * Record resume save time
- */
-export function recordResumeSaveTime(durationMs: number) {
-  resumeSaveTimeHistogram.record(durationMs);
 }
 
 /**
@@ -283,39 +209,11 @@ export function recordPdfExportRetry(reason?: string) {
 }
 
 /**
- * Update PDF export queue size
- */
-export function updatePdfExportQueue(delta: number) {
-  pdfExportQueueGauge.add(delta);
-}
-
-/**
  * Record template selection
  */
 export function recordTemplateSelection(templateId: string, templateName: string) {
   templateSelectedCounter.add(1, { templateId, templateName });
   templateUsageGauge.add(1, { templateId });
-}
-
-/**
- * Record template deselection
- */
-export function recordTemplateDeselection(templateId: string) {
-  templateUsageGauge.add(-1, { templateId });
-}
-
-/**
- * Record CSRF failure
- */
-export function recordCsrfFailure(path: string) {
-  csrfFailureCounter.add(1, { path });
-}
-
-/**
- * Record authentication failure
- */
-export function recordAuthFailure(reason: string) {
-  authFailureCounter.add(1, { reason });
 }
 
 /**
