@@ -49,6 +49,21 @@ const clientErrorCounter = new Counter({
   registers: [metricsRegistry],
 });
 
+export const frontendMetricsCounter = new Counter({
+  name: "resume_builder_frontend_metrics_total",
+  help: "Total frontend performance metrics reported by clients",
+  labelNames: ["name", "unit"],
+  registers: [metricsRegistry],
+});
+
+export const frontendMetricsHistogram = new Histogram({
+  name: "resume_builder_frontend_metric_value",
+  help: "Distribution of frontend performance metric values",
+  labelNames: ["name", "unit"],
+  buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000, 3000, 10000, 30000],
+  registers: [metricsRegistry],
+});
+
 const serviceName = env.SERVICE_NAME;
 const serviceVersion = env.SERVICE_VERSION;
 const environment = env.NODE_ENV;
@@ -423,6 +438,32 @@ export const clientErrorHandler = (req: Request, res: Response) => {
   clientErrorCounter.labels(labels.source, labels.error_type).inc();
 
   logger.warn({ source, message, url, userAgent }, "Client-side error reported");
+  res.status(200).json({ ok: true });
+};
+
+export const clientMetricsHandler = (req: Request, res: Response) => {
+  const rawBody = req.body || {};
+
+  if (typeof rawBody !== "object" || !Array.isArray(rawBody.metrics)) {
+    res.status(200).json({ ok: true });
+    return;
+  }
+
+  for (const m of rawBody.metrics) {
+    const name = typeof m.name === "string" ? m.name.substring(0, 200) : "unknown";
+    const value = typeof m.value === "number" ? m.value : 0;
+    const unit = typeof m.unit === "string" ? m.unit.substring(0, 20) : "ms";
+    const context = typeof m.context === "object" && m.context ? m.context : {};
+
+    const labels = { name, unit };
+    frontendMetricsCounter.labels(name, unit).inc();
+
+    if (value > 0) {
+      frontendMetricsHistogram.observe(labels, value);
+    }
+  }
+
+  logger.info({ count: rawBody.metrics.length }, "Frontend metrics reported");
   res.status(200).json({ ok: true });
 };
 

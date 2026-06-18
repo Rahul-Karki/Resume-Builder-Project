@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../observability";
+import { alertSecurityIssue, alertingService } from "../observability/alerting";
 import { sendErrorResponse } from "../utils/errorResponse";
 import type { AppError } from "../errors/AppError";
 
@@ -146,7 +147,7 @@ export const handleAiError = (
 ): void => {
   const context = categorizeAiError(error);
   const requestId = String(req.headers["x-request-id"] || "");
-  const userId = (req.user as Record<string, unknown> | undefined)?.id || "unknown";
+  const userId = String((req.user as Record<string, unknown> | undefined)?.id ?? "unknown");
 
   logger.error(
     {
@@ -160,6 +161,19 @@ export const handleAiError = (
     },
     "AI request error"
   );
+
+  // Escalate AI auth/provider failures to alerting pipeline
+  if (context.category === "AUTH_ERROR") {
+    alertingService.recordEvent("ai_auth_failure");
+    if (alertingService.shouldAlert("ai_auth_failure")) {
+      void alertSecurityIssue(
+        `AI Provider Authentication Failed`,
+        `AI provider returned auth error for user ${userId}. Path: ${req.path}. Error: ${context.message}`,
+        "critical",
+        userId !== "unknown" ? userId : undefined,
+      );
+    }
+  }
 
   const errorData = {
     code: context.category,

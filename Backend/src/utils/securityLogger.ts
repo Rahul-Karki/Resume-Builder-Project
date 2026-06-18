@@ -1,5 +1,6 @@
 import { Request } from "express";
 import { logger } from "../observability";
+import { alertingService } from "../observability/alerting";
 
 export enum SecurityEvent {
   LOGIN_SUCCESS = "LOGIN_SUCCESS",
@@ -54,6 +55,13 @@ export function logSecurityEvent(
 
   if (level === "error") {
     logger.error(logEntry, message || event);
+    // Feed security events into alert rule engine
+    if (event === SecurityEvent.LOGIN_FAILED || event === SecurityEvent.CSRF_VALIDATION_FAILED) {
+      alertingService.recordEvent("high_validation_error_rate");
+    }
+    if (event === SecurityEvent.SUSPICIOUS_ACTIVITY) {
+      alertingService.recordEvent("referential_integrity_violation");
+    }
   } else {
     logger.warn(logEntry, message || event);
   }

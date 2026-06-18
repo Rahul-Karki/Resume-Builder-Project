@@ -96,6 +96,24 @@ export class AlertingService {
       timeWindow: 60000,
       channels: ["slack", "pagerduty"],
     });
+
+    // High: AI provider auth failure (API key expired/invalid)
+    this.addRule({
+      name: "ai_auth_failure",
+      enabled: true,
+      threshold: 1,
+      timeWindow: 60000,
+      channels: ["slack", "pagerduty"],
+    });
+
+    // High: Frontend critical error (client-side crash)
+    this.addRule({
+      name: "frontend_critical_error",
+      enabled: true,
+      threshold: 5,
+      timeWindow: 300000,
+      channels: ["slack"],
+    });
   }
 
   /**

@@ -1,0 +1,124 @@
+{
+  "contact_points": [
+    {
+      "name": "slack-ops",
+      "type": "slack",
+      "settings": { "recipient": "#ops", "token": "${SLACK_TOKEN}", "url": "${SLACK_WEBHOOK_URL}" }
+    },
+    {
+      "name": "pagerduty-critical",
+      "type": "pagerduty",
+      "settings": { "integrationKey": "${PAGERDUTY_INTEGRATION_KEY}" }
+    }
+  ],
+  "notification_policy": {
+    "receiver": "slack-ops",
+    "group_by": ["severity", "team"],
+    "group_wait": "30s",
+    "group_interval": "5m",
+    "repeat_interval": "4h",
+    "routes": [
+      {
+        "receiver": "pagerduty-critical",
+        "object_matchers": [
+          ["severity", "=", "critical"],
+          ["team", "=", "backend"]
+        ]
+      }
+    ]
+  },
+  "rule_groups": [
+    {
+      "name": "resume-builder-critical",
+      "interval": "1m",
+      "rules": [
+        {
+          "title": "High HTTP error rate",
+          "expr": "rate(http_errors_total[5m]) > 0.05",
+          "for": "2m",
+          "labels": { "severity": "critical", "team": "backend" },
+          "annotations": {
+            "summary": "HTTP error rate above 5% for 2 minutes",
+            "description": "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+          }
+        },
+        {
+          "title": "AI provider down",
+          "expr": "absent(ai_requests_total) == 1",
+          "for": "5m",
+          "labels": { "severity": "critical", "team": "backend" },
+          "annotations": {
+            "summary": "No AI requests recorded for 5 minutes",
+            "description": "AI provider may be down or unreachable"
+          }
+        },
+        {
+          "title": "High AI P95 latency",
+          "expr": "histogram_quantile(0.95, sum(rate(ai_request_duration_ms_bucket[5m])) by (le)) > 10000",
+          "for": "3m",
+          "labels": { "severity": "high", "team": "backend" },
+          "annotations": {
+            "summary": "AI P95 latency above 10s",
+            "description": "P95 AI request latency is {{ $value | humanizeDuration }}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "resume-builder-high",
+      "interval": "5m",
+      "rules": [
+        {
+          "title": "High token usage spike",
+          "expr": "rate(ai_tokens_total[5m]) > 100000",
+          "for": "5m",
+          "labels": { "severity": "high", "team": "backend" },
+          "annotations": {
+            "summary": "AI token usage spike detected",
+            "description": "Token usage is {{ $value }} tokens/sec over 5 minutes"
+          }
+        },
+        {
+          "title": "Compliance violation detected",
+          "expr": "rate(compliance_violations_total[5m]) > 0",
+          "for": "1m",
+          "labels": { "severity": "high", "team": "backend" },
+          "annotations": {
+            "summary": "Compliance violation detected",
+            "description": "New compliance violation recorded in the last 5 minutes"
+          }
+        },
+        {
+          "title": "Orphaned documents threshold exceeded",
+          "expr": "compliance_orphaned_documents > 100",
+          "for": "1m",
+          "labels": { "severity": "high", "team": "backend" },
+          "annotations": {
+            "summary": "High number of orphaned documents",
+            "description": "{{ $value }} orphaned documents found in the database"
+          }
+        },
+        {
+          "title": "Low cache hit ratio",
+          "expr": "cache_hits_total / (cache_hits_total + cache_misses_total) < 0.5",
+          "for": "10m",
+          "labels": { "severity": "medium", "team": "backend" },
+          "annotations": {
+            "summary": "Cache hit ratio below 50%",
+            "description": "Cache hit ratio is {{ $value | humanizePercentage }}"
+          }
+        },
+        {
+          "title": "Frontend critical errors spike",
+          "expr": "rate(frontend_metric_value_count[5m]) > 10",
+          "for": "5m",
+          "labels": { "severity": "medium", "team": "frontend" },
+          "annotations": {
+            "summary": "Frontend critical errors exceed threshold",
+            "description": "{{ $value }} frontend errors per second over 5 minutes"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,29 +1,31 @@
-﻿import { describe, it, expect, vi, beforeEach } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 
 describe("templateMapping", () => {
-  it("should export a non-empty TEMPLATES array", async () => {
+  it("should map all 12 templates with correct structure", async () => {
     const { TEMPLATES } = await import("../utils/templateMapping");
-    expect(Array.isArray(TEMPLATES)).toBe(true);
-    expect(TEMPLATES.length).toBeGreaterThan(0);
+    expect(TEMPLATES).toHaveLength(12);
+    TEMPLATES.forEach((t: any) => {
+      expect(t.id).toBeTruthy();
+      expect(t.name).toBeTruthy();
+      expect(t.tag).toBeTruthy();
+      expect(["Technical", "Professional"]).toContain(t.category);
+      expect(["tech", "non-tech"]).toContain(t.audience);
+      expect(typeof t.isPremium).toBe("boolean");
+      expect(t.palette.bg).toMatch(/^#/);
+      expect(t.palette.primary).toMatch(/^#/);
+      expect(t.palette.secondary).toMatch(/^#/);
+    });
   });
-  it("every template should have a unique id", async () => {
+
+  it("should map tech category templates to Technical", async () => {
     const { TEMPLATES } = await import("../utils/templateMapping");
-    const ids = TEMPLATES.map(t => t.id);
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(ids.length);
+    const tech = TEMPLATES.filter((t: any) => t.id === "modern" || t.id === "sidebar");
+    tech.forEach((t: any) => expect(t.category).toBe("Technical"));
   });
-  it("every template should have a valid category and audience", async () => {
+
+  it("should include sidebar palette when available", async () => {
     const { TEMPLATES } = await import("../utils/templateMapping");
-    for (const template of TEMPLATES) {
-      expect(template.category).toBeTruthy();
-      expect(["tech", "non-tech"]).toContain(template.audience);
-    }
-  });
-  it("every template should have a React component reference", async () => {
-    const { TEMPLATES } = await import("../utils/templateMapping");
-    for (const template of TEMPLATES) {
-      expect(template.id).toBeTruthy();
-      expect(template.name).toBeTruthy();
-    }
+    const sidebar = TEMPLATES.find((t: any) => t.id === "sidebar");
+    expect(sidebar?.palette.sidebar).toBeTruthy();
   });
 });

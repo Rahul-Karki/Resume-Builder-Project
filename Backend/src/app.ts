@@ -11,7 +11,7 @@ import { correlationIdMiddleware } from "./middleware/correlationId";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { requestTimeoutMiddleware } from "./middleware/requestTimeout";
 import { requestSizeLimitMiddleware } from "./middleware/requestSizeLimit";
-import { clientErrorHandler, logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
+import { clientErrorHandler, clientMetricsHandler, logger, metricsHandler, metricsMiddleware, requestLogger } from "./observability";
 import { openAPISpec } from "./config/openapi";
 import { auditContextMiddleware, referentialIntegrityMiddleware } from "./middleware/referentialIntegrity";
 
@@ -222,6 +222,15 @@ export const createApp = () => {
     message: "Too many error reports.",
   });
   app.post("/api/client-error", clientErrorLimiter, clientErrorHandler);
+
+  const clientMetricsLimiter = createRedisRateLimitMiddleware({
+    scope: "client-metrics",
+    windowMs: 60_000,
+    max: 10,
+    keyBuilder: (req) => `ip:${req.ip}`,
+    message: "Too many metric reports.",
+  });
+  app.post("/api/client-metrics", clientMetricsLimiter, clientMetricsHandler);
   app.use(notFoundHandler);
   app.use(errorHandler);
 

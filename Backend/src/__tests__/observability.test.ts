@@ -57,4 +57,65 @@ describe("observability", () => {
       expect(res.end).toHaveBeenCalled();
     });
   });
+  describe("frontendMetricsCounter", () => {
+    it("should be a Counter with correct labels", async () => {
+      const { frontendMetricsCounter } = await import("../observability");
+      expect(frontendMetricsCounter).toBeDefined();
+      expect(frontendMetricsCounter.labelNames).toContain("name");
+      expect(frontendMetricsCounter.labelNames).toContain("unit");
+    });
+  });
+  describe("frontendMetricsHistogram", () => {
+    it("should be a Histogram with correct labels", async () => {
+      const { frontendMetricsHistogram } = await import("../observability");
+      expect(frontendMetricsHistogram).toBeDefined();
+      expect(frontendMetricsHistogram.labelNames).toContain("name");
+      expect(frontendMetricsHistogram.labelNames).toContain("unit");
+    });
+  });
+  describe("clientMetricsHandler", () => {
+    it("should record metrics and return ok", async () => {
+      const { clientMetricsHandler, frontendMetricsCounter, metricsRegistry } = await import("../observability");
+      const req = {
+        body: {
+          metrics: [
+            { name: "LCP", value: 1500, unit: "ms", context: { type: "web-vital" } },
+            { name: "api_fetch", value: 200, unit: "ms" },
+          ],
+        },
+      } as any;
+      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+      clientMetricsHandler(req, res);
+      expect(res.json).toHaveBeenCalledWith({ ok: true });
+    });
+    it("should handle empty metrics array", async () => {
+      const { clientMetricsHandler } = await import("../observability");
+      const req = { body: { metrics: [] } } as any;
+      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+      clientMetricsHandler(req, res);
+      expect(res.json).toHaveBeenCalledWith({ ok: true });
+    });
+    it("should handle missing body gracefully", async () => {
+      const { clientMetricsHandler } = await import("../observability");
+      const req = {} as any;
+      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+      clientMetricsHandler(req, res);
+      expect(res.json).toHaveBeenCalledWith({ ok: true });
+    });
+    it("should skip histogram observe for zero values", async () => {
+      const { clientMetricsHandler, frontendMetricsHistogram, frontendMetricsCounter } = await import("../observability");
+      const observeSpy = vi.spyOn(frontendMetricsHistogram, "observe");
+      const incSpy = vi.spyOn(frontendMetricsCounter, "inc");
+
+      const req = { body: { metrics: [{ name: "render", value: 0, unit: "ms" }] } } as any;
+      const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as any;
+      clientMetricsHandler(req, res);
+      expect(incSpy).toHaveBeenCalled();
+      expect(observeSpy).not.toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({ ok: true });
+
+      observeSpy.mockRestore();
+      incSpy.mockRestore();
+    });
+  });
 });
