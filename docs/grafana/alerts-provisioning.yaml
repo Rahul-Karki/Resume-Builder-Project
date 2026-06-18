@@ -1,0 +1,299 @@
+# Grafana Alert Rules — Provisioning
+# Place this file in: grafana/provisioning/alerting/
+# Environment variable: ${DS_PROMETHEUS} is replaced by your data source UID
+# 
+# Import manually via Grafana Cloud → Alerting → Alert rules → New → Import
+# Or deploy as provisioning file if you have filesystem access to Grafana.
+
+apiVersion: 1
+groups:
+  #############################################################################
+  # CRITICAL — Page PagerDuty / Slack urgent
+  #############################################################################
+  - name: "critical"
+    interval: 30s
+    rules:
+      - alert: "ServiceDown"
+        expr: "sum(rate(http_requests_total[1m])) == 0"
+        for: 60s
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Service is not receiving any traffic"
+          description: "No HTTP requests detected in the last 1 minute. Service may be down."
+          runbook_url: "https://github.com/your-org/resume-builder/wiki/Runbooks#service-down"
+
+      - alert: "HighErrorRate5xx"
+        expr: "sum(rate(http_errors_total{status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) > 0.05"
+        for: 3m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "HTTP 5xx error rate exceeds 5% over 5 minutes"
+          description: "Current 5xx rate: {{ $value | humanizePercentage }}"
+
+      - alert: "AIProviderCompletelyFailing"
+        expr: "sum(rate(ai_requests_total{status=\"error\"}[5m])) / sum(rate(ai_requests_total[5m])) > 0.50"
+        for: 5m
+        labels:
+          severity: critical
+          team: ai
+        annotations:
+          summary: "AI provider error rate exceeds 50%"
+          description: "More than half of AI requests are failing. Check provider status."
+
+      - alert: "CPUOver90Percent"
+        expr: "cpu_percent > 90"
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "CPU usage exceeds 90% sustained"
+          description: "CPU at {{ $value }}%. May need to scale up."
+
+      - alert: "EventLoopHang"
+        expr: "event_loop_lag_ms > 200"
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Event loop lag exceeds 200ms"
+          description: "Event loop is blocked: {{ $value }}ms lag."
+
+      - alert: "QueueDepthCritical"
+        expr: "sum(queue_depth) by (queue) > 100"
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Queue depth critically high"
+          description: "Queue {{ $labels.queue }} depth is {{ $value }}. Workers may be stalled."
+
+      - alert: "RedisConnectionErrors"
+        expr: "rate(redis_connection_errors_total[5m]) > 1"
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Redis connection errors detected"
+          description: "Redis is experiencing connection failures: {{ $value }} errors/s."
+
+  #############################################################################
+  # WARNING — Slack non-urgent / email
+  #############################################################################
+  - name: "warning"
+    interval: 1m
+    rules:
+      - alert: "ElevatedErrorRate4xx"
+        expr: "sum(rate(http_errors_total{status_code=~\"4..\"}[5m])) / sum(rate(http_requests_total[5m])) > 0.10"
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "HTTP 4xx rate exceeds 10%"
+          description: "Client error rate is elevated: {{ $value | humanizePercentage }}"
+
+      - alert: "HighP95Latency"
+        expr: "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket[5m])) by (le)) > 500"
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "HTTP p95 latency exceeds 500ms"
+          description: "p95 latency is {{ $value }}ms"
+
+      - alert: "AIP95LatencyHigh"
+        expr: "histogram_quantile(0.95, sum by (le, provider) (rate(ai_request_duration_ms_bucket[5m]))) > 3000"
+        for: 5m
+        labels:
+          severity: warning
+          team: ai
+        annotations:
+          summary: "AI p95 latency exceeds 3s"
+          description: "Provider {{ $labels.provider }} p95 latency: {{ $value }}ms"
+
+      - alert: "AIProviderErrorsSpike"
+        expr: "sum(rate(ai_provider_errors_total[5m])) > 0.5"
+        for: 5m
+        labels:
+          severity: warning
+          team: ai
+        annotations:
+          summary: "AI provider errors elevated"
+          description: "Error rate: {{ $value }} errors/s"
+
+      - alert: "HallucinationRateHigh"
+        expr: |
+          sum(rate(ai_hallucination_detected_total[5m]))
+          /
+          sum(rate(ai_requests_total{status="success"}[5m])) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+          team: ai
+        annotations:
+          summary: "Hallucination rate exceeds 1%"
+          description: "Hallucination rate: {{ $value | humanizePercentage }} of successful responses"
+
+      - alert: "LowCacheHitRatio"
+        expr: "sum(rate(cache_hits_total[5m])) / (sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m]))) < 0.8"
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Cache hit ratio below 80%"
+          description: "Current hit ratio: {{ $value | humanizePercentage }}"
+
+      - alert: "JobFailureRateHigh"
+        expr: "sum(rate(queue_job_failures_total[5m])) / sum(rate(queue_jobs_processed_total[5m])) > 0.05"
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Queue job failure rate exceeds 5%"
+          description: "Failure rate: {{ $value | humanizePercentage }}"
+
+      - alert: "EmailFailureRateHigh"
+        expr: "sum(rate(email_sent_total{status=\"error\"}[5m])) / sum(rate(email_sent_total[5m])) > 0.01"
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Email send failure rate exceeds 1%"
+          description: "Failure rate: {{ $value | humanizePercentage }}"
+
+      - alert: "DBOperationErrors"
+        expr: "sum(rate(db_operations_total{status=\"error\"}[5m])) > 0"
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Database operation errors detected"
+          description: "Non-zero DB error rate: {{ $value }} errors/s"
+
+      - alert: "DiskIOSpike"
+        expr: "disk_read_ops_per_second > 1000 or disk_write_ops_per_second > 1000"
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Disk I/O spike detected"
+          description: "Read: {{ $values.read }} ops/s, Write: {{ $values.write }} ops/s"
+
+      - alert: "SuspiciousActivity"
+        expr: "increase(suspicious_activities_total[5m]) > 0"
+        for: 1m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "Potential security event. Check logs."
+
+      - alert: "QueueDepthWarning"
+        expr: "sum(queue_depth) by (queue) > 20"
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Queue depth elevated"
+          description: "Queue {{ $labels.queue }} depth is {{ $value }}. May need attention."
+
+      - alert: "HighLoginFailureRate"
+        expr: "increase(user_login_failures_total[5m]) > 10"
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Multiple login failures detected"
+          description: "{{ $value }} login failures in the last 5 minutes. Possible brute force."
+
+      - alert: "FrontendLCPHigh"
+        expr: "histogram_quantile(0.75, sum(rate(resume_builder_frontend_metric_value_bucket{name=\"LCP\"}[1h])) by (le)) > 2500"
+        for: 10m
+        labels:
+          severity: warning
+          team: frontend
+        annotations:
+          summary: "Frontend LCP exceeds 2.5s (p75)"
+          description: "LCP p75 is {{ $value }}ms over the last hour"
+
+  #############################################################################
+  # SLO BURN-RATE — Multi-window, multi-burn-rate (fast + slow conditions)
+  #############################################################################
+  - name: "slo-burn-rate"
+    interval: 30s
+    rules:
+      - alert: "SLO_APIAvailability_BurnRate"
+        expr: |
+          (
+            sum(rate(http_errors_total{status_code=~"5.."}[1m]))
+            /
+            sum(rate(http_requests_total[1m]))
+          ) > 0.002
+          and on()
+          (
+            sum(rate(http_errors_total{status_code=~"5.."}[1h]))
+            /
+            sum(rate(http_requests_total[1h]))
+          ) > 0.001
+        for: 2m
+        labels:
+          severity: critical
+          slo: "API Availability (99.9%)"
+        annotations:
+          summary: "SLO burn rate exceeded for API availability"
+          description: "Fast burn (1m @ 2x) AND slow burn (1h @ 1x) both elevated. Error budget may be rapidly consumed."
+
+      - alert: "SLO_AISuccess_BurnRate"
+        expr: |
+          (
+            sum(rate(ai_requests_total{status!="success"}[1m]))
+            /
+            sum(rate(ai_requests_total[1m]))
+          ) > 0.10
+          and on()
+          (
+            sum(rate(ai_requests_total{status!="success"}[1h]))
+            /
+            sum(rate(ai_requests_total[1h]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          slo: "AI Provider Success (95%)"
+        annotations:
+          summary: "SLO burn rate exceeded for AI provider success"
+          description: "AI error rate elevated in both fast (1m) and slow (1h) windows."
+
+      - alert: "SLO_CacheHit_BurnRate"
+        expr: |
+          (
+            1 - sum(rate(cache_hits_total[1m])) / (sum(rate(cache_hits_total[1m])) + sum(rate(cache_misses_total[1m])))
+          ) > 0.40
+          and on()
+          (
+            1 - sum(rate(cache_hits_total[1h])) / (sum(rate(cache_hits_total[1h])) + sum(rate(cache_misses_total[1h])))
+          ) > 0.20
+        for: 2m
+        labels:
+          severity: warning
+          slo: "Cache Hit Rate (>80%)"
+        annotations:
+          summary: "SLO burn rate exceeded for cache hit ratio"
+          description: "Cache miss rate elevated in both windows. Expected hit ratio: >80%."

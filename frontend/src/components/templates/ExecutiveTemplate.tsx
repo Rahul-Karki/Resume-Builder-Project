@@ -101,6 +101,12 @@ const ExecutiveTemplate = memo(function ExecutiveTemplate({ data }: { data: Resu
           )}
         </div>
         <div className="exec-body" style={{ padding: `${pagePadding.split(" ")[0]} ${pagePadding.split(" ")[1]} 40px` }}>
+          {p.summary ? (
+          <div className="exec-section" style={{ marginBottom: sectionGap }}>
+            <div className="exec-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor, borderBottomColor: style.accentColor, borderBottomWidth: style.showDividers ? 2 : 0 }}>Professional Summary</div>
+            <div className="exec-summary">{renderTextWithLinks(p.summary)}</div>
+          </div>
+          ) : null}
           {sectionVisibility.experience && s.experience.length > 0 && (
           <div className="exec-section" style={{ marginBottom: sectionGap }}>
             <div className="exec-section-title" style={{ fontFamily: style.headingFont, color: style.accentColor, borderBottomColor: style.accentColor, borderBottomWidth: style.showDividers ? 2 : 0 }}>Professional Experience</div>
